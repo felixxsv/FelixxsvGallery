@@ -1,0 +1,756 @@
+const grid = document.getElementById("grid")
+const pagerTop = document.getElementById("pagerTop")
+const pagerBottom = document.getElementById("pagerBottom")
+const titleline = document.getElementById("titleline")
+
+const colBtns = document.getElementById("colBtns")
+const sidebar = document.getElementById("sidebar")
+const sideClose = document.getElementById("sideClose")
+const sideTab = document.getElementById("sideTab")
+
+const perPageSelect = document.getElementById("perPageSelect")
+const perPageValue = document.getElementById("perPageValue")
+const sortSelect = document.getElementById("sortSelect")
+const sortValue = document.getElementById("sortValue")
+
+const tagModeOr = document.getElementById("tagModeOr")
+const tagModeAnd = document.getElementById("tagModeAnd")
+const tagSelected = document.getElementById("tagSelected")
+const tagList = document.getElementById("tagList")
+const tagMore = document.getElementById("tagMore")
+
+const colorModeOr = document.getElementById("colorModeOr")
+const colorModeAnd = document.getElementById("colorModeAnd")
+const colorSelected = document.getElementById("colorSelected")
+const colorList = document.getElementById("colorList")
+
+const dateFrom = document.getElementById("dateFrom")
+const dateTo = document.getElementById("dateTo")
+const dateClear = document.getElementById("dateClear")
+
+const lb = document.getElementById("lightbox")
+const lbBg = document.getElementById("lbBg")
+const lbImg = document.getElementById("lbImg")
+const lbX = document.getElementById("lbX")
+const lbMeta = document.getElementById("lbMeta")
+const lbMoreBtn = document.getElementById("lbMore")
+
+const modal = document.getElementById("modal")
+const mBg = document.getElementById("mBg")
+const mX = document.getElementById("mX")
+const mBody = document.getElementById("mBody")
+
+const tagModal = document.getElementById("tagModal")
+const tmBg = document.getElementById("tmBg")
+const tmX = document.getElementById("tmX")
+const tmBody = document.getElementById("tmBody")
+
+let state = {
+  page: 1,
+  per_page: 100,
+  sort: "latest",
+  cols: 2,
+  items: [],
+  total: 0,
+  pages: 0,
+  currentId: null,
+  tagMode: "or",
+  selectedTags: [],
+  allTags: [],
+  tagsExpanded: false,
+  colorMode: "or",
+  selectedColors: [],
+  dateFrom: "",
+  dateTo: ""
+}
+
+const LS_COLS = "gallery_cols"
+const LS_PERPAGE = "gallery_per_page"
+
+let sidebarOpen = true
+let tabTimer = null
+
+let lbHideTimer = null
+let lbBarHideTimer = null
+let lbXHideTimer = null
+let lbTapToggle = false
+
+let PALETTE = [
+  { id: 1, name: "Red", hex: "#ff4b4b" },
+  { id: 2, name: "Orange", hex: "#ff9f1a" },
+  { id: 3, name: "Yellow", hex: "#ffd21a" },
+  { id: 4, name: "Green", hex: "#34d399" },
+  { id: 5, name: "Cyan", hex: "#22d3ee" },
+  { id: 6, name: "Blue", hex: "#60a5fa" },
+  { id: 7, name: "Purple", hex: "#a78bfa" },
+  { id: 8, name: "Pink", hex: "#fb7185" },
+  { id: 9, name: "White", hex: "#e5e7eb" },
+  { id: 10, name: "Black", hex: "#111827" }
+]
+
+function isMobile(){
+  return window.matchMedia("(max-width: 920px)").matches
+}
+
+function fmtShotAt(s){
+  if(!s) return ""
+  return s.replace(/-/g,"/").slice(0,16)
+}
+
+function applyCols(n){
+  state.cols = n
+  grid.classList.remove("cols-1","cols-2","cols-3")
+  grid.classList.add(`cols-${n}`)
+  for(const b of colBtns.querySelectorAll(".btn")){
+    b.classList.toggle("is-on", Number(b.dataset.cols)===n)
+  }
+}
+
+function setCols(n){
+  if(isMobile()){
+    applyCols(1)
+    return
+  }
+  const v = [1,2,3].includes(n) ? n : 2
+  localStorage.setItem(LS_COLS, String(v))
+  applyCols(v)
+}
+
+function clampPerPage(n){
+  return [50,100,150,200].includes(n) ? n : 100
+}
+
+function effectivePerPage(){
+  return isMobile() ? 50 : state.per_page
+}
+
+function openSidebar(){
+  sidebarOpen = true
+  sidebar.classList.remove("is-closed")
+  sideTab.classList.remove("is-on")
+}
+
+function closeSidebar(){
+  sidebarOpen = false
+  sidebar.classList.add("is-closed")
+}
+
+sideClose.addEventListener("click", closeSidebar)
+sideTab.addEventListener("click", openSidebar)
+
+document.addEventListener("mousemove", (e)=>{
+  if(sidebarOpen) return
+  if(e.clientX <= 10){
+    sideTab.classList.add("is-on")
+    if(tabTimer) clearTimeout(tabTimer)
+    tabTimer = null
+    return
+  }
+  if(sideTab.classList.contains("is-on") && !tabTimer){
+    tabTimer = setTimeout(()=>{ sideTab.classList.remove("is-on") }, 400)
+  }
+})
+
+function buildPager(target){
+  target.innerHTML = ""
+  const mk = (label, page, disabled=false)=>{
+    const a = document.createElement("button")
+    a.textContent = label
+    a.disabled = disabled
+    a.addEventListener("click", ()=>{ state.page = page; load() })
+    return a
+  }
+  const p = state.page
+  const max = state.pages || 1
+  target.appendChild(mk("<<", 1, p===1))
+  target.appendChild(mk("<", Math.max(1,p-1), p===1))
+  const start = Math.max(1, p-2)
+  const end = Math.min(max, p+2)
+  for(let i=start;i<=end;i++){
+    const b = mk(String(i), i, false)
+    if(i===p) b.classList.add("is-on")
+    target.appendChild(b)
+  }
+  target.appendChild(mk(">", Math.min(max,p+1), p===max))
+  target.appendChild(mk(">>", max, p===max))
+}
+
+function card(item){
+  const div = document.createElement("div")
+  div.className = "card"
+
+  const img = document.createElement("img")
+  img.src = "/gallery/storage/" + item.thumb_path_960
+  img.alt = item.title || ""
+  img.loading = "lazy"
+  img.addEventListener("click", ()=> openLightbox(item))
+
+  const bar = document.createElement("div")
+  bar.className = "bar"
+
+  const l = document.createElement("div")
+  l.className = "l"
+  const t = document.createElement("div")
+  t.className = "t"
+  t.textContent = item.title || ""
+  l.appendChild(t)
+
+  const r = document.createElement("div")
+  r.className = "r"
+  const d = document.createElement("div")
+  d.className = "d"
+  d.textContent = fmtShotAt(item.shot_at)
+
+  const more = document.createElement("button")
+  more.className = "more"
+  more.textContent = "…"
+  more.addEventListener("click", (e)=>{ e.stopPropagation(); openDetails(item.id) })
+
+  r.appendChild(d)
+  r.appendChild(more)
+
+  bar.appendChild(l)
+  bar.appendChild(r)
+
+  div.appendChild(img)
+  div.appendChild(bar)
+  return div
+}
+
+function buildQuery(){
+  const p = new URLSearchParams()
+  p.set("page", String(state.page))
+  p.set("per_page", String(effectivePerPage()))
+  p.set("sort", state.sort)
+
+  if(state.selectedTags.length > 0){
+    const v = state.selectedTags.join(",")
+    if(state.tagMode === "and") p.set("tags_all", v)
+    else p.set("tags_any", v)
+  }
+
+  if(state.selectedColors.length > 0){
+    const v = state.selectedColors.join(",")
+    if(state.colorMode === "and") p.set("colors_all", v)
+    else p.set("colors_any", v)
+  }
+
+  if(state.dateFrom) p.set("date_from", state.dateFrom)
+  if(state.dateTo) p.set("date_to", state.dateTo)
+
+  return p.toString()
+}
+
+async function load(){
+  const url = `/gallery/api/images?${buildQuery()}`
+  const res = await fetch(url, {cache:"no-store"})
+  const data = await res.json()
+
+  state.items = data.items
+  state.total = data.total
+  state.pages = data.pages
+
+  titleline.textContent = `All Images (${state.total})`
+
+  grid.innerHTML = ""
+  for(const it of state.items){
+    grid.appendChild(card(it))
+  }
+
+  if(!isMobile()){
+    buildPager(pagerTop)
+  }else{
+    pagerTop.innerHTML = ""
+  }
+  buildPager(pagerBottom)
+}
+
+function closeSelect(sel){
+  sel.classList.remove("is-open")
+  sel.querySelector(".cselect__btn").setAttribute("aria-expanded","false")
+}
+
+function openSelect(sel){
+  if(sel.classList.contains("is-disabled")) return
+  const isOpen = sel.classList.contains("is-open")
+  closeSelect(perPageSelect)
+  closeSelect(sortSelect)
+  if(!isOpen){
+    sel.classList.add("is-open")
+    sel.querySelector(".cselect__btn").setAttribute("aria-expanded","true")
+  }
+}
+
+perPageSelect.querySelector(".cselect__btn").addEventListener("click", ()=> openSelect(perPageSelect))
+sortSelect.querySelector(".cselect__btn").addEventListener("click", ()=> openSelect(sortSelect))
+
+document.addEventListener("click", (e)=>{
+  const inSelect = e.target.closest(".cselect")
+  if(!inSelect){
+    closeSelect(perPageSelect)
+    closeSelect(sortSelect)
+  }
+})
+
+perPageSelect.addEventListener("click", (e)=>{
+  const opt = e.target.closest(".cselect__opt")
+  if(!opt) return
+  if(perPageSelect.classList.contains("is-disabled")) return
+  const v = clampPerPage(Number(opt.dataset.value))
+  state.per_page = v
+  localStorage.setItem(LS_PERPAGE, String(v))
+  perPageValue.textContent = String(v)
+  perPageSelect.querySelectorAll(".cselect__opt").forEach(b=>b.classList.toggle("is-on", b.dataset.value===String(v)))
+  closeSelect(perPageSelect)
+  state.page = 1
+  load()
+})
+
+sortSelect.addEventListener("click", (e)=>{
+  const opt = e.target.closest(".cselect__opt")
+  if(!opt) return
+  const v = opt.dataset.value
+  state.sort = v
+  sortValue.textContent = v === "oldest" ? "Oldest" : "Latest"
+  sortSelect.querySelectorAll(".cselect__opt").forEach(b=>b.classList.toggle("is-on", b.dataset.value===v))
+  closeSelect(sortSelect)
+  state.page = 1
+  load()
+})
+
+function setTagMode(mode){
+  state.tagMode = mode
+  tagModeOr.classList.toggle("is-on", mode === "or")
+  tagModeAnd.classList.toggle("is-on", mode === "and")
+  state.page = 1
+  load()
+}
+tagModeOr.addEventListener("click", ()=> setTagMode("or"))
+tagModeAnd.addEventListener("click", ()=> setTagMode("and"))
+
+function toggleTag(tag){
+  const idx = state.selectedTags.indexOf(tag)
+  if(idx >= 0) state.selectedTags.splice(idx, 1)
+  else state.selectedTags.push(tag)
+  renderSelectedTags()
+  renderTagList()
+  state.page = 1
+  load()
+}
+
+function renderSelectedTags(){
+  tagSelected.innerHTML = ""
+  for(const t of state.selectedTags){
+    const chip = document.createElement("div")
+    chip.className = "chip"
+    const span = document.createElement("span")
+    span.textContent = t
+    const x = document.createElement("button")
+    x.className = "x"
+    x.type = "button"
+    x.textContent = "×"
+    x.addEventListener("click", ()=> toggleTag(t))
+    chip.appendChild(span)
+    chip.appendChild(x)
+    tagSelected.appendChild(chip)
+  }
+}
+
+function renderTagList(){
+  tagList.innerHTML = ""
+  const items = state.allTags || []
+  const limit = state.tagsExpanded ? items.length : Math.min(10, items.length)
+
+  for(let i=0;i<limit;i++){
+    const it = items[i]
+    const b = document.createElement("button")
+    b.type = "button"
+    b.className = "tagitem"
+    b.title = it.name
+
+    const name = document.createElement("span")
+    name.className = "tagname"
+    name.textContent = it.name
+
+    const cnt = document.createElement("span")
+    cnt.className = "tagcount"
+    cnt.textContent = String(it.c)
+
+    b.appendChild(name)
+    b.appendChild(cnt)
+
+    b.classList.toggle("is-on", state.selectedTags.includes(it.name))
+    b.addEventListener("click", ()=> toggleTag(it.name))
+    tagList.appendChild(b)
+  }
+
+  if(items.length > 10){
+    tagMore.style.display = "block"
+    tagMore.textContent = state.tagsExpanded ? "Less" : "More"
+  }else{
+    tagMore.style.display = "none"
+  }
+}
+tagMore.addEventListener("click", ()=>{
+  state.tagsExpanded = !state.tagsExpanded
+  renderTagList()
+})
+
+async function loadTags(){
+  const res = await fetch("/gallery/api/tags?limit=200", {cache:"no-store"})
+  const data = await res.json()
+  state.allTags = data.items || []
+  renderTagList()
+}
+
+function setColorMode(mode){
+  state.colorMode = mode
+  colorModeOr.classList.toggle("is-on", mode === "or")
+  colorModeAnd.classList.toggle("is-on", mode === "and")
+  state.page = 1
+  load()
+}
+colorModeOr.addEventListener("click", ()=> setColorMode("or"))
+colorModeAnd.addEventListener("click", ()=> setColorMode("and"))
+
+function toggleColor(id){
+  const idx = state.selectedColors.indexOf(id)
+  if(idx >= 0) state.selectedColors.splice(idx, 1)
+  else state.selectedColors.push(id)
+  renderSelectedColors()
+  renderColorList()
+  state.page = 1
+  load()
+}
+
+function renderSelectedColors(){
+  colorSelected.innerHTML = ""
+  for(const id of state.selectedColors){
+    const c = PALETTE.find(x=>Number(x.id)===Number(id))
+    if(!c) continue
+    const chip = document.createElement("div")
+    chip.className = "cchip"
+    const dot = document.createElement("span")
+    dot.className = "dot"
+    dot.style.background = c.hex
+    const name = document.createElement("span")
+    name.textContent = c.name
+    const x = document.createElement("button")
+    x.className = "x"
+    x.type = "button"
+    x.textContent = "×"
+    x.addEventListener("click", ()=> toggleColor(Number(id)))
+    chip.appendChild(dot)
+    chip.appendChild(name)
+    chip.appendChild(x)
+    colorSelected.appendChild(chip)
+  }
+}
+
+function renderColorList(){
+  colorList.innerHTML = ""
+  for(const c of PALETTE){
+    const b = document.createElement("button")
+    b.type = "button"
+    b.className = "coloritem"
+    b.title = c.name
+    b.classList.toggle("is-on", state.selectedColors.includes(Number(c.id)))
+    const dot = document.createElement("span")
+    dot.className = "cdot"
+    dot.style.background = c.hex
+    b.appendChild(dot)
+    b.addEventListener("click", ()=> toggleColor(Number(c.id)))
+    colorList.appendChild(b)
+  }
+}
+
+async function loadPalette(){
+  try:
+    const res = await fetch("/gallery/api/palette", {cache:"no-store"})
+    const data = await res.json()
+    const items = data.items || []
+    if(Array.isArray(items) && items.length > 0){
+      PALETTE = items.map(x=>({id:Number(x.id), name:String(x.name), hex:String(x.hex)}))
+    }
+  } catch (e) {}
+  renderColorList()
+  renderSelectedColors()
+}
+
+function normalizeDates(){
+  if(state.dateFrom && state.dateTo && state.dateFrom > state.dateTo){
+    const tmp = state.dateFrom
+    state.dateFrom = state.dateTo
+    state.dateTo = tmp
+    dateFrom.value = state.dateFrom
+    dateTo.value = state.dateTo
+  }
+}
+
+dateFrom.addEventListener("change", ()=>{
+  state.dateFrom = dateFrom.value || ""
+  normalizeDates()
+  state.page = 1
+  load()
+})
+dateTo.addEventListener("change", ()=>{
+  state.dateTo = dateTo.value || ""
+  normalizeDates()
+  state.page = 1
+  load()
+})
+dateClear.addEventListener("click", ()=>{
+  state.dateFrom = ""
+  state.dateTo = ""
+  dateFrom.value = ""
+  dateTo.value = ""
+  state.page = 1
+  load()
+})
+
+function lbClearTimers(){
+  if(lbHideTimer) clearTimeout(lbHideTimer)
+  if(lbBarHideTimer) clearTimeout(lbBarHideTimer)
+  if(lbXHideTimer) clearTimeout(lbXHideTimer)
+  lbHideTimer = null
+  lbBarHideTimer = null
+  lbXHideTimer = null
+}
+
+function lbHideAll(){
+  lb.classList.remove("show-bar","show-x")
+  lb.classList.add("cursor-hidden")
+}
+
+function lbShowX(){
+  lb.classList.add("show-x")
+  lb.classList.remove("cursor-hidden")
+  if(lbXHideTimer) clearTimeout(lbXHideTimer)
+  lbXHideTimer = setTimeout(()=>{ lb.classList.remove("show-x") }, 1000)
+}
+
+function lbShowBar(){
+  lb.classList.add("show-bar")
+  lb.classList.remove("cursor-hidden")
+  if(lbBarHideTimer) clearTimeout(lbBarHideTimer)
+  lbBarHideTimer = setTimeout(()=>{ lb.classList.remove("show-bar") }, 1000)
+}
+
+function lbShowByMove(e){
+  lb.classList.remove("cursor-hidden")
+  const w = window.innerWidth
+  const h = window.innerHeight
+  const inBottom = e.clientY >= (h - 140)
+  const inTopRight = (e.clientX >= (w - 90) && e.clientY <= 90)
+  if(inBottom) lbShowBar()
+  if(inTopRight) lbShowX()
+  if(lbHideTimer) clearTimeout(lbHideTimer)
+  lbHideTimer = setTimeout(lbHideAll, 2500)
+}
+
+function openLightbox(item){
+  state.currentId = item.id
+  lbImg.src = "/gallery/media/original/" + item.id
+  lbMeta.textContent = fmtShotAt(item.shot_at)
+  lb.classList.add("is-on")
+  lb.classList.add("show-bar","show-x")
+  lb.classList.remove("cursor-hidden")
+  lb.setAttribute("aria-hidden","false")
+  lbClearTimers()
+  lbHideTimer = setTimeout(lbHideAll, 2000)
+  lbTapToggle = true
+}
+
+function closeLightbox(){
+  lbClearTimers()
+  lb.classList.remove("is-on","show-bar","show-x","cursor-hidden")
+  lb.setAttribute("aria-hidden","true")
+  lbImg.removeAttribute("src")
+  state.currentId = null
+}
+
+lbX.addEventListener("click", closeLightbox)
+lbBg.addEventListener("click", closeLightbox)
+
+lb.addEventListener("mousemove", (e)=>{
+  if(!lb.classList.contains("is-on")) return
+  if(isMobile()) return
+  lbShowByMove(e)
+})
+
+lb.addEventListener("touchstart", ()=>{
+  if(!lb.classList.contains("is-on")) return
+  if(!isMobile()) return
+  if(lbTapToggle){
+    lb.classList.remove("show-bar","show-x")
+    lbTapToggle = false
+    return
+  }
+  lb.classList.add("show-bar","show-x")
+  lbTapToggle = true
+  if(lbHideTimer) clearTimeout(lbHideTimer)
+  lbHideTimer = setTimeout(()=>{ lb.classList.remove("show-bar","show-x") }, 2000)
+})
+
+function openTagModal(tags){
+  tmBody.innerHTML = ""
+  for(const t of tags){
+    const chip = document.createElement("div")
+    chip.className = "tagmini"
+    chip.textContent = t
+    tmBody.appendChild(chip)
+  }
+  tagModal.classList.add("is-on")
+  tagModal.setAttribute("aria-hidden","false")
+}
+
+function closeTagModal(){
+  tagModal.classList.remove("is-on")
+  tagModal.setAttribute("aria-hidden","true")
+  tmBody.innerHTML = ""
+}
+
+tmX.addEventListener("click", closeTagModal)
+tmBg.addEventListener("click", closeTagModal)
+
+async function openDetails(id){
+  const res = await fetch(`/gallery/api/images/${id}`, {cache:"no-store"})
+  const data = await res.json()
+
+  const tags = data.tags || []
+
+  mBody.innerHTML = ""
+
+  const mkRow = (k)=>{
+    const row = document.createElement("div")
+    row.className = "row"
+    const kk = document.createElement("div")
+    kk.className = "k"
+    kk.textContent = k
+    const vv = document.createElement("div")
+    vv.className = "v"
+    row.appendChild(kk)
+    row.appendChild(vv)
+    mBody.appendChild(row)
+    return vv
+  }
+
+  const vTitle = mkRow("Title")
+  vTitle.textContent = data.title || ""
+
+  const vAlt = mkRow("Alt")
+  vAlt.textContent = data.alt || ""
+
+  const vDate = mkRow("Date")
+  vDate.textContent = fmtShotAt(data.shot_at)
+
+  const vRes = mkRow("Resolution")
+  vRes.textContent = `${data.width}x${data.height}`
+
+  const vFmt = mkRow("Format")
+  vFmt.textContent = data.format || ""
+
+  const vTags = mkRow("Tags")
+  if(tags.length > 0){
+    const shown = tags.slice(0, 6)
+    for(const t of shown){
+      const chip = document.createElement("div")
+      chip.className = "tagmini"
+      chip.textContent = t
+      vTags.appendChild(chip)
+    }
+    if(tags.length > 6){
+      const more = document.createElement("button")
+      more.type = "button"
+      more.className = "tagmini more"
+      more.textContent = "+more"
+      more.addEventListener("click", ()=> openTagModal(tags))
+      vTags.appendChild(more)
+    }
+  }
+
+  const vColors = mkRow("Colors")
+  const colors = (data.colors || []).map(c=>`${c.color_id}:${Number(c.ratio).toFixed(2)}`).join(" ")
+  vColors.textContent = colors
+
+  modal.classList.add("is-on")
+  modal.setAttribute("aria-hidden","false")
+}
+
+function closeModal(){
+  modal.classList.remove("is-on")
+  modal.setAttribute("aria-hidden","true")
+  mBody.innerHTML = ""
+}
+
+mX.addEventListener("click", ()=>{
+  if(tagModal.classList.contains("is-on")){
+    closeTagModal()
+    return
+  }
+  closeModal()
+})
+
+mBg.addEventListener("click", ()=>{
+  if(tagModal.classList.contains("is-on")){
+    closeTagModal()
+    return
+  }
+  closeModal()
+})
+
+lbMoreBtn.addEventListener("click", ()=>{ if(state.currentId) openDetails(state.currentId) })
+
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape"){
+    if(tagModal.classList.contains("is-on")) closeTagModal()
+    else if(modal.classList.contains("is-on")) closeModal()
+    else if(lb.classList.contains("is-on")) closeLightbox()
+  }
+  if(e.key.toLowerCase()==="i"){
+    if(lb.classList.contains("is-on") && state.currentId){
+      openDetails(state.currentId)
+    }
+  }
+})
+
+if(colBtns){
+  colBtns.addEventListener("click", (e)=>{
+    const b = e.target.closest("[data-cols]")
+    if(!b) return
+    setCols(Number(b.dataset.cols))
+  })
+}
+
+function init(){
+  const savedCols = Number(localStorage.getItem(LS_COLS) || "2")
+  const savedPer = Number(localStorage.getItem(LS_PERPAGE) || "100")
+
+  if(isMobile()){
+    applyCols(1)
+    perPageSelect.classList.add("is-disabled")
+    perPageValue.textContent = "50"
+    perPageSelect.querySelectorAll(".cselect__opt").forEach(b=>b.classList.toggle("is-on", b.dataset.value==="50"))
+  }else{
+    applyCols([1,2,3].includes(savedCols) ? savedCols : 2)
+    const v = clampPerPage(savedPer)
+    state.per_page = v
+    perPageValue.textContent = String(v)
+    perPageSelect.querySelectorAll(".cselect__opt").forEach(b=>b.classList.toggle("is-on", b.dataset.value===String(v)))
+    perPageSelect.classList.remove("is-disabled")
+  }
+
+  state.sort = "latest"
+  sortValue.textContent = "Latest"
+  sortSelect.querySelectorAll(".cselect__opt").forEach(b=>b.classList.toggle("is-on", b.dataset.value==="latest"))
+
+  loadPalette()
+  loadTags().then(()=> {
+    renderSelectedTags()
+    renderTagList()
+  })
+
+  load()
+}
+
+init()
