@@ -90,6 +90,8 @@ let lbBarHideTimer = null
 let lbXHideTimer = null
 let lbTapToggle = true
 
+const viewedOnce = new Set()
+
 function isMobile() {
   return window.matchMedia("(max-width: 920px)").matches
 }
@@ -139,6 +141,14 @@ async function fetchJson(url) {
     throw new Error(`non-json response: ${res.status} ${ct} head=${txt.slice(0, 80)}`)
   }
   return await res.json()
+}
+
+function recordViewOnce(imageId) {
+  const id = Number(imageId)
+  if (!id) return
+  if (viewedOnce.has(id)) return
+  viewedOnce.add(id)
+  fetch(`/gallery/api/images/${id}/view`, { method: "POST", keepalive: true }).catch(() => {})
 }
 
 function applyCols(n) {
@@ -296,7 +306,7 @@ async function load() {
     else if (pagerTop) pagerTop.innerHTML = ""
     buildPager(pagerBottom)
   } catch (e) {
-    showFatal(`APIがJSONを返していません。/gallery/api のリダイレクト(301)やProxy設定を確認してください。 detail=${String(e)}`)
+    showFatal(`APIがJSONを返していません。/gallery/api のProxyや301を確認してください。 detail=${String(e)}`)
     if (grid) grid.innerHTML = ""
     if (pagerTop) pagerTop.innerHTML = ""
     if (pagerBottom) pagerBottom.innerHTML = ""
@@ -606,6 +616,7 @@ function openLightbox(item) {
   lbClearTimers()
   lbHideTimer = setTimeout(lbHideAll, 2000)
   lbTapToggle = true
+  recordViewOnce(item.id)
 }
 
 function closeLightbox() {

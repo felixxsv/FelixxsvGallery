@@ -67,6 +67,61 @@ def cache_path(cache_root: Path, image_id: int, ext: str) -> Path:
     return cache_root / s[0:2] / s[2:4] / s[4:6] / f"{image_id}.{ext}"
 
 
+def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    r, g, b = rgb
+    r = 0 if r < 0 else 255 if r > 255 else r
+    g = 0 if g < 0 else 255 if g > 255 else g
+    b = 0 if b < 0 else 255 if b > 255 else b
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _default_palette() -> list[dict]:
+    base = [
+        (1, "Red", (255, 75, 75)),
+        (2, "Orange", (255, 159, 26)),
+        (3, "Yellow", (255, 210, 26)),
+        (4, "Green", (52, 211, 153)),
+        (5, "Cyan", (34, 211, 238)),
+        (6, "Blue", (96, 165, 250)),
+        (7, "Purple", (167, 139, 250)),
+        (8, "Pink", (251, 113, 133)),
+        (9, "White", (229, 231, 235)),
+        (10, "Black", (17, 24, 39)),
+    ]
+    out = []
+    for cid, name, rgb in base:
+        out.append({"id": cid, "name": name, "hex": _rgb_to_hex(rgb)})
+    return out
+
+
+def _palette_from_conf(conf: dict) -> list[dict]:
+    colors = conf.get("colors") or {}
+    pal = colors.get("palette")
+    if not pal:
+        return _default_palette()
+
+    out: list[dict] = []
+    for item in pal:
+        try:
+            cid = int(item["id"])
+            name = str(item.get("name") or f"c{cid}")
+            rgb = item.get("rgb")
+            if not isinstance(rgb, (list, tuple)) or len(rgb) != 3:
+                continue
+            r = int(rgb[0])
+            g = int(rgb[1])
+            b = int(rgb[2])
+            out.append({"id": cid, "name": name, "hex": _rgb_to_hex((r, g, b))})
+        except Exception:
+            continue
+
+    if not out:
+        return _default_palette()
+
+    out.sort(key=lambda x: int(x["id"]))
+    return out
+
+
 app = FastAPI()
 
 CONF_PATH = os.environ.get("GALLERY_CONFIG", "/etc/felixxsv-gallery/gallery.conf")
@@ -79,6 +134,11 @@ CACHE_ROOT = Path(CONF["paths"]["original_cache_root"])
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/api/palette")
+def palette():
+    return {"items": _palette_from_conf(CONF)}
 
 
 def build_tag_filter_sql(gallery: str, tags_any: list[str], tags_all: list[str]) -> tuple[str, list]:
@@ -116,7 +176,7 @@ def build_tag_filter_sql(gallery: str, tags_any: list[str], tags_all: list[str])
     return " AND " + " AND ".join(clauses), params
 
 
-def build_color_filter_sql(gallery: str, colors_any: list[int], colors_all: list[int]) -> tuple[str, list]:
+def build_color_filter_sql(colors_any: list[int], colors_all: list[int]) -> tuple[str, list]:
     clauses: list[str] = []
     params: list = []
 
@@ -179,25 +239,32 @@ def list_images(
 ):
     per_page = clamp_per_page(per_page)
     offset = (page - 1) * per_page
-    order = "DESC" if sort.lower() != "oldest" else "ASC"
 
     tags_any_list = parse_csv_strs(tags_any)
     tags_all_list = parse_csv_strs(tags_all)
-
     colors_any_list = parse_csv_ints(colors_any)
     colors_all_list = parse_csv_ints(colors_all)
 
     tag_sql, tag_params = build_tag_filter_sql(GALLERY, tags_any_list, tags_all_list)
-    color_sql, color_params = build_color_filter_sql(GALLERY, colors_any_list, colors_all_list)
+    color_sql, color_params = build_color_filter_sql(colors_any_list, colors_all_list)
     date_sql, date_params = build_date_filter_sql(date_from, date_to)
 
     where_extra_sql = f"{tag_sql}{color_sql}{date_sql}"
     where_extra_params = [*tag_params, *color_params, *date_params]
 
+    if sort.lower() == "popular":
+        order_sql = "ORDER BY COALESCE(st.view_count,0) DESC, i.shot_at DESC"
+        join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+    else:
+        order = "DESC" if sort.lower() != "oldest" else "ASC"
+        order_sql = f"ORDER BY i.shot_at {order}"
+        join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+
     sql_count = f"""
 SELECT COUNT(*)
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+{join_stats}
 WHERE i.gallery=%s
 {where_extra_sql}
 """
@@ -205,12 +272,14 @@ WHERE i.gallery=%s
     sql_list = f"""
 SELECT
   i.id, i.shot_at, i.title, i.alt, i.width, i.height, i.format,
-  i.thumb_path_480, i.thumb_path_960, i.preview_path
+  i.thumb_path_480, i.thumb_path_960, i.preview_path,
+  COALESCE(st.view_count,0) AS view_count
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+{join_stats}
 WHERE i.gallery=%s
 {where_extra_sql}
-ORDER BY i.shot_at {order}
+{order_sql}
 LIMIT %s OFFSET %s
 """
 
@@ -229,6 +298,21 @@ LIMIT %s OFFSET %s
         conn.close()
 
 
+@app.post("/api/images/{image_id}/view")
+def inc_view(image_id: int):
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO image_stats (image_id, view_count) VALUES (%s, 1) "
+                "ON DUPLICATE KEY UPDATE view_count=view_count+1",
+                (image_id,),
+            )
+        return {"ok": True}
+    finally:
+        conn.close()
+
+
 @app.get("/api/images/{image_id}")
 def get_image(image_id: int):
     conn = db_conn(CONF)
@@ -238,8 +322,12 @@ def get_image(image_id: int):
                 """
 SELECT
   i.id, i.shot_at, i.title, i.alt, i.width, i.height, i.format,
-  i.thumb_path_480, i.thumb_path_960, i.preview_path
+  i.thumb_path_480, i.thumb_path_960, i.preview_path,
+  COALESCE(st.view_count,0) AS view_count,
+  COALESCE(st.like_count,0) AS like_count,
+  COALESCE(st.x_like_count,0) AS x_like_count
 FROM images i
+LEFT JOIN image_stats st ON st.image_id=i.id
 WHERE i.gallery=%s AND i.id=%s
 """,
                 (GALLERY, image_id),
