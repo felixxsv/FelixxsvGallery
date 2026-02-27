@@ -103,14 +103,16 @@
 
           <div class="sortwrap">
             <div class="sortlabel">Sort</div>
-            <div class="cselect cselect--compact" id="sortSelect">
-              <button class="cselect__btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <div class="cselect" id="sortSelect">
+              <button class="cselect__btn" type="button" aria-expanded="false">
+                <span class="cselect__label">Sort</span>
                 <span class="cselect__value" id="sortValue">Latest</span>
                 <span class="cselect__chev">▾</span>
               </button>
-              <div class="cselect__menu" role="listbox">
-                <button class="cselect__opt" type="button" data-value="latest">Latest</button>
-                <button class="cselect__opt" type="button" data-value="oldest">Oldest</button>
+              <div class="cselect__menu" role="menu">
+                <button class="cselect__opt is-on" data-value="latest" type="button">Latest</button>
+                <button class="cselect__opt" data-value="oldest" type="button">Oldest</button>
+                <button class="cselect__opt" data-value="popular" type="button">Popular</button>
               </div>
             </div>
           </div>

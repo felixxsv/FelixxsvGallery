@@ -360,7 +360,7 @@ function initSelects() {
       if (!opt) return
       const v = opt.dataset.value
       state.sort = v
-      if (sortValue) sortValue.textContent = v === "oldest" ? "Oldest" : "Latest"
+      if (sortValue) sortValue.textContent = v === "oldest" ? "Oldest" : (v === "popular" ? "Popular" : "Latest")
       sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === v))
       closeSelect(sortSelect)
       state.page = 1
