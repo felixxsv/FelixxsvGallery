@@ -92,6 +92,12 @@ let lbTapToggle = true
 
 const viewedOnce = new Set()
 
+const LS_VIEWED = "gallery_viewed_v1"
+const VIEW_TTL_MS = 24 * 60 * 60 * 1000
+const VIEW_MAX = 3000
+
+let viewedCache = null
+
 function isMobile() {
   return window.matchMedia("(max-width: 920px)").matches
 }
@@ -143,11 +149,73 @@ async function fetchJson(url) {
   return await res.json()
 }
 
+function loadViewedCache() {
+  if (viewedCache !== null) return viewedCache
+  try {
+    const raw = localStorage.getItem(LS_VIEWED)
+    if (!raw) {
+      viewedCache = {}
+      return viewedCache
+    }
+    const obj = JSON.parse(raw)
+    if (!obj || typeof obj !== "object") {
+      viewedCache = {}
+      return viewedCache
+    }
+    viewedCache = obj
+    return viewedCache
+  } catch (e) {
+    viewedCache = {}
+    return viewedCache
+  }
+}
+
+function saveViewedCache(obj) {
+  try {
+    localStorage.setItem(LS_VIEWED, JSON.stringify(obj))
+  } catch (e) {}
+}
+
+function pruneViewedCache(obj) {
+  const now = Date.now()
+  const entries = []
+  for (const k in obj) {
+    const ts = Number(obj[k])
+    if (!Number.isFinite(ts)) continue
+    if (now - ts > VIEW_TTL_MS) continue
+    entries.push([k, ts])
+  }
+  entries.sort((a, b) => b[1] - a[1])
+  const kept = entries.slice(0, VIEW_MAX)
+  const out = {}
+  for (const [k, ts] of kept) out[k] = ts
+  viewedCache = out
+  saveViewedCache(out)
+  return out
+}
+
 function recordViewOnce(imageId) {
   const id = Number(imageId)
   if (!id) return
+
   if (viewedOnce.has(id)) return
+
+  const now = Date.now()
+  let cache = loadViewedCache()
+  cache = pruneViewedCache(cache)
+
+  const key = String(id)
+  const last = Number(cache[key] || 0)
+
+  if (last && (now - last) <= VIEW_TTL_MS) {
+    viewedOnce.add(id)
+    return
+  }
+
   viewedOnce.add(id)
+  cache[key] = now
+  saveViewedCache(cache)
+
   fetch(`/gallery/api/images/${id}/view`, { method: "POST", keepalive: true }).catch(() => {})
 }
 
