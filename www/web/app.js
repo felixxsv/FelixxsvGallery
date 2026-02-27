@@ -754,6 +754,15 @@ async function openDetails(id) {
     const vFmt = mkRow("Format")
     vFmt.textContent = data.format || ""
 
+    const vViews = mkRow("Views")
+    vViews.textContent = String(data.view_count ?? 0)
+
+    const vLikes = mkRow("Likes")
+    vLikes.textContent = String(data.like_count ?? 0)
+
+    const vXLikes = mkRow("X Likes")
+    vXLikes.textContent = String(data.x_like_count ?? 0)
+
     const vTags = mkRow("Tags")
     if (tags.length > 0) {
       const shown = tags.slice(0, 6)
