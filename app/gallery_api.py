@@ -88,10 +88,7 @@ def _default_palette() -> list[dict]:
         (9, "White", (229, 231, 235)),
         (10, "Black", (17, 24, 39)),
     ]
-    out = []
-    for cid, name, rgb in base:
-        out.append({"id": cid, "name": name, "hex": _rgb_to_hex(rgb)})
-    return out
+    return [{"id": cid, "name": name, "hex": _rgb_to_hex(rgb)} for cid, name, rgb in base]
 
 
 def _palette_from_conf(conf: dict) -> list[dict]:
@@ -120,25 +117,6 @@ def _palette_from_conf(conf: dict) -> list[dict]:
 
     out.sort(key=lambda x: int(x["id"]))
     return out
-
-
-app = FastAPI()
-
-CONF_PATH = os.environ.get("GALLERY_CONFIG", "/etc/felixxsv-gallery/gallery.conf")
-CONF = load_conf(CONF_PATH)
-GALLERY = CONF["app"]["gallery"]
-SOURCE_ROOT = Path(CONF["paths"]["source_root"])
-CACHE_ROOT = Path(CONF["paths"]["original_cache_root"])
-
-
-@app.get("/api/health")
-def health():
-    return {"ok": True}
-
-
-@app.get("/api/palette")
-def palette():
-    return {"items": _palette_from_conf(CONF)}
 
 
 def build_tag_filter_sql(gallery: str, tags_any: list[str], tags_all: list[str]) -> tuple[str, list]:
@@ -225,6 +203,25 @@ def build_date_filter_sql(date_from: str | None, date_to: str | None) -> tuple[s
     return " AND " + " AND ".join(clauses), params
 
 
+app = FastAPI()
+
+CONF_PATH = os.environ.get("GALLERY_CONFIG", "/etc/felixxsv-gallery/gallery.conf")
+CONF = load_conf(CONF_PATH)
+GALLERY = CONF["app"]["gallery"]
+SOURCE_ROOT = Path(CONF["paths"]["source_root"])
+CACHE_ROOT = Path(CONF["paths"]["original_cache_root"])
+
+
+@app.get("/api/health")
+def health():
+    return {"ok": True}
+
+
+@app.get("/api/palette")
+def palette():
+    return {"items": _palette_from_conf(CONF)}
+
+
 @app.get("/api/images")
 def list_images(
     page: int = Query(1, ge=1),
@@ -252,13 +249,16 @@ def list_images(
     where_extra_sql = f"{tag_sql}{color_sql}{date_sql}"
     where_extra_params = [*tag_params, *color_params, *date_params]
 
-    if sort.lower() == "popular":
+    sort_key = (sort or "latest").lower()
+
+    join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+
+    if sort_key == "popular":
         order_sql = "ORDER BY COALESCE(st.view_count,0) DESC, i.shot_at DESC"
-        join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+    elif sort_key == "oldest":
+        order_sql = "ORDER BY i.shot_at ASC"
     else:
-        order = "DESC" if sort.lower() != "oldest" else "ASC"
-        order_sql = f"ORDER BY i.shot_at {order}"
-        join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+        order_sql = "ORDER BY i.shot_at DESC"
 
     sql_count = f"""
 SELECT COUNT(*)
