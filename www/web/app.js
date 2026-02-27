@@ -30,6 +30,9 @@ const dateFrom = el("dateFrom")
 const dateTo = el("dateTo")
 const dateClear = el("dateClear")
 
+const searchInput = el("searchInput")
+const searchClear = el("searchClear")
+
 const lb = el("lightbox")
 const lbBg = el("lbBg")
 const lbImg = el("lbImg")
@@ -49,6 +52,14 @@ const tmBody = el("tmBody")
 
 const LS_COLS = "gallery_cols"
 const LS_PERPAGE = "gallery_per_page"
+const LS_SORT = "gallery_sort"
+const LS_SEARCH = "gallery_search"
+
+const LS_VIEWED = "gallery_viewed_v1"
+const VIEW_TTL_MS = 24 * 60 * 60 * 1000
+const VIEW_MAX = 3000
+
+let viewedCache = null
 
 let PALETTE = [
   { id: 1, name: "Red", hex: "#ff4b4b" },
@@ -79,7 +90,8 @@ let state = {
   colorMode: "or",
   selectedColors: [],
   dateFrom: "",
-  dateTo: ""
+  dateTo: "",
+  q: ""
 }
 
 let sidebarOpen = true
@@ -91,12 +103,6 @@ let lbXHideTimer = null
 let lbTapToggle = true
 
 const viewedOnce = new Set()
-
-const LS_VIEWED = "gallery_viewed_v1"
-const VIEW_TTL_MS = 24 * 60 * 60 * 1000
-const VIEW_MAX = 3000
-
-let viewedCache = null
 
 function isMobile() {
   return window.matchMedia("(max-width: 920px)").matches
@@ -197,7 +203,6 @@ function pruneViewedCache(obj) {
 function recordViewOnce(imageId) {
   const id = Number(imageId)
   if (!id) return
-
   if (viewedOnce.has(id)) return
 
   const now = Date.now()
@@ -290,6 +295,9 @@ function buildQuery() {
   p.set("per_page", String(effectivePerPage()))
   p.set("sort", state.sort)
 
+  const q = (state.q || "").trim()
+  if (q) p.set("q", q)
+
   if (state.selectedTags.length > 0) {
     const v = state.selectedTags.join(",")
     if (state.tagMode === "and") p.set("tags_all", v)
@@ -374,7 +382,7 @@ async function load() {
     else if (pagerTop) pagerTop.innerHTML = ""
     buildPager(pagerBottom)
   } catch (e) {
-    showFatal(`APIがJSONを返していません。/gallery/api のProxyや301を確認してください。 detail=${String(e)}`)
+    showFatal(`API取得に失敗しました detail=${String(e)}`)
     if (grid) grid.innerHTML = ""
     if (pagerTop) pagerTop.innerHTML = ""
     if (pagerBottom) pagerBottom.innerHTML = ""
@@ -428,7 +436,7 @@ function initSelects() {
       if (!opt) return
       const v = opt.dataset.value
       state.sort = v
-      localStorage.setItem("gallery_sort", String(v))
+      localStorage.setItem(LS_SORT, String(v))
       if (sortValue) sortValue.textContent = v === "oldest" ? "Oldest" : (v === "popular" ? "Popular" : "Latest")
       sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === v))
       closeSelect(sortSelect)
@@ -628,6 +636,47 @@ function initFilters() {
   if (dateFrom) dateFrom.addEventListener("change", () => { state.dateFrom = dateFrom.value || ""; normalizeDates(); state.page = 1; load() })
   if (dateTo) dateTo.addEventListener("change", () => { state.dateTo = dateTo.value || ""; normalizeDates(); state.page = 1; load() })
   if (dateClear) dateClear.addEventListener("click", () => { state.dateFrom = ""; state.dateTo = ""; if (dateFrom) dateFrom.value = ""; if (dateTo) dateTo.value = ""; state.page = 1; load() })
+}
+
+function initSearch() {
+  const saved = String(localStorage.getItem(LS_SEARCH) || "")
+  state.q = saved
+  if (searchInput) searchInput.value = saved
+
+  let timer = null
+  const apply = () => {
+    const v = (searchInput ? String(searchInput.value || "") : "").trim()
+    state.q = v
+    localStorage.setItem(LS_SEARCH, v)
+    state.page = 1
+    load()
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(apply, 250)
+    })
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        if (timer) clearTimeout(timer)
+        apply()
+      }
+      if (e.key === "Escape") {
+        if (timer) clearTimeout(timer)
+        searchInput.value = ""
+        apply()
+      }
+    })
+  }
+
+  if (searchClear) {
+    searchClear.addEventListener("click", () => {
+      if (timer) clearTimeout(timer)
+      if (searchInput) searchInput.value = ""
+      apply()
+    })
+  }
 }
 
 function lbClearTimers() {
@@ -902,19 +951,14 @@ function initPerPageSort() {
     const v = clampPerPage(savedPer)
     state.per_page = v
     if (perPageValue) perPageValue.textContent = String(v)
-    if (perPageSelect) {
-      perPageSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === String(v)))
-    }
+    if (perPageSelect) perPageSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === String(v)))
   }
 
-  const savedSort = String(localStorage.getItem("gallery_sort") || "latest")
+  const savedSort = String(localStorage.getItem(LS_SORT) || "latest")
   const sortOk = ["latest", "oldest", "popular"].includes(savedSort) ? savedSort : "latest"
   state.sort = sortOk
-
   if (sortValue) sortValue.textContent = sortOk === "oldest" ? "Oldest" : (sortOk === "popular" ? "Popular" : "Latest")
-  if (sortSelect) {
-    sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === sortOk))
-  }
+  if (sortSelect) sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === sortOk))
 }
 
 async function init() {
@@ -922,6 +966,7 @@ async function init() {
   initPerPageSort()
   initSelects()
   initFilters()
+  initSearch()
   initLightboxAndModals()
 
   await loadPalette()

@@ -119,6 +119,32 @@ def _palette_from_conf(conf: dict) -> list[dict]:
     return out
 
 
+def _escape_like(s: str) -> str:
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def build_text_search_sql(gallery: str, q: str | None) -> tuple[str, list]:
+    if not q:
+        return "", []
+    q = q.strip()
+    if not q:
+        return "", []
+    like = f"%{_escape_like(q)}%"
+    sql = """
+ AND (
+   i.title LIKE %s ESCAPE '\\\\'
+   OR i.alt LIKE %s ESCAPE '\\\\'
+   OR EXISTS (
+     SELECT 1
+     FROM image_tags it
+     JOIN tags t ON t.id=it.tag_id
+     WHERE it.image_id=i.id AND t.gallery=%s AND t.name LIKE %s ESCAPE '\\\\'
+   )
+ )
+"""
+    return sql, [like, like, gallery, like]
+
+
 def build_tag_filter_sql(gallery: str, tags_any: list[str], tags_all: list[str]) -> tuple[str, list]:
     clauses: list[str] = []
     params: list = []
@@ -227,6 +253,7 @@ def list_images(
     page: int = Query(1, ge=1),
     per_page: int = Query(100, ge=1),
     sort: str = Query("latest"),
+    q: str | None = None,
     tags_any: str | None = None,
     tags_all: str | None = None,
     colors_any: str | None = None,
@@ -245,12 +272,12 @@ def list_images(
     tag_sql, tag_params = build_tag_filter_sql(GALLERY, tags_any_list, tags_all_list)
     color_sql, color_params = build_color_filter_sql(colors_any_list, colors_all_list)
     date_sql, date_params = build_date_filter_sql(date_from, date_to)
+    text_sql, text_params = build_text_search_sql(GALLERY, q)
 
-    where_extra_sql = f"{tag_sql}{color_sql}{date_sql}"
-    where_extra_params = [*tag_params, *color_params, *date_params]
+    where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}"
+    where_extra_params = [*tag_params, *color_params, *date_params, *text_params]
 
     sort_key = (sort or "latest").lower()
-
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
 
     if sort_key == "popular":
