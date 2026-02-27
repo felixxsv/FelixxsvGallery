@@ -360,6 +360,7 @@ function initSelects() {
       if (!opt) return
       const v = opt.dataset.value
       state.sort = v
+      localStorage.setItem("gallery_sort", String(v))
       if (sortValue) sortValue.textContent = v === "oldest" ? "Oldest" : (v === "popular" ? "Popular" : "Latest")
       sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === v))
       closeSelect(sortSelect)
@@ -824,12 +825,19 @@ function initPerPageSort() {
     const v = clampPerPage(savedPer)
     state.per_page = v
     if (perPageValue) perPageValue.textContent = String(v)
-    if (perPageSelect) perPageSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === String(v)))
+    if (perPageSelect) {
+      perPageSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === String(v)))
+    }
   }
 
-  state.sort = "latest"
-  if (sortValue) sortValue.textContent = "Latest"
-  if (sortSelect) sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === "latest"))
+  const savedSort = String(localStorage.getItem("gallery_sort") || "latest")
+  const sortOk = ["latest", "oldest", "popular"].includes(savedSort) ? savedSort : "latest"
+  state.sort = sortOk
+
+  if (sortValue) sortValue.textContent = sortOk === "oldest" ? "Oldest" : (sortOk === "popular" ? "Popular" : "Latest")
+  if (sortSelect) {
+    sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === sortOk))
+  }
 }
 
 async function init() {
