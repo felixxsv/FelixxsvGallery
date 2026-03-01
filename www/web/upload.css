@@ -105,8 +105,13 @@
 }
 
 .updrop__icon{
-  font-size:22px;
-  opacity:.9;
+  font-size:12px;
+  letter-spacing:.18em;
+  opacity:.8;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  padding:6px 10px;
+  border-radius:999px;
 }
 
 .updrop__headline{
