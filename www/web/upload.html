@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Felixxsv Gallery - Upload</title>
+  <link rel="stylesheet" href="/gallery/app.css">
+  <link rel="stylesheet" href="/gallery/upload.css">
+</head>
+<body>
+  <header class="hdr">
+    <div class="hdr__left">
+      <div class="logo">Felixxsv Gallery</div>
+      <div class="upcrumb">/gallery/upload</div>
+    </div>
+    <div class="hdr__right">
+      <a class="upicon" href="/gallery/" aria-label="Back to Gallery">←</a>
+    </div>
+  </header>
+
+  <main class="upmain">
+    <section class="upcard" aria-label="upload form">
+      <div class="upgrid">
+        <div class="uppreview">
+          <div class="uppreview__imgwrap">
+            <img id="coverImg" class="uppreview__img" alt="">
+          </div>
+          <div class="uppreview__note">
+            <div>※ 一番左の画像がサムネイルになります。</div>
+            <div>ドラッグ＆ドロップで順番を入れ替えられます。</div>
+          </div>
+        </div>
+
+        <div class="updrop">
+          <div class="updrop__title">画像をアップロード</div>
+          <div id="dropZone" class="updrop__zone" role="button" tabindex="0" aria-label="drop files">
+            <div class="updrop__icon">📷</div>
+            <div class="updrop__headline">画像をアップロード</div>
+            <div class="updrop__sub">ここにドラッグ＆ドロップするか、クリックしてファイルを選択</div>
+            <button id="pickBtn" class="updrop__btn" type="button">ファイルを選択</button>
+            <div class="updrop__hint">.png .jpg .jpeg .webp / 最大50MB / 最大30枚</div>
+            <input id="fileInput" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden>
+          </div>
+        </div>
+      </div>
+
+      <div class="upstripwrap">
+        <div id="strip" class="upstrip" aria-label="file strip"></div>
+        <div class="upstriphelp">ドラッグ＆ドロップで順番を入れ替えられます</div>
+      </div>
+
+      <div class="upfields">
+        <div class="upfield">
+          <div class="upfield__label">タイトル（必須）</div>
+          <input id="titleInput" class="upinp" type="text" maxlength="120" autocomplete="off">
+        </div>
+
+        <div class="upfield">
+          <div class="upfield__label">説明文（ALT）（任意）</div>
+          <textarea id="altInput" class="uparea" rows="3" maxlength="800"></textarea>
+        </div>
+
+        <div class="upfield">
+          <div class="upfield__label">タグ（サジェスト）</div>
+          <div class="uptagbox">
+            <div id="tagChips" class="uptagchips"></div>
+            <input id="tagInput" class="uptaginp" type="text" autocomplete="off" placeholder="タグを追加...">
+            <div id="tagSug" class="uptagsug" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="upbottom">
+        <label class="uptoggle">
+          <input id="visToggle" type="checkbox" checked>
+          <span class="uptoggle__ui"></span>
+          <span class="uptoggle__txt">公開 / 非公開</span>
+        </label>
+
+        <div class="upactions">
+          <a class="upbtn upbtn--ghost" href="/gallery/">キャンセル</a>
+          <button id="uploadBtn" class="upbtn upbtn--primary" type="button">アップロード</button>
+        </div>
+      </div>
+
+      <div id="msgBox" class="upmsg" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="/gallery/upload.js"></script>
+</body>
+</html>
