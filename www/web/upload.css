@@ -27,7 +27,7 @@
   backdrop-filter:blur(12px);
   display:flex;
   flex-direction:column;
-  gap:14px;
+  gap:12px;
   overflow:hidden;
 }
 
@@ -44,7 +44,7 @@
 .upcol__title{font-size:14px;font-weight:700;opacity:.95}
 
 .uppreview__imgwrap{
-  height:clamp(190px,27vh,240px);
+  height:clamp(185px,26vh,235px);
   border-radius:14px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
@@ -59,7 +59,7 @@
 }
 
 .updrop__zone{
-  height:clamp(190px,27vh,240px);
+  height:clamp(185px,26vh,235px);
   border-radius:14px;
   border:1px dashed rgba(255,255,255,.20);
   background:rgba(255,255,255,.04);
@@ -86,15 +86,21 @@
   gap:8px;
 }
 
-.upstriphead{margin-top:0}
+.upstriphead{
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.upstriphead__title{font-size:14px;font-weight:700;opacity:.95}
 
 .upstrip{
   display:flex;
   gap:10px;
   overflow-x:auto;
   overflow-y:hidden;
-  padding:2px 0 12px;
-  min-height:calc(clamp(68px,8.5vh,86px) + 14px);
+  padding:2px 0 14px;
+  min-height:calc(clamp(68px,8.5vh,86px) + 16px);
   scroll-snap-type:x proximity;
 }
 .upstrip::-webkit-scrollbar{height:8px}
@@ -150,6 +156,15 @@
   resize:none;
   height:78px;
 }
+
+.upfield--tagrow{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:end;
+}
+.upfield__left{min-width:0}
+.upfield__right{padding-bottom:0}
 
 .uptagbox{
   position:relative;
@@ -218,28 +233,18 @@
 .uptagsug button{width:100%;padding:10px 10px;border-radius:12px;border:1px solid transparent;background:transparent;color:#e7eef7;text-align:left}
 .uptagsug button:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.10)}
 
-.upbottom{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  border-top:1px solid rgba(255,255,255,.10);
-  padding-top:12px;
-}
-.upactions{display:flex;gap:10px;align-items:center}
-.upbtn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;text-decoration:none;min-width:120px}
-.upbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.12)}
-
 .upvis{
   display:flex;
   gap:0;
+  height:var(--inp-h);
   border-radius:14px;
   border:1px solid rgba(255,255,255,.12);
   background:rgba(255,255,255,.06);
   overflow:hidden;
 }
 .upvis__btn{
-  padding:10px 16px;
+  height:100%;
+  padding:0 16px;
   border:none;
   background:transparent;
   color:#e7eef7;
@@ -251,6 +256,18 @@
   opacity:1;
 }
 
+.upbottom{
+  margin-top:auto;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  border-top:1px solid rgba(255,255,255,.10);
+  padding-top:12px;
+}
+.upactions{display:flex;gap:10px;align-items:center}
+.upbtn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;text-decoration:none;min-width:120px}
+.upbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.12)}
+
 .upmsg{font-size:12px;opacity:.9;min-height:18px}
 
 @media (max-width: 920px){
@@ -258,4 +275,6 @@
   .upmain{height:auto;min-height:calc(100vh - var(--hdr-h));align-items:flex-start}
   .upcard{height:auto}
   .upgrid{grid-template-columns:1fr}
+  .upfield--tagrow{grid-template-columns:1fr}
+  .upvis{width:100%}
 }
