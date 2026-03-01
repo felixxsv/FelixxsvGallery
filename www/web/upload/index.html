@@ -66,25 +66,25 @@
           <textarea class="uparea" id="upAlt" maxlength="800"></textarea>
         </div>
 
-        <div class="upfield upfield--tagrow">
-          <div class="upfield__left">
-            <div class="upfield__label">タグ（サジェスト）</div>
-            <div class="uptagbox" id="upTagBox">
-              <div class="uptagchips" id="upTagChips"></div>
-              <input class="uptaginp" id="upTag" type="text" placeholder="タグを追加..." autocomplete="off">
-              <button class="uptagadd" type="button" id="upTagAdd" aria-label="add tag">＋</button>
-              <div class="uptagsug" id="upTagSug" aria-hidden="true"></div>
-            </div>
-          </div>
-
-          <div class="upfield__right">
-            <div class="upvis" role="group" aria-label="visibility">
-              <button class="upvis__btn is-on" type="button" data-vis="public">公開</button>
-              <button class="upvis__btn" type="button" data-vis="private">非公開</button>
-              <input type="hidden" id="upVis" value="public">
-            </div>
+        <div class="upfield">
+          <div class="upfield__label">タグ（サジェスト）</div>
+          <div class="uptagbox" id="upTagBox">
+            <div class="uptagchips" id="upTagChips"></div>
+            <input class="uptaginp" id="upTag" type="text" placeholder="タグを追加..." autocomplete="off">
+            <button class="uptagadd" type="button" id="upTagAdd" aria-label="add tag">＋</button>
+            <div class="uptagsug" id="upTagSug" aria-hidden="true"></div>
           </div>
         </div>
+
+        <div class="upfield upfield--vis">
+          <div class="upvis" role="group" aria-label="visibility">
+            <button class="upvis__btn is-on" type="button" data-vis="public">公開</button>
+            <button class="upvis__btn" type="button" data-vis="private">非公開</button>
+            <input type="hidden" id="upVis" value="public">
+          </div>
+        </div>
+
+        <div class="upmsg" id="upMsg" aria-live="polite"></div>
       </div>
 
       <div class="upbottom">
@@ -93,8 +93,6 @@
           <button class="upbtn upbtn--primary" type="button" id="upSubmit">アップロード</button>
         </div>
       </div>
-
-      <div class="upmsg" id="upMsg" aria-live="polite"></div>
     </section>
   </main>
 

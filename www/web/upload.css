@@ -97,7 +97,6 @@
 }
 .upstrip::-webkit-scrollbar{height:8px}
 .upstrip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:999px}
-
 .upstriphelp{opacity:.75;font-size:12px;text-align:center;line-height:1.4}
 
 .upthumb{
@@ -148,15 +147,6 @@
   resize:none;
   height:78px;
 }
-
-.upfield--tagrow{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:12px;
-  align-items:end;
-}
-.upfield__left{min-width:0}
-.upfield__right{padding-bottom:0}
 
 .uptagbox{
   position:relative;
@@ -225,9 +215,12 @@
 .uptagsug button{width:100%;padding:10px 10px;border-radius:12px;border:1px solid transparent;background:transparent;color:#e7eef7;text-align:left}
 .uptagsug button:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.10)}
 
+.upfield--vis{margin-top:-2px}
+
 .upvis{
   display:flex;
   gap:0;
+  width:100%;
   height:var(--inp-h);
   border-radius:14px;
   border:1px solid rgba(255,255,255,.12);
@@ -242,31 +235,31 @@
   color:#e7eef7;
   opacity:.85;
   min-width:92px;
+  flex:1;
 }
 .upvis__btn.is-on{
   background:rgba(255,255,255,.12);
   opacity:1;
 }
 
+.upmsg{font-size:12px;opacity:.9;min-height:18px}
+
 .upbottom{
   margin-top:auto;
   display:flex;
   justify-content:flex-end;
-  align-items:center;
+  align-items:flex-end;
   border-top:1px solid rgba(255,255,255,.10);
   padding-top:12px;
+  padding-bottom:2px;
 }
 .upactions{display:flex;gap:10px;align-items:center}
 .upbtn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;text-decoration:none;min-width:120px}
 .upbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.12)}
-
-.upmsg{font-size:12px;opacity:.9;min-height:18px}
 
 @media (max-width: 920px){
   body{overflow:auto}
   .upmain{height:auto;min-height:calc(100vh - var(--hdr-h));align-items:flex-start}
   .upcard{height:auto}
   .upgrid{grid-template-columns:1fr}
-  .upfield--tagrow{grid-template-columns:1fr}
-  .upvis{width:100%}
 }
