@@ -4,22 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Felixxsv Gallery - Upload</title>
-  <link rel="stylesheet" href="/gallery/app.css">
+  <link rel="stylesheet" href="/gallery/common.css">
   <link rel="stylesheet" href="/gallery/upload.css">
 </head>
 <body>
   <header class="hdr">
     <div class="hdr__left">
       <div class="logo">Felixxsv Gallery</div>
-      <div class="upcrumb">/gallery/upload</div>
+      <div class="hdr__crumb">/gallery/upload</div>
     </div>
     <div class="hdr__right">
-      <a class="upicon" href="/gallery/" aria-label="Back to Gallery">←</a>
+      <a class="ui-iconbtn" href="/gallery/" aria-label="Back to Gallery">←</a>
     </div>
   </header>
 
   <main class="upmain">
-    <section class="upcard" aria-label="upload form">
+    <section class="ui-card upcard" aria-label="upload form">
       <div class="upgrid">
         <div class="uppreview">
           <div class="uppreview__imgwrap">
@@ -51,17 +51,17 @@
 
       <div class="upfields">
         <div class="upfield">
-          <div class="upfield__label">タイトル（必須）</div>
-          <input id="titleInput" class="upinp" type="text" maxlength="120" autocomplete="off">
+          <div class="ui-label">タイトル（必須）</div>
+          <input id="titleInput" class="ui-input" type="text" maxlength="120" autocomplete="off">
         </div>
 
         <div class="upfield">
-          <div class="upfield__label">説明文（ALT）（任意）</div>
-          <textarea id="altInput" class="uparea" rows="3" maxlength="800"></textarea>
+          <div class="ui-label">説明文（ALT）（任意）</div>
+          <textarea id="altInput" class="ui-textarea" rows="3" maxlength="800"></textarea>
         </div>
 
         <div class="upfield">
-          <div class="upfield__label">タグ（サジェスト）</div>
+          <div class="ui-label">タグ（サジェスト）</div>
           <div class="uptagbox">
             <div id="tagChips" class="uptagchips"></div>
             <input id="tagInput" class="uptaginp" type="text" autocomplete="off" placeholder="タグを追加...">
@@ -71,15 +71,15 @@
       </div>
 
       <div class="upbottom">
-        <label class="uptoggle">
+        <label class="ui-toggle">
           <input id="visToggle" type="checkbox" checked>
-          <span class="uptoggle__ui"></span>
-          <span class="uptoggle__txt">公開 / 非公開</span>
+          <span class="ui-toggle__ui"></span>
+          <span class="ui-toggle__txt">公開 / 非公開</span>
         </label>
 
         <div class="upactions">
-          <a class="upbtn upbtn--ghost" href="/gallery/">キャンセル</a>
-          <button id="uploadBtn" class="upbtn upbtn--primary" type="button">アップロード</button>
+          <a class="ui-btn" href="/gallery/">キャンセル</a>
+          <button id="uploadBtn" class="ui-btn ui-btn--primary" type="button">アップロード</button>
         </div>
       </div>
 
