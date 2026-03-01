@@ -1,285 +1,313 @@
 const el = (id) => document.getElementById(id)
 
-const fileInput = el("fileInput")
-const pickBtn = el("pickBtn")
-const dropZone = el("dropZone")
-const coverImg = el("coverImg")
-const strip = el("strip")
+const drop = el("upDrop")
+const pick = el("upPick")
+const fileInput = el("upFile")
+const strip = el("upStrip")
+const coverImg = el("upCover")
+const coverPh = el("upCoverPh")
+const msg = el("upMsg")
 
-const titleInput = el("titleInput")
-const altInput = el("altInput")
+const titleInput = el("upTitle")
+const altInput = el("upAlt")
 
-const tagChips = el("tagChips")
-const tagInput = el("tagInput")
-const tagSug = el("tagSug")
+const tagBox = el("upTagBox")
+const tagChips = el("upTagChips")
+const tagInput = el("upTag")
+const tagAdd = el("upTagAdd")
+const tagSug = el("upTagSug")
 
-const visToggle = el("visToggle")
-const uploadBtn = el("uploadBtn")
-const msgBox = el("msgBox")
+const visHidden = el("upVis")
+const visBtns = Array.from(document.querySelectorAll(".upvis__btn"))
+
+const submitBtn = el("upSubmit")
+
+const MAX_FILES = 20
+const MIN_PLACEHOLDERS = 5
 
 let files = []
-let coverIndex = 0
-
+let tagState = []
 let allTags = []
-let tags = []
 
 function setMsg(s) {
-  if (!msgBox) return
-  msgBox.textContent = s || ""
+  if (!msg) return
+  msg.textContent = s || ""
+}
+
+function isImageFile(f) {
+  const t = String(f.type || "").toLowerCase()
+  if (t.startsWith("image/")) return true
+  const n = String(f.name || "").toLowerCase()
+  return n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".webp")
 }
 
 function revokeAll() {
-  for (const x of files) {
-    try { URL.revokeObjectURL(x.url) } catch (e) {}
+  for (const it of files) {
+    try { URL.revokeObjectURL(it.url) } catch (e) {}
   }
 }
 
-function setCover(i) {
-  if (!files.length) {
-    if (coverImg) coverImg.removeAttribute("src")
+function makeUrl(f) {
+  return URL.createObjectURL(f)
+}
+
+function addFiles(list) {
+  const incoming = Array.from(list || []).filter(isImageFile)
+  if (incoming.length === 0) {
+    setMsg("画像ファイルを選択してください。")
     return
   }
-  coverIndex = Math.max(0, Math.min(files.length - 1, i))
-  if (coverImg) coverImg.src = files[coverIndex].url
-  renderStrip()
+  const room = MAX_FILES - files.length
+  if (room <= 0) {
+    setMsg(`画像は最大${MAX_FILES}枚までです。`)
+    return
+  }
+
+  const adding = incoming.slice(0, room)
+  for (const f of adding) {
+    files.push({ file: f, url: makeUrl(f) })
+  }
+
+  if (incoming.length > adding.length) setMsg(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`)
+  else setMsg("")
+
+  renderAll()
+}
+
+function moveIndex(from, to) {
+  if (from === to) return
+  const it = files.splice(from, 1)[0]
+  files.splice(to, 0, it)
+}
+
+function removeIndex(i) {
+  const it = files[i]
+  if (!it) return
+  try { URL.revokeObjectURL(it.url) } catch (e) {}
+  files.splice(i, 1)
+  renderAll()
+}
+
+function setCover(i) {
+  if (i <= 0) return
+  moveIndex(i, 0)
+  renderAll()
+}
+
+function renderCover() {
+  if (!coverImg || !coverPh) return
+  if (files.length === 0) {
+    coverImg.style.display = "none"
+    coverImg.removeAttribute("src")
+    coverPh.style.display = "flex"
+    return
+  }
+  coverPh.style.display = "none"
+  coverImg.style.display = "block"
+  coverImg.src = files[0].url
+}
+
+function mkThumb(it, idx) {
+  const d = document.createElement("div")
+  d.className = "upthumb" + (idx === 0 ? " is-cover" : "")
+  d.draggable = true
+  d.dataset.idx = String(idx)
+
+  const img = document.createElement("img")
+  img.className = "upthumb__img"
+  img.alt = ""
+  img.src = it.url
+  d.appendChild(img)
+
+  const rm = document.createElement("button")
+  rm.className = "upthumb__rm"
+  rm.type = "button"
+  rm.textContent = "×"
+  rm.addEventListener("click", (e) => {
+    e.stopPropagation()
+    removeIndex(idx)
+  })
+  d.appendChild(rm)
+
+  d.addEventListener("click", () => setCover(idx))
+
+  d.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("text/plain", String(idx))
+    e.dataTransfer.effectAllowed = "move"
+  })
+
+  d.addEventListener("dragover", (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  })
+
+  d.addEventListener("drop", (e) => {
+    e.preventDefault()
+    const from = Number(e.dataTransfer.getData("text/plain"))
+    const to = Number(d.dataset.idx)
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return
+    if (from < 0 || to < 0 || from >= files.length || to >= files.length) return
+    moveIndex(from, to)
+    renderAll()
+  })
+
+  return d
+}
+
+function mkEmptyThumb() {
+  const d = document.createElement("div")
+  d.className = "upthumb is-empty"
+  return d
 }
 
 function renderStrip() {
   if (!strip) return
   strip.innerHTML = ""
-  files.forEach((x, i) => {
-    const box = document.createElement("div")
-    box.className = "upthumb" + (i === coverIndex ? " is-cover" : "")
-    box.draggable = true
-    box.dataset.idx = String(i)
-
-    const img = document.createElement("img")
-    img.className = "upthumb__img"
-    img.src = x.url
-    img.alt = ""
-
-    const badge = document.createElement("div")
-    badge.className = "upthumb__badge"
-    badge.textContent = i === coverIndex ? "thumb" : String(i + 1)
-
-    box.appendChild(img)
-    box.appendChild(badge)
-
-    box.addEventListener("click", () => setCover(i))
-
-    box.addEventListener("dragstart", (e) => {
-      e.dataTransfer.setData("text/plain", String(i))
-      e.dataTransfer.effectAllowed = "move"
-    })
-    box.addEventListener("dragover", (e) => {
-      e.preventDefault()
-      e.dataTransfer.dropEffect = "move"
-    })
-    box.addEventListener("drop", (e) => {
-      e.preventDefault()
-      const from = Number(e.dataTransfer.getData("text/plain"))
-      const to = i
-      if (!Number.isFinite(from) || from === to) return
-      const item = files.splice(from, 1)[0]
-      files.splice(to, 0, item)
-
-      if (coverIndex === from) coverIndex = to
-      else if (from < coverIndex && to >= coverIndex) coverIndex -= 1
-      else if (from > coverIndex && to <= coverIndex) coverIndex += 1
-
-      renderStrip()
-      setCover(coverIndex)
-    })
-
-    strip.appendChild(box)
-  })
+  for (let i = 0; i < files.length; i++) strip.appendChild(mkThumb(files[i], i))
+  const need = Math.max(0, MIN_PLACEHOLDERS - files.length)
+  for (let i = 0; i < need; i++) strip.appendChild(mkEmptyThumb())
 }
 
-function addFiles(fileList) {
-  const arr = Array.from(fileList || [])
-  if (!arr.length) return
-
-  const ok = []
-  for (const f of arr) {
-    if (!f || !f.name) continue
-    if (!/^image\//.test(f.type || "") && !/\.(png|jpg|jpeg|webp)$/i.test(f.name)) continue
-    if (f.size > 50 * 1024 * 1024) continue
-    ok.push(f)
-  }
-
-  if (!ok.length) {
-    setMsg("画像ファイルを選択してください。")
-    return
-  }
-
-  const remain = Math.max(0, 30 - files.length)
-  const take = ok.slice(0, remain)
-
-  for (const f of take) {
-    files.push({ file: f, url: URL.createObjectURL(f) })
-  }
-
-  if (files.length) setCover(0)
-  setMsg("")
+function normalizeTag(s) {
+  const t = String(s || "").trim()
+  if (!t) return ""
+  return t.replace(/\s+/g, " ")
 }
 
-function clearTagsSug() {
+function addTag(s) {
+  const t = normalizeTag(s)
+  if (!t) return
+  if (tagState.includes(t)) return
+  tagState.push(t)
+  renderTags()
+}
+
+function removeTag(t) {
+  const i = tagState.indexOf(t)
+  if (i >= 0) tagState.splice(i, 1)
+  renderTags()
+}
+
+function renderTags() {
+  if (!tagChips) return
+  tagChips.innerHTML = ""
+  for (const t of tagState) {
+    const chip = document.createElement("div")
+    chip.className = "uptagchip"
+    const name = document.createElement("span")
+    name.textContent = t
+    const x = document.createElement("button")
+    x.type = "button"
+    x.textContent = "×"
+    x.addEventListener("click", () => removeTag(t))
+    chip.appendChild(name)
+    chip.appendChild(x)
+    tagChips.appendChild(chip)
+  }
+}
+
+async function loadTagPool() {
+  try {
+    const res = await fetch("/gallery/api/tags?limit=200", { cache: "no-store" })
+    const data = await res.json()
+    const items = Array.isArray(data.items) ? data.items : []
+    allTags = items.map((x) => String(x.name || "")).filter((x) => x)
+  } catch (e) {
+    allTags = []
+  }
+}
+
+function closeSug() {
   if (!tagSug) return
   tagSug.classList.remove("is-on")
   tagSug.setAttribute("aria-hidden", "true")
   tagSug.innerHTML = ""
 }
 
-function showTagsSug(items) {
+function openSug(list) {
   if (!tagSug) return
   tagSug.innerHTML = ""
-  const shown = items.slice(0, 12)
-  for (const t of shown) {
+  for (const t of list) {
     const b = document.createElement("button")
     b.type = "button"
     b.textContent = t
     b.addEventListener("click", () => {
       addTag(t)
-      clearTagsSug()
+      if (tagInput) tagInput.value = ""
+      closeSug()
       if (tagInput) tagInput.focus()
     })
     tagSug.appendChild(b)
   }
-  if (shown.length) {
-    tagSug.classList.add("is-on")
-    tagSug.setAttribute("aria-hidden", "false")
-  } else {
-    clearTagsSug()
-  }
+  tagSug.classList.add("is-on")
+  tagSug.setAttribute("aria-hidden", "false")
 }
 
-function renderTags() {
-  if (!tagChips) return
-  tagChips.innerHTML = ""
-  for (const t of tags) {
-    const chip = document.createElement("div")
-    chip.className = "uptagchip"
-    const s = document.createElement("span")
-    s.textContent = t
-    const x = document.createElement("button")
-    x.type = "button"
-    x.textContent = "×"
-    x.addEventListener("click", () => {
-      tags = tags.filter((v) => v !== t)
-      renderTags()
-    })
-    chip.appendChild(s)
-    chip.appendChild(x)
-    tagChips.appendChild(chip)
+function updateSug() {
+  const q = normalizeTag(tagInput ? tagInput.value : "")
+  if (!q) {
+    closeSug()
+    return
   }
+  const low = q.toLowerCase()
+  const cand = []
+  for (const t of allTags) {
+    if (cand.length >= 8) break
+    if (tagState.includes(t)) continue
+    if (t.toLowerCase().includes(low)) cand.push(t)
+  }
+  if (cand.length === 0) closeSug()
+  else openSug(cand)
 }
 
-function addTag(t) {
-  const v = String(t || "").trim()
-  if (!v) return
-  if (tags.includes(v)) return
-  tags.push(v)
+function applyVis(v) {
+  if (!visHidden) return
+  visHidden.value = v
+  for (const b of visBtns) b.classList.toggle("is-on", b.dataset.vis === v)
+}
+
+function validate() {
+  const okFiles = files.length > 0
+  const okTitle = String(titleInput ? titleInput.value : "").trim().length > 0
+  if (submitBtn) submitBtn.disabled = !(okFiles && okTitle)
+}
+
+function renderAll() {
+  renderCover()
+  renderStrip()
   renderTags()
+  validate()
 }
 
-async function loadAllTags() {
-  try {
-    const res = await fetch("/gallery/api/tags?limit=500", { cache: "no-store" })
-    const data = await res.json()
-    allTags = (data.items || []).map((x) => String(x.name || "")).filter((x) => x)
-  } catch (e) {
-    allTags = []
-  }
-}
-
-function initTagInput() {
-  if (!tagInput) return
-
-  let timer = null
-
-  tagInput.addEventListener("input", () => {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => {
-      const q = String(tagInput.value || "").trim().toLowerCase()
-      if (!q) {
-        clearTagsSug()
-        return
-      }
-      const cand = allTags
-        .filter((t) => t.toLowerCase().includes(q))
-        .filter((t) => !tags.includes(t))
-      showTagsSug(cand)
-    }, 120)
-  })
-
-  tagInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
+function initPicker() {
+  if (pick && fileInput) {
+    pick.addEventListener("click", (e) => {
       e.preventDefault()
-      const v = String(tagInput.value || "").trim()
-      if (v) addTag(v)
-      tagInput.value = ""
-      clearTagsSug()
-      return
-    }
-    if (e.key === "Escape") {
-      clearTagsSug()
-    }
-  })
-
-  document.addEventListener("click", (e) => {
-    const inBox = e.target.closest(".uptagbox")
-    if (!inBox) clearTagsSug()
-  })
-}
-
-async function doUpload() {
-  const title = String(titleInput ? titleInput.value : "").trim()
-  if (!title) {
-    setMsg("タイトルを入力してください。")
-    if (titleInput) titleInput.focus()
-    return
-  }
-  if (!files.length) {
-    setMsg("画像を選択してください。")
-    return
+      fileInput.click()
+    })
   }
 
-  uploadBtn.disabled = true
-  setMsg("アップロード中です…")
+  if (drop && fileInput) {
+    drop.addEventListener("click", (e) => {
+      if (e.target && e.target.closest("button")) return
+      fileInput.click()
+    })
 
-  const fd = new FormData()
-  fd.set("title", title)
-  fd.set("alt", String(altInput ? altInput.value : ""))
-  fd.set("visibility", visToggle && visToggle.checked ? "public" : "private")
-  fd.set("cover_index", String(coverIndex))
-  fd.set("tags", tags.join(","))
+    drop.addEventListener("dragover", (e) => {
+      e.preventDefault()
+      drop.classList.add("is-drag")
+    })
 
-  files.forEach((x, i) => {
-    fd.append("files", x.file, x.file.name)
-    fd.append("order", String(i))
-  })
+    drop.addEventListener("dragleave", () => {
+      drop.classList.remove("is-drag")
+    })
 
-  try {
-    const res = await fetch("/gallery/api/upload", { method: "POST", body: fd })
-    if (!res.ok) {
-      const txt = await res.text()
-      setMsg(`アップロードに失敗しました status=${res.status} ${txt.slice(0,120)}`)
-      uploadBtn.disabled = false
-      return
-    }
-    setMsg("アップロード完了しました。")
-    uploadBtn.disabled = false
-  } catch (e) {
-    setMsg(`アップロードに失敗しました detail=${String(e)}`)
-    uploadBtn.disabled = false
+    drop.addEventListener("drop", (e) => {
+      e.preventDefault()
+      drop.classList.remove("is-drag")
+      addFiles(e.dataTransfer.files)
+    })
   }
-}
-
-function initDrop() {
-  const pick = () => { if (fileInput) fileInput.click() }
-  if (pickBtn) pickBtn.addEventListener("click", pick)
-  if (dropZone) dropZone.addEventListener("click", pick)
-  if (dropZone) dropZone.addEventListener("keydown", (e) => { if (e.key === "Enter") pick() })
 
   if (fileInput) {
     fileInput.addEventListener("change", () => {
@@ -287,36 +315,74 @@ function initDrop() {
       fileInput.value = ""
     })
   }
+}
 
-  if (!dropZone) return
+function initTags() {
+  if (tagAdd) {
+    tagAdd.addEventListener("click", () => {
+      addTag(tagInput ? tagInput.value : "")
+      if (tagInput) tagInput.value = ""
+      closeSug()
+      validate()
+    })
+  }
 
-  dropZone.addEventListener("dragenter", (e) => {
-    e.preventDefault()
-    dropZone.classList.add("is-drag")
-  })
-  dropZone.addEventListener("dragover", (e) => {
-    e.preventDefault()
-    dropZone.classList.add("is-drag")
-  })
-  dropZone.addEventListener("dragleave", () => {
-    dropZone.classList.remove("is-drag")
-  })
-  dropZone.addEventListener("drop", (e) => {
-    e.preventDefault()
-    dropZone.classList.remove("is-drag")
-    addFiles(e.dataTransfer.files)
+  if (tagInput) {
+    tagInput.addEventListener("input", () => updateSug())
+    tagInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault()
+        addTag(tagInput.value)
+        tagInput.value = ""
+        closeSug()
+      }
+      if (e.key === "Escape") {
+        closeSug()
+        tagInput.value = ""
+      }
+    })
+  }
+
+  document.addEventListener("click", (e) => {
+    const inBox = e.target && e.target.closest && e.target.closest("#upTagBox")
+    if (!inBox) closeSug()
   })
 }
 
-async function init() {
-  if (uploadBtn) uploadBtn.addEventListener("click", doUpload)
-  initDrop()
-  await loadAllTags()
-  initTagInput()
-  renderTags()
-  renderStrip()
-  setCover(0)
+function initVis() {
+  for (const b of visBtns) {
+    b.addEventListener("click", () => applyVis(b.dataset.vis))
+  }
+}
+
+function initSubmit() {
+  if (!submitBtn) return
+  submitBtn.addEventListener("click", () => {
+    const title = String(titleInput ? titleInput.value : "").trim()
+    if (!title) {
+      setMsg("タイトルを入力してください。")
+      return
+    }
+    if (files.length === 0) {
+      setMsg("画像を追加してください。")
+      return
+    }
+    setMsg("アップロード処理（サーバ保存）は次の工程で実装します。いまは選択・並び替え・入力まで動作します。")
+  })
+}
+
+function init() {
+  initPicker()
+  initTags()
+  initVis()
+  initSubmit()
+
+  if (titleInput) titleInput.addEventListener("input", () => validate())
+  renderAll()
+
+  loadTagPool()
 }
 
 window.addEventListener("beforeunload", () => revokeAll())
+
 init()

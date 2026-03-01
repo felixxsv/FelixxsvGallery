@@ -1,7 +1,7 @@
-:root{--hdr-h:65px}
+:root{--hdr-h:65px;--up-pad:clamp(16px,3vw,26px)}
 
 .upcrumb{opacity:.7;font-size:12px;white-space:nowrap}
-.uphdrbtn{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center}
+.hdrbtn{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center}
 
 @media (min-width: 921px){
   html,body{height:100%}
@@ -10,24 +10,24 @@
 
 .upmain{
   height:calc(100vh - var(--hdr-h));
-  padding:14px;
+  padding:var(--up-pad);
   display:flex;
   justify-content:center;
-  align-items:stretch;
+  align-items:center;
   overflow:hidden;
 }
 
 .upcard{
-  width:min(1100px,96vw);
-  height:100%;
-  padding:16px;
+  width:min(1120px,96vw);
+  height:min(880px, calc(100vh - var(--hdr-h) - (var(--up-pad) * 2)));
+  padding:18px;
   border-radius:16px;
   border:1px solid rgba(255,255,255,.12);
   background:rgba(14,18,26,.72);
   backdrop-filter:blur(12px);
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:14px;
   overflow:hidden;
 }
 
@@ -38,9 +38,11 @@
   align-items:stretch;
 }
 
-.uppreview{display:flex;flex-direction:column;gap:10px}
+.upcol{display:flex;flex-direction:column;gap:10px;min-height:0}
+.upcol__head{height:28px;display:flex;align-items:flex-end}
+
 .uppreview__imgwrap{
-  height:clamp(180px,26vh,240px);
+  height:clamp(200px,28vh,260px);
   border-radius:14px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
@@ -53,12 +55,10 @@
   display:flex;align-items:center;justify-content:center;
   opacity:.55;font-size:12px;letter-spacing:.12em;
 }
-.uppreview__note{font-size:12px;opacity:.85;line-height:1.5}
 
-.updrop{display:flex;flex-direction:column;gap:10px}
 .updrop__title{font-size:18px;font-weight:700}
 .updrop__zone{
-  min-height:clamp(180px,26vh,240px);
+  height:clamp(200px,28vh,260px);
   border-radius:14px;
   border:1px dashed rgba(255,255,255,.20);
   background:rgba(255,255,255,.04);
@@ -68,7 +68,9 @@
   align-items:center;
   justify-content:center;
   gap:10px;
+  cursor:pointer;
 }
+.updrop__zone.is-drag{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
 .updrop__pill{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);opacity:.85;font-size:11px;letter-spacing:.18em}
 .updrop__headline{font-size:20px;font-weight:800}
 .updrop__sub{font-size:12px;opacity:.8;text-align:center}
@@ -81,30 +83,49 @@
   display:flex;
   flex-direction:column;
   gap:8px;
+  min-height:0;
 }
 .upstrip{
   display:flex;
   gap:10px;
-  overflow:hidden;
-  min-height:78px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:6px;
+  scroll-snap-type:x proximity;
 }
-.upstriphelp{opacity:.7;font-size:12px;text-align:center}
+.upstrip::-webkit-scrollbar{height:8px}
+.upstrip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:999px}
+.upstriphelp{opacity:.75;font-size:12px;text-align:center;line-height:1.4}
 
 .upthumb{
   width:clamp(120px,12vw,150px);
-  height:clamp(64px,8vh,78px);
+  height:clamp(68px,8.5vh,86px);
   border-radius:12px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
   background:rgba(255,255,255,.03);
   flex:0 0 auto;
+  position:relative;
+  scroll-snap-align:start;
 }
-.upthumb--empty{background:rgba(255,255,255,.02);border-style:dashed;border-color:rgba(255,255,255,.10)}
+.upthumb.is-cover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.upthumb.is-empty{border-style:dashed;border-color:rgba(255,255,255,.10);background:rgba(255,255,255,.02)}
+.upthumb__img{width:100%;height:100%;object-fit:cover;display:block}
+.upthumb__rm{
+  position:absolute;top:6px;right:6px;
+  width:28px;height:28px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.25);
+  color:#e7eef7;
+  opacity:0;
+}
+.upthumb:hover .upthumb__rm{opacity:1}
 
 .upfields{display:flex;flex-direction:column;gap:12px;min-height:0}
 .upfield__label{font-size:12px;opacity:.8;margin-bottom:6px}
 .upinp{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#e7eef7}
-.uparea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#e7eef7;resize:none;height:72px}
+.uparea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#e7eef7;resize:none;height:78px}
 
 .uptagbox{
   position:relative;
@@ -139,6 +160,8 @@
   overflow:auto;
 }
 .uptagsug.is-on{display:block}
+.uptagsug button{width:100%;padding:10px 10px;border-radius:12px;border:1px solid transparent;background:transparent;color:#e7eef7;text-align:left}
+.uptagsug button:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.10)}
 
 .upbottom{
   display:flex;
@@ -152,19 +175,32 @@
 .upbtn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;text-decoration:none;min-width:120px}
 .upbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.12)}
 
-.utsw{display:flex;align-items:center;gap:10px;user-select:none}
-.utsw input{display:none}
-.utsw__ui{width:46px;height:26px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);position:relative}
-.utsw__ui::after{content:"";width:20px;height:20px;border-radius:999px;position:absolute;top:2px;left:2px;background:rgba(255,255,255,.75);transition:transform .18s ease}
-.utsw input:checked + .utsw__ui::after{transform:translateX(20px)}
-.utsw__txt{font-size:12px;opacity:.9}
+.upvis{
+  display:flex;
+  gap:0;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  overflow:hidden;
+}
+.upvis__btn{
+  padding:10px 16px;
+  border:none;
+  background:transparent;
+  color:#e7eef7;
+  opacity:.85;
+  min-width:92px;
+}
+.upvis__btn.is-on{
+  background:rgba(255,255,255,.12);
+  opacity:1;
+}
 
 .upmsg{font-size:12px;opacity:.9;min-height:18px}
 
 @media (max-width: 920px){
   body{overflow:auto}
-  .upmain{height:auto;min-height:calc(100vh - var(--hdr-h))}
+  .upmain{height:auto;min-height:calc(100vh - var(--hdr-h));align-items:flex-start}
   .upcard{height:auto}
   .upgrid{grid-template-columns:1fr}
-  .upstrip{overflow:auto}
 }
