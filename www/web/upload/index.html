@@ -11,19 +11,20 @@
   <header class="hdr">
     <div class="hdr__left">
       <div class="logo">Felixxsv Gallery</div>
-      <div style="opacity:.7;font-size:12px;white-space:nowrap">/gallery/upload</div>
+      <div class="upcrumb">/gallery/upload</div>
     </div>
     <div class="hdr__right">
-      <a class="btn hdrbtn" href="/gallery/" aria-label="Back to Gallery">←</a>
+      <a class="btn uphdrbtn" href="/gallery/" aria-label="Back to Gallery">←</a>
     </div>
   </header>
 
   <main class="upmain">
-    <section class="upcard">
+    <section class="upcard" aria-label="upload">
       <div class="upgrid">
         <div class="uppreview">
-          <div class="uppreview__imgwrap">
-            <img class="uppreview__img" id="upCover" alt="">
+          <div class="uppreview__imgwrap" id="upCoverWrap">
+            <div class="upcoverph" id="upCoverPh">No image</div>
+            <img class="uppreview__img" id="upCover" alt="" style="display:none">
           </div>
           <div class="uppreview__note">
             <div>※ 一番左の画像がサムネイルになります。</div>
@@ -33,53 +34,67 @@
 
         <div class="updrop">
           <div class="updrop__title">画像をアップロード</div>
-          <div class="updrop__zone" id="upDrop">
-            <div style="opacity:.9;font-weight:700">画像をアップロード</div>
-            <div style="opacity:.75;font-size:12px;text-align:center">ここにドラッグ＆ドロップするか、クリックしてファイルを選択</div>
+          <div class="updrop__zone" id="upDrop" role="button" tabindex="0" aria-label="drop files">
+            <div class="updrop__pill">UPLOAD</div>
+            <div class="updrop__headline">画像をアップロード</div>
+            <div class="updrop__sub">ここにドラッグ＆ドロップするか、クリックしてファイルを選択</div>
             <button class="updrop__btn" type="button" id="upPick">ファイルを選択</button>
-            <div style="opacity:.75;font-size:12px">.png .jpg .jpeg .webp ・最大50MB</div>
+            <div class="updrop__hint">.png .jpg .jpeg .webp / 最大50MB / 最大30枚</div>
             <input id="upFile" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden>
           </div>
         </div>
       </div>
 
-      <div class="upstripwrap">
-        <div class="upstrip" id="upStrip"></div>
-        <div style="opacity:.7;font-size:12px;text-align:center">ドラッグ＆ドロップで順番を入れ替えられます</div>
+      <div class="upstripwrap" aria-label="strip">
+        <div class="upstrip" id="upStrip">
+          <div class="upthumb upthumb--empty" aria-hidden="true"></div>
+          <div class="upthumb upthumb--empty" aria-hidden="true"></div>
+          <div class="upthumb upthumb--empty" aria-hidden="true"></div>
+          <div class="upthumb upthumb--empty" aria-hidden="true"></div>
+          <div class="upthumb upthumb--empty" aria-hidden="true"></div>
+        </div>
+        <div class="upstriphelp">ドラッグ＆ドロップで順番を入れ替えられます</div>
       </div>
 
-      <div class="upfields">
+      <div class="upfields" aria-label="fields">
         <div class="upfield">
           <div class="upfield__label">タイトル（必須）</div>
-          <input class="upinp" id="upTitle" type="text">
+          <input class="upinp" id="upTitle" type="text" maxlength="120" autocomplete="off">
         </div>
 
         <div class="upfield">
           <div class="upfield__label">説明文（ALT）（任意）</div>
-          <textarea class="uparea" id="upAlt"></textarea>
+          <textarea class="uparea" id="upAlt" maxlength="800"></textarea>
         </div>
 
         <div class="upfield">
           <div class="upfield__label">タグ（サジェスト）</div>
-          <div class="uptagbox">
-            <input class="uptaginp" id="upTag" type="text" placeholder="タグを追加...">
-            <button class="uptagadd" type="button" id="upTagAdd">＋</button>
+          <div class="uptagbox" id="upTagBox">
+            <div class="uptagchips" id="upTagChips"></div>
+            <input class="uptaginp" id="upTag" type="text" placeholder="タグを追加..." autocomplete="off">
+            <button class="uptagadd" type="button" id="upTagAdd" aria-label="add tag">＋</button>
+            <div class="uptagsug" id="upTagSug" aria-hidden="true"></div>
           </div>
         </div>
       </div>
 
       <div class="upbottom">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="opacity:.85;font-size:12px">公開 / 非公開</div>
+        <label class="utsw">
           <input type="checkbox" id="upPublic" checked>
-        </div>
+          <span class="utsw__ui"></span>
+          <span class="utsw__txt">公開 / 非公開</span>
+        </label>
 
         <div class="upactions">
           <a class="upbtn" href="/gallery/">キャンセル</a>
           <button class="upbtn upbtn--primary" type="button" id="upSubmit">アップロード</button>
         </div>
       </div>
+
+      <div class="upmsg" id="upMsg" aria-live="polite"></div>
     </section>
   </main>
+
+  <script src="/gallery/upload.js"></script>
 </body>
 </html>
