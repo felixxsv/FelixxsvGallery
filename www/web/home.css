@@ -22,10 +22,8 @@
 .grid.cols-1{grid-template-columns:1fr}
 .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-
 .card{position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04)}
 .card img{display:block;width:100%;height:260px;object-fit:cover}
-
 .bar{position:absolute;left:0;right:0;bottom:0;padding:10px 10px;background:rgba(0,0,0,.35);backdrop-filter:blur(8px);display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
 .bar .l{min-width:0}
 .bar .t{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}

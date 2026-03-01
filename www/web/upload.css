@@ -1,6 +1,8 @@
+:root{--up-top-h:clamp(220px,32vh,300px);--up-gap:clamp(10px,1.6vh,14px);--up-pad-y:clamp(10px,2vh,18px)}
+
 .upmain{
   min-height:calc(100vh - var(--hdr-h));
-  padding:18px 14px;
+  padding:var(--up-pad-y) 14px;
   display:flex;
   justify-content:center;
   align-items:flex-start;
@@ -11,7 +13,7 @@
   padding:16px;
   display:flex;
   flex-direction:column;
-  gap:14px;
+  gap:var(--up-gap);
 }
 
 .upgrid{
@@ -32,7 +34,7 @@
   overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
   background:rgba(255,255,255,.03);
-  height:300px;
+  height:var(--up-top-h);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -73,7 +75,7 @@
   align-items:center;
   justify-content:center;
   gap:10px;
-  min-height:300px;
+  min-height:var(--up-top-h);
 }
 
 .updrop__zone.is-drag{
@@ -130,8 +132,8 @@
 }
 
 .upthumb{
-  width:150px;
-  height:84px;
+  width:clamp(120px,12vw,150px);
+  height:clamp(68px,9vh,84px);
   border-radius:12px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
@@ -284,9 +286,13 @@
   min-height:18px;
 }
 
+@media (min-width: 921px){
+  body{overflow:hidden}
+  .upmain{height:calc(100vh - var(--hdr-h))}
+}
+
 @media (max-width: 920px){
   .upgrid{grid-template-columns:1fr}
-  .uppreview__imgwrap{height:220px}
-  .updrop__zone{min-height:220px}
   .upstrip{overflow:auto}
+  body{overflow:auto}
 }

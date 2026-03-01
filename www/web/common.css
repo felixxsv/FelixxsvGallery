@@ -1,9 +1,7 @@
-*{box-sizing:border-box}
-html,body{height:100%}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",sans-serif;background:#0b0f14;color:#e7eef7}
 :root{--hdr-h:54px}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",sans-serif;background:#0b0f14;color:#e7eef7}
 
-.hdr{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:var(--hdr-h);padding:12px 14px;background:rgba(10,14,20,.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}
+.hdr{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;background:rgba(10,14,20,.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}
 .hdr__left{display:flex;align-items:center;gap:12px;min-width:0}
 .hdr__right{display:flex;align-items:center;gap:8px}
 .logo{font-weight:700}
@@ -13,7 +11,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 .btn{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7}
 .btn.is-on{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.12)}
 
-.ui-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;text-decoration:none}
+.ui-iconbtn{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-size:16px}
 
 .ui-card{border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(14,18,26,.72);backdrop-filter:blur(12px)}
 .ui-label{font-size:12px;opacity:.85;margin-bottom:6px}
