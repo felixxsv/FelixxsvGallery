@@ -285,9 +285,8 @@
   inset:0;
   background:rgba(0,0,0,.45);
   display:none;
-  z-index:220;
+  z-index:250;
 }
-
 .uptagbackdrop.is-on{display:block}
 
 /* Popover base */
@@ -349,6 +348,7 @@
   max-height:72vh;
   padding:14px;
   display:block;
+  z-index:260;
 }
 
 .uptagpanel__top{

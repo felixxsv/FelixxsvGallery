@@ -54,6 +54,9 @@ const EDGE_HIDE = 90
 let tagPanelMode = ""
 let tagCloseTimer = null
 
+let tagSugHomeParent = null
+let tagSugHomeNext = null
+
 function isMobile() {
   return window.matchMedia("(max-width: 920px)").matches
 }
@@ -118,6 +121,31 @@ function forceCloseTagUI() {
     tagSug.setAttribute("aria-hidden", "true")
   }
   tagPanelMode = ""
+}
+
+function portalSugToBody() {
+  if (!tagSug) return
+  if (tagSug.parentElement === document.body) return
+  tagSugHomeParent = tagSug.parentElement
+  tagSugHomeNext = tagSug.nextSibling
+  document.body.appendChild(tagSug)
+}
+
+function portalSugBackHome() {
+  if (!tagSug) return
+  if (tagSugHomeParent && tagSug.parentElement === document.body) {
+    if (tagSugHomeNext && tagSugHomeNext.parentNode === tagSugHomeParent) {
+      tagSugHomeParent.insertBefore(tagSug, tagSugHomeNext)
+    } else {
+      tagSugHomeParent.appendChild(tagSug)
+    }
+  }
+  tagSugHomeParent = null
+  tagSugHomeNext = null
+}
+
+function isSugPortaled() {
+  return !!tagSug && tagSug.parentElement === document.body
 }
 
 function isImageFile(f) {
@@ -336,6 +364,7 @@ function closeTagPanelAnimated(after) {
 
   if (!tagPanelMode) {
     hideTagPanelBase()
+    if (isSugPortaled()) portalSugBackHome()
     if (after) after()
     return
   }
@@ -347,20 +376,29 @@ function closeTagPanelAnimated(after) {
   tagCloseTimer = setTimeout(() => {
     hideTagPanelBase()
     tagPanelMode = ""
+    if (isSugPortaled()) portalSugBackHome()
     if (after) after()
   }, ms)
 }
 
-function openTagPanelSmall() {
+function openTagPanelExpanded() {
   if (!tagSug) return
-  tagPanelMode = "small"
+  try {
+    tagPanelMode = "expanded"
 
-  setBackdropOn(false)
-  tagSug.classList.remove("is-expanded")
-  tagSug.classList.add("is-small", "uptagsug--popover")
+    portalSugToBody()
 
-  showTagPanelBase()
-  renderTagPanelSmall()
+    tagSug.classList.remove("is-small", "uptagsug--popover")
+    tagSug.classList.add("is-expanded")
+
+    showTagPanelBase()
+    renderTagPanelExpanded()
+
+    setBackdropOn(true)
+  } catch (e) {
+    forceCloseTagUI()
+    setMsg(`タグ表示に失敗しました: ${String(e)}`)
+  }
 }
 
 function openTagPanelExpanded() {
