@@ -18,6 +18,7 @@ const tagChips = el("upTagChips")
 const tagInput = el("upTag")
 const tagAdd = el("upTagAdd")
 const tagSug = el("upTagSug")
+const tagBox = el("upTagBox")
 
 const visHidden = el("upVis")
 const visBtns = Array.from(document.querySelectorAll(".upvis__btn"))
@@ -98,6 +99,17 @@ function setBackdropOn(on) {
   ensureBackdrop()
   if (!tagBackdrop) return
   tagBackdrop.classList.toggle("is-on", !!on)
+}
+
+function forceCloseTagUI() {
+  setBackdropOn(false)
+  if (tagSug) {
+    tagSug.classList.remove("is-on", "is-leaving", "uptagsug--popover", "is-small", "is-expanded")
+    tagSug.style.display = "none"
+    tagSug.innerHTML = ""
+    tagSug.setAttribute("aria-hidden", "true")
+  }
+  tagPanelMode = ""
 }
 
 function isImageFile(f) {
@@ -288,9 +300,9 @@ function sortAZThenJP(a, b) {
 
 function showTagPanelBase() {
   if (!tagSug) return
-  ensureBackdrop()
   if (tagCloseTimer) { clearTimeout(tagCloseTimer); tagCloseTimer = null }
   tagSug.style.display = "block"
+  tagSug.setAttribute("aria-hidden", "false")
   tagSug.classList.remove("is-leaving")
   requestAnimationFrame(() => {
     tagSug.classList.add("is-on")
@@ -299,24 +311,33 @@ function showTagPanelBase() {
 
 function hideTagPanelBase() {
   if (!tagSug) return
-  tagSug.classList.remove("is-on", "uptagsug--popover", "is-small", "is-expanded")
+  tagSug.classList.remove("is-on", "uptagsug--popover", "is-small", "is-expanded", "is-leaving")
   tagSug.style.display = "none"
   tagSug.innerHTML = ""
+  tagSug.setAttribute("aria-hidden", "true")
 }
 
 function closeTagPanelAnimated(after) {
-  if (!tagSug || !tagPanelMode) {
+  setBackdropOn(false)
+
+  if (!tagSug) {
+    tagPanelMode = ""
     if (after) after()
     return
   }
-  setBackdropOn(false)
+
+  if (!tagPanelMode) {
+    hideTagPanelBase()
+    if (after) after()
+    return
+  }
+
   tagSug.classList.add("is-leaving")
   tagSug.classList.remove("is-on")
   const ms = 180
   if (tagCloseTimer) clearTimeout(tagCloseTimer)
   tagCloseTimer = setTimeout(() => {
     hideTagPanelBase()
-    tagSug.classList.remove("is-leaving")
     tagPanelMode = ""
     if (after) after()
   }, ms)
@@ -325,8 +346,8 @@ function closeTagPanelAnimated(after) {
 function openTagPanelSmall() {
   if (!tagSug) return
   tagPanelMode = "small"
-  setBackdropOn(false)
 
+  setBackdropOn(false)
   tagSug.classList.remove("is-expanded")
   tagSug.classList.add("is-small", "uptagsug--popover")
 
@@ -336,14 +357,18 @@ function openTagPanelSmall() {
 
 function openTagPanelExpanded() {
   if (!tagSug) return
-  tagPanelMode = "expanded"
-  setBackdropOn(true)
+  try {
+    tagPanelMode = "expanded"
+    tagSug.classList.remove("is-small", "uptagsug--popover")
+    tagSug.classList.add("is-expanded")
 
-  tagSug.classList.remove("is-small", "uptagsug--popover")
-  tagSug.classList.add("is-expanded")
-
-  showTagPanelBase()
-  renderTagPanelExpanded()
+    showTagPanelBase()
+    renderTagPanelExpanded()
+    setBackdropOn(true)
+  } catch (e) {
+    forceCloseTagUI()
+    setMsg(`タグ表示に失敗しました: ${String(e)}`)
+  }
 }
 
 function togglePlus() {
@@ -380,6 +405,12 @@ function renderTagPanelSmall() {
   if (!tagSug) return
   if (tagPanelMode !== "small") return
 
+  if (!tagBox || !tagBox.contains(tagSug)) {
+    forceCloseTagUI()
+    setMsg("タグ候補のDOM配置が不正です。upTagSug を upTagBox の内側に配置してください。")
+    return
+  }
+
   const pool = tagPoolRaw
     .filter((x) => !tagState.includes(x.name))
     .sort((a, b) => (b.c - a.c) || a.name.localeCompare(b.name))
@@ -402,14 +433,12 @@ function renderTagPanelSmall() {
   more.type = "button"
   more.className = "uptagpick more"
   more.textContent = "+more"
-  more.addEventListener("click", () => {
-    closeTagPanelAnimated(() => openTagPanelExpanded())
-  })
+  more.addEventListener("click", () => closeTagPanelAnimated(() => openTagPanelExpanded()))
   row.appendChild(more)
 
   for (const it of pool) {
     const b = mkTagButton(it.name, it.c, false)
-    b.addEventListener("click", () => { addTag(it.name) })
+    b.addEventListener("click", () => addTag(it.name))
     row.insertBefore(b, more)
 
     if (row.scrollWidth > row.clientWidth + 1) {
@@ -453,7 +482,7 @@ function renderTagPanelExpanded() {
 
   for (const name of all) {
     const b = mkTagButton(name, 0, false)
-    b.addEventListener("click", () => { addTag(name) })
+    b.addEventListener("click", () => addTag(name))
     grid.appendChild(b)
   }
 }
@@ -516,7 +545,6 @@ function initSubmit() {
   })
 }
 
-/* ここから下（ドラッグ並べ替え＆矢印スクロール等）は既存のまま */
 function flip(container, action) {
   const items = Array.from(container.children).filter((x) => x && x.dataset && x.dataset.kind === "file")
   const first = new Map()
@@ -898,6 +926,10 @@ function initTags() {
       if (!inPanel && !inBox) closeTagPanelAnimated(null)
     }
   })
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeTagPanelAnimated(null)
+  })
 }
 
 function init() {
@@ -914,12 +946,15 @@ function init() {
     if (!titleInput) missing.push("upTitle")
     if (!tagAdd) missing.push("upTagAdd")
     if (!tagSug) missing.push("upTagSug")
+    if (!tagBox) missing.push("upTagBox")
     if (missing.length) {
       setMsg(`upload.js: 必須要素が見つかりません (${missing.join(", ")})`)
       return
     }
 
     ensureBackdrop()
+    forceCloseTagUI()
+
     initPicker()
     initTags()
     initVis()
@@ -932,6 +967,7 @@ function init() {
     renderAll()
     loadTagPool()
   } catch (e) {
+    forceCloseTagUI()
     setMsg(`upload.js: 初期化に失敗しました: ${String(e)}`)
   }
 }
