@@ -41,6 +41,12 @@ let toastWrap = null
 let toastBox = null
 let toastTimer = null
 
+let hoverInFrame = false
+let hoverX = null
+let hoverArrow = null
+const EDGE_SHOW = 70
+const EDGE_HIDE = 90
+
 function ensureToast() {
   if (toastWrap && toastBox) return
   toastWrap = document.createElement("div")
@@ -180,7 +186,7 @@ function renderStrip() {
   for (let i = 0; i < files.length; i++) strip.appendChild(mkThumb(files[i], i))
   const need = Math.max(0, MIN_PLACEHOLDERS - files.length)
   for (let i = 0; i < need; i++) strip.appendChild(mkEmptyThumb())
-  updateArrowsByState()
+  updateArrows()
 }
 
 function normalizeTag(s) {
@@ -495,7 +501,7 @@ function dragMove(x, y) {
   }
 
   flip(strip, reorder)
-  updateArrowsByState()
+  updateArrows()
 }
 
 function dragEnd(asClick) {
@@ -517,7 +523,6 @@ function dragEnd(asClick) {
   dragging = null
   pendingDrag = null
 
-  if (!Number.isFinite(from) || !Number.isFinite(to)) { renderAll(); return }
   const cappedTo = to > files.length - 1 ? files.length - 1 : to
   if (from !== cappedTo) moveIndex(from, cappedTo)
   renderAll()
@@ -566,29 +571,39 @@ function initDragSorting() {
   })
 }
 
-function updateArrowsByState(xHint) {
-  if (!strip || !stripFrame || !arrowL || !arrowR) return
+function canScroll() {
+  if (!strip) return { overflow: false, canL: false, canR: false }
   const overflow = strip.scrollWidth > strip.clientWidth + 2
+  const canL = strip.scrollLeft > 2
+  const canR = strip.scrollLeft < (strip.scrollWidth - strip.clientWidth - 2)
+  return { overflow, canL, canR }
+}
+
+function decideEdge(frameW) {
+  if (hoverArrow) return hoverArrow
+  if (!hoverInFrame || hoverX === null) return null
+  if (hoverX <= EDGE_SHOW) return "l"
+  if (hoverX >= (frameW - EDGE_SHOW)) return "r"
+  return null
+}
+
+function updateArrows() {
+  if (!strip || !stripFrame || !arrowL || !arrowR) return
+  const { overflow, canL, canR } = canScroll()
   if (!overflow) {
     arrowL.classList.remove("is-on")
     arrowR.classList.remove("is-on")
     return
   }
 
-  const canL = strip.scrollLeft > 2
-  const canR = strip.scrollLeft < (strip.scrollWidth - strip.clientWidth - 2)
+  const w = stripFrame.clientWidth
+  const edge = decideEdge(w)
 
-  let wantL = false
-  let wantR = false
+  const showL = edge === "l" && canL
+  const showR = edge === "r" && canR
 
-  if (typeof xHint === "number") {
-    const w = stripFrame.clientWidth
-    if (xHint <= 70 && canL) wantL = true
-    if (xHint >= (w - 70) && canR) wantR = true
-  }
-
-  arrowL.classList.toggle("is-on", wantL)
-  arrowR.classList.toggle("is-on", wantR)
+  arrowL.classList.toggle("is-on", showL)
+  arrowR.classList.toggle("is-on", showR)
 }
 
 function stopArrowAnim() {
@@ -599,7 +614,7 @@ function stopArrowAnim() {
 function arrowLoop() {
   if (!strip || arrowDir === 0) { stopArrowAnim(); return }
   strip.scrollLeft += arrowDir * 12
-  updateArrowsByState()
+  updateArrows()
   arrowAnim = requestAnimationFrame(arrowLoop)
 }
 
@@ -617,36 +632,69 @@ function stopArrow() {
 function initArrowsAndWheel() {
   if (!strip || !stripFrame || !arrowL || !arrowR) return
 
-  strip.addEventListener("scroll", () => updateArrowsByState())
+  strip.addEventListener("scroll", () => updateArrows())
 
-  stripFrame.addEventListener("mousemove", (e) => {
-    const r = stripFrame.getBoundingClientRect()
-    const x = e.clientX - r.left
-    updateArrowsByState(x)
+  stripFrame.addEventListener("mouseenter", () => {
+    hoverInFrame = true
+    updateArrows()
   })
 
   stripFrame.addEventListener("mouseleave", () => {
+    hoverInFrame = false
+    hoverX = null
+    hoverArrow = null
     arrowL.classList.remove("is-on")
     arrowR.classList.remove("is-on")
     stopArrow()
   })
 
-  arrowL.addEventListener("mouseenter", () => startArrow(-1))
-  arrowR.addEventListener("mouseenter", () => startArrow(1))
-  arrowL.addEventListener("mouseleave", stopArrow)
-  arrowR.addEventListener("mouseleave", stopArrow)
+  stripFrame.addEventListener("mousemove", (e) => {
+    const r = stripFrame.getBoundingClientRect()
+    const x = e.clientX - r.left
+    hoverX = x
+
+    if (!hoverArrow) {
+      const w = stripFrame.clientWidth
+      const inL = x <= EDGE_HIDE
+      const inR = x >= (w - EDGE_HIDE)
+      if (!inL && !inR) hoverX = null
+    }
+
+    updateArrows()
+  })
+
+  arrowL.addEventListener("pointerenter", () => {
+    hoverArrow = "l"
+    updateArrows()
+    startArrow(-1)
+  })
+  arrowR.addEventListener("pointerenter", () => {
+    hoverArrow = "r"
+    updateArrows()
+    startArrow(1)
+  })
+  arrowL.addEventListener("pointerleave", () => {
+    hoverArrow = null
+    stopArrow()
+    updateArrows()
+  })
+  arrowR.addEventListener("pointerleave", () => {
+    hoverArrow = null
+    stopArrow()
+    updateArrows()
+  })
 
   arrowL.addEventListener("click", () => {
-    strip.scrollLeft -= 260
-    updateArrowsByState()
+    strip.scrollBy({ left: -260, behavior: "smooth" })
+    updateArrows()
   })
   arrowR.addEventListener("click", () => {
-    strip.scrollLeft += 260
-    updateArrowsByState()
+    strip.scrollBy({ left: 260, behavior: "smooth" })
+    updateArrows()
   })
 
   strip.addEventListener("wheel", (e) => {
-    const overflow = strip.scrollWidth > strip.clientWidth + 2
+    const { overflow } = canScroll()
     if (!overflow) return
     const dx = Math.abs(e.deltaX || 0)
     const dy = Math.abs(e.deltaY || 0)
