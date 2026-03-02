@@ -154,17 +154,22 @@
   font-size:20px;
   opacity:0;
   pointer-events:none;
-  transition:opacity .18s ease;
+  transition:opacity .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+  z-index:10;
+  cursor:pointer;
 }
 .uparrow--l{left:4px}
 .uparrow--r{right:4px}
+
 .uparrow.is-on{
   opacity:1;
   pointer-events:auto;
 }
+
 .uparrow.is-on:hover{
-  background:rgba(255,255,255,.10);
-  border-color:rgba(255,255,255,.22);
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.32);
+  transform:translateY(-50%) scale(1.03);
 }
 
 .upghost{
