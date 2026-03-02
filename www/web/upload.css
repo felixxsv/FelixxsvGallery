@@ -284,10 +284,10 @@
   position:fixed;
   inset:0;
   background:rgba(0,0,0,.45);
-  backdrop-filter:blur(12px);
   display:none;
   z-index:220;
 }
+
 .uptagbackdrop.is-on{display:block}
 
 /* Popover base */
