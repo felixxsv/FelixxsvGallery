@@ -89,6 +89,7 @@ function setMsg(s) {
 
 function ensureBackdrop() {
   if (tagBackdrop) return
+  document.querySelectorAll(".uptagbackdrop").forEach(x => x.remove())
   tagBackdrop = document.createElement("div")
   tagBackdrop.className = "uptagbackdrop"
   tagBackdrop.addEventListener("click", () => closeTagPanelAnimated(null))
@@ -96,9 +97,16 @@ function ensureBackdrop() {
 }
 
 function setBackdropOn(on) {
-  ensureBackdrop()
-  if (!tagBackdrop) return
-  tagBackdrop.classList.toggle("is-on", !!on)
+  if (on) {
+    ensureBackdrop()
+    tagBackdrop.classList.add("is-on")
+    return
+  }
+  if (tagBackdrop) {
+    tagBackdrop.classList.remove("is-on")
+    tagBackdrop.remove()
+    tagBackdrop = null
+  }
 }
 
 function forceCloseTagUI() {
