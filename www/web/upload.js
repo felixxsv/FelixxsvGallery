@@ -29,10 +29,8 @@ const MIN_PLACEHOLDERS = 20
 
 let files = []
 let tagState = []
-let tagPool = []
 let tagPoolRaw = []
-let topTagCache = null
-let topTagCacheAt = 0
+let tagBackdrop = null
 
 let pendingDrag = null
 let dragging = null
@@ -52,8 +50,8 @@ let hoverLockTimer = null
 const EDGE_SHOW = 70
 const EDGE_HIDE = 90
 
-let tagBackdrop = null
-let tagSugMode = ""
+let tagPanelMode = ""
+let tagCloseTimer = null
 
 function isMobile() {
   return window.matchMedia("(max-width: 920px)").matches
@@ -88,20 +86,18 @@ function setMsg(s) {
   if (t) showToast(t, 3200)
 }
 
-function ensureTagBackdrop() {
+function ensureBackdrop() {
   if (tagBackdrop) return
   tagBackdrop = document.createElement("div")
   tagBackdrop.className = "uptagbackdrop"
-  tagBackdrop.style.display = "none"
-  tagBackdrop.addEventListener("click", () => closeTagPopover())
+  tagBackdrop.addEventListener("click", () => closeTagPanelAnimated(null))
   document.body.appendChild(tagBackdrop)
 }
 
 function setBackdropOn(on) {
+  ensureBackdrop()
   if (!tagBackdrop) return
-  tagBackdrop.style.display = on ? "block" : "none"
-  if (on) tagBackdrop.classList.add("is-on")
-  else tagBackdrop.classList.remove("is-on")
+  tagBackdrop.classList.toggle("is-on", !!on)
 }
 
 function isImageFile(f) {
@@ -230,6 +226,8 @@ function addTag(s) {
   tagState.push(t)
   renderTags()
   validate()
+  if (tagPanelMode === "small") renderTagPanelSmall()
+  if (tagPanelMode === "expanded") renderTagPanelExpanded()
 }
 
 function removeTag(t) {
@@ -237,6 +235,8 @@ function removeTag(t) {
   if (i >= 0) tagState.splice(i, 1)
   renderTags()
   validate()
+  if (tagPanelMode === "small") renderTagPanelSmall()
+  if (tagPanelMode === "expanded") renderTagPanelExpanded()
 }
 
 function renderTags() {
@@ -257,204 +257,245 @@ function renderTags() {
   }
 }
 
+function validate() {
+  const okFiles = files.length > 0
+  const okTitle = String(titleInput ? titleInput.value : "").trim().length > 0
+  if (submitBtn) submitBtn.disabled = !(okFiles && okTitle)
+}
+
 async function loadTagPool() {
   try {
     const res = await fetch("/gallery/api/tags?limit=200", { cache: "no-store" })
     const data = await res.json()
     const items = Array.isArray(data.items) ? data.items : []
     tagPoolRaw = items.map((x) => ({ name: String(x.name || ""), c: Number(x.c || 0) })).filter((x) => x.name)
-    tagPool = tagPoolRaw.map((x) => x.name)
   } catch (e) {
     tagPoolRaw = []
-    tagPool = []
   }
 }
 
-function closeTagPopover() {
-  if (tagSug) {
-    tagSug.classList.remove("is-on", "is-center", "uptagsug--popover")
-    tagSug.setAttribute("aria-hidden", "true")
-    tagSug.innerHTML = ""
-    tagSug.style.display = "none"
-  }
-  tagSugMode = ""
-  setBackdropOn(false)
+function isJapaneseText(s) {
+  return /[ぁ-んァ-ン一-龯]/.test(String(s || ""))
 }
 
-function openTagPopover(mode, renderFn) {
+function sortAZThenJP(a, b) {
+  const aj = isJapaneseText(a)
+  const bj = isJapaneseText(b)
+  if (aj !== bj) return aj ? 1 : -1
+  if (!aj) return String(a).localeCompare(String(b), "en", { sensitivity: "base", numeric: true })
+  return String(a).localeCompare(String(b), "ja", { sensitivity: "base", numeric: true })
+}
+
+function getAnchorRect() {
+  const btn = tagAdd
+  if (!btn) return null
+  return btn.getBoundingClientRect()
+}
+
+function showTagPanelBase() {
   if (!tagSug) return
-  ensureTagBackdrop()
-
-  closeTagPopover()
-
-  tagSugMode = mode
-  tagSug.innerHTML = ""
-  renderFn()
-
-  tagSug.classList.add("is-on")
+  ensureBackdrop()
+  if (tagCloseTimer) { clearTimeout(tagCloseTimer); tagCloseTimer = null }
   tagSug.style.display = "block"
-
-  if (isMobile()) {
-    tagSug.classList.add("is-center")
-    setBackdropOn(true)
-  } else {
-    tagSug.classList.add("uptagsug--popover")
-    setBackdropOn(false)
-  }
-
-  tagSug.setAttribute("aria-hidden", "false")
+  tagSug.classList.remove("is-leaving")
+  requestAnimationFrame(() => {
+    tagSug.classList.add("is-on")
+  })
 }
 
-function renderPopular(items) {
-  openTagPopover("popular", () => {
-    const head = document.createElement("div")
-    head.className = "uptagpickhead"
+function hideTagPanelBase() {
+  if (!tagSug) return
+  tagSug.classList.remove("is-on", "uptagsug--popover", "is-float", "is-expanded")
+  tagSug.style.display = "none"
+  tagSug.innerHTML = ""
+}
 
-    const left = document.createElement("div")
-    const t = document.createElement("div")
-    t.className = "uptagpicktitle"
-    t.textContent = "POPULAR TAGS"
-    const sub = document.createElement("div")
-    sub.className = "uptagpicksub"
-    sub.textContent = "click to add"
-    left.appendChild(t)
-    left.appendChild(sub)
+function closeTagPanelAnimated(after) {
+  if (!tagSug || !tagPanelMode) {
+    if (after) after()
+    return
+  }
+  setBackdropOn(false)
+  tagSug.classList.add("is-leaving")
+  tagSug.classList.remove("is-on")
+  const ms = 180
+  if (tagCloseTimer) clearTimeout(tagCloseTimer)
+  tagCloseTimer = setTimeout(() => {
+    hideTagPanelBase()
+    tagSug.classList.remove("is-leaving")
+    tagPanelMode = ""
+    if (after) after()
+  }, ms)
+}
 
-    head.appendChild(left)
-    tagSug.appendChild(head)
+function openSmallAfterClose() {
+  closeTagPanelAnimated(() => openTagPanelSmall())
+}
 
-    const grid = document.createElement("div")
-    grid.className = "uptagpickgrid"
+function openTagPanelSmall() {
+  if (!tagSug) return
+  tagPanelMode = "small"
+  setBackdropOn(false)
 
-    for (const it of items) {
-      const b = document.createElement("button")
-      b.type = "button"
-      b.className = "uptagpick"
-      const name = document.createElement("span")
-      name.textContent = it.name
-      const cnt = document.createElement("span")
-      cnt.className = "uptagpickcount"
-      cnt.textContent = String(it.c || 0)
-      b.appendChild(name)
-      b.appendChild(cnt)
+  tagSug.classList.remove("is-expanded")
+  tagSug.classList.add("uptagsug--popover", "is-float")
 
-      b.addEventListener("click", () => {
-        addTag(it.name)
-        closeTagPopover()
-        if (tagInput) tagInput.focus()
-      })
+  showTagPanelBase()
+  renderTagPanelSmall()
+  positionSmallPanel()
+}
 
-      grid.appendChild(b)
+function positionSmallPanel() {
+  if (!tagSug) return
+  const rect = getAnchorRect()
+  if (!rect) return
+
+  const w = 520
+  tagSug.style.width = `${w}px`
+
+  const pad = 8
+  const vw = window.innerWidth
+  let left = rect.right - w
+  if (left < pad) left = pad
+  if (left > (vw - w - pad)) left = Math.max(pad, vw - w - pad)
+
+  const panelH = tagSug.getBoundingClientRect().height || 0
+  let top = rect.top - 10 - panelH
+  if (top < pad) top = pad
+
+  tagSug.style.left = `${left}px`
+  tagSug.style.top = `${top}px`
+}
+
+function openTagPanelExpanded() {
+  if (!tagSug) return
+  tagPanelMode = "expanded"
+  setBackdropOn(true)
+
+  tagSug.classList.remove("uptagsug--popover", "is-float")
+  tagSug.classList.add("is-expanded")
+
+  showTagPanelBase()
+  renderTagPanelExpanded()
+}
+
+function togglePlus() {
+  if (!tagPanelMode) {
+    openTagPanelSmall()
+    return
+  }
+  if (tagPanelMode === "small") {
+    closeTagPanelAnimated(null)
+    return
+  }
+  if (tagPanelMode === "expanded") {
+    closeTagPanelAnimated(() => openTagPanelSmall())
+  }
+}
+
+function mkTagButton(name, count, withCount) {
+  const b = document.createElement("button")
+  b.type = "button"
+  b.className = "uptagpick"
+  const s = document.createElement("span")
+  s.textContent = name
+  b.appendChild(s)
+  if (withCount) {
+    const c = document.createElement("span")
+    c.className = "uptagpickcount"
+    c.textContent = String(count || 0)
+    b.appendChild(c)
+  }
+  return b
+}
+
+function renderTagPanelSmall() {
+  if (!tagSug) return
+  if (tagPanelMode !== "small") return
+
+  const pool = tagPoolRaw
+    .filter((x) => !tagState.includes(x.name))
+    .sort((a, b) => (b.c - a.c) || a.name.localeCompare(b.name))
+
+  tagSug.innerHTML = ""
+
+  const top = document.createElement("div")
+  top.className = "uptagpanel__top"
+
+  const title = document.createElement("div")
+  title.className = "uptagpanel__title"
+  title.textContent = "Tags"
+  top.appendChild(title)
+
+  tagSug.appendChild(top)
+
+  const row = document.createElement("div")
+  row.className = "uptagrow"
+  tagSug.appendChild(row)
+
+  const more = document.createElement("button")
+  more.type = "button"
+  more.className = "uptagpick more"
+  more.textContent = "+more"
+  more.addEventListener("click", () => {
+    closeTagPanelAnimated(() => openTagPanelExpanded())
+  })
+
+  row.appendChild(more)
+
+  for (const it of pool) {
+    const b = mkTagButton(it.name, it.c, false)
+    b.addEventListener("click", () => {
+      addTag(it.name)
+    })
+    row.insertBefore(b, more)
+
+    if (row.scrollWidth > row.clientWidth + 1) {
+      row.removeChild(b)
+      break
     }
-
-    tagSug.appendChild(grid)
-  })
-}
-
-function renderSuggest(list) {
-  openTagPopover("suggest", () => {
-    const head = document.createElement("div")
-    head.className = "uptagpickhead"
-
-    const left = document.createElement("div")
-    const t = document.createElement("div")
-    t.className = "uptagpicktitle"
-    t.textContent = "SUGGEST"
-    const sub = document.createElement("div")
-    sub.className = "uptagpicksub"
-    sub.textContent = "enter to add"
-    left.appendChild(t)
-    left.appendChild(sub)
-
-    head.appendChild(left)
-    tagSug.appendChild(head)
-
-    const grid = document.createElement("div")
-    grid.className = "uptagpickgrid"
-
-    for (const name0 of list) {
-      const b = document.createElement("button")
-      b.type = "button"
-      b.className = "uptagpick"
-      const name = document.createElement("span")
-      name.textContent = name0
-      b.appendChild(name)
-
-      b.addEventListener("click", () => {
-        addTag(name0)
-        closeTagPopover()
-        if (tagInput) {
-          tagInput.value = ""
-          tagInput.focus()
-        }
-      })
-
-      grid.appendChild(b)
-    }
-
-    tagSug.appendChild(grid)
-  })
-}
-
-async function getTopTags8() {
-  const now = Date.now()
-  if (topTagCache && (now - topTagCacheAt) < 60000) return topTagCache
-  try {
-    const res = await fetch("/gallery/api/tags?limit=8", { cache: "no-store" })
-    const data = await res.json()
-    const items = Array.isArray(data.items) ? data.items : []
-    const out = items
-      .map((x) => ({ name: String(x.name || ""), c: Number(x.c || 0) }))
-      .filter((x) => x.name)
-    topTagCache = out
-    topTagCacheAt = now
-    return out
-  } catch (e) {
-    return []
   }
 }
 
-function togglePopular() {
-  if (tagSugMode === "popular") {
-    closeTagPopover()
-    return
-  }
-  getTopTags8().then((items) => {
-    const filtered = items.filter((x) => !tagState.includes(x.name))
-    renderPopular(filtered.length ? filtered : items)
-  })
-}
+function renderTagPanelExpanded() {
+  if (!tagSug) return
+  if (tagPanelMode !== "expanded") return
 
-function updateSuggest() {
-  const q = normalizeTag(tagInput ? tagInput.value : "")
-  if (!q) {
-    if (tagSugMode === "suggest") closeTagPopover()
-    return
-  }
-  const low = q.toLowerCase()
-  const cand = []
-  for (const t of tagPool) {
-    if (cand.length >= 8) break
-    if (tagState.includes(t)) continue
-    if (t.toLowerCase().includes(low)) cand.push(t)
-  }
-  if (cand.length === 0) {
-    if (tagSugMode === "suggest") closeTagPopover()
-    return
-  }
-  renderSuggest(cand)
-}
+  const all = tagPoolRaw
+    .map((x) => x.name)
+    .filter((x) => x && !tagState.includes(x))
+    .sort(sortAZThenJP)
 
-function applyVis(v) {
-  if (!visHidden) return
-  visHidden.value = v
-  for (const b of visBtns) b.classList.toggle("is-on", b.dataset.vis === v)
-}
+  tagSug.innerHTML = ""
 
-function validate() {
-  const okFiles = files.length > 0
-  const okTitle = String(titleInput ? titleInput.value : "").trim().length > 0
-  if (submitBtn) submitBtn.disabled = !(okFiles && okTitle)
+  const top = document.createElement("div")
+  top.className = "uptagpanel__top"
+
+  const title = document.createElement("div")
+  title.className = "uptagpanel__title"
+  title.textContent = "Tags"
+  top.appendChild(title)
+
+  const close = document.createElement("button")
+  close.type = "button"
+  close.className = "uptagpanel__close"
+  close.textContent = "×"
+  close.addEventListener("click", () => closeTagPanelAnimated(null))
+  top.appendChild(close)
+
+  tagSug.appendChild(top)
+
+  const grid = document.createElement("div")
+  grid.className = "uptaggrid"
+  tagSug.appendChild(grid)
+
+  for (const name of all) {
+    const b = mkTagButton(name, 0, false)
+    b.addEventListener("click", () => {
+      addTag(name)
+    })
+    grid.appendChild(b)
+  }
 }
 
 function initPicker() {
@@ -495,42 +536,10 @@ function initPicker() {
   }
 }
 
-function initTags() {
-  if (tagAdd) {
-    tagAdd.addEventListener("click", (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      togglePopular()
-    })
-  }
-
-  if (tagInput) {
-    tagInput.addEventListener("input", () => {
-      if (tagSugMode === "popular") closeTagPopover()
-      updateSuggest()
-    })
-    tagInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault()
-        addTag(tagInput.value)
-        tagInput.value = ""
-        closeTagPopover()
-      }
-      if (e.key === "Escape") {
-        closeTagPopover()
-        tagInput.value = ""
-      }
-    })
-  }
-
-  document.addEventListener("click", (e) => {
-    const inBox = e.target && e.target.closest && (e.target.closest("#upTagBox") || e.target.closest("#upTagSug"))
-    if (!inBox) closeTagPopover()
-  })
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeTagPopover()
-  })
+function applyVis(v) {
+  if (!visHidden) return
+  visHidden.value = v
+  for (const b of visBtns) b.classList.toggle("is-on", b.dataset.vis === v)
 }
 
 function initVis() {
@@ -905,29 +914,64 @@ function renderAll() {
   validate()
 }
 
-function initCore() {
+function initTags() {
+  if (tagAdd) {
+    tagAdd.addEventListener("click", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      togglePlus()
+    })
+  }
+
+  if (tagInput) {
+    tagInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault()
+        addTag(tagInput.value)
+        tagInput.value = ""
+      }
+      if (e.key === "Escape") {
+        closeTagPanelAnimated(null)
+      }
+    })
+  }
+
+  document.addEventListener("click", (e) => {
+    if (tagPanelMode !== "expanded") {
+      const inPanel = e.target && e.target.closest && e.target.closest("#upTagSug")
+      const inPlus = e.target && e.target.closest && e.target.closest("#upTagAdd")
+      if (!inPanel && !inPlus) closeTagPanelAnimated(null)
+    }
+  })
+
+  window.addEventListener("resize", () => {
+    if (tagPanelMode === "small") {
+      renderTagPanelSmall()
+      positionSmallPanel()
+    }
+  })
+}
+
+function init() {
   try {
-    const need = [
-      ["upDrop", drop],
-      ["upFile", fileInput],
-      ["upCover", coverImg],
-      ["upCoverPh", coverPh],
-      ["upStripFrame", stripFrame],
-      ["upStrip", strip],
-      ["upArrowL", arrowL],
-      ["upArrowR", arrowR],
-      ["upTitle", titleInput],
-      ["upTagAdd", tagAdd],
-      ["upTagSug", tagSug],
-    ]
-    const missing = need.filter((x) => !x[1]).map((x) => x[0])
+    const missing = []
+    if (!drop) missing.push("upDrop")
+    if (!fileInput) missing.push("upFile")
+    if (!coverImg) missing.push("upCover")
+    if (!coverPh) missing.push("upCoverPh")
+    if (!stripFrame) missing.push("upStripFrame")
+    if (!strip) missing.push("upStrip")
+    if (!arrowL) missing.push("upArrowL")
+    if (!arrowR) missing.push("upArrowR")
+    if (!titleInput) missing.push("upTitle")
+    if (!tagAdd) missing.push("upTagAdd")
+    if (!tagSug) missing.push("upTagSug")
     if (missing.length) {
       setMsg(`upload.js: 必須要素が見つかりません (${missing.join(", ")})`)
       return
     }
 
-    ensureTagBackdrop()
-
+    ensureBackdrop()
     initPicker()
     initTags()
     initVis()
@@ -935,7 +979,7 @@ function initCore() {
     initDragSorting()
     initArrowsAndWheel()
 
-    titleInput.addEventListener("input", () => validate())
+    if (titleInput) titleInput.addEventListener("input", () => validate())
 
     renderAll()
     loadTagPool()
@@ -944,14 +988,10 @@ function initCore() {
   }
 }
 
-function init() {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initCore)
-  } else {
-    initCore()
-  }
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init)
+} else {
+  init()
 }
 
 window.addEventListener("beforeunload", () => revokeAll())
-
-init()
