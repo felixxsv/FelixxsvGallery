@@ -213,6 +213,7 @@
   height:78px;
 }
 
+/* === TAG UI (fixed) === */
 .uptagbox{
   position:relative;
   display:flex;
@@ -226,11 +227,12 @@
   overflow:visible;
 }
 
-.uptagchips{
+.uptagscroll{
   flex:1 1 auto;
   min-width:0;
+  height:100%;
   display:flex;
-  flex-wrap:nowrap;
+  align-items:center;
   gap:8px;
   overflow-x:auto;
   overflow-y:hidden;
@@ -238,20 +240,29 @@
   scrollbar-width:thin;
   scrollbar-color:rgba(255,255,255,.10) transparent;
 }
-.uptagchips::-webkit-scrollbar{height:4px}
-.uptagchips::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:999px}
+.uptagscroll::-webkit-scrollbar{height:4px}
+.uptagscroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:999px}
+
+.uptagchips{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:8px;
+  align-items:center;
+  flex:0 0 auto;
+}
 
 .uptagchip{display:inline-flex;align-items:center;gap:8px;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-size:12px;white-space:nowrap}
 .uptagchip button{width:18px;height:18px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;line-height:1;font-size:12px;padding:0}
 
 .uptaginp{
-  flex:0 0 180px;
-  min-width:160px;
+  flex:1 1 auto;
+  min-width:180px;
   border:none;
   outline:none;
   background:transparent;
   color:#e7eef7;
   height:100%;
+  text-align:left;
 }
 
 .uptagadd{
@@ -294,26 +305,22 @@
   transition:opacity .18s ease, transform .18s ease;
   pointer-events:none;
 }
-
 .uptagsug.is-on{
   opacity:1;
   transform:translateY(0) scale(1);
   pointer-events:auto;
 }
-
 .uptagsug.is-leaving{
   opacity:0;
   transform:translateY(8px) scale(.98);
   pointer-events:none;
 }
-
 .uptagsug.is-float{
   position:fixed;
   top:0;
   left:0;
   width:520px;
 }
-
 .uptagsug.uptagsug--popover::before{
   content:"";
   position:absolute;
@@ -326,7 +333,6 @@
   border-right:1px solid rgba(255,255,255,.12);
   border-bottom:1px solid rgba(255,255,255,.12);
 }
-
 .uptagsug.is-expanded{
   position:fixed;
   left:50%;
@@ -336,7 +342,6 @@
   max-height:72vh;
   padding:14px;
 }
-
 .uptagpanel__top{
   display:flex;
   align-items:center;
@@ -359,7 +364,6 @@
   font-size:18px;
   line-height:1;
 }
-
 .uptagrow{
   display:flex;
   flex-wrap:nowrap;
@@ -367,7 +371,6 @@
   overflow:hidden;
   align-items:center;
 }
-
 .uptaggrid{
   display:flex;
   flex-wrap:wrap;
@@ -380,7 +383,6 @@
 }
 .uptaggrid::-webkit-scrollbar{width:6px}
 .uptaggrid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:999px}
-
 .uptagpick{
   display:inline-flex;
   align-items:center;
@@ -395,7 +397,6 @@
   white-space:nowrap;
 }
 .uptagpick:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.20)}
-
 .uptagpickcount{
   padding:2px 7px;
   border-radius:999px;
@@ -404,12 +405,12 @@
   font-size:11px;
   opacity:.9;
 }
-
 .uptagpick.more{
   background:rgba(255,255,255,.10);
   border-color:rgba(255,255,255,.18);
 }
 
+/* === vis & bottom === */
 .upfield--vis{margin-top:-2px}
 .upvis{
   display:flex;
@@ -481,5 +482,5 @@
   .upmain{height:auto;min-height:calc(100vh - var(--hdr-h));align-items:flex-start}
   .upcard{height:auto}
   .upgrid{grid-template-columns:1fr}
-  .uptaginp{flex:1 1 auto;min-width:120px}
+  .uptaginp{min-width:120px}
 }
