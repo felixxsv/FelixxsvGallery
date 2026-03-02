@@ -33,12 +33,41 @@ let allTags = []
 
 let pendingDrag = null
 let dragging = null
+
 let arrowAnim = null
 let arrowDir = 0
 
+let toastWrap = null
+let toastBox = null
+let toastTimer = null
+
+function ensureToast() {
+  if (toastWrap && toastBox) return
+  toastWrap = document.createElement("div")
+  toastWrap.className = "uptoastwrap"
+  toastBox = document.createElement("div")
+  toastBox.className = "uptoast"
+  toastWrap.appendChild(toastBox)
+  document.body.appendChild(toastWrap)
+}
+
+function showToast(text, ms) {
+  const s = String(text || "").trim()
+  if (!s) return
+  ensureToast()
+  toastBox.textContent = s
+  toastBox.classList.add("is-on")
+  if (toastTimer) clearTimeout(toastTimer)
+  const dur = Number(ms) > 0 ? Number(ms) : 3200
+  toastTimer = setTimeout(() => {
+    toastBox.classList.remove("is-on")
+  }, dur)
+}
+
 function setMsg(s) {
-  if (!msg) return
-  msg.textContent = s || ""
+  const t = String(s || "").trim()
+  if (msg) msg.textContent = ""
+  if (t) showToast(t, 3200)
 }
 
 function isImageFile(f) {
@@ -77,13 +106,9 @@ function addFiles(list) {
   }
 
   const adding = incoming.slice(0, room)
-  for (const f of adding) {
-    files.push({ file: f, url: makeUrl(f) })
-  }
+  for (const f of adding) files.push({ file: f, url: makeUrl(f) })
 
   if (incoming.length > adding.length) setMsg(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`)
-  else setMsg("")
-
   renderAll()
 }
 
@@ -340,9 +365,7 @@ function initTags() {
 }
 
 function initVis() {
-  for (const b of visBtns) {
-    b.addEventListener("click", () => applyVis(b.dataset.vis))
-  }
+  for (const b of visBtns) b.addEventListener("click", () => applyVis(b.dataset.vis))
 }
 
 function initSubmit() {
@@ -430,7 +453,6 @@ function startDragFromPending(p) {
   ph.style.width = `${elThumb.getBoundingClientRect().width}px`
   ph.style.height = `${elThumb.getBoundingClientRect().height}px`
 
-  const rect = elThumb.getBoundingClientRect()
   const ghost = ghostCreate(url)
   ghostMove(ghost, p.x, p.y)
 
@@ -440,12 +462,7 @@ function startDragFromPending(p) {
   if (ref) parent.insertBefore(ph, ref)
   else parent.appendChild(ph)
 
-  dragging = {
-    from: idx,
-    ph,
-    ghost,
-    pointerId: p.pointerId
-  }
+  dragging = { from: idx, ph, ghost, pointerId: p.pointerId }
 }
 
 function dragMove(x, y) {
@@ -462,24 +479,13 @@ function dragMove(x, y) {
     if (n === ph) continue
     const r = n.getBoundingClientRect()
     const mid = r.left + r.width / 2
-    if (x < mid) {
-      target = n
-      break
-    }
+    if (x < mid) { target = n; break }
   }
 
   const reorder = () => {
-    if (!target) {
-      strip.appendChild(ph)
-      return
-    }
-    strip.insertBefore(ph, target)
+    if (!target) strip.appendChild(ph)
+    else strip.insertBefore(ph, target)
   }
-
-  const phAfter = (() => {
-    const now = Array.from(strip.children).filter((n) => n.dataset && (n.dataset.kind === "file" || n.dataset.kind === "ph"))
-    return now.indexOf(ph)
-  })()
 
   if (target) {
     const idxBefore = nodes.indexOf(target)
@@ -511,16 +517,7 @@ function dragEnd(asClick) {
   dragging = null
   pendingDrag = null
 
-  if (!Number.isFinite(from) || !Number.isFinite(to)) {
-    renderAll()
-    return
-  }
-
-  if (to < 0) {
-    renderAll()
-    return
-  }
-
+  if (!Number.isFinite(from) || !Number.isFinite(to)) { renderAll(); return }
   const cappedTo = to > files.length - 1 ? files.length - 1 : to
   if (from !== cappedTo) moveIndex(from, cappedTo)
   renderAll()
@@ -586,25 +583,35 @@ function updateArrowsByState(xHint) {
 
   if (typeof xHint === "number") {
     const w = stripFrame.clientWidth
-    if (xHint <= 80 && canL) wantL = true
-    if (xHint >= (w - 80) && canR) wantR = true
+    if (xHint <= 70 && canL) wantL = true
+    if (xHint >= (w - 70) && canR) wantR = true
   }
 
   arrowL.classList.toggle("is-on", wantL)
   arrowR.classList.toggle("is-on", wantR)
 }
 
+function stopArrowAnim() {
+  if (arrowAnim) cancelAnimationFrame(arrowAnim)
+  arrowAnim = null
+}
+
 function arrowLoop() {
-  if (!strip || arrowDir === 0) return
-  strip.scrollLeft += arrowDir * 14
+  if (!strip || arrowDir === 0) { stopArrowAnim(); return }
+  strip.scrollLeft += arrowDir * 12
   updateArrowsByState()
+  arrowAnim = requestAnimationFrame(arrowLoop)
+}
+
+function startArrow(dir) {
+  arrowDir = dir
+  stopArrowAnim()
   arrowAnim = requestAnimationFrame(arrowLoop)
 }
 
 function stopArrow() {
   arrowDir = 0
-  if (arrowAnim) cancelAnimationFrame(arrowAnim)
-  arrowAnim = null
+  stopArrowAnim()
 }
 
 function initArrowsAndWheel() {
@@ -624,25 +631,17 @@ function initArrowsAndWheel() {
     stopArrow()
   })
 
-  arrowL.addEventListener("mouseenter", () => {
-    arrowDir = -1
-    stopArrow()
-    arrowAnim = requestAnimationFrame(arrowLoop)
-  })
-  arrowR.addEventListener("mouseenter", () => {
-    arrowDir = 1
-    stopArrow()
-    arrowAnim = requestAnimationFrame(arrowLoop)
-  })
+  arrowL.addEventListener("mouseenter", () => startArrow(-1))
+  arrowR.addEventListener("mouseenter", () => startArrow(1))
   arrowL.addEventListener("mouseleave", stopArrow)
   arrowR.addEventListener("mouseleave", stopArrow)
 
   arrowL.addEventListener("click", () => {
-    strip.scrollLeft -= 280
+    strip.scrollLeft -= 260
     updateArrowsByState()
   })
   arrowR.addEventListener("click", () => {
-    strip.scrollLeft += 280
+    strip.scrollLeft += 260
     updateArrowsByState()
   })
 
