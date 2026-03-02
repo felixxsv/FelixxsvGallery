@@ -14,6 +14,7 @@ const coverPh = el("upCoverPh")
 const msg = el("upMsg")
 
 const titleInput = el("upTitle")
+const tagBox = el("upTagBox")
 const tagChips = el("upTagChips")
 const tagInput = el("upTag")
 const tagAdd = el("upTagAdd")
@@ -29,7 +30,10 @@ const MIN_PLACEHOLDERS = 20
 
 let files = []
 let tagState = []
-let allTags = []
+let tagPool = []
+let tagPoolRaw = []
+let topTagCache = null
+let topTagCacheAt = 0
 
 let pendingDrag = null
 let dragging = null
@@ -48,6 +52,13 @@ let hoverLockTimer = null
 
 const EDGE_SHOW = 70
 const EDGE_HIDE = 90
+
+let tagBackdrop = null
+let tagSugMode = ""
+
+function isMobile() {
+  return window.matchMedia("(max-width: 920px)").matches
+}
 
 function ensureToast() {
   if (toastWrap && toastBox) return
@@ -76,6 +87,14 @@ function setMsg(s) {
   const t = String(s || "").trim()
   if (msg) msg.textContent = ""
   if (t) showToast(t, 3200)
+}
+
+function ensureTagBackdrop() {
+  if (tagBackdrop) return
+  tagBackdrop = document.createElement("div")
+  tagBackdrop.className = "uptagbackdrop"
+  tagBackdrop.addEventListener("click", () => closeTagPopover())
+  document.body.appendChild(tagBackdrop)
 }
 
 function isImageFile(f) {
@@ -203,12 +222,14 @@ function addTag(s) {
   if (tagState.includes(t)) return
   tagState.push(t)
   renderTags()
+  validate()
 }
 
 function removeTag(t) {
   const i = tagState.indexOf(t)
   if (i >= 0) tagState.splice(i, 1)
   renderTags()
+  validate()
 }
 
 function renderTags() {
@@ -234,53 +255,183 @@ async function loadTagPool() {
     const res = await fetch("/gallery/api/tags?limit=200", { cache: "no-store" })
     const data = await res.json()
     const items = Array.isArray(data.items) ? data.items : []
-    allTags = items.map((x) => String(x.name || "")).filter((x) => x)
+    tagPoolRaw = items.map((x) => ({ name: String(x.name || ""), c: Number(x.c || 0) })).filter((x) => x.name)
+    tagPool = tagPoolRaw.map((x) => x.name)
   } catch (e) {
-    allTags = []
+    tagPoolRaw = []
+    tagPool = []
   }
 }
 
-function closeSug() {
+function closeTagPopover() {
   if (!tagSug) return
-  tagSug.classList.remove("is-on")
+  tagSug.classList.remove("is-on", "is-center", "uptagsug--popover")
   tagSug.setAttribute("aria-hidden", "true")
   tagSug.innerHTML = ""
+  tagSugMode = ""
+  if (tagBackdrop) tagBackdrop.classList.remove("is-on")
 }
 
-function openSug(list) {
+function openTagPopover(mode, renderFn) {
   if (!tagSug) return
+  ensureTagBackdrop()
+
+  closeTagPopover()
+
+  tagSugMode = mode
   tagSug.innerHTML = ""
-  for (const t of list) {
-    const b = document.createElement("button")
-    b.type = "button"
-    b.textContent = t
-    b.addEventListener("click", () => {
-      addTag(t)
-      if (tagInput) tagInput.value = ""
-      closeSug()
-      if (tagInput) tagInput.focus()
-    })
-    tagSug.appendChild(b)
-  }
+  renderFn()
+
   tagSug.classList.add("is-on")
+  if (isMobile()) {
+    tagSug.classList.add("is-center")
+    if (tagBackdrop) tagBackdrop.classList.add("is-on")
+  } else {
+    tagSug.classList.add("uptagsug--popover")
+    if (tagBackdrop) tagBackdrop.classList.remove("is-on")
+  }
+
   tagSug.setAttribute("aria-hidden", "false")
 }
 
-function updateSug() {
+function renderPopular(items) {
+  openTagPopover("popular", () => {
+    const head = document.createElement("div")
+    head.className = "uptagpickhead"
+
+    const left = document.createElement("div")
+    const t = document.createElement("div")
+    t.className = "uptagpicktitle"
+    t.textContent = "POPULAR TAGS"
+    const sub = document.createElement("div")
+    sub.className = "uptagpicksub"
+    sub.textContent = "click to add"
+    left.appendChild(t)
+    left.appendChild(sub)
+
+    head.appendChild(left)
+    tagSug.appendChild(head)
+
+    const grid = document.createElement("div")
+    grid.className = "uptagpickgrid"
+
+    for (const it of items) {
+      const b = document.createElement("button")
+      b.type = "button"
+      b.className = "uptagpick"
+      const name = document.createElement("span")
+      name.textContent = it.name
+      const cnt = document.createElement("span")
+      cnt.className = "uptagpickcount"
+      cnt.textContent = String(it.c || 0)
+      b.appendChild(name)
+      b.appendChild(cnt)
+
+      b.addEventListener("click", () => {
+        addTag(it.name)
+        closeTagPopover()
+        if (tagInput) tagInput.focus()
+      })
+
+      grid.appendChild(b)
+    }
+
+    tagSug.appendChild(grid)
+  })
+}
+
+function renderSuggest(list) {
+  openTagPopover("suggest", () => {
+    const head = document.createElement("div")
+    head.className = "uptagpickhead"
+
+    const left = document.createElement("div")
+    const t = document.createElement("div")
+    t.className = "uptagpicktitle"
+    t.textContent = "SUGGEST"
+    const sub = document.createElement("div")
+    sub.className = "uptagpicksub"
+    sub.textContent = "enter to add"
+    left.appendChild(t)
+    left.appendChild(sub)
+
+    head.appendChild(left)
+    tagSug.appendChild(head)
+
+    const grid = document.createElement("div")
+    grid.className = "uptagpickgrid"
+
+    for (const name0 of list) {
+      const b = document.createElement("button")
+      b.type = "button"
+      b.className = "uptagpick"
+      const name = document.createElement("span")
+      name.textContent = name0
+      b.appendChild(name)
+
+      b.addEventListener("click", () => {
+        addTag(name0)
+        closeTagPopover()
+        if (tagInput) {
+          tagInput.value = ""
+          tagInput.focus()
+        }
+      })
+
+      grid.appendChild(b)
+    }
+
+    tagSug.appendChild(grid)
+  })
+}
+
+function updateSuggest() {
   const q = normalizeTag(tagInput ? tagInput.value : "")
   if (!q) {
-    closeSug()
+    if (tagSugMode === "suggest") closeTagPopover()
     return
   }
   const low = q.toLowerCase()
   const cand = []
-  for (const t of allTags) {
+  for (const t of tagPool) {
     if (cand.length >= 8) break
     if (tagState.includes(t)) continue
     if (t.toLowerCase().includes(low)) cand.push(t)
   }
-  if (cand.length === 0) closeSug()
-  else openSug(cand)
+  if (cand.length === 0) {
+    if (tagSugMode === "suggest") closeTagPopover()
+    return
+  }
+  renderSuggest(cand)
+}
+
+async function getTopTags8() {
+  const now = Date.now()
+  if (topTagCache && (now - topTagCacheAt) < 60000) return topTagCache
+  try {
+    const res = await fetch("/gallery/api/tags?limit=8", { cache: "no-store" })
+    const data = await res.json()
+    const items = Array.isArray(data.items) ? data.items : []
+    const out = items
+      .map((x) => ({ name: String(x.name || ""), c: Number(x.c || 0) }))
+      .filter((x) => x.name)
+    topTagCache = out
+    topTagCacheAt = now
+    return out
+  } catch (e) {
+    return []
+  }
+}
+
+function togglePopular() {
+  if (tagSugMode === "popular") {
+    closeTagPopover()
+    return
+  }
+  getTopTags8().then((items) => {
+    const filtered = items.filter((x) => !tagState.includes(x.name))
+    renderPopular(filtered.length ? filtered : items)
+  })
 }
 
 function applyVis(v) {
@@ -293,13 +444,6 @@ function validate() {
   const okFiles = files.length > 0
   const okTitle = String(titleInput ? titleInput.value : "").trim().length > 0
   if (submitBtn) submitBtn.disabled = !(okFiles && okTitle)
-}
-
-function renderAll() {
-  renderCover()
-  renderStrip()
-  renderTags()
-  validate()
 }
 
 function initPicker() {
@@ -342,33 +486,39 @@ function initPicker() {
 
 function initTags() {
   if (tagAdd) {
-    tagAdd.addEventListener("click", () => {
-      addTag(tagInput ? tagInput.value : "")
-      if (tagInput) tagInput.value = ""
-      closeSug()
-      validate()
+    tagAdd.addEventListener("click", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      togglePopular()
     })
   }
 
   if (tagInput) {
-    tagInput.addEventListener("input", () => updateSug())
+    tagInput.addEventListener("input", () => {
+      if (tagSugMode === "popular") closeTagPopover()
+      updateSuggest()
+    })
     tagInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault()
         addTag(tagInput.value)
         tagInput.value = ""
-        closeSug()
+        closeTagPopover()
       }
       if (e.key === "Escape") {
-        closeSug()
+        closeTagPopover()
         tagInput.value = ""
       }
     })
   }
 
   document.addEventListener("click", (e) => {
-    const inBox = e.target && e.target.closest && e.target.closest("#upTagBox")
-    if (!inBox) closeSug()
+    const inBox = e.target && e.target.closest && (e.target.closest("#upTagBox") || e.target.closest("#upTagSug"))
+    if (!inBox) closeTagPopover()
+  })
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeTagPopover()
   })
 }
 
@@ -745,6 +895,7 @@ function init() {
 
   if (titleInput) titleInput.addEventListener("input", () => validate())
 
+  ensureTagBackdrop()
   renderAll()
 
   initDragSorting()
