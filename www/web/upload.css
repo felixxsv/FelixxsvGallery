@@ -213,7 +213,7 @@
   height:78px;
 }
 
-/* === TAG UI (fixed) === */
+/* TAG UI */
 .uptagbox{
   position:relative;
   display:flex;
@@ -250,7 +250,6 @@
   align-items:center;
   flex:0 0 auto;
 }
-
 .uptagchip{display:inline-flex;align-items:center;gap:8px;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-size:12px;white-space:nowrap}
 .uptagchip button{width:18px;height:18px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;line-height:1;font-size:12px;padding:0}
 
@@ -291,6 +290,7 @@
 }
 .uptagbackdrop.is-on{display:block}
 
+/* Popover base */
 .uptagsug{
   border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
@@ -315,12 +315,17 @@
   transform:translateY(8px) scale(.98);
   pointer-events:none;
 }
-.uptagsug.is-float{
-  position:fixed;
-  top:0;
-  left:0;
+
+/* Small popover: anchor to tag box (ABSOLUTE) */
+.uptagsug.is-small{
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 10px);
   width:520px;
+  display:block;
 }
+
+/* Arrow */
 .uptagsug.uptagsug--popover::before{
   content:"";
   position:absolute;
@@ -333,6 +338,8 @@
   border-right:1px solid rgba(255,255,255,.12);
   border-bottom:1px solid rgba(255,255,255,.12);
 }
+
+/* Expanded: center modal */
 .uptagsug.is-expanded{
   position:fixed;
   left:50%;
@@ -341,7 +348,9 @@
   width:min(860px,94vw);
   max-height:72vh;
   padding:14px;
+  display:block;
 }
+
 .uptagpanel__top{
   display:flex;
   align-items:center;
@@ -364,6 +373,7 @@
   font-size:18px;
   line-height:1;
 }
+
 .uptagrow{
   display:flex;
   flex-wrap:nowrap;
@@ -371,6 +381,7 @@
   overflow:hidden;
   align-items:center;
 }
+
 .uptaggrid{
   display:flex;
   flex-wrap:wrap;
@@ -383,6 +394,7 @@
 }
 .uptaggrid::-webkit-scrollbar{width:6px}
 .uptaggrid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:999px}
+
 .uptagpick{
   display:inline-flex;
   align-items:center;
@@ -410,7 +422,6 @@
   border-color:rgba(255,255,255,.18);
 }
 
-/* === vis & bottom === */
 .upfield--vis{margin-top:-2px}
 .upvis{
   display:flex;
@@ -482,5 +493,6 @@
   .upmain{height:auto;min-height:calc(100vh - var(--hdr-h));align-items:flex-start}
   .upcard{height:auto}
   .upgrid{grid-template-columns:1fr}
+  .uptagsug.is-small{width:min(520px,92vw)}
   .uptaginp{min-width:120px}
 }

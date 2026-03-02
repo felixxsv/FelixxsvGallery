@@ -286,12 +286,6 @@ function sortAZThenJP(a, b) {
   return String(a).localeCompare(String(b), "ja", { sensitivity: "base", numeric: true })
 }
 
-function getAnchorRect() {
-  const btn = tagAdd
-  if (!btn) return null
-  return btn.getBoundingClientRect()
-}
-
 function showTagPanelBase() {
   if (!tagSug) return
   ensureBackdrop()
@@ -305,7 +299,7 @@ function showTagPanelBase() {
 
 function hideTagPanelBase() {
   if (!tagSug) return
-  tagSug.classList.remove("is-on", "uptagsug--popover", "is-float", "is-expanded")
+  tagSug.classList.remove("is-on", "uptagsug--popover", "is-small", "is-expanded")
   tagSug.style.display = "none"
   tagSug.innerHTML = ""
 }
@@ -328,43 +322,16 @@ function closeTagPanelAnimated(after) {
   }, ms)
 }
 
-function openSmallAfterClose() {
-  closeTagPanelAnimated(() => openTagPanelSmall())
-}
-
 function openTagPanelSmall() {
   if (!tagSug) return
   tagPanelMode = "small"
   setBackdropOn(false)
 
   tagSug.classList.remove("is-expanded")
-  tagSug.classList.add("uptagsug--popover", "is-float")
+  tagSug.classList.add("is-small", "uptagsug--popover")
 
   showTagPanelBase()
   renderTagPanelSmall()
-  positionSmallPanel()
-}
-
-function positionSmallPanel() {
-  if (!tagSug) return
-  const rect = getAnchorRect()
-  if (!rect) return
-
-  const w = 520
-  tagSug.style.width = `${w}px`
-
-  const pad = 8
-  const vw = window.innerWidth
-  let left = rect.right - w
-  if (left < pad) left = pad
-  if (left > (vw - w - pad)) left = Math.max(pad, vw - w - pad)
-
-  const panelH = tagSug.getBoundingClientRect().height || 0
-  let top = rect.top - 10 - panelH
-  if (top < pad) top = pad
-
-  tagSug.style.left = `${left}px`
-  tagSug.style.top = `${top}px`
 }
 
 function openTagPanelExpanded() {
@@ -372,7 +339,7 @@ function openTagPanelExpanded() {
   tagPanelMode = "expanded"
   setBackdropOn(true)
 
-  tagSug.classList.remove("uptagsug--popover", "is-float")
+  tagSug.classList.remove("is-small", "uptagsug--popover")
   tagSug.classList.add("is-expanded")
 
   showTagPanelBase()
@@ -421,12 +388,10 @@ function renderTagPanelSmall() {
 
   const top = document.createElement("div")
   top.className = "uptagpanel__top"
-
   const title = document.createElement("div")
   title.className = "uptagpanel__title"
   title.textContent = "Tags"
   top.appendChild(title)
-
   tagSug.appendChild(top)
 
   const row = document.createElement("div")
@@ -440,14 +405,11 @@ function renderTagPanelSmall() {
   more.addEventListener("click", () => {
     closeTagPanelAnimated(() => openTagPanelExpanded())
   })
-
   row.appendChild(more)
 
   for (const it of pool) {
     const b = mkTagButton(it.name, it.c, false)
-    b.addEventListener("click", () => {
-      addTag(it.name)
-    })
+    b.addEventListener("click", () => { addTag(it.name) })
     row.insertBefore(b, more)
 
     if (row.scrollWidth > row.clientWidth + 1) {
@@ -491,9 +453,7 @@ function renderTagPanelExpanded() {
 
   for (const name of all) {
     const b = mkTagButton(name, 0, false)
-    b.addEventListener("click", () => {
-      addTag(name)
-    })
+    b.addEventListener("click", () => { addTag(name) })
     grid.appendChild(b)
   }
 }
@@ -550,18 +510,13 @@ function initSubmit() {
   if (!submitBtn) return
   submitBtn.addEventListener("click", () => {
     const title = String(titleInput ? titleInput.value : "").trim()
-    if (!title) {
-      setMsg("タイトルを入力してください。")
-      return
-    }
-    if (files.length === 0) {
-      setMsg("画像を追加してください。")
-      return
-    }
+    if (!title) { setMsg("タイトルを入力してください。"); return }
+    if (files.length === 0) { setMsg("画像を追加してください。"); return }
     setMsg("アップロード処理（サーバ保存）は次の工程で実装します。いまは選択・並び替え・入力まで動作します。")
   })
 }
 
+/* ここから下（ドラッグ並べ替え＆矢印スクロール等）は既存のまま */
 function flip(container, action) {
   const items = Array.from(container.children).filter((x) => x && x.dataset && x.dataset.kind === "file")
   const first = new Map()
@@ -939,15 +894,8 @@ function initTags() {
   document.addEventListener("click", (e) => {
     if (tagPanelMode !== "expanded") {
       const inPanel = e.target && e.target.closest && e.target.closest("#upTagSug")
-      const inPlus = e.target && e.target.closest && e.target.closest("#upTagAdd")
-      if (!inPanel && !inPlus) closeTagPanelAnimated(null)
-    }
-  })
-
-  window.addEventListener("resize", () => {
-    if (tagPanelMode === "small") {
-      renderTagPanelSmall()
-      positionSmallPanel()
+      const inBox = e.target && e.target.closest && e.target.closest("#upTagBox")
+      if (!inPanel && !inBox) closeTagPanelAnimated(null)
     }
   })
 }
