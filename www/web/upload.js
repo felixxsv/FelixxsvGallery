@@ -14,7 +14,6 @@ const coverPh = el("upCoverPh")
 const msg = el("upMsg")
 
 const titleInput = el("upTitle")
-const tagBox = el("upTagBox")
 const tagChips = el("upTagChips")
 const tagInput = el("upTag")
 const tagAdd = el("upTagAdd")
@@ -93,8 +92,16 @@ function ensureTagBackdrop() {
   if (tagBackdrop) return
   tagBackdrop = document.createElement("div")
   tagBackdrop.className = "uptagbackdrop"
+  tagBackdrop.style.display = "none"
   tagBackdrop.addEventListener("click", () => closeTagPopover())
   document.body.appendChild(tagBackdrop)
+}
+
+function setBackdropOn(on) {
+  if (!tagBackdrop) return
+  tagBackdrop.style.display = on ? "block" : "none"
+  if (on) tagBackdrop.classList.add("is-on")
+  else tagBackdrop.classList.remove("is-on")
 }
 
 function isImageFile(f) {
@@ -264,12 +271,14 @@ async function loadTagPool() {
 }
 
 function closeTagPopover() {
-  if (!tagSug) return
-  tagSug.classList.remove("is-on", "is-center", "uptagsug--popover")
-  tagSug.setAttribute("aria-hidden", "true")
-  tagSug.innerHTML = ""
+  if (tagSug) {
+    tagSug.classList.remove("is-on", "is-center", "uptagsug--popover")
+    tagSug.setAttribute("aria-hidden", "true")
+    tagSug.innerHTML = ""
+    tagSug.style.display = "none"
+  }
   tagSugMode = ""
-  if (tagBackdrop) tagBackdrop.classList.remove("is-on")
+  setBackdropOn(false)
 }
 
 function openTagPopover(mode, renderFn) {
@@ -283,12 +292,14 @@ function openTagPopover(mode, renderFn) {
   renderFn()
 
   tagSug.classList.add("is-on")
+  tagSug.style.display = "block"
+
   if (isMobile()) {
     tagSug.classList.add("is-center")
-    if (tagBackdrop) tagBackdrop.classList.add("is-on")
+    setBackdropOn(true)
   } else {
     tagSug.classList.add("uptagsug--popover")
-    if (tagBackdrop) tagBackdrop.classList.remove("is-on")
+    setBackdropOn(false)
   }
 
   tagSug.setAttribute("aria-hidden", "false")
@@ -385,26 +396,6 @@ function renderSuggest(list) {
   })
 }
 
-function updateSuggest() {
-  const q = normalizeTag(tagInput ? tagInput.value : "")
-  if (!q) {
-    if (tagSugMode === "suggest") closeTagPopover()
-    return
-  }
-  const low = q.toLowerCase()
-  const cand = []
-  for (const t of tagPool) {
-    if (cand.length >= 8) break
-    if (tagState.includes(t)) continue
-    if (t.toLowerCase().includes(low)) cand.push(t)
-  }
-  if (cand.length === 0) {
-    if (tagSugMode === "suggest") closeTagPopover()
-    return
-  }
-  renderSuggest(cand)
-}
-
 async function getTopTags8() {
   const now = Date.now()
   if (topTagCache && (now - topTagCacheAt) < 60000) return topTagCache
@@ -432,6 +423,26 @@ function togglePopular() {
     const filtered = items.filter((x) => !tagState.includes(x.name))
     renderPopular(filtered.length ? filtered : items)
   })
+}
+
+function updateSuggest() {
+  const q = normalizeTag(tagInput ? tagInput.value : "")
+  if (!q) {
+    if (tagSugMode === "suggest") closeTagPopover()
+    return
+  }
+  const low = q.toLowerCase()
+  const cand = []
+  for (const t of tagPool) {
+    if (cand.length >= 8) break
+    if (tagState.includes(t)) continue
+    if (t.toLowerCase().includes(low)) cand.push(t)
+  }
+  if (cand.length === 0) {
+    if (tagSugMode === "suggest") closeTagPopover()
+    return
+  }
+  renderSuggest(cand)
 }
 
 function applyVis(v) {
@@ -887,21 +898,58 @@ function initArrowsAndWheel() {
   }, { passive: false })
 }
 
+function renderAll() {
+  renderCover()
+  renderStrip()
+  renderTags()
+  validate()
+}
+
+function initCore() {
+  try {
+    const need = [
+      ["upDrop", drop],
+      ["upFile", fileInput],
+      ["upCover", coverImg],
+      ["upCoverPh", coverPh],
+      ["upStripFrame", stripFrame],
+      ["upStrip", strip],
+      ["upArrowL", arrowL],
+      ["upArrowR", arrowR],
+      ["upTitle", titleInput],
+      ["upTagAdd", tagAdd],
+      ["upTagSug", tagSug],
+    ]
+    const missing = need.filter((x) => !x[1]).map((x) => x[0])
+    if (missing.length) {
+      setMsg(`upload.js: 必須要素が見つかりません (${missing.join(", ")})`)
+      return
+    }
+
+    ensureTagBackdrop()
+
+    initPicker()
+    initTags()
+    initVis()
+    initSubmit()
+    initDragSorting()
+    initArrowsAndWheel()
+
+    titleInput.addEventListener("input", () => validate())
+
+    renderAll()
+    loadTagPool()
+  } catch (e) {
+    setMsg(`upload.js: 初期化に失敗しました: ${String(e)}`)
+  }
+}
+
 function init() {
-  initPicker()
-  initTags()
-  initVis()
-  initSubmit()
-
-  if (titleInput) titleInput.addEventListener("input", () => validate())
-
-  ensureTagBackdrop()
-  renderAll()
-
-  initDragSorting()
-  initArrowsAndWheel()
-
-  loadTagPool()
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCore)
+  } else {
+    initCore()
+  }
 }
 
 window.addEventListener("beforeunload", () => revokeAll())

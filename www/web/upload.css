@@ -243,13 +243,13 @@
 
 .uptaginp{flex:1;border:none;outline:none;background:transparent;color:#e7eef7;height:100%;min-width:120px}
 .uptagadd{
-  width:32px;
-  height:32px;
-  border-radius:12px;
+  width:28px;
+  height:28px;
+  border-radius:10px;
   border:1px solid rgba(255,255,255,.12);
   background:rgba(255,255,255,.06);
   color:#e7eef7;
-  font-size:16px;
+  font-size:15px;
   line-height:1;
   display:inline-flex;
   align-items:center;
@@ -271,7 +271,8 @@
   position:absolute;
   left:0;
   right:0;
-  top:calc(100% + 8px);
+  top:auto;
+  bottom:calc(100% + 8px);
   border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
   background:rgba(14,18,26,.96);
@@ -289,14 +290,14 @@
 .uptagsug.uptagsug--popover::before{
   content:"";
   position:absolute;
-  top:-7px;
+  bottom:-7px;
   left:calc(100% - 34px);
   width:14px;
   height:14px;
   transform:rotate(45deg);
   background:rgba(14,18,26,.96);
-  border-left:1px solid rgba(255,255,255,.12);
-  border-top:1px solid rgba(255,255,255,.12);
+  border-right:1px solid rgba(255,255,255,.12);
+  border-bottom:1px solid rgba(255,255,255,.12);
 }
 
 .uptagpickhead{
@@ -340,6 +341,7 @@
   position:fixed;
   left:50%;
   top:50%;
+  bottom:auto;
   transform:translate(-50%,-50%);
   width:min(560px,92vw);
   max-height:72vh;
