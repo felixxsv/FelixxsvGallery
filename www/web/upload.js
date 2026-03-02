@@ -3,15 +3,17 @@ const el = (id) => document.getElementById(id)
 const drop = el("upDrop")
 const pick = el("upPick")
 const fileInput = el("upFile")
+
+const stripFrame = el("upStripFrame")
 const strip = el("upStrip")
+const arrowL = el("upArrowL")
+const arrowR = el("upArrowR")
+
 const coverImg = el("upCover")
 const coverPh = el("upCoverPh")
 const msg = el("upMsg")
 
 const titleInput = el("upTitle")
-const altInput = el("upAlt")
-
-const tagBox = el("upTagBox")
 const tagChips = el("upTagChips")
 const tagInput = el("upTag")
 const tagAdd = el("upTagAdd")
@@ -23,11 +25,16 @@ const visBtns = Array.from(document.querySelectorAll(".upvis__btn"))
 const submitBtn = el("upSubmit")
 
 const MAX_FILES = 20
-const MIN_PLACEHOLDERS = 5
+const MIN_PLACEHOLDERS = 20
 
 let files = []
 let tagState = []
 let allTags = []
+
+let pendingDrag = null
+let dragging = null
+let arrowAnim = null
+let arrowDir = 0
 
 function setMsg(s) {
   if (!msg) return
@@ -49,6 +56,12 @@ function revokeAll() {
 
 function makeUrl(f) {
   return URL.createObjectURL(f)
+}
+
+function moveIndex(from, to) {
+  if (from === to) return
+  const it = files.splice(from, 1)[0]
+  files.splice(to, 0, it)
 }
 
 function addFiles(list) {
@@ -74,12 +87,6 @@ function addFiles(list) {
   renderAll()
 }
 
-function moveIndex(from, to) {
-  if (from === to) return
-  const it = files.splice(from, 1)[0]
-  files.splice(to, 0, it)
-}
-
 function removeIndex(i) {
   const it = files[i]
   if (!it) return
@@ -89,8 +96,10 @@ function removeIndex(i) {
 }
 
 function setCover(i) {
-  if (i <= 0) return
-  moveIndex(i, 0)
+  const idx = Number(i)
+  if (!Number.isFinite(idx) || idx < 0 || idx >= files.length) return
+  if (idx === 0) return
+  moveIndex(idx, 0)
   renderAll()
 }
 
@@ -110,7 +119,7 @@ function renderCover() {
 function mkThumb(it, idx) {
   const d = document.createElement("div")
   d.className = "upthumb" + (idx === 0 ? " is-cover" : "")
-  d.draggable = true
+  d.dataset.kind = "file"
   d.dataset.idx = String(idx)
 
   const img = document.createElement("img")
@@ -130,33 +139,13 @@ function mkThumb(it, idx) {
   d.appendChild(rm)
 
   d.addEventListener("click", () => setCover(idx))
-
-  d.addEventListener("dragstart", (e) => {
-    e.dataTransfer.setData("text/plain", String(idx))
-    e.dataTransfer.effectAllowed = "move"
-  })
-
-  d.addEventListener("dragover", (e) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = "move"
-  })
-
-  d.addEventListener("drop", (e) => {
-    e.preventDefault()
-    const from = Number(e.dataTransfer.getData("text/plain"))
-    const to = Number(d.dataset.idx)
-    if (!Number.isFinite(from) || !Number.isFinite(to)) return
-    if (from < 0 || to < 0 || from >= files.length || to >= files.length) return
-    moveIndex(from, to)
-    renderAll()
-  })
-
   return d
 }
 
 function mkEmptyThumb() {
   const d = document.createElement("div")
   d.className = "upthumb is-empty"
+  d.dataset.kind = "empty"
   return d
 }
 
@@ -166,6 +155,7 @@ function renderStrip() {
   for (let i = 0; i < files.length; i++) strip.appendChild(mkThumb(files[i], i))
   const need = Math.max(0, MIN_PLACEHOLDERS - files.length)
   for (let i = 0; i < need; i++) strip.appendChild(mkEmptyThumb())
+  updateArrowsByState()
 }
 
 function normalizeTag(s) {
@@ -371,6 +361,302 @@ function initSubmit() {
   })
 }
 
+function flip(container, action) {
+  const items = Array.from(container.children).filter((x) => x && x.dataset && x.dataset.kind === "file")
+  const first = new Map()
+  for (const it of items) first.set(it, it.getBoundingClientRect())
+  action()
+  const last = new Map()
+  for (const it of items) last.set(it, it.getBoundingClientRect())
+  for (const it of items) {
+    const a = first.get(it)
+    const b = last.get(it)
+    if (!a || !b) continue
+    const dx = a.left - b.left
+    const dy = a.top - b.top
+    if (dx === 0 && dy === 0) continue
+    it.style.transition = "transform 0s"
+    it.style.transform = `translate(${dx}px,${dy}px)`
+    requestAnimationFrame(() => {
+      it.style.transition = ""
+      it.style.transform = "translate(0,0)"
+    })
+  }
+}
+
+function phIndex() {
+  if (!strip) return 0
+  let idx = 0
+  for (const c of Array.from(strip.children)) {
+    if (c.dataset && c.dataset.kind === "ph") return idx
+    if (c.dataset && c.dataset.kind === "file") idx += 1
+  }
+  return idx
+}
+
+function ghostCreate(url) {
+  const g = document.createElement("div")
+  g.className = "upghost"
+  const b = document.createElement("div")
+  b.className = "upghost__box"
+  const img = document.createElement("img")
+  img.alt = ""
+  img.src = url
+  b.appendChild(img)
+  g.appendChild(b)
+  document.body.appendChild(g)
+  return g
+}
+
+function ghostMove(g, x, y) {
+  if (!g) return
+  g.style.transform = `translate(${x}px,${y}px)`
+}
+
+function ghostRemove(g) {
+  if (!g) return
+  try { g.remove() } catch (e) {}
+}
+
+function startDragFromPending(p) {
+  if (!strip) return
+  const idx = p.idx
+  const elThumb = p.el
+  if (!elThumb || !elThumb.parentElement) return
+  const url = files[idx] ? files[idx].url : ""
+  const ph = document.createElement("div")
+  ph.className = "upthumb is-ph"
+  ph.dataset.kind = "ph"
+  ph.style.width = `${elThumb.getBoundingClientRect().width}px`
+  ph.style.height = `${elThumb.getBoundingClientRect().height}px`
+
+  const rect = elThumb.getBoundingClientRect()
+  const ghost = ghostCreate(url)
+  ghostMove(ghost, p.x, p.y)
+
+  const parent = elThumb.parentElement
+  const ref = elThumb.nextSibling
+  parent.removeChild(elThumb)
+  if (ref) parent.insertBefore(ph, ref)
+  else parent.appendChild(ph)
+
+  dragging = {
+    from: idx,
+    ph,
+    ghost,
+    pointerId: p.pointerId
+  }
+}
+
+function dragMove(x, y) {
+  if (!dragging || !strip) return
+  ghostMove(dragging.ghost, x, y)
+
+  const nodes = Array.from(strip.children).filter((n) => n.dataset && (n.dataset.kind === "file" || n.dataset.kind === "ph"))
+  const ph = dragging.ph
+  const phNow = nodes.indexOf(ph)
+  if (phNow < 0) return
+
+  let target = null
+  for (const n of nodes) {
+    if (n === ph) continue
+    const r = n.getBoundingClientRect()
+    const mid = r.left + r.width / 2
+    if (x < mid) {
+      target = n
+      break
+    }
+  }
+
+  const reorder = () => {
+    if (!target) {
+      strip.appendChild(ph)
+      return
+    }
+    strip.insertBefore(ph, target)
+  }
+
+  const phAfter = (() => {
+    const now = Array.from(strip.children).filter((n) => n.dataset && (n.dataset.kind === "file" || n.dataset.kind === "ph"))
+    return now.indexOf(ph)
+  })()
+
+  if (target) {
+    const idxBefore = nodes.indexOf(target)
+    if (idxBefore === phNow) return
+  } else {
+    if (phNow === nodes.length - 1) return
+  }
+
+  flip(strip, reorder)
+  updateArrowsByState()
+}
+
+function dragEnd(asClick) {
+  if (!pendingDrag && !dragging) return
+
+  if (pendingDrag && !dragging) {
+    if (asClick) setCover(pendingDrag.idx)
+    pendingDrag = null
+    return
+  }
+
+  if (!dragging) return
+
+  const from = dragging.from
+  const to = phIndex()
+
+  ghostRemove(dragging.ghost)
+
+  dragging = null
+  pendingDrag = null
+
+  if (!Number.isFinite(from) || !Number.isFinite(to)) {
+    renderAll()
+    return
+  }
+
+  if (to < 0) {
+    renderAll()
+    return
+  }
+
+  const cappedTo = to > files.length - 1 ? files.length - 1 : to
+  if (from !== cappedTo) moveIndex(from, cappedTo)
+  renderAll()
+}
+
+function initDragSorting() {
+  if (!strip) return
+
+  strip.addEventListener("pointerdown", (e) => {
+    const t = e.target && e.target.closest ? e.target.closest(".upthumb[data-kind='file']") : null
+    if (!t) return
+    if (e.target && e.target.closest && e.target.closest(".upthumb__rm")) return
+    const idx = Number(t.dataset.idx)
+    if (!Number.isFinite(idx)) return
+    pendingDrag = { idx, el: t, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, pointerId: e.pointerId, started: false }
+    t.setPointerCapture(e.pointerId)
+  })
+
+  strip.addEventListener("pointermove", (e) => {
+    if (!pendingDrag) return
+    if (pendingDrag.pointerId !== e.pointerId) return
+    const dx = e.clientX - pendingDrag.sx
+    const dy = e.clientY - pendingDrag.sy
+    const dist = Math.hypot(dx, dy)
+    pendingDrag.x = e.clientX
+    pendingDrag.y = e.clientY
+
+    if (!pendingDrag.started && dist >= 6) {
+      pendingDrag.started = true
+      startDragFromPending(pendingDrag)
+    }
+    if (pendingDrag.started) dragMove(e.clientX, e.clientY)
+  })
+
+  strip.addEventListener("pointerup", (e) => {
+    if (!pendingDrag) return
+    if (pendingDrag.pointerId !== e.pointerId) return
+    const asClick = !pendingDrag.started
+    dragEnd(asClick)
+  })
+
+  strip.addEventListener("pointercancel", (e) => {
+    if (!pendingDrag) return
+    if (pendingDrag.pointerId !== e.pointerId) return
+    dragEnd(false)
+  })
+}
+
+function updateArrowsByState(xHint) {
+  if (!strip || !stripFrame || !arrowL || !arrowR) return
+  const overflow = strip.scrollWidth > strip.clientWidth + 2
+  if (!overflow) {
+    arrowL.classList.remove("is-on")
+    arrowR.classList.remove("is-on")
+    return
+  }
+
+  const canL = strip.scrollLeft > 2
+  const canR = strip.scrollLeft < (strip.scrollWidth - strip.clientWidth - 2)
+
+  let wantL = false
+  let wantR = false
+
+  if (typeof xHint === "number") {
+    const w = stripFrame.clientWidth
+    if (xHint <= 80 && canL) wantL = true
+    if (xHint >= (w - 80) && canR) wantR = true
+  }
+
+  arrowL.classList.toggle("is-on", wantL)
+  arrowR.classList.toggle("is-on", wantR)
+}
+
+function arrowLoop() {
+  if (!strip || arrowDir === 0) return
+  strip.scrollLeft += arrowDir * 14
+  updateArrowsByState()
+  arrowAnim = requestAnimationFrame(arrowLoop)
+}
+
+function stopArrow() {
+  arrowDir = 0
+  if (arrowAnim) cancelAnimationFrame(arrowAnim)
+  arrowAnim = null
+}
+
+function initArrowsAndWheel() {
+  if (!strip || !stripFrame || !arrowL || !arrowR) return
+
+  strip.addEventListener("scroll", () => updateArrowsByState())
+
+  stripFrame.addEventListener("mousemove", (e) => {
+    const r = stripFrame.getBoundingClientRect()
+    const x = e.clientX - r.left
+    updateArrowsByState(x)
+  })
+
+  stripFrame.addEventListener("mouseleave", () => {
+    arrowL.classList.remove("is-on")
+    arrowR.classList.remove("is-on")
+    stopArrow()
+  })
+
+  arrowL.addEventListener("mouseenter", () => {
+    arrowDir = -1
+    stopArrow()
+    arrowAnim = requestAnimationFrame(arrowLoop)
+  })
+  arrowR.addEventListener("mouseenter", () => {
+    arrowDir = 1
+    stopArrow()
+    arrowAnim = requestAnimationFrame(arrowLoop)
+  })
+  arrowL.addEventListener("mouseleave", stopArrow)
+  arrowR.addEventListener("mouseleave", stopArrow)
+
+  arrowL.addEventListener("click", () => {
+    strip.scrollLeft -= 280
+    updateArrowsByState()
+  })
+  arrowR.addEventListener("click", () => {
+    strip.scrollLeft += 280
+    updateArrowsByState()
+  })
+
+  strip.addEventListener("wheel", (e) => {
+    const overflow = strip.scrollWidth > strip.clientWidth + 2
+    if (!overflow) return
+    const dx = Math.abs(e.deltaX || 0)
+    const dy = Math.abs(e.deltaY || 0)
+    if (dx === 0 && dy === 0) return
+    e.preventDefault()
+    strip.scrollLeft += (e.deltaX || 0) + (e.deltaY || 0)
+  }, { passive: false })
+}
+
 function init() {
   initPicker()
   initTags()
@@ -378,7 +664,11 @@ function init() {
   initSubmit()
 
   if (titleInput) titleInput.addEventListener("input", () => validate())
+
   renderAll()
+
+  initDragSorting()
+  initArrowsAndWheel()
 
   loadTagPool()
 }
