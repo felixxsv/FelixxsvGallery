@@ -44,6 +44,8 @@ let toastTimer = null
 let hoverInFrame = false
 let hoverX = null
 let hoverArrow = null
+let hoverLockTimer = null
+
 const EDGE_SHOW = 70
 const EDGE_HIDE = 90
 
@@ -629,6 +631,30 @@ function stopArrow() {
   stopArrowAnim()
 }
 
+function clampScrollLeft(v) {
+  if (!strip) return 0
+  const max = Math.max(0, strip.scrollWidth - strip.clientWidth)
+  if (v < 0) return 0
+  if (v > max) return max
+  return v
+}
+
+function arrowJump(dir) {
+  if (!strip) return
+  const step = 260
+  strip.scrollLeft = clampScrollLeft(strip.scrollLeft + (dir * step))
+  updateArrows()
+}
+
+function lockHoverArrow(side) {
+  hoverArrow = side
+  if (hoverLockTimer) clearTimeout(hoverLockTimer)
+  hoverLockTimer = setTimeout(() => {
+    hoverArrow = null
+    updateArrows()
+  }, 350)
+}
+
 function initArrowsAndWheel() {
   if (!strip || !stripFrame || !arrowL || !arrowR) return
 
@@ -643,6 +669,8 @@ function initArrowsAndWheel() {
     hoverInFrame = false
     hoverX = null
     hoverArrow = null
+    if (hoverLockTimer) clearTimeout(hoverLockTimer)
+    hoverLockTimer = null
     arrowL.classList.remove("is-on")
     arrowR.classList.remove("is-on")
     stopArrow()
@@ -684,13 +712,17 @@ function initArrowsAndWheel() {
     updateArrows()
   })
 
-  arrowL.addEventListener("click", () => {
-    strip.scrollBy({ left: -260, behavior: "smooth" })
-    updateArrows()
+  arrowL.addEventListener("pointerdown", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    lockHoverArrow("l")
+    arrowJump(-1)
   })
-  arrowR.addEventListener("click", () => {
-    strip.scrollBy({ left: 260, behavior: "smooth" })
-    updateArrows()
+  arrowR.addEventListener("pointerdown", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    lockHoverArrow("r")
+    arrowJump(1)
   })
 
   strip.addEventListener("wheel", (e) => {
@@ -700,7 +732,8 @@ function initArrowsAndWheel() {
     const dy = Math.abs(e.deltaY || 0)
     if (dx === 0 && dy === 0) return
     e.preventDefault()
-    strip.scrollLeft += (e.deltaX || 0) + (e.deltaY || 0)
+    strip.scrollLeft = clampScrollLeft(strip.scrollLeft + (e.deltaX || 0) + (e.deltaY || 0))
+    updateArrows()
   }, { passive: false })
 }
 
