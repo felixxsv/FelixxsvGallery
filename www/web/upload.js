@@ -11,19 +11,15 @@ const arrowR = el("upArrowR")
 
 const coverImg = el("upCover")
 const coverPh = el("upCoverPh")
-const msg = el("upMsg")
 
 const titleInput = el("upTitle")
+const submitBtn = el("upSubmit")
+
+const tagBox = el("upTagBox")
 const tagChips = el("upTagChips")
 const tagInput = el("upTag")
 const tagAdd = el("upTagAdd")
 const tagSug = el("upTagSug")
-const tagBox = el("upTagBox")
-
-const visHidden = el("upVis")
-const visBtns = Array.from(document.querySelectorAll(".upvis__btn"))
-
-const submitBtn = el("upSubmit")
 
 const MAX_FILES = 20
 const MIN_PLACEHOLDERS = 20
@@ -31,64 +27,27 @@ const MIN_PLACEHOLDERS = 20
 let files = []
 let tagState = []
 let tagPoolRaw = []
-let tagBackdrop = null
 
 let pendingDrag = null
 let dragging = null
-
-let arrowAnim = null
-let arrowDir = 0
-
-let toastWrap = null
-let toastBox = null
-let toastTimer = null
 
 let hoverInFrame = false
 let hoverX = null
 let hoverArrow = null
 let hoverLockTimer = null
 
+let arrowAnim = null
+let arrowDir = 0
+
 const EDGE_SHOW = 70
 const EDGE_HIDE = 90
 
 let tagPanelMode = ""
 let tagCloseTimer = null
+let tagBackdrop = null
 
 let tagSugHomeParent = null
 let tagSugHomeNext = null
-
-function isMobile() {
-  return window.matchMedia("(max-width: 920px)").matches
-}
-
-function ensureToast() {
-  if (toastWrap && toastBox) return
-  toastWrap = document.createElement("div")
-  toastWrap.className = "uptoastwrap"
-  toastBox = document.createElement("div")
-  toastBox.className = "uptoast"
-  toastWrap.appendChild(toastBox)
-  document.body.appendChild(toastWrap)
-}
-
-function showToast(text, ms) {
-  const s = String(text || "").trim()
-  if (!s) return
-  ensureToast()
-  toastBox.textContent = s
-  toastBox.classList.add("is-on")
-  if (toastTimer) clearTimeout(toastTimer)
-  const dur = Number(ms) > 0 ? Number(ms) : 3200
-  toastTimer = setTimeout(() => {
-    toastBox.classList.remove("is-on")
-  }, dur)
-}
-
-function setMsg(s) {
-  const t = String(s || "").trim()
-  if (msg) msg.textContent = ""
-  if (t) showToast(t, 3200)
-}
 
 function ensureBackdrop() {
   if (tagBackdrop) return
@@ -110,17 +69,6 @@ function setBackdropOn(on) {
     tagBackdrop.remove()
     tagBackdrop = null
   }
-}
-
-function forceCloseTagUI() {
-  setBackdropOn(false)
-  if (tagSug) {
-    tagSug.classList.remove("is-on", "is-leaving", "uptagsug--popover", "is-small", "is-expanded")
-    tagSug.style.display = "none"
-    tagSug.innerHTML = ""
-    tagSug.setAttribute("aria-hidden", "true")
-  }
-  tagPanelMode = ""
 }
 
 function portalSugToBody() {
@@ -148,6 +96,18 @@ function isSugPortaled() {
   return !!tagSug && tagSug.parentElement === document.body
 }
 
+function forceCloseTagUI() {
+  setBackdropOn(false)
+  if (tagSug) {
+    tagSug.classList.remove("is-on", "is-leaving", "uptagsug--popover", "is-small", "is-expanded")
+    tagSug.style.display = "none"
+    tagSug.innerHTML = ""
+    tagSug.setAttribute("aria-hidden", "true")
+  }
+  if (isSugPortaled()) portalSugBackHome()
+  tagPanelMode = ""
+}
+
 function isImageFile(f) {
   const t = String(f.type || "").toLowerCase()
   if (t.startsWith("image/")) return true
@@ -173,20 +133,14 @@ function moveIndex(from, to) {
 
 function addFiles(list) {
   const incoming = Array.from(list || []).filter(isImageFile)
-  if (incoming.length === 0) {
-    setMsg("画像ファイルを選択してください。")
-    return
-  }
+  if (incoming.length === 0) return
+
   const room = MAX_FILES - files.length
-  if (room <= 0) {
-    setMsg(`画像は最大${MAX_FILES}枚までです。`)
-    return
-  }
+  if (room <= 0) return
 
   const adding = incoming.slice(0, room)
   for (const f of adding) files.push({ file: f, url: makeUrl(f) })
 
-  if (incoming.length > adding.length) setMsg(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`)
   renderAll()
 }
 
@@ -261,6 +215,12 @@ function renderStrip() {
   updateArrows()
 }
 
+function validate() {
+  const okFiles = files.length > 0
+  const okTitle = String(titleInput ? titleInput.value : "").trim().length > 0
+  if (submitBtn) submitBtn.disabled = !(okFiles && okTitle)
+}
+
 function normalizeTag(s) {
   const t = String(s || "").trim()
   if (!t) return ""
@@ -303,12 +263,6 @@ function renderTags() {
     chip.appendChild(x)
     tagChips.appendChild(chip)
   }
-}
-
-function validate() {
-  const okFiles = files.length > 0
-  const okTitle = String(titleInput ? titleInput.value : "").trim().length > 0
-  if (submitBtn) submitBtn.disabled = !(okFiles && okTitle)
 }
 
 async function loadTagPool() {
@@ -381,40 +335,32 @@ function closeTagPanelAnimated(after) {
   }, ms)
 }
 
-function openTagPanelExpanded() {
-  if (!tagSug) return
-  try {
-    tagPanelMode = "expanded"
+function openTagPanelSmall() {
+  if (!tagSug || !tagBox) return
+  tagPanelMode = "small"
+  setBackdropOn(false)
 
-    portalSugToBody()
+  if (isSugPortaled()) portalSugBackHome()
 
-    tagSug.classList.remove("is-small", "uptagsug--popover")
-    tagSug.classList.add("is-expanded")
+  tagSug.classList.remove("is-expanded")
+  tagSug.classList.add("is-small", "uptagsug--popover")
 
-    showTagPanelBase()
-    renderTagPanelExpanded()
-
-    setBackdropOn(true)
-  } catch (e) {
-    forceCloseTagUI()
-    setMsg(`タグ表示に失敗しました: ${String(e)}`)
-  }
+  showTagPanelBase()
+  renderTagPanelSmall()
 }
 
 function openTagPanelExpanded() {
   if (!tagSug) return
-  try {
-    tagPanelMode = "expanded"
-    tagSug.classList.remove("is-small", "uptagsug--popover")
-    tagSug.classList.add("is-expanded")
+  tagPanelMode = "expanded"
 
-    showTagPanelBase()
-    renderTagPanelExpanded()
-    setBackdropOn(true)
-  } catch (e) {
-    forceCloseTagUI()
-    setMsg(`タグ表示に失敗しました: ${String(e)}`)
-  }
+  portalSugToBody()
+
+  tagSug.classList.remove("is-small", "uptagsug--popover")
+  tagSug.classList.add("is-expanded")
+
+  showTagPanelBase()
+  renderTagPanelExpanded()
+  setBackdropOn(true)
 }
 
 function togglePlus() {
@@ -450,12 +396,6 @@ function mkTagButton(name, count, withCount) {
 function renderTagPanelSmall() {
   if (!tagSug) return
   if (tagPanelMode !== "small") return
-
-  if (!tagBox || !tagBox.contains(tagSug)) {
-    forceCloseTagUI()
-    setMsg("タグ候補のDOM配置が不正です。upTagSug を upTagBox の内側に配置してください。")
-    return
-  }
 
   const pool = tagPoolRaw
     .filter((x) => !tagState.includes(x.name))
@@ -534,6 +474,15 @@ function renderTagPanelExpanded() {
 }
 
 function initPicker() {
+  if (fileInput) {
+    fileInput.multiple = true
+    fileInput.accept = "image/png,image/jpeg,image/webp"
+    fileInput.addEventListener("change", () => {
+      addFiles(fileInput.files)
+      fileInput.value = ""
+    })
+  }
+
   if (pick && fileInput) {
     pick.addEventListener("click", (e) => {
       e.preventDefault()
@@ -562,33 +511,6 @@ function initPicker() {
       addFiles(e.dataTransfer.files)
     })
   }
-
-  if (fileInput) {
-    fileInput.addEventListener("change", () => {
-      addFiles(fileInput.files)
-      fileInput.value = ""
-    })
-  }
-}
-
-function applyVis(v) {
-  if (!visHidden) return
-  visHidden.value = v
-  for (const b of visBtns) b.classList.toggle("is-on", b.dataset.vis === v)
-}
-
-function initVis() {
-  for (const b of visBtns) b.addEventListener("click", () => applyVis(b.dataset.vis))
-}
-
-function initSubmit() {
-  if (!submitBtn) return
-  submitBtn.addEventListener("click", () => {
-    const title = String(titleInput ? titleInput.value : "").trim()
-    if (!title) { setMsg("タイトルを入力してください。"); return }
-    if (files.length === 0) { setMsg("画像を追加してください。"); return }
-    setMsg("アップロード処理（サーバ保存）は次の工程で実装します。いまは選択・並び替え・入力まで動作します。")
-  })
 }
 
 function flip(container, action) {
@@ -654,6 +576,7 @@ function startDragFromPending(p) {
   const elThumb = p.el
   if (!elThumb || !elThumb.parentElement) return
   const url = files[idx] ? files[idx].url : ""
+
   const ph = document.createElement("div")
   ph.className = "upthumb is-ph"
   ph.dataset.kind = "ph"
@@ -936,13 +859,6 @@ function initArrowsAndWheel() {
   }, { passive: false })
 }
 
-function renderAll() {
-  renderCover()
-  renderStrip()
-  renderTags()
-  validate()
-}
-
 function initTags() {
   if (tagAdd) {
     tagAdd.addEventListener("click", (e) => {
@@ -978,44 +894,28 @@ function initTags() {
   })
 }
 
+function renderAll() {
+  renderCover()
+  renderStrip()
+  renderTags()
+  validate()
+}
+
 function init() {
-  try {
-    const missing = []
-    if (!drop) missing.push("upDrop")
-    if (!fileInput) missing.push("upFile")
-    if (!coverImg) missing.push("upCover")
-    if (!coverPh) missing.push("upCoverPh")
-    if (!stripFrame) missing.push("upStripFrame")
-    if (!strip) missing.push("upStrip")
-    if (!arrowL) missing.push("upArrowL")
-    if (!arrowR) missing.push("upArrowR")
-    if (!titleInput) missing.push("upTitle")
-    if (!tagAdd) missing.push("upTagAdd")
-    if (!tagSug) missing.push("upTagSug")
-    if (!tagBox) missing.push("upTagBox")
-    if (missing.length) {
-      setMsg(`upload.js: 必須要素が見つかりません (${missing.join(", ")})`)
-      return
-    }
+  if (!fileInput || !drop || !strip || !stripFrame) return
+  if (!tagBox || !tagSug || !tagAdd) return
 
-    ensureBackdrop()
-    forceCloseTagUI()
+  ensureBackdrop()
+  forceCloseTagUI()
+  initPicker()
+  initDragSorting()
+  initArrowsAndWheel()
+  initTags()
 
-    initPicker()
-    initTags()
-    initVis()
-    initSubmit()
-    initDragSorting()
-    initArrowsAndWheel()
+  if (titleInput) titleInput.addEventListener("input", () => validate())
 
-    if (titleInput) titleInput.addEventListener("input", () => validate())
-
-    renderAll()
-    loadTagPool()
-  } catch (e) {
-    forceCloseTagUI()
-    setMsg(`upload.js: 初期化に失敗しました: ${String(e)}`)
-  }
+  renderAll()
+  loadTagPool()
 }
 
 if (document.readyState === "loading") {
