@@ -410,110 +410,73 @@ def _cleanup_partial(conn: pymysql.Connection, image_id: int) -> None:
         cur.execute("DELETE FROM images WHERE id=%s", (image_id,))
 
 
-def _rm_file(p: Path) -> None:
-    try:
-        if p.exists():
-            p.unlink()
-    except Exception:
-        return
-
-
-def _delete_image_everywhere(conn: pymysql.Connection, image_id: int, storage_root: Path) -> None:
+def _fetch_image_derivatives(conn: pymysql.Connection, image_id: int) -> tuple[str, str, str]:
     with conn.cursor() as cur:
-        cur.execute("SELECT thumb_path_480, thumb_path_960, preview_path FROM images WHERE id=%s LIMIT 1", (image_id,))
-        row = cur.fetchone()
-
-    if row:
-        t480 = str(row.get("thumb_path_480") or "")
-        t960 = str(row.get("thumb_path_960") or "")
-        prev = str(row.get("preview_path") or "")
-        if t480:
-            _rm_file(storage_root / t480)
-        if t960:
-            _rm_file(storage_root / t960)
-        if prev:
-            _rm_file(storage_root / prev)
-
-    with conn.cursor() as cur:
-        cur.execute("DELETE FROM image_tags WHERE image_id=%s", (image_id,))
-        cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
-        cur.execute("DELETE FROM image_stats WHERE image_id=%s", (image_id,))
-        cur.execute("DELETE FROM image_sources WHERE image_id=%s", (image_id,))
-        cur.execute("DELETE FROM images WHERE id=%s", (image_id,))
+        cur.execute(
+            "SELECT thumb_path_480, thumb_path_960, preview_path FROM images WHERE id=%s LIMIT 1",
+            (image_id,),
+        )
+        r = cur.fetchone() or {}
+    return str(r.get("thumb_path_480") or ""), str(r.get("thumb_path_960") or ""), str(r.get("preview_path") or "")
 
 
-def _apply_deletions(
-    conn: pymysql.Connection,
-    gallery: str,
-    src_root: Path,
-    storage_root: Path,
-    existing_rel: set[str],
-    dry_run: bool,
-) -> tuple[int, int]:
+def _remove_derivatives(storage_root: Path, t480: str, t960: str, prev: str) -> None:
+    for rel in (t480, t960, prev):
+        if not rel:
+            continue
+        p = storage_root / rel
+        try:
+            if p.exists():
+                p.unlink()
+        except Exception:
+            pass
+
+
+def _pick_existing_source(conn: pymysql.Connection, gallery: str, image_id: int, src_root: Path) -> int | None:
     with conn.cursor() as cur:
         cur.execute(
             """
-SELECT id, image_id, source_path, is_primary, is_hidden
+SELECT id, source_path
 FROM image_sources
-WHERE gallery=%s
-ORDER BY image_id ASC, is_primary DESC, is_hidden ASC, id ASC
+WHERE gallery=%s AND image_id=%s AND is_hidden=0
+ORDER BY is_primary DESC, id ASC
 """,
-            (gallery,),
+            (gallery, image_id),
         )
         rows = cur.fetchall()
 
-    by_img: dict[int, list[dict[str, Any]]] = {}
     for r in rows:
-        iid = int(r["image_id"])
-        by_img.setdefault(iid, []).append(r)
-
-    removed_source_rows = 0
-    deleted_images = 0
-
-    for image_id, src_rows in by_img.items():
-        alive: list[dict[str, Any]] = []
-        missing: list[dict[str, Any]] = []
-
-        for r in src_rows:
-            rel = str(r["source_path"])
-            if rel in existing_rel and (src_root / rel).exists():
-                alive.append(r)
-            else:
-                missing.append(r)
-
-        if missing:
-            if not dry_run:
-                with conn.cursor() as cur:
-                    cur.executemany("DELETE FROM image_sources WHERE id=%s", [(int(x["id"]),) for x in missing])
-            removed_source_rows += len(missing)
-
-        if not alive:
-            deleted_images += 1
-            if not dry_run:
-                _delete_image_everywhere(conn, image_id, storage_root)
+        sid = int(r["id"])
+        rel = str(r["source_path"] or "")
+        if not rel:
             continue
+        if (src_root / rel).exists():
+            return sid
+    return None
 
-        primary_ok = False
-        for r in alive:
-            if int(r.get("is_primary") or 0) == 1 and int(r.get("is_hidden") or 0) == 0:
-                primary_ok = True
-                break
 
-        if primary_ok:
-            continue
+def _hide_primary_source(conn: pymysql.Connection, source_row_id: int) -> None:
+    with conn.cursor() as cur:
+        cur.execute("UPDATE image_sources SET is_hidden=1, is_primary=0 WHERE id=%s", (source_row_id,))
 
-        cand = None
-        for r in alive:
-            if int(r.get("is_hidden") or 0) == 0:
-                cand = r
-                break
-        if cand is None:
-            cand = alive[0]
 
-        if not dry_run:
-            _set_primary_source(conn, gallery, image_id, int(cand["id"]))
+def _hard_delete_image(conn: pymysql.Connection, image_id: int, gallery: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
+        cur.execute("DELETE FROM image_tags WHERE image_id=%s", (image_id,))
+        cur.execute("DELETE FROM image_sources WHERE gallery=%s AND image_id=%s", (gallery, image_id))
+        cur.execute("DELETE FROM image_stats WHERE image_id=%s", (image_id,))
+        cur.execute("DELETE FROM images WHERE id=%s AND gallery=%s", (image_id, gallery))
 
-    return removed_source_rows, deleted_images
+
+def _count_visible_sources(conn: pymysql.Connection, gallery: str, image_id: int) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS c FROM image_sources WHERE gallery=%s AND image_id=%s AND is_hidden=0",
+            (gallery, image_id),
+        )
+        r = cur.fetchone() or {}
+    return int(r.get("c") or 0)
 
 
 def run_sync_full(config_path: str, dry_run: bool, workers_override: int | None = None) -> int:
@@ -526,7 +489,7 @@ def run_sync_full(config_path: str, dry_run: bool, workers_override: int | None 
     quarantine_root = cfg.paths.quarantine_root / gallery
 
     files_on_disk = _scan_files(src_root)
-    existing_rel = set(str(p.relative_to(src_root)).replace("\\", "/") for p in files_on_disk)
+    scanned_rel: set[str] = set()
 
     scanned = 0
     added = 0
@@ -535,7 +498,6 @@ def run_sync_full(config_path: str, dry_run: bool, workers_override: int | None 
     duplicated = 0
     quarantined = 0
     failed = 0
-    removed_source_rows = 0
 
     err_counts: dict[str, int] = {}
     err_samples: list[tuple[str, str]] = []
@@ -551,6 +513,8 @@ def run_sync_full(config_path: str, dry_run: bool, workers_override: int | None 
         for f in files_on_disk:
             scanned += 1
             rel = str(f.relative_to(src_root)).replace("\\", "/")
+            scanned_rel.add(rel)
+
             st = f.stat()
             size_bytes = int(st.st_size)
             mtime_epoch = int(st.st_mtime)
@@ -698,30 +662,73 @@ def run_sync_full(config_path: str, dry_run: bool, workers_override: int | None 
                 failed += 1
                 continue
 
-        rs, di = _apply_deletions(
-            conn=conn,
-            gallery=gallery,
-            src_root=src_root,
-            storage_root=storage,
-            existing_rel=existing_rel,
-            dry_run=dry_run,
-        )
-        removed_source_rows += rs
-        deleted += di
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+SELECT id, image_id, source_path
+FROM image_sources
+WHERE gallery=%s AND is_primary=1 AND is_hidden=0
+""",
+                (gallery,),
+            )
+            primary_rows = cur.fetchall()
+
+        for r in primary_rows:
+            sid = int(r["id"])
+            image_id = int(r["image_id"])
+            rel = str(r["source_path"] or "")
+            if not rel:
+                continue
+            if rel in scanned_rel:
+                continue
+
+            deleted += 1
+            if dry_run:
+                continue
+
+            try:
+                _hide_primary_source(conn, sid)
+            except Exception as e:
+                k = f"{type(e).__name__}: {e}"
+                err_counts[k] = err_counts.get(k, 0) + 1
+                if len(err_samples) < 8:
+                    err_samples.append((rel, k))
+                failed += 1
+                continue
+
+            try:
+                cand = _pick_existing_source(conn, gallery, image_id, src_root)
+                if cand is not None:
+                    _set_primary_source(conn, gallery, image_id, cand)
+                    continue
+
+                visible = _count_visible_sources(conn, gallery, image_id)
+                if visible > 0:
+                    continue
+
+                t480, t960, prev = _fetch_image_derivatives(conn, image_id)
+                _hard_delete_image(conn, image_id, gallery)
+                _remove_derivatives(storage, t480, t960, prev)
+            except Exception as e:
+                k = f"{type(e).__name__}: {e}"
+                err_counts[k] = err_counts.get(k, 0) + 1
+                if len(err_samples) < 8:
+                    err_samples.append((rel, k))
+                failed += 1
 
     finally:
         conn.close()
 
     elapsed = time.time() - t0
     print(
-        f"sync-full done scanned={scanned} added={added} updated={updated} deleted={deleted} duplicated={duplicated} quarantined={quarantined} failed={failed} removed_source_rows={removed_source_rows} elapsed_sec={elapsed:.2f}"
+        f"sync-full done scanned={scanned} added={added} updated={updated} deleted={deleted} duplicated={duplicated} quarantined={quarantined} failed={failed} elapsed_sec={elapsed:.2f}"
     )
 
     if err_counts:
         top = sorted(err_counts.items(), key=lambda x: x[1], reverse=True)[:12]
-        for msg, cnt in top:
-            print(f"sync-full error cnt={cnt} err={msg}", file=sys.stderr)
-        for rel, msg in err_samples[:8]:
-            print(f"sync-full error sample file={rel} err={msg}", file=sys.stderr)
+        for msg0, cnt in top:
+            print(f"sync-full error cnt={cnt} err={msg0}", file=sys.stderr)
+        for rel0, msg0 in err_samples[:8]:
+            print(f"sync-full error sample file={rel0} err={msg0}", file=sys.stderr)
 
     return 0
