@@ -597,11 +597,14 @@ def upload_images(
         src_cols = _table_cols(conn, "image_sources")
         img_cols = _table_cols(conn, "images")
 
+        need_src = {"size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"}
+        if not need_src.issubset(src_cols):
+            raise HTTPException(status_code=500, detail=f"image_sources missing cols: {sorted(list(need_src - src_cols))}")
         if "content_hash" not in img_cols:
             raise HTTPException(status_code=500, detail="images.content_hash missing (required)")
 
-        if "content_hash" not in src_cols:
-            raise HTTPException(status_code=500, detail="image_sources.content_hash missing (required)")
+        palette = load_palette_from_conf(CONF)
+        cset = load_settings_from_conf(CONF)
 
         for uf in files:
             if uf.filename is None:
@@ -618,20 +621,14 @@ def upload_images(
             rel_path = str((rel_dir / fname).as_posix())
             abs_path = SOURCE_ROOT / rel_path
 
-            try:
-                ensure_dir(abs_path.parent)
-            except PermissionError as e:
-                raise HTTPException(status_code=500, detail=f"permission denied creating dir: {abs_path.parent}") from e
+            ensure_dir(abs_path.parent)
 
             try:
                 uf.file.seek(0)
             except Exception:
                 pass
 
-            try:
-                sha_hex, sha_digest, size_bytes = _sha256_copy(uf, abs_path)
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"save failed: {type(e).__name__}: {e}")
+            sha_hex, sha_digest, size_bytes = _sha256_copy(uf, abs_path)
 
             try:
                 w, h, fmt = _img_meta(abs_path)
@@ -657,46 +654,24 @@ def upload_images(
 
             if existing_id is not None:
                 try:
-                    cols = ["gallery", "image_id", "source_path", "size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"]
-                    vals = ["%s"] * len(cols)
-                    params: list[object] = [
-                        GALLERY,
-                        existing_id,
-                        rel_path,
-                        int(size_bytes),
-                        int(mtime_epoch),
-                        sha_hex,
-                        0,
-                        1,
-                        0,
-                    ]
-                    if "sha256" in src_cols:
-                        cols.append("sha256")
-                        vals.append("%s")
-                        params.append(sha_hex)
-
-                    sql = f"INSERT INTO image_sources ({', '.join(cols)}) VALUES ({', '.join(vals)})"
-                    with conn.cursor() as cur:
-                        cur.execute(sql, params)
-
-                    created.append({"image_id": existing_id, "source_path": rel_path, "duplicate": True})
-                    continue
+                    abs_path.unlink()
                 except Exception:
-                    try:
-                        abs_path.unlink()
-                    except Exception:
-                        pass
-                    raise
+                    pass
+                created.append({"image_id": existing_id, "duplicate": True})
+                continue
 
             image_id: int | None = None
             try:
-                cols = ["gallery", "shot_at", "title", "alt", "width", "height", "format", "thumb_path_480", "thumb_path_960", "preview_path", "content_hash"]
-                vals = ["%s"] * len(cols)
-                params: list[object] = [GALLERY, dt_shot, t, str(alt or ""), int(w), int(h), str(fmt), "", "", "", sha_hex]
-
-                sql = f"INSERT INTO images ({', '.join(cols)}) VALUES ({', '.join(vals)})"
                 with conn.cursor() as cur:
-                    cur.execute(sql, params)
+                    cur.execute(
+                        """
+INSERT INTO images
+(gallery, shot_at, title, alt, width, height, format, thumb_path_480, thumb_path_960, preview_path, content_hash)
+VALUES
+(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+""",
+                        (GALLERY, dt_shot, t, str(alt or ""), int(w), int(h), str(fmt), "", "", "", sha_hex),
+                    )
                     cur.execute("SELECT LAST_INSERT_ID() AS id")
                     image_id = int(cur.fetchone()["id"])
 
@@ -711,35 +686,18 @@ def upload_images(
 
                 with conn.cursor() as cur:
                     cur.execute(
-                        """
-UPDATE images
-SET thumb_path_480=%s, thumb_path_960=%s, preview_path=%s
-WHERE id=%s AND gallery=%s
-""",
+                        "UPDATE images SET thumb_path_480=%s, thumb_path_960=%s, preview_path=%s WHERE id=%s AND gallery=%s",
                         (t480_rel, t960_rel, prev_rel, image_id, GALLERY),
                     )
 
-                cols2 = ["gallery", "image_id", "source_path", "size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"]
-                vals2 = ["%s"] * len(cols2)
-                params2: list[object] = [
-                    GALLERY,
-                    image_id,
-                    rel_path,
-                    int(size_bytes),
-                    int(mtime_epoch),
-                    sha_hex,
-                    1,
-                    0 if is_pub else 1,
-                    0,
-                ]
-                if "sha256" in src_cols:
-                    cols2.append("sha256")
-                    vals2.append("%s")
-                    params2.append(sha_hex)
-
-                sql2 = f"INSERT INTO image_sources ({', '.join(cols2)}) VALUES ({', '.join(vals2)})"
                 with conn.cursor() as cur:
-                    cur.execute(sql2, params2)
+                    cols = ["gallery", "image_id", "source_path", "size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"]
+                    vals = [GALLERY, image_id, rel_path, int(size_bytes), int(mtime_epoch), sha_hex, 1, 0 if is_pub else 1, 0]
+                    if "sha256" in src_cols:
+                        cols.append("sha256")
+                        vals.append(sha_hex)
+                    sql = f"INSERT INTO image_sources ({', '.join(cols)}) VALUES ({', '.join(['%s'] * len(cols))})"
+                    cur.execute(sql, vals)
 
                 if tag_list:
                     for name in tag_list:
@@ -747,15 +705,13 @@ WHERE id=%s AND gallery=%s
                         _insert_image_tag(conn, image_id, tid)
 
                 try:
-                    palette = load_palette_from_conf(CONF)
-                    cset = load_settings_from_conf(CONF)
                     colors = extract_top_colors(abs_path, palette, cset)
                 except Exception:
                     colors = []
                 _store_colors(conn, image_id, colors)
 
-                created.append({"image_id": image_id, "source_path": rel_path, "duplicate": False})
-            except IntegrityError as e:
+                created.append({"image_id": image_id, "duplicate": False})
+            except IntegrityError:
                 if image_id is not None:
                     try:
                         _delete_image_everywhere(conn, image_id, GALLERY, STORAGE_ROOT)
@@ -770,22 +726,16 @@ WHERE id=%s AND gallery=%s
                     cur.execute("SELECT id FROM images WHERE gallery=%s AND content_hash=%s LIMIT 1", (GALLERY, sha_hex))
                     r = cur.fetchone()
                     if r:
-                        created.append({"image_id": int(r["id"]), "source_path": rel_path, "duplicate": True})
+                        created.append({"image_id": int(r["id"]), "duplicate": True})
                         continue
-
-                raise HTTPException(status_code=500, detail=f"db failed: {type(e).__name__}: {e}")
+                raise
             except Exception as e:
                 if image_id is not None:
                     try:
                         _delete_image_everywhere(conn, image_id, GALLERY, STORAGE_ROOT)
                     except Exception:
                         pass
-                try:
-                    abs_path.unlink()
-                except Exception:
-                    pass
                 raise HTTPException(status_code=500, detail=f"db or derivative failed: {type(e).__name__}: {e}")
-
         return {"ok": True, "count": len(created), "items": created}
     finally:
         conn.close()
