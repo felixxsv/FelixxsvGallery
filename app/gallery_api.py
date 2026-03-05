@@ -596,24 +596,12 @@ def upload_images(
     try:
         src_cols = _table_cols(conn, "image_sources")
         img_cols = _table_cols(conn, "images")
-        src_hash_col = "content_hash" if "content_hash" in src_cols else ("sha256" if "sha256" in src_cols else None)
-        img_hash_col = "content_hash" if "content_hash" in img_cols else None
 
-        with conn.cursor() as cur:
-            src_hash_col_type = None
-            if src_hash_col:
-                cur.execute(f"SHOW COLUMNS FROM image_sources LIKE %s", (src_hash_col,))
-                r = cur.fetchone() or {}
-                src_hash_col_type = str(r.get("Type") or "").lower()
+        if "content_hash" not in img_cols:
+            raise HTTPException(status_code=500, detail="images.content_hash missing (required)")
 
-            img_hash_col_type = None
-            if img_hash_col:
-                cur.execute("SHOW COLUMNS FROM images LIKE %s", (img_hash_col,))
-                r = cur.fetchone() or {}
-                img_hash_col_type = str(r.get("Type") or "").lower()
-
-        palette = load_palette_from_conf(CONF)
-        cset = load_settings_from_conf(CONF)
+        if "content_hash" not in src_cols:
+            raise HTTPException(status_code=500, detail="image_sources.content_hash missing (required)")
 
         for uf in files:
             if uf.filename is None:
@@ -629,7 +617,11 @@ def upload_images(
             fname = _make_vrchat_filename(dt_shot, ext)
             rel_path = str((rel_dir / fname).as_posix())
             abs_path = SOURCE_ROOT / rel_path
-            ensure_dir(abs_path.parent)
+
+            try:
+                ensure_dir(abs_path.parent)
+            except PermissionError as e:
+                raise HTTPException(status_code=500, detail=f"permission denied creating dir: {abs_path.parent}") from e
 
             try:
                 uf.file.seek(0)
@@ -637,7 +629,7 @@ def upload_images(
                 pass
 
             try:
-                sha_hex, sha_digest, _ = _sha256_copy(uf, abs_path)
+                sha_hex, sha_digest, size_bytes = _sha256_copy(uf, abs_path)
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"save failed: {type(e).__name__}: {e}")
 
@@ -650,18 +642,57 @@ def upload_images(
                     pass
                 raise HTTPException(status_code=400, detail=f"invalid image: {uf.filename}")
 
-            shot_at = dt_shot
+            st = abs_path.stat()
+            mtime_epoch = int(st.st_mtime)
 
-            image_id = None
+            existing_id: int | None = None
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id FROM images WHERE gallery=%s AND content_hash=%s LIMIT 1",
+                    (GALLERY, sha_hex),
+                )
+                r = cur.fetchone()
+                if r:
+                    existing_id = int(r["id"])
+
+            if existing_id is not None:
+                try:
+                    cols = ["gallery", "image_id", "source_path", "size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"]
+                    vals = ["%s"] * len(cols)
+                    params: list[object] = [
+                        GALLERY,
+                        existing_id,
+                        rel_path,
+                        int(size_bytes),
+                        int(mtime_epoch),
+                        sha_hex,
+                        0,
+                        1,
+                        0,
+                    ]
+                    if "sha256" in src_cols:
+                        cols.append("sha256")
+                        vals.append("%s")
+                        params.append(sha_hex)
+
+                    sql = f"INSERT INTO image_sources ({', '.join(cols)}) VALUES ({', '.join(vals)})"
+                    with conn.cursor() as cur:
+                        cur.execute(sql, params)
+
+                    created.append({"image_id": existing_id, "source_path": rel_path, "duplicate": True})
+                    continue
+                except Exception:
+                    try:
+                        abs_path.unlink()
+                    except Exception:
+                        pass
+                    raise
+
+            image_id: int | None = None
             try:
-                cols = ["gallery", "shot_at", "title", "alt", "width", "height", "format", "thumb_path_480", "thumb_path_960", "preview_path"]
+                cols = ["gallery", "shot_at", "title", "alt", "width", "height", "format", "thumb_path_480", "thumb_path_960", "preview_path", "content_hash"]
                 vals = ["%s"] * len(cols)
-                params: list[object] = [GALLERY, shot_at, t, str(alt or ""), w, h, fmt, "", "", ""]
-
-                if img_hash_col:
-                    cols.append(img_hash_col)
-                    vals.append("%s")
-                    params.append(_hash_param_value(img_hash_col_type, sha_hex, sha_digest))
+                params: list[object] = [GALLERY, dt_shot, t, str(alt or ""), int(w), int(h), str(fmt), "", "", "", sha_hex]
 
                 sql = f"INSERT INTO images ({', '.join(cols)}) VALUES ({', '.join(vals)})"
                 with conn.cursor() as cur:
@@ -688,18 +719,27 @@ WHERE id=%s AND gallery=%s
                         (t480_rel, t960_rel, prev_rel, image_id, GALLERY),
                     )
 
-                src_cols2 = ["gallery", "image_id", "source_path", "is_primary", "is_hidden"]
-                src_vals2 = ["%s", "%s", "%s", "%s", "%s"]
-                src_params2: list[object] = [GALLERY, image_id, rel_path, 1, 0 if is_pub else 1]
+                cols2 = ["gallery", "image_id", "source_path", "size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"]
+                vals2 = ["%s"] * len(cols2)
+                params2: list[object] = [
+                    GALLERY,
+                    image_id,
+                    rel_path,
+                    int(size_bytes),
+                    int(mtime_epoch),
+                    sha_hex,
+                    1,
+                    0 if is_pub else 1,
+                    0,
+                ]
+                if "sha256" in src_cols:
+                    cols2.append("sha256")
+                    vals2.append("%s")
+                    params2.append(sha_hex)
 
-                if src_hash_col:
-                    src_cols2.append(src_hash_col)
-                    src_vals2.append("%s")
-                    src_params2.append(_hash_param_value(src_hash_col_type, sha_hex, sha_digest))
-
-                sql2 = f"INSERT INTO image_sources ({', '.join(src_cols2)}) VALUES ({', '.join(src_vals2)})"
+                sql2 = f"INSERT INTO image_sources ({', '.join(cols2)}) VALUES ({', '.join(vals2)})"
                 with conn.cursor() as cur:
-                    cur.execute(sql2, src_params2)
+                    cur.execute(sql2, params2)
 
                 if tag_list:
                     for name in tag_list:
@@ -707,12 +747,33 @@ WHERE id=%s AND gallery=%s
                         _insert_image_tag(conn, image_id, tid)
 
                 try:
+                    palette = load_palette_from_conf(CONF)
+                    cset = load_settings_from_conf(CONF)
                     colors = extract_top_colors(abs_path, palette, cset)
                 except Exception:
                     colors = []
                 _store_colors(conn, image_id, colors)
 
-                created.append({"image_id": image_id, "source_path": rel_path})
+                created.append({"image_id": image_id, "source_path": rel_path, "duplicate": False})
+            except IntegrityError as e:
+                if image_id is not None:
+                    try:
+                        _delete_image_everywhere(conn, image_id, GALLERY, STORAGE_ROOT)
+                    except Exception:
+                        pass
+                try:
+                    abs_path.unlink()
+                except Exception:
+                    pass
+
+                with conn.cursor() as cur:
+                    cur.execute("SELECT id FROM images WHERE gallery=%s AND content_hash=%s LIMIT 1", (GALLERY, sha_hex))
+                    r = cur.fetchone()
+                    if r:
+                        created.append({"image_id": int(r["id"]), "source_path": rel_path, "duplicate": True})
+                        continue
+
+                raise HTTPException(status_code=500, detail=f"db failed: {type(e).__name__}: {e}")
             except Exception as e:
                 if image_id is not None:
                     try:
