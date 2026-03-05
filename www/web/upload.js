@@ -13,13 +13,18 @@ const coverImg = el("upCover")
 const coverPh = el("upCoverPh")
 
 const titleInput = el("upTitle")
-const submitBtn = el("upSubmit")
+const altInput = el("upAlt")
 
 const tagBox = el("upTagBox")
 const tagChips = el("upTagChips")
 const tagInput = el("upTag")
 const tagAdd = el("upTagAdd")
 const tagSug = el("upTagSug")
+
+const visHidden = el("upVis")
+const visBtns = Array.from(document.querySelectorAll(".upvis__btn"))
+
+const submitBtn = el("upSubmit")
 
 const MAX_FILES = 20
 const MIN_PLACEHOLDERS = 20
@@ -48,6 +53,33 @@ let tagBackdrop = null
 
 let tagSugHomeParent = null
 let tagSugHomeNext = null
+
+let toastWrap = null
+let toastBox = null
+let toastTimer = null
+
+function ensureToast() {
+  if (toastWrap && toastBox) return
+  toastWrap = document.createElement("div")
+  toastWrap.className = "uptoastwrap"
+  toastBox = document.createElement("div")
+  toastBox.className = "uptoast"
+  toastWrap.appendChild(toastBox)
+  document.body.appendChild(toastWrap)
+}
+
+function showToast(text, ms) {
+  const s = String(text || "").trim()
+  if (!s) return
+  ensureToast()
+  toastBox.textContent = s
+  toastBox.classList.add("is-on")
+  if (toastTimer) clearTimeout(toastTimer)
+  const dur = Number(ms) > 0 ? Number(ms) : 3200
+  toastTimer = setTimeout(() => {
+    toastBox.classList.remove("is-on")
+  }, dur)
+}
 
 function ensureBackdrop() {
   if (tagBackdrop) return
@@ -133,13 +165,21 @@ function moveIndex(from, to) {
 
 function addFiles(list) {
   const incoming = Array.from(list || []).filter(isImageFile)
-  if (incoming.length === 0) return
+  if (incoming.length === 0) {
+    showToast("画像ファイルを選択してください。", 2600)
+    return
+  }
 
   const room = MAX_FILES - files.length
-  if (room <= 0) return
+  if (room <= 0) {
+    showToast(`画像は最大${MAX_FILES}枚までです。`, 3200)
+    return
+  }
 
   const adding = incoming.slice(0, room)
   for (const f of adding) files.push({ file: f, url: makeUrl(f) })
+
+  if (incoming.length > adding.length) showToast(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`, 3400)
 
   renderAll()
 }
@@ -215,12 +255,6 @@ function renderStrip() {
   updateArrows()
 }
 
-function validate() {
-  const okFiles = files.length > 0
-  const okTitle = String(titleInput ? titleInput.value : "").trim().length > 0
-  if (submitBtn) submitBtn.disabled = !(okFiles && okTitle)
-}
-
 function normalizeTag(s) {
   const t = String(s || "").trim()
   if (!t) return ""
@@ -233,7 +267,6 @@ function addTag(s) {
   if (tagState.includes(t)) return
   tagState.push(t)
   renderTags()
-  validate()
   if (tagPanelMode === "small") renderTagPanelSmall()
   if (tagPanelMode === "expanded") renderTagPanelExpanded()
 }
@@ -242,7 +275,6 @@ function removeTag(t) {
   const i = tagState.indexOf(t)
   if (i >= 0) tagState.splice(i, 1)
   renderTags()
-  validate()
   if (tagPanelMode === "small") renderTagPanelSmall()
   if (tagPanelMode === "expanded") renderTagPanelExpanded()
 }
@@ -294,9 +326,7 @@ function showTagPanelBase() {
   tagSug.style.display = "block"
   tagSug.setAttribute("aria-hidden", "false")
   tagSug.classList.remove("is-leaving")
-  requestAnimationFrame(() => {
-    tagSug.classList.add("is-on")
-  })
+  requestAnimationFrame(() => tagSug.classList.add("is-on"))
 }
 
 function hideTagPanelBase() {
@@ -511,6 +541,31 @@ function initPicker() {
       addFiles(e.dataTransfer.files)
     })
   }
+}
+
+function applyVis(v) {
+  const vv = String(v || "").trim()
+  if (visHidden) visHidden.value = vv
+  for (const b of visBtns) b.classList.toggle("is-on", String(b.dataset.vis || "") === vv)
+}
+
+function currentIsPublic() {
+  const v = String(visHidden ? visHidden.value : "").toLowerCase()
+  if (v === "private" || v === "0" || v === "false") return false
+  return true
+}
+
+function initVis() {
+  if (visBtns.length === 0) return
+  for (const b of visBtns) {
+    b.addEventListener("click", (e) => {
+      e.preventDefault()
+      applyVis(String(b.dataset.vis || "public"))
+    })
+  }
+  const initVal = String(visHidden ? visHidden.value : "")
+  if (initVal) applyVis(initVal)
+  else applyVis(String(visBtns[0].dataset.vis || "public"))
 }
 
 function flip(container, action) {
@@ -898,7 +953,57 @@ function renderAll() {
   renderCover()
   renderStrip()
   renderTags()
-  validate()
+  updateArrows()
+}
+
+async function doUpload() {
+  const title = String(titleInput ? titleInput.value : "").trim()
+  if (!title) {
+    showToast("タイトルを入力してください。", 2600)
+    return
+  }
+  if (files.length === 0) {
+    showToast("画像を追加してください。", 2600)
+    return
+  }
+
+  const fd = new FormData()
+  fd.append("title", title)
+  fd.append("alt", String(altInput ? altInput.value : ""))
+  fd.append("tags", tagState.join(","))
+  fd.append("is_public", currentIsPublic() ? "true" : "false")
+  for (const it of files) fd.append("files", it.file, it.file.name)
+
+  if (submitBtn) submitBtn.disabled = true
+  showToast("アップロード中...", 1800)
+
+  try {
+    const res = await fetch("/gallery/api/upload", { method: "POST", body: fd })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = String((data && data.detail) ? data.detail : `upload failed status=${res.status}`)
+      showToast(msg, 4200)
+      return
+    }
+    showToast(`アップロード完了 (${data.count || 0})`, 2600)
+    setTimeout(() => { location.href = "/gallery/" }, 550)
+  } catch (e) {
+    showToast(`通信に失敗しました: ${String(e)}`, 4200)
+  } finally {
+    if (submitBtn) submitBtn.disabled = false
+  }
+}
+
+function initSubmit() {
+  if (!submitBtn) return
+  submitBtn.addEventListener("click", (e) => {
+    e.preventDefault()
+    doUpload()
+  })
+}
+
+function initPickerAndDrop() {
+  initPicker()
 }
 
 function init() {
@@ -907,12 +1012,13 @@ function init() {
 
   ensureBackdrop()
   forceCloseTagUI()
-  initPicker()
+
+  initPickerAndDrop()
   initDragSorting()
   initArrowsAndWheel()
   initTags()
-
-  if (titleInput) titleInput.addEventListener("input", () => validate())
+  initVis()
+  initSubmit()
 
   renderAll()
   loadTagPool()
