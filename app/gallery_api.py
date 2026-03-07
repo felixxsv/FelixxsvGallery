@@ -401,9 +401,10 @@ def palette():
 
 
 @app.get("/api/auth/me")
-def auth_me(req: Request):
-    u = _get_current_user(req)
-    return {"ok": True, "user": u}
+def auth_me():
+    auth = CONF.get("auth") or {}
+    upload_requires_login = bool(auth.get("upload_requires_login") or False)
+    return {"ok": True, "user": None, "upload_requires_login": upload_requires_login}
 
 
 @app.post("/api/auth/register")
