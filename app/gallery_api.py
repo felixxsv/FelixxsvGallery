@@ -449,7 +449,7 @@ SELECT COUNT(*)
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
-WHERE i.gallery=%s
+WHERE i.gallery=%s AND i.is_public=1
 {where_extra_sql}
 """
 
@@ -461,7 +461,7 @@ SELECT
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
-WHERE i.gallery=%s
+WHERE i.gallery=%s AND i.is_public=1
 {where_extra_sql}
 {order_sql}
 LIMIT %s OFFSET %s
@@ -512,7 +512,7 @@ SELECT
   COALESCE(st.x_like_count,0) AS x_like_count
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
-WHERE i.gallery=%s AND i.id=%s
+WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
 """,
                 (GALLERY, image_id),
             )
@@ -558,13 +558,14 @@ def list_tags(limit: int = Query(200, ge=1, le=2000)):
 SELECT t.name, COUNT(*) AS c
 FROM tags t
 JOIN image_tags it ON it.tag_id=t.id
-JOIN image_sources s ON s.image_id=it.image_id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+JOIN images i ON i.id=it.image_id AND i.gallery=%s AND i.is_public=1
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 WHERE t.gallery=%s
 GROUP BY t.name
 ORDER BY c DESC, t.name ASC
 LIMIT %s
 """,
-                (GALLERY, GALLERY, limit),
+                (GALLERY, GALLERY, GALLERY, limit),
             )
             rows = cur.fetchall()
         return {"items": rows}
@@ -880,11 +881,12 @@ def get_original(image_id: int):
             cur.execute(
                 """
 SELECT s.source_path
-FROM image_sources s
-WHERE s.gallery=%s AND s.image_id=%s AND s.is_primary=1
+FROM images i
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1
+WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
 LIMIT 1
 """,
-                (GALLERY, image_id),
+                (GALLERY, GALLERY, image_id),
             )
             r = cur.fetchone()
             if not r:

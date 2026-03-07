@@ -254,6 +254,11 @@ def _insert_image(conn: pymysql.Connection, img_schema: TableSchema, gallery: st
     vals = ["%s"] * len(cols)
     params: list[Any] = [gallery, shot_at, "", "", w, h, fmt, "", "", ""]
 
+    if img_schema.has("is_public"):
+        cols.append("is_public")
+        vals.append("%s")
+        params.append(1)
+
     if img_schema.has("content_hash"):
         cols.append("content_hash")
         vals.append("%s")
