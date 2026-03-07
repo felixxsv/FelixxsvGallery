@@ -619,10 +619,8 @@ def upload_images(
 
     conn = db_conn(CONF)
     try:
-        src_cols = set()
-        with conn.cursor() as cur:
-            cur.execute("SHOW COLUMNS FROM image_sources")
-            src_cols = {str(r["Field"]) for r in cur.fetchall()}
+        src_cols = _table_cols(conn, "image_sources")
+        img_cols = _table_cols(conn, "images")
 
         staged = []
         tmp_dir = Path(tempfile.mkdtemp(prefix="felixxsv_gallery_upload_"))
@@ -677,8 +675,7 @@ def upload_images(
                     "format": str(fmt),
                 })
 
-            hashes = [x["sha_hex"] for x in staged]
-            uniq_hashes = sorted(set(hashes))
+            uniq_hashes = sorted({x["sha_hex"] for x in staged})
 
             existing_map = {}
             if uniq_hashes:
@@ -696,12 +693,8 @@ def upload_images(
             any_dup = False
             for x in staged:
                 sha = x["sha_hex"]
-                dup = False
                 exid = existing_map.get(sha)
-                if exid is not None:
-                    dup = True
-                if sha in seen:
-                    dup = True
+                dup = (exid is not None) or (sha in seen)
                 seen.add(sha)
                 if dup:
                     any_dup = True
@@ -741,13 +734,13 @@ def upload_images(
                 img.save(dst, "WEBP", quality=82, method=6)
 
             try:
-                from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
                 palette = load_palette_from_conf(CONF)
                 cset = load_settings_from_conf(CONF)
+                can_colors = True
             except Exception:
-                extract_top_colors = None
                 palette = None
                 cset = None
+                can_colors = False
 
             try:
                 for x in staged:
@@ -758,22 +751,22 @@ def upload_images(
                     abs_path = SOURCE_ROOT / rel_path
 
                     ensure_dir(abs_path.parent)
-                    tmp_path = x["tmp_path"]
-                    tmp_path.replace(abs_path)
+                    x["tmp_path"].replace(abs_path)
                     created_orig_paths.append(abs_path)
 
                     st = abs_path.stat()
                     mtime_epoch = int(st.st_mtime)
 
+                    img_cols_list = ["gallery","shot_at","title","alt","width","height","format","thumb_path_480","thumb_path_960","preview_path","content_hash"]
+                    img_vals = [GALLERY, shot_at, t, str(alt or ""), x["width"], x["height"], x["format"], "", "", "", x["sha_hex"]]
+                    if "is_public" in img_cols:
+                        img_cols_list.append("is_public")
+                        img_vals.append(1 if is_pub else 0)
+
                     with conn.cursor() as cur:
                         cur.execute(
-                            """
-INSERT INTO images
-(gallery, shot_at, title, alt, width, height, format, thumb_path_480, thumb_path_960, preview_path, content_hash)
-VALUES
-(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-""",
-                            (GALLERY, shot_at, t, str(alt or ""), x["width"], x["height"], x["format"], "", "", "", x["sha_hex"]),
+                            f"INSERT INTO images ({', '.join(img_cols_list)}) VALUES ({', '.join(['%s'] * len(img_cols_list))})",
+                            img_vals,
                         )
                         cur.execute("SELECT LAST_INSERT_ID() AS id")
                         image_id = int(cur.fetchone()["id"])
@@ -795,16 +788,16 @@ VALUES
                             (t480_rel, t960_rel, prev_rel, image_id, GALLERY),
                         )
 
-                    cols = ["gallery", "image_id", "source_path", "size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"]
-                    vals = [GALLERY, image_id, rel_path, int(x["size_bytes"]), int(mtime_epoch), x["sha_hex"], 1, 0 if is_pub else 1, 0]
+                    src_cols_list = ["gallery","image_id","source_path","size_bytes","mtime_epoch","content_hash","is_primary","is_hidden","status"]
+                    src_vals = [GALLERY, image_id, rel_path, int(x["size_bytes"]), int(mtime_epoch), x["sha_hex"], 1, 0, 0]
                     if "sha256" in src_cols:
-                        cols.append("sha256")
-                        vals.append(x["sha_hex"])
+                        src_cols_list.append("sha256")
+                        src_vals.append(x["sha_hex"])
 
                     with conn.cursor() as cur:
                         cur.execute(
-                            f"INSERT INTO image_sources ({', '.join(cols)}) VALUES ({', '.join(['%s'] * len(cols))})",
-                            vals,
+                            f"INSERT INTO image_sources ({', '.join(src_cols_list)}) VALUES ({', '.join(['%s'] * len(src_cols_list))})",
+                            src_vals,
                         )
 
                     if tag_list:
@@ -818,7 +811,7 @@ VALUES
                                 tag_id = int(cur.fetchone()["id"])
                                 cur.execute("INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (%s,%s)", (image_id, tag_id))
 
-                    if extract_top_colors is not None:
+                    if can_colors:
                         try:
                             colors = extract_top_colors(abs_path, palette, cset)
                         except Exception:
@@ -882,7 +875,7 @@ def get_original(image_id: int):
                 """
 SELECT s.source_path
 FROM images i
-JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
 LIMIT 1
 """,
