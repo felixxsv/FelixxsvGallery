@@ -2,10 +2,15 @@
   position:relative;
 }
 
-.upthumb.is-dup{
-  outline:2px solid rgba(255,80,80,.9);
-  outline-offset:-2px;
+.upthumb.is-dup::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border:2px solid rgba(255,80,80,.92);
+  border-radius:12px;
   box-shadow:0 0 0 3px rgba(255,80,80,.16);
+  pointer-events:none;
+  z-index:2;
 }
 
 .upthumb.is-dup::after{
@@ -21,6 +26,7 @@
   color:#e7eef7;
   font-size:11px;
   letter-spacing:.02em;
+  pointer-events:none;
 }
 
 .upthumb__img{
