@@ -28,13 +28,16 @@
 }
 
 .upthumb__rm{
-  z-index:5;
-  pointer-events:auto;
-  opacity:.92;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .12s ease, transform .12s ease;
+  transform:translateY(-2px);
 }
 
 .upthumb:hover .upthumb__rm{
-  background:rgba(0,0,0,.38);
+  opacity:1;
+  pointer-events:auto;
+  transform:translateY(0);
 }
 
 .upthumb__img{
