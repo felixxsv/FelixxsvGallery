@@ -74,6 +74,8 @@ function ensureUxStyle() {
 .uptoast{pointer-events:none;max-width:min(760px,92vw);padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(14,18,26,.92);backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.55);color:#e7eef7;font-size:14px;line-height:1.4;opacity:0;transform:translateY(-14px);transition:opacity .18s ease,transform .18s ease}
 .uptoast.is-on{opacity:1;transform:translateY(0)}
 .uptoast.is-off{opacity:0;transform:translateY(-14px)}
+.uptoast.is-err{border-color:rgba(255,80,80,.35);background:rgba(255,80,80,.10)}
+.uptoast.is-ok{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.10)}
 
 .upuploadmsg{position:fixed;z-index:1201;max-width:360px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,80,80,.35);background:rgba(255,80,80,.10);backdrop-filter:blur(10px);color:#e7eef7;font-size:12px;line-height:1.35;box-shadow:0 16px 40px rgba(0,0,0,.55);opacity:0;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
 .upuploadmsg.is-on{opacity:1;transform:translateY(0)}
@@ -102,12 +104,14 @@ function ensureToast() {
   document.body.appendChild(toastWrap)
 }
 
-function showToast(text, ms) {
+function showToast(text, ms, kind) {
   const s = String(text || "").trim()
   if (!s) return
   ensureToast()
   toastBox.textContent = s
-  toastBox.classList.remove("is-off")
+  toastBox.classList.remove("is-off", "is-err", "is-ok")
+  if (kind === "err") toastBox.classList.add("is-err")
+  if (kind === "ok") toastBox.classList.add("is-ok")
   toastBox.classList.add("is-on")
   if (toastTimer) clearTimeout(toastTimer)
   const dur = Number(ms) > 0 ? Number(ms) : 3200
@@ -117,9 +121,17 @@ function showToast(text, ms) {
   }, dur)
 }
 
+function showToastErr(text, ms) {
+  showToast(text, ms || 5200, "err")
+}
+
+function showToastOk(text, ms) {
+  showToast(text, ms || 2600, "ok")
+}
+
 function saveNavToast(text, ms) {
   try {
-    const v = { text: String(text || ""), ms: Number(ms) || 3200, at: Date.now() }
+    const v = { text: String(text || ""), ms: Number(ms) || 3600, at: Date.now() }
     sessionStorage.setItem(NAV_TOAST_KEY, JSON.stringify(v))
   } catch (e) {}
 }
@@ -234,13 +246,6 @@ function makeUrl(f) {
   return URL.createObjectURL(f)
 }
 
-function moveIndex(from, to) {
-  if (from === to) return
-  const it = files.splice(from, 1)[0]
-  files.splice(to, 0, it)
-  rebuildDupIdxOnReorder(from, to)
-}
-
 function rebuildDupIdxOnReorder(from, to) {
   if (dupIdx.size === 0) return
   const cur = Array.from(dupIdx).sort((a, b) => a - b)
@@ -250,6 +255,13 @@ function rebuildDupIdxOnReorder(from, to) {
   mark.splice(to, 0, moved)
   dupIdx.clear()
   for (let i = 0; i < mark.length; i++) if (mark[i]) dupIdx.add(i)
+}
+
+function moveIndex(from, to) {
+  if (from === to) return
+  const it = files.splice(from, 1)[0]
+  files.splice(to, 0, it)
+  rebuildDupIdxOnReorder(from, to)
 }
 
 function clearDupMarks() {
@@ -268,32 +280,28 @@ function applyDupMarksFromItems(items) {
 function addFiles(list) {
   const incoming = Array.from(list || []).filter(isImageFile)
   if (incoming.length === 0) {
-    showToast("画像ファイルを選択してください。", 2600)
+    showToastErr("画像ファイルを選択してください。", 3200)
+    showNearSubmit("画像ファイルを選択してください。", false)
     return
   }
 
   const room = MAX_FILES - files.length
   if (room <= 0) {
-    showToast(`画像は最大${MAX_FILES}枚までです。`, 3200)
+    showToastErr(`画像は最大${MAX_FILES}枚までです。`, 4200)
+    showNearSubmit(`画像は最大${MAX_FILES}枚までです。`, false)
     return
   }
 
   const adding = incoming.slice(0, room)
   for (const f of adding) files.push({ file: f, url: makeUrl(f) })
 
-  if (incoming.length > adding.length) showToast(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`, 3400)
+  if (incoming.length > adding.length) {
+    showToastErr(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`, 4200)
+    showNearSubmit(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`, false)
+  }
 
   clearDupMarks()
   clearNearMsg()
-  renderAll()
-}
-
-function removeIndex(i) {
-  const it = files[i]
-  if (!it) return
-  try { URL.revokeObjectURL(it.url) } catch (e) {}
-  files.splice(i, 1)
-  shiftDupIdxOnRemove(i)
   renderAll()
 }
 
@@ -307,6 +315,15 @@ function shiftDupIdxOnRemove(idx) {
   }
   dupIdx.clear()
   for (const v of out) dupIdx.add(v)
+}
+
+function removeIndex(i) {
+  const it = files[i]
+  if (!it) return
+  try { URL.revokeObjectURL(it.url) } catch (e) {}
+  files.splice(i, 1)
+  shiftDupIdxOnRemove(i)
+  renderAll()
 }
 
 function setCover(i) {
@@ -1083,12 +1100,12 @@ async function doUpload() {
 
   const title = String(titleInput ? titleInput.value : "").trim()
   if (!title) {
-    showToast("タイトルを入力してください。", 2600)
+    showToastErr("タイトルを入力してください。", 4200)
     showNearSubmit("タイトルを入力してください。", false)
     return
   }
   if (files.length === 0) {
-    showToast("画像を追加してください。", 2600)
+    showToastErr("画像を追加してください。", 4200)
     showNearSubmit("画像を追加してください。", false)
     return
   }
@@ -1101,7 +1118,7 @@ async function doUpload() {
   for (const it of files) fd.append("files", it.file, it.file.name)
 
   setSubmitLoading(true)
-  showToast("アップロード中...", 1400)
+  showToast("アップロード中...", 1400, null)
 
   try {
     const res = await fetch("/gallery/api/upload", { method: "POST", body: fd })
@@ -1109,7 +1126,7 @@ async function doUpload() {
 
     if (!res.ok) {
       const msg = String((data && data.detail) ? data.detail : `upload failed status=${res.status}`)
-      showToast(msg, 5200)
+      showToastErr(msg, 6200)
       showNearSubmit(msg, false)
       return
     }
@@ -1122,8 +1139,8 @@ async function doUpload() {
     const created = items.length - dups
 
     if (dups > 0) {
-      const msg = `重複画像があります (${dups}枚)。赤枠の画像は登録済みです。削除して再度アップロードしてください。`
-      showToast(msg, 5200)
+      const msg = `重複画像があります (${dups}枚)。赤枠の画像は登録済みです。`
+      showToastErr(msg, 6200)
       showNearSubmit(msg, false)
       return
     }
@@ -1132,13 +1149,13 @@ async function doUpload() {
     renderStrip()
 
     const okMsg = created > 0 ? `アップロードしました (${created}枚)` : "アップロードしました"
-    showToast(okMsg, 1800)
+    showToastOk(okMsg, 1800)
     saveNavToast(okMsg, 3600)
 
     setTimeout(() => { location.href = "/gallery/" }, 550)
   } catch (e) {
     const msg = `通信に失敗しました: ${String(e)}`
-    showToast(msg, 5200)
+    showToastErr(msg, 6200)
     showNearSubmit(msg, false)
   } finally {
     setSubmitLoading(false)
