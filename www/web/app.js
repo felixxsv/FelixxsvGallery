@@ -107,6 +107,48 @@ let lbTapToggle = true
 
 const viewedOnce = new Set()
 
+let navToastWrap = null
+let navToastBox = null
+let navToastTimer = null
+
+function ensureNavToastEl() {
+  if (navToastWrap && navToastBox) return
+  navToastWrap = document.createElement("div")
+  navToastWrap.className = "uptoastwrap"
+  navToastBox = document.createElement("div")
+  navToastBox.className = "uptoast"
+  navToastWrap.appendChild(navToastBox)
+  document.body.appendChild(navToastWrap)
+}
+
+function showNavToast(text, ms) {
+  const s = String(text || "").trim()
+  if (!s) return
+  ensureNavToastEl()
+  navToastBox.textContent = s
+  navToastBox.classList.remove("is-off")
+  navToastBox.classList.add("is-on")
+  if (navToastTimer) clearTimeout(navToastTimer)
+  const dur = Number(ms) > 0 ? Number(ms) : 3200
+  navToastTimer = setTimeout(() => {
+    navToastBox.classList.remove("is-on")
+    navToastBox.classList.add("is-off")
+  }, dur)
+}
+
+function consumeNavToast() {
+  try {
+    const raw = sessionStorage.getItem(NAV_TOAST_KEY)
+    if (!raw) return
+    sessionStorage.removeItem(NAV_TOAST_KEY)
+    const v = JSON.parse(raw)
+    if (!v || typeof v !== "object") return
+    const at = Number(v.at || 0)
+    if (at && (Date.now() - at) > NAV_TOAST_MAX_AGE_MS) return
+    showNavToast(String(v.text || ""), Number(v.ms || 3200))
+  } catch (e) {}
+}
+
 function isMobile() {
   return window.matchMedia("(max-width: 920px)").matches
 }
@@ -644,7 +686,6 @@ function initFilters() {
 function initSearch() {
   const saved = String(localStorage.getItem(LS_SEARCH) || "")
   state.q = saved
-
   if (searchInput) searchInput.value = saved
 
   let timer = null
@@ -963,58 +1004,6 @@ function initPerPageSort() {
   state.sort = sortOk
   if (sortValue) sortValue.textContent = sortOk === "oldest" ? "Oldest" : (sortOk === "popular" ? "Popular" : "Latest")
   if (sortSelect) sortSelect.querySelectorAll(".cselect__opt").forEach((x) => x.classList.toggle("is-on", x.dataset.value === sortOk))
-}
-
-/* ---- Upload後の遷移トースト（上から降りて、消えるときは上へ） ---- */
-
-function ensureNavToastStyle() {
-  if (document.getElementById("galleryToastStyle")) return
-  const st = document.createElement("style")
-  st.id = "galleryToastStyle"
-  st.textContent = `
-.uptoastwrap{position:fixed;top:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:1200}
-.uptoast{pointer-events:none;max-width:min(760px,92vw);padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(14,18,26,.92);backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.55);color:#e7eef7;font-size:14px;line-height:1.4;opacity:0;transform:translateY(-14px);transition:opacity .18s ease,transform .18s ease}
-.uptoast.is-on{opacity:1;transform:translateY(0)}
-.uptoast.is-off{opacity:0;transform:translateY(-14px)}
-`
-  document.head.appendChild(st)
-}
-
-function showNavToast(text, ms) {
-  const s = String(text || "").trim()
-  if (!s) return
-  ensureNavToastStyle()
-  let wrap = document.querySelector(".uptoastwrap")
-  let box = wrap ? wrap.querySelector(".uptoast") : null
-  if (!wrap || !box) {
-    wrap = document.createElement("div")
-    wrap.className = "uptoastwrap"
-    box = document.createElement("div")
-    box.className = "uptoast"
-    wrap.appendChild(box)
-    document.body.appendChild(wrap)
-  }
-  box.textContent = s
-  box.classList.remove("is-off")
-  box.classList.add("is-on")
-  const dur = Number(ms) > 0 ? Number(ms) : 3200
-  setTimeout(() => {
-    box.classList.remove("is-on")
-    box.classList.add("is-off")
-  }, dur)
-}
-
-function consumeNavToast() {
-  try {
-    const raw = sessionStorage.getItem(NAV_TOAST_KEY)
-    if (!raw) return
-    sessionStorage.removeItem(NAV_TOAST_KEY)
-    const v = JSON.parse(raw)
-    if (!v || typeof v !== "object") return
-    const at = Number(v.at || 0)
-    if (at && (Date.now() - at) > NAV_TOAST_MAX_AGE_MS) return
-    showNavToast(String(v.text || ""), Number(v.ms || 3200))
-  } catch (e) {}
 }
 
 async function init() {

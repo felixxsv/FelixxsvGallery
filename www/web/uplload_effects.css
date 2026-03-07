@@ -1,0 +1,38 @@
+.upthumb.is-dup{
+  outline:2px solid rgba(255,80,80,.9);
+  outline-offset:-2px;
+  box-shadow:0 0 0 3px rgba(255,80,80,.16);
+}
+.upthumb.is-dup::after{
+  content:"DUP";
+  position:absolute;
+  left:10px;
+  top:10px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,80,80,.35);
+  background:rgba(255,80,80,.14);
+  color:#e7eef7;
+  font-size:11px;
+  letter-spacing:.02em;
+}
+#upSubmit.is-loading{
+  position:relative;
+  padding-left:38px;
+}
+#upSubmit.is-loading::before{
+  content:"";
+  position:absolute;
+  left:18px;
+  top:50%;
+  width:14px;
+  height:14px;
+  border-radius:999px;
+  border:2px solid rgba(255,255,255,.28);
+  border-top-color:rgba(255,255,255,.85);
+  transform:translate(-50%,-50%) rotate(0deg);
+  animation:upspin .8s linear infinite;
+}
+@keyframes upspin{
+  to{transform:translate(-50%,-50%) rotate(360deg)}
+}

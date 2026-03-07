@@ -58,40 +58,12 @@ let toastWrap = null
 let toastBox = null
 let toastTimer = null
 
-let nearMsg = null
-let nearMsgTimer = null
-
 const dupIdx = new Set()
 
 const NAV_TOAST_KEY = "gallery_nav_toast_v1"
 
-function ensureUxStyle() {
-  if (document.getElementById("uploadUxStyle")) return
-  const st = document.createElement("style")
-  st.id = "uploadUxStyle"
-  st.textContent = `
-.uptoastwrap{position:fixed;top:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:1200}
-.uptoast{pointer-events:none;max-width:min(760px,92vw);padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(14,18,26,.92);backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.55);color:#e7eef7;font-size:14px;line-height:1.4;opacity:0;transform:translateY(-14px);transition:opacity .18s ease,transform .18s ease}
-.uptoast.is-on{opacity:1;transform:translateY(0)}
-.uptoast.is-off{opacity:0;transform:translateY(-14px)}
-.uptoast.is-err{border-color:rgba(255,80,80,.35);background:rgba(255,80,80,.10)}
-.uptoast.is-ok{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.10)}
-
-.upthumb.is-dup{outline:2px solid rgba(255,80,80,.9);outline-offset:-2px;box-shadow:0 0 0 3px rgba(255,80,80,.16)}
-.upthumb.is-dup::after{content:"DUP";position:absolute;left:10px;top:10px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,80,80,.35);background:rgba(255,80,80,.14);color:#e7eef7;font-size:11px;letter-spacing:.02em}
-
-#upSubmit.is-loading{position:relative;padding-left:38px}
-#upSubmit.is-loading::before{content:"";position:absolute;left:18px;top:50%;width:14px;height:14px;border-radius:999px;border:2px solid rgba(255,255,255,.28);border-top-color:rgba(255,255,255,.85);transform:translate(-50%,-50%) rotate(0deg);animation:upspin .8s linear infinite}
-@keyframes upspin{to{transform:translate(-50%,-50%) rotate(360deg)}}
-
-.upvis__btn{padding:6px 10px;border-radius:12px;font-size:12px}
-`
-  document.head.appendChild(st)
-}
-
 function ensureToast() {
   if (toastWrap && toastBox) return
-  ensureUxStyle()
   toastWrap = document.createElement("div")
   toastWrap.className = "uptoastwrap"
   toastBox = document.createElement("div")
@@ -130,40 +102,6 @@ function saveNavToast(text, ms) {
     const v = { text: String(text || ""), ms: Number(ms) || 3600, at: Date.now() }
     sessionStorage.setItem(NAV_TOAST_KEY, JSON.stringify(v))
   } catch (e) {}
-}
-
-function ensureNearMsg() {
-  if (nearMsg) return
-  ensureUxStyle()
-  nearMsg = document.createElement("div")
-  nearMsg.className = "upuploadmsg"
-  document.body.appendChild(nearMsg)
-}
-
-function showNearSubmit(text, ok) {
-  if (!submitBtn) return
-  const s = String(text || "").trim()
-  if (!s) return
-  ensureNearMsg()
-  nearMsg.textContent = s
-  nearMsg.classList.toggle("is-ok", !!ok)
-
-  const r = submitBtn.getBoundingClientRect()
-  const pad = 10
-  nearMsg.style.left = `${Math.max(pad, Math.min(window.innerWidth - pad - 360, r.left + r.width - 360))}px`
-  nearMsg.style.top = `${Math.max(pad, r.top - 10)}px`
-
-  nearMsg.classList.add("is-on")
-  if (nearMsgTimer) clearTimeout(nearMsgTimer)
-  nearMsgTimer = setTimeout(() => {
-    if (!nearMsg) return
-    nearMsg.classList.remove("is-on")
-  }, 4200)
-}
-
-function clearNearMsg() {
-  if (!nearMsg) return
-  nearMsg.classList.remove("is-on")
 }
 
 function ensureBackdrop() {
@@ -294,7 +232,6 @@ function addFiles(list) {
   }
 
   clearDupMarks()
-  clearNearMsg()
   renderAll()
 }
 
@@ -1158,8 +1095,6 @@ function renderAll() {
 }
 
 function init() {
-  ensureUxStyle()
-
   if (!fileInput || !drop || !strip || !stripFrame) return
   if (!tagBox || !tagSug || !tagAdd) return
 
