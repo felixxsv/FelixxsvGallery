@@ -579,10 +579,18 @@ def upload_images(
     is_public: str = Form("true"),
     files: list[UploadFile] = File(...),
 ):
+    hashlib = __import__("hashlib")
+    uuid = __import__("uuid")
+    datetime_mod = __import__("datetime", fromlist=["datetime"])
+    zoneinfo_mod = __import__("zoneinfo", fromlist=["ZoneInfo"])
+    pil_img = __import__("PIL.Image", fromlist=["Image"])
+    Image = pil_img.Image
+    pil_ex = __import__("PIL", fromlist=["UnidentifiedImageError"])
+    UnidentifiedImageError = pil_ex.UnidentifiedImageError
+
     t = str(title or "").strip()
     if not t:
         raise HTTPException(status_code=400, detail="title required")
-
     if not files:
         raise HTTPException(status_code=400, detail="files required")
     if len(files) > 20:
@@ -591,76 +599,216 @@ def upload_images(
     is_pub = str(is_public or "true").strip().lower() in ("1", "true", "yes", "on")
     tag_list = [x for x in parse_csv_strs(tags) if x]
 
-    created: list[dict] = []
+    tz_name = str((CONF.get("app") or {}).get("timezone") or "Asia/Tokyo")
+    try:
+        tz = zoneinfo_mod.ZoneInfo(tz_name)
+    except Exception:
+        tz = None
+
+    def now_local_naive():
+        if tz is None:
+            return datetime_mod.datetime.now()
+        return datetime_mod.datetime.now(tz).replace(tzinfo=None)
+
+    def parse_shot_at(name: str):
+        try:
+            mod = __import__("galleryctl.datetime_parser", fromlist=["parse_vrchat_shot_at_from_filename"])
+            r = mod.parse_vrchat_shot_at_from_filename(name)
+            if r:
+                return r.shot_at
+        except Exception:
+            pass
+        return now_local_naive()
+
+    storage_root = Path((CONF.get("paths") or {}).get("storage_root") or "/data/felixxsv-gallery/www/storage")
+
+    tmp_root = SOURCE_ROOT / "uploads" / "_tmp" / uuid.uuid4().hex
+    ensure_dir(tmp_root)
+
+    staged = []
+    created = []
+
     conn = db_conn(CONF)
     try:
-        src_cols = _table_cols(conn, "image_sources")
-        img_cols = _table_cols(conn, "images")
+        def sha256_save(upload: UploadFile, dst: Path):
+            h = hashlib.sha256()
+            size = 0
+            with dst.open("wb") as f:
+                while True:
+                    b = upload.file.read(1024 * 1024)
+                    if not b:
+                        break
+                    f.write(b)
+                    h.update(b)
+                    size += len(b)
+            return h.hexdigest(), size
 
-        need_src = {"size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"}
-        if not need_src.issubset(src_cols):
-            raise HTTPException(status_code=500, detail=f"image_sources missing cols: {sorted(list(need_src - src_cols))}")
-        if "content_hash" not in img_cols:
-            raise HTTPException(status_code=500, detail="images.content_hash missing (required)")
+        def read_meta(p: Path):
+            with Image.open(p) as im:
+                w, h = im.size
+                fmt = (im.format or p.suffix.lstrip(".")).lower()
+                return int(w), int(h), str(fmt)
 
-        palette = load_palette_from_conf(CONF)
-        cset = load_settings_from_conf(CONF)
+        def render_webp(src: Path, dst: Path, max_w: int):
+            img = Image.open(src)
+            if img.mode not in ("RGB", "RGBA"):
+                img = img.convert("RGBA")
+            w, h = img.size
+            if w > max_w:
+                scale = max_w / float(w)
+                nw = max_w
+                nh = int(h * scale)
+                if nh < 1:
+                    nh = 1
+                img = img.resize((nw, nh), Image.Resampling.LANCZOS)
+            ensure_dir(dst.parent)
+            img.save(dst, "WEBP", quality=82, method=6)
 
-        for uf in files:
-            if uf.filename is None:
-                raise HTTPException(status_code=400, detail="filename missing")
+        def id_dir3(image_id: int) -> str:
+            s = f"{image_id:08d}"
+            return f"{s[0:2]}/{s[2:4]}/{s[4:6]}"
 
-            dt_shot = _parse_vrchat_shot_at(uf.filename) or _now_local(CONF)
+        def upsert_tag_id(name: str) -> int:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO tags (gallery, name) VALUES (%s,%s) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)",
+                    (GALLERY, name),
+                )
+                cur.execute("SELECT LAST_INSERT_ID() AS id")
+                return int(cur.fetchone()["id"])
 
-            ext = Path(uf.filename).suffix.lower().lstrip(".")
+        def insert_image_tag(image_id: int, tag_id: int):
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (%s,%s)",
+                    (image_id, tag_id),
+                )
+
+        def store_colors(image_id: int, colors: list[dict]):
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
+                if not colors:
+                    return
+                vals = []
+                for c in colors:
+                    vals.append((image_id, int(c["rank_no"]), int(c["color_id"]), float(c["ratio"])))
+                cur.executemany(
+                    "INSERT INTO image_colors (image_id, rank_no, color_id, ratio) VALUES (%s,%s,%s,%s)",
+                    vals,
+                )
+
+        def delete_everything(image_id: int):
+            with conn.cursor() as cur:
+                cur.execute("SELECT thumb_path_480, thumb_path_960, preview_path FROM images WHERE id=%s AND gallery=%s LIMIT 1", (image_id, GALLERY))
+                r = cur.fetchone() or {}
+            for rel in (str(r.get("thumb_path_480") or ""), str(r.get("thumb_path_960") or ""), str(r.get("preview_path") or "")):
+                if not rel:
+                    continue
+                p = storage_root / rel
+                try:
+                    if p.exists():
+                        p.unlink()
+                except Exception:
+                    pass
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
+                cur.execute("DELETE FROM image_tags WHERE image_id=%s", (image_id,))
+                cur.execute("DELETE FROM image_sources WHERE gallery=%s AND image_id=%s", (GALLERY, image_id))
+                cur.execute("DELETE FROM image_stats WHERE image_id=%s", (image_id,))
+                cur.execute("DELETE FROM images WHERE id=%s AND gallery=%s", (image_id, GALLERY))
+
+        for i, uf in enumerate(files):
+            name = uf.filename or f"file{i}"
+            shot_at = parse_shot_at(name)
+
+            ext = Path(name).suffix.lower().lstrip(".")
             if ext not in ("png", "jpg", "jpeg", "webp"):
                 ext = "png"
 
-            rel_dir = Path("uploads") / dt_shot.strftime("%Y/%m/%d")
-            fname = _make_vrchat_filename(dt_shot, ext)
-            rel_path = str((rel_dir / fname).as_posix())
-            abs_path = SOURCE_ROOT / rel_path
-
-            ensure_dir(abs_path.parent)
-
+            tmp_path = tmp_root / f"{i:03d}_{uuid.uuid4().hex}.{ext}"
             try:
-                uf.file.seek(0)
-            except Exception:
-                pass
-
-            sha_hex, sha_digest, size_bytes = _sha256_copy(uf, abs_path)
-
-            try:
-                w, h, fmt = _img_meta(abs_path)
-            except (UnidentifiedImageError, OSError):
                 try:
-                    abs_path.unlink()
+                    uf.file.seek(0)
                 except Exception:
                     pass
-                raise HTTPException(status_code=400, detail=f"invalid image: {uf.filename}")
+                sha_hex, size_bytes = sha256_save(uf, tmp_path)
+                w, h, fmt = read_meta(tmp_path)
+            except (UnidentifiedImageError, OSError):
+                raise HTTPException(status_code=400, detail=f"invalid image: {name}")
+
+            staged.append({
+                "idx": i,
+                "filename": name,
+                "shot_at": shot_at,
+                "ext": ext,
+                "tmp_path": tmp_path,
+                "sha_hex": sha_hex,
+                "size_bytes": int(size_bytes),
+                "width": int(w),
+                "height": int(h),
+                "format": str(fmt),
+            })
+
+        hashes = [x["sha_hex"] for x in staged]
+        uniq_hashes = sorted(set(hashes))
+
+        existing = {}
+        if uniq_hashes:
+            ph = ",".join(["%s"] * len(uniq_hashes))
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT id, content_hash FROM images WHERE gallery=%s AND content_hash IN ({ph})",
+                    [GALLERY, *uniq_hashes],
+                )
+                for r in cur.fetchall():
+                    existing[str(r["content_hash"])] = int(r["id"])
+
+        seen = {}
+        any_dup = False
+        items = []
+        for x in staged:
+            sha = x["sha_hex"]
+            dup = False
+            exid = existing.get(sha)
+            if exid is not None:
+                dup = True
+            if sha in seen:
+                dup = True
+            else:
+                seen[sha] = x["idx"]
+            if dup:
+                any_dup = True
+            items.append({
+                "index": int(x["idx"]),
+                "filename": x["filename"],
+                "duplicate": bool(dup),
+                "existing_id": exid,
+            })
+
+        if any_dup:
+            try:
+                shutil.rmtree(tmp_root, ignore_errors=True)
+            except Exception:
+                pass
+            return {"ok": True, "has_duplicates": True, "count": 0, "items": items}
+
+        colors_mod = __import__("galleryctl.colors", fromlist=["extract_top_colors", "load_palette_from_conf", "load_settings_from_conf"])
+        palette = colors_mod.load_palette_from_conf(CONF)
+        cset = colors_mod.load_settings_from_conf(CONF)
+
+        for x in staged:
+            shot_at = x["shot_at"]
+            rel_dir = Path("uploads") / shot_at.strftime("%Y/%m/%d")
+            fname = f"VRChat_{shot_at.strftime('%Y-%m-%d_%H-%M-%S')}_{uuid.uuid4().hex[:8]}.{x['ext']}"
+            rel_path = str((rel_dir / fname).as_posix())
+            abs_path = SOURCE_ROOT / rel_path
+            ensure_dir(abs_path.parent)
+            shutil.move(str(x["tmp_path"]), str(abs_path))
 
             st = abs_path.stat()
             mtime_epoch = int(st.st_mtime)
 
-            existing_id: int | None = None
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id FROM images WHERE gallery=%s AND content_hash=%s LIMIT 1",
-                    (GALLERY, sha_hex),
-                )
-                r = cur.fetchone()
-                if r:
-                    existing_id = int(r["id"])
-
-            if existing_id is not None:
-                try:
-                    abs_path.unlink()
-                except Exception:
-                    pass
-                created.append({"image_id": existing_id, "duplicate": True})
-                continue
-
-            image_id: int | None = None
+            image_id = None
             try:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -670,19 +818,19 @@ INSERT INTO images
 VALUES
 (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
 """,
-                        (GALLERY, dt_shot, t, str(alt or ""), int(w), int(h), str(fmt), "", "", "", sha_hex),
+                        (GALLERY, shot_at, t, str(alt or ""), x["width"], x["height"], x["format"], "", "", "", x["sha_hex"]),
                     )
                     cur.execute("SELECT LAST_INSERT_ID() AS id")
                     image_id = int(cur.fetchone()["id"])
 
-                dir3 = _id_dir3(image_id)
+                dir3 = id_dir3(image_id)
                 t480_rel = f"thumbs/{GALLERY}/{dir3}/{image_id}_w480.webp"
                 t960_rel = f"thumbs/{GALLERY}/{dir3}/{image_id}_w960.webp"
                 prev_rel = f"previews/{GALLERY}/{dir3}/{image_id}_max2560.webp"
 
-                _render_webp(abs_path, STORAGE_ROOT / t480_rel, 480)
-                _render_webp(abs_path, STORAGE_ROOT / t960_rel, 960)
-                _render_webp(abs_path, STORAGE_ROOT / prev_rel, 2560)
+                render_webp(abs_path, storage_root / t480_rel, 480)
+                render_webp(abs_path, storage_root / t960_rel, 960)
+                render_webp(abs_path, storage_root / prev_rel, 2560)
 
                 with conn.cursor() as cur:
                     cur.execute(
@@ -692,51 +840,44 @@ VALUES
 
                 with conn.cursor() as cur:
                     cols = ["gallery", "image_id", "source_path", "size_bytes", "mtime_epoch", "content_hash", "is_primary", "is_hidden", "status"]
-                    vals = [GALLERY, image_id, rel_path, int(size_bytes), int(mtime_epoch), sha_hex, 1, 0 if is_pub else 1, 0]
-                    if "sha256" in src_cols:
+                    vals = [GALLERY, image_id, rel_path, int(x["size_bytes"]), int(mtime_epoch), x["sha_hex"], 1, 0 if is_pub else 1, 0]
+                    if "sha256" in {c["Field"] for c in (conn.cursor().execute("SHOW COLUMNS FROM image_sources") or [])}:
                         cols.append("sha256")
-                        vals.append(sha_hex)
+                        vals.append(x["sha_hex"])
                     sql = f"INSERT INTO image_sources ({', '.join(cols)}) VALUES ({', '.join(['%s'] * len(cols))})"
                     cur.execute(sql, vals)
 
                 if tag_list:
                     for name in tag_list:
-                        tid = _upsert_tag_id(conn, GALLERY, name)
-                        _insert_image_tag(conn, image_id, tid)
+                        tid = upsert_tag_id(name)
+                        insert_image_tag(image_id, tid)
 
                 try:
-                    colors = extract_top_colors(abs_path, palette, cset)
+                    cols = colors_mod.extract_top_colors(abs_path, palette, cset)
                 except Exception:
-                    colors = []
-                _store_colors(conn, image_id, colors)
+                    cols = []
+                store_colors(image_id, cols)
 
                 created.append({"image_id": image_id, "duplicate": False})
-            except IntegrityError:
+            except Exception:
                 if image_id is not None:
                     try:
-                        _delete_image_everywhere(conn, image_id, GALLERY, STORAGE_ROOT)
+                        delete_everything(image_id)
                     except Exception:
                         pass
                 try:
-                    abs_path.unlink()
+                    if abs_path.exists():
+                        abs_path.unlink()
                 except Exception:
                     pass
-
-                with conn.cursor() as cur:
-                    cur.execute("SELECT id FROM images WHERE gallery=%s AND content_hash=%s LIMIT 1", (GALLERY, sha_hex))
-                    r = cur.fetchone()
-                    if r:
-                        created.append({"image_id": int(r["id"]), "duplicate": True})
-                        continue
                 raise
-            except Exception as e:
-                if image_id is not None:
-                    try:
-                        _delete_image_everywhere(conn, image_id, GALLERY, STORAGE_ROOT)
-                    except Exception:
-                        pass
-                raise HTTPException(status_code=500, detail=f"db or derivative failed: {type(e).__name__}: {e}")
-        return {"ok": True, "count": len(created), "items": created}
+
+        try:
+            shutil.rmtree(tmp_root, ignore_errors=True)
+        except Exception:
+            pass
+
+        return {"ok": True, "has_duplicates": False, "count": len(created), "items": created}
     finally:
         conn.close()
 

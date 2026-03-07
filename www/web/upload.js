@@ -77,10 +77,6 @@ function ensureUxStyle() {
 .uptoast.is-err{border-color:rgba(255,80,80,.35);background:rgba(255,80,80,.10)}
 .uptoast.is-ok{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.10)}
 
-.upuploadmsg{position:fixed;z-index:1201;max-width:360px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,80,80,.35);background:rgba(255,80,80,.10);backdrop-filter:blur(10px);color:#e7eef7;font-size:12px;line-height:1.35;box-shadow:0 16px 40px rgba(0,0,0,.55);opacity:0;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
-.upuploadmsg.is-on{opacity:1;transform:translateY(0)}
-.upuploadmsg.is-ok{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.10)}
-
 .upthumb.is-dup{outline:2px solid rgba(255,80,80,.9);outline-offset:-2px;box-shadow:0 0 0 3px rgba(255,80,80,.16)}
 .upthumb.is-dup::after{content:"DUP";position:absolute;left:10px;top:10px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,80,80,.35);background:rgba(255,80,80,.14);color:#e7eef7;font-size:11px;letter-spacing:.02em}
 
@@ -281,14 +277,12 @@ function addFiles(list) {
   const incoming = Array.from(list || []).filter(isImageFile)
   if (incoming.length === 0) {
     showToastErr("画像ファイルを選択してください。", 3200)
-    showNearSubmit("画像ファイルを選択してください。", false)
     return
   }
 
   const room = MAX_FILES - files.length
   if (room <= 0) {
     showToastErr(`画像は最大${MAX_FILES}枚までです。`, 4200)
-    showNearSubmit(`画像は最大${MAX_FILES}枚までです。`, false)
     return
   }
 
@@ -297,7 +291,6 @@ function addFiles(list) {
 
   if (incoming.length > adding.length) {
     showToastErr(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`, 4200)
-    showNearSubmit(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`, false)
   }
 
   clearDupMarks()
@@ -1096,17 +1089,13 @@ function setSubmitLoading(on) {
 }
 
 async function doUpload() {
-  clearNearMsg()
-
   const title = String(titleInput ? titleInput.value : "").trim()
   if (!title) {
     showToastErr("タイトルを入力してください。", 4200)
-    showNearSubmit("タイトルを入力してください。", false)
     return
   }
   if (files.length === 0) {
     showToastErr("画像を追加してください。", 4200)
-    showNearSubmit("画像を追加してください。", false)
     return
   }
 
@@ -1127,7 +1116,6 @@ async function doUpload() {
     if (!res.ok) {
       const msg = String((data && data.detail) ? data.detail : `upload failed status=${res.status}`)
       showToastErr(msg, 6200)
-      showNearSubmit(msg, false)
       return
     }
 
@@ -1139,24 +1127,16 @@ async function doUpload() {
     const created = items.length - dups
 
     if (dups > 0) {
-      const msg = `重複画像があります (${dups}枚)。赤枠の画像は登録済みです。`
-      showToastErr(msg, 6200)
-      showNearSubmit(msg, false)
+      showToastErr(`重複画像があります (${dups}枚)。赤枠の画像は登録済みです。`, 6200)
       return
     }
-
-    clearDupMarks()
-    renderStrip()
 
     const okMsg = created > 0 ? `アップロードしました (${created}枚)` : "アップロードしました"
     showToastOk(okMsg, 1800)
     saveNavToast(okMsg, 3600)
-
     setTimeout(() => { location.href = "/gallery/" }, 550)
   } catch (e) {
-    const msg = `通信に失敗しました: ${String(e)}`
-    showToastErr(msg, 6200)
-    showNearSubmit(msg, false)
+    showToastErr(`通信に失敗しました: ${String(e)}`, 6200)
   } finally {
     setSubmitLoading(false)
   }
