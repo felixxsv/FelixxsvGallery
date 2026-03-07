@@ -58,8 +58,42 @@ let toastWrap = null
 let toastBox = null
 let toastTimer = null
 
+let nearMsg = null
+let nearMsgTimer = null
+
+const dupIdx = new Set()
+
+const NAV_TOAST_KEY = "gallery_nav_toast_v1"
+
+function ensureUxStyle() {
+  if (document.getElementById("uploadUxStyle")) return
+  const st = document.createElement("style")
+  st.id = "uploadUxStyle"
+  st.textContent = `
+.uptoastwrap{position:fixed;top:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:1200}
+.uptoast{pointer-events:none;max-width:min(760px,92vw);padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(14,18,26,.92);backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.55);color:#e7eef7;font-size:14px;line-height:1.4;opacity:0;transform:translateY(-14px);transition:opacity .18s ease,transform .18s ease}
+.uptoast.is-on{opacity:1;transform:translateY(0)}
+.uptoast.is-off{opacity:0;transform:translateY(-14px)}
+
+.upuploadmsg{position:fixed;z-index:1201;max-width:360px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,80,80,.35);background:rgba(255,80,80,.10);backdrop-filter:blur(10px);color:#e7eef7;font-size:12px;line-height:1.35;box-shadow:0 16px 40px rgba(0,0,0,.55);opacity:0;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
+.upuploadmsg.is-on{opacity:1;transform:translateY(0)}
+.upuploadmsg.is-ok{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.10)}
+
+.upthumb.is-dup{outline:2px solid rgba(255,80,80,.9);outline-offset:-2px;box-shadow:0 0 0 3px rgba(255,80,80,.16)}
+.upthumb.is-dup::after{content:"DUP";position:absolute;left:10px;top:10px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,80,80,.35);background:rgba(255,80,80,.14);color:#e7eef7;font-size:11px;letter-spacing:.02em}
+
+#upSubmit.is-loading{position:relative;padding-left:38px}
+#upSubmit.is-loading::before{content:"";position:absolute;left:18px;top:50%;width:14px;height:14px;border-radius:999px;border:2px solid rgba(255,255,255,.28);border-top-color:rgba(255,255,255,.85);transform:translate(-50%,-50%) rotate(0deg);animation:upspin .8s linear infinite}
+@keyframes upspin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+.upvis__btn{padding:6px 10px;border-radius:12px;font-size:12px}
+`
+  document.head.appendChild(st)
+}
+
 function ensureToast() {
   if (toastWrap && toastBox) return
+  ensureUxStyle()
   toastWrap = document.createElement("div")
   toastWrap.className = "uptoastwrap"
   toastBox = document.createElement("div")
@@ -73,12 +107,55 @@ function showToast(text, ms) {
   if (!s) return
   ensureToast()
   toastBox.textContent = s
+  toastBox.classList.remove("is-off")
   toastBox.classList.add("is-on")
   if (toastTimer) clearTimeout(toastTimer)
   const dur = Number(ms) > 0 ? Number(ms) : 3200
   toastTimer = setTimeout(() => {
     toastBox.classList.remove("is-on")
+    toastBox.classList.add("is-off")
   }, dur)
+}
+
+function saveNavToast(text, ms) {
+  try {
+    const v = { text: String(text || ""), ms: Number(ms) || 3200, at: Date.now() }
+    sessionStorage.setItem(NAV_TOAST_KEY, JSON.stringify(v))
+  } catch (e) {}
+}
+
+function ensureNearMsg() {
+  if (nearMsg) return
+  ensureUxStyle()
+  nearMsg = document.createElement("div")
+  nearMsg.className = "upuploadmsg"
+  document.body.appendChild(nearMsg)
+}
+
+function showNearSubmit(text, ok) {
+  if (!submitBtn) return
+  const s = String(text || "").trim()
+  if (!s) return
+  ensureNearMsg()
+  nearMsg.textContent = s
+  nearMsg.classList.toggle("is-ok", !!ok)
+
+  const r = submitBtn.getBoundingClientRect()
+  const pad = 10
+  nearMsg.style.left = `${Math.max(pad, Math.min(window.innerWidth - pad - 360, r.left + r.width - 360))}px`
+  nearMsg.style.top = `${Math.max(pad, r.top - 10)}px`
+
+  nearMsg.classList.add("is-on")
+  if (nearMsgTimer) clearTimeout(nearMsgTimer)
+  nearMsgTimer = setTimeout(() => {
+    if (!nearMsg) return
+    nearMsg.classList.remove("is-on")
+  }, 4200)
+}
+
+function clearNearMsg() {
+  if (!nearMsg) return
+  nearMsg.classList.remove("is-on")
 }
 
 function ensureBackdrop() {
@@ -161,6 +238,31 @@ function moveIndex(from, to) {
   if (from === to) return
   const it = files.splice(from, 1)[0]
   files.splice(to, 0, it)
+  rebuildDupIdxOnReorder(from, to)
+}
+
+function rebuildDupIdxOnReorder(from, to) {
+  if (dupIdx.size === 0) return
+  const cur = Array.from(dupIdx).sort((a, b) => a - b)
+  const mark = new Array(files.length).fill(false)
+  for (const i of cur) if (i >= 0 && i < mark.length) mark[i] = true
+  const moved = mark.splice(from, 1)[0]
+  mark.splice(to, 0, moved)
+  dupIdx.clear()
+  for (let i = 0; i < mark.length; i++) if (mark[i]) dupIdx.add(i)
+}
+
+function clearDupMarks() {
+  dupIdx.clear()
+}
+
+function applyDupMarksFromItems(items) {
+  dupIdx.clear()
+  const n = Math.min(items.length, files.length)
+  for (let i = 0; i < n; i++) {
+    const it = items[i]
+    if (it && it.duplicate === true) dupIdx.add(i)
+  }
 }
 
 function addFiles(list) {
@@ -181,6 +283,8 @@ function addFiles(list) {
 
   if (incoming.length > adding.length) showToast(`最大${MAX_FILES}枚までのため、超過分は追加しませんでした。`, 3400)
 
+  clearDupMarks()
+  clearNearMsg()
   renderAll()
 }
 
@@ -189,7 +293,20 @@ function removeIndex(i) {
   if (!it) return
   try { URL.revokeObjectURL(it.url) } catch (e) {}
   files.splice(i, 1)
+  shiftDupIdxOnRemove(i)
   renderAll()
+}
+
+function shiftDupIdxOnRemove(idx) {
+  if (dupIdx.size === 0) return
+  const out = new Set()
+  for (const i of dupIdx) {
+    if (i === idx) continue
+    if (i > idx) out.add(i - 1)
+    else out.add(i)
+  }
+  dupIdx.clear()
+  for (const v of out) dupIdx.add(v)
 }
 
 function setCover(i) {
@@ -218,6 +335,7 @@ function mkThumb(it, idx) {
   d.className = "upthumb" + (idx === 0 ? " is-cover" : "")
   d.dataset.kind = "file"
   d.dataset.idx = String(idx)
+  if (dupIdx.has(idx)) d.classList.add("is-dup")
 
   const img = document.createElement("img")
   img.className = "upthumb__img"
@@ -949,21 +1067,29 @@ function initTags() {
   })
 }
 
-function renderAll() {
-  renderCover()
-  renderStrip()
-  renderTags()
-  updateArrows()
+function setSubmitLoading(on) {
+  if (!submitBtn) return
+  if (on) {
+    submitBtn.classList.add("is-loading")
+    submitBtn.disabled = true
+    return
+  }
+  submitBtn.classList.remove("is-loading")
+  submitBtn.disabled = false
 }
 
 async function doUpload() {
+  clearNearMsg()
+
   const title = String(titleInput ? titleInput.value : "").trim()
   if (!title) {
     showToast("タイトルを入力してください。", 2600)
+    showNearSubmit("タイトルを入力してください。", false)
     return
   }
   if (files.length === 0) {
     showToast("画像を追加してください。", 2600)
+    showNearSubmit("画像を追加してください。", false)
     return
   }
 
@@ -974,23 +1100,48 @@ async function doUpload() {
   fd.append("is_public", currentIsPublic() ? "true" : "false")
   for (const it of files) fd.append("files", it.file, it.file.name)
 
-  if (submitBtn) submitBtn.disabled = true
-  showToast("アップロード中...", 1800)
+  setSubmitLoading(true)
+  showToast("アップロード中...", 1400)
 
   try {
     const res = await fetch("/gallery/api/upload", { method: "POST", body: fd })
     const data = await res.json().catch(() => ({}))
+
     if (!res.ok) {
       const msg = String((data && data.detail) ? data.detail : `upload failed status=${res.status}`)
-      showToast(msg, 4200)
+      showToast(msg, 5200)
+      showNearSubmit(msg, false)
       return
     }
-    showToast(`アップロード完了 (${data.count || 0})`, 2600)
+
+    const items = Array.isArray(data.items) ? data.items : []
+    applyDupMarksFromItems(items)
+    renderStrip()
+
+    const dups = items.filter(x => x && x.duplicate === true).length
+    const created = items.length - dups
+
+    if (dups > 0) {
+      const msg = `重複画像があります (${dups}枚)。赤枠の画像は登録済みです。削除して再度アップロードしてください。`
+      showToast(msg, 5200)
+      showNearSubmit(msg, false)
+      return
+    }
+
+    clearDupMarks()
+    renderStrip()
+
+    const okMsg = created > 0 ? `アップロードしました (${created}枚)` : "アップロードしました"
+    showToast(okMsg, 1800)
+    saveNavToast(okMsg, 3600)
+
     setTimeout(() => { location.href = "/gallery/" }, 550)
   } catch (e) {
-    showToast(`通信に失敗しました: ${String(e)}`, 4200)
+    const msg = `通信に失敗しました: ${String(e)}`
+    showToast(msg, 5200)
+    showNearSubmit(msg, false)
   } finally {
-    if (submitBtn) submitBtn.disabled = false
+    setSubmitLoading(false)
   }
 }
 
@@ -1002,18 +1153,23 @@ function initSubmit() {
   })
 }
 
-function initPickerAndDrop() {
-  initPicker()
+function renderAll() {
+  renderCover()
+  renderStrip()
+  renderTags()
+  updateArrows()
 }
 
 function init() {
+  ensureUxStyle()
+
   if (!fileInput || !drop || !strip || !stripFrame) return
   if (!tagBox || !tagSug || !tagAdd) return
 
   ensureBackdrop()
   forceCloseTagUI()
 
-  initPickerAndDrop()
+  initPicker()
   initDragSorting()
   initArrowsAndWheel()
   initTags()
