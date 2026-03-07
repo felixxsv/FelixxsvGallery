@@ -106,7 +106,7 @@ function saveNavToast(text, ms) {
 
 function ensureBackdrop() {
   if (tagBackdrop) return
-  document.querySelectorAll(".uptagbackdrop").forEach(x => x.remove())
+  document.querySelectorAll(".uptagbackdrop").forEach((x) => x.remove())
   tagBackdrop = document.createElement("div")
   tagBackdrop.className = "uptagbackdrop"
   tagBackdrop.addEventListener("click", () => closeTagPanelAnimated(null))
@@ -172,12 +172,18 @@ function isImageFile(f) {
 
 function revokeAll() {
   for (const it of files) {
-    try { URL.revokeObjectURL(it.url) } catch (e) {}
+    try {
+      URL.revokeObjectURL(it.url)
+    } catch (e) {}
   }
 }
 
 function makeUrl(f) {
   return URL.createObjectURL(f)
+}
+
+function isReordering() {
+  return !!dragging || (!!pendingDrag && pendingDrag.started === true)
 }
 
 function rebuildDupIdxOnReorder(from, to) {
@@ -250,17 +256,11 @@ function shiftDupIdxOnRemove(idx) {
 function removeIndex(i) {
   const it = files[i]
   if (!it) return
-  try { URL.revokeObjectURL(it.url) } catch (e) {}
+  try {
+    URL.revokeObjectURL(it.url)
+  } catch (e) {}
   files.splice(i, 1)
   shiftDupIdxOnRemove(i)
-  renderAll()
-}
-
-function setCover(i) {
-  const idx = Number(i)
-  if (!Number.isFinite(idx) || idx < 0 || idx >= files.length) return
-  if (idx === 0) return
-  moveIndex(idx, 0)
   renderAll()
 }
 
@@ -288,6 +288,8 @@ function mkThumb(it, idx) {
   img.className = "upthumb__img"
   img.alt = ""
   img.src = it.url
+  img.draggable = false
+  img.addEventListener("dragstart", (e) => e.preventDefault())
   d.appendChild(img)
 
   const rm = document.createElement("button")
@@ -300,7 +302,7 @@ function mkThumb(it, idx) {
   })
   d.appendChild(rm)
 
-  d.addEventListener("click", () => setCover(idx))
+  d.addEventListener("dragstart", (e) => e.preventDefault())
   return d
 }
 
@@ -387,7 +389,10 @@ function sortAZThenJP(a, b) {
 
 function showTagPanelBase() {
   if (!tagSug) return
-  if (tagCloseTimer) { clearTimeout(tagCloseTimer); tagCloseTimer = null }
+  if (tagCloseTimer) {
+    clearTimeout(tagCloseTimer)
+    tagCloseTimer = null
+  }
   tagSug.style.display = "block"
   tagSug.setAttribute("aria-hidden", "false")
   tagSug.classList.remove("is-leaving")
@@ -434,12 +439,9 @@ function openTagPanelSmall() {
   if (!tagSug || !tagBox) return
   tagPanelMode = "small"
   setBackdropOn(false)
-
   if (isSugPortaled()) portalSugBackHome()
-
   tagSug.classList.remove("is-expanded")
   tagSug.classList.add("is-small", "uptagsug--popover")
-
   showTagPanelBase()
   renderTagPanelSmall()
 }
@@ -447,12 +449,9 @@ function openTagPanelSmall() {
 function openTagPanelExpanded() {
   if (!tagSug) return
   tagPanelMode = "expanded"
-
   portalSugToBody()
-
   tagSug.classList.remove("is-small", "uptagsug--popover")
   tagSug.classList.add("is-expanded")
-
   showTagPanelBase()
   renderTagPanelExpanded()
   setBackdropOn(true)
@@ -494,7 +493,7 @@ function renderTagPanelSmall() {
 
   const pool = tagPoolRaw
     .filter((x) => !tagState.includes(x.name))
-    .sort((a, b) => (b.c - a.c) || a.name.localeCompare(b.name))
+    .sort((a, b) => b.c - a.c || a.name.localeCompare(b.name))
 
   tagSug.innerHTML = ""
 
@@ -674,6 +673,8 @@ function ghostCreate(url) {
   const img = document.createElement("img")
   img.alt = ""
   img.src = url
+  img.draggable = false
+  img.addEventListener("dragstart", (e) => e.preventDefault())
   b.appendChild(img)
   g.appendChild(b)
   document.body.appendChild(g)
@@ -687,7 +688,9 @@ function ghostMove(g, x, y) {
 
 function ghostRemove(g) {
   if (!g) return
-  try { g.remove() } catch (e) {}
+  try {
+    g.remove()
+  } catch (e) {}
 }
 
 function startDragFromPending(p) {
@@ -696,6 +699,9 @@ function startDragFromPending(p) {
   const elThumb = p.el
   if (!elThumb || !elThumb.parentElement) return
   const url = files[idx] ? files[idx].url : ""
+
+  strip.classList.add("is-dragging")
+  stopArrow()
 
   const ph = document.createElement("div")
   ph.className = "upthumb is-ph"
@@ -713,6 +719,7 @@ function startDragFromPending(p) {
   else parent.appendChild(ph)
 
   dragging = { from: idx, ph, ghost, pointerId: p.pointerId }
+  updateArrows()
 }
 
 function dragMove(x, y) {
@@ -729,7 +736,10 @@ function dragMove(x, y) {
     if (n === ph) continue
     const r = n.getBoundingClientRect()
     const mid = r.left + r.width / 2
-    if (x < mid) { target = n; break }
+    if (x < mid) {
+      target = n
+      break
+    }
   }
 
   const reorder = () => {
@@ -745,14 +755,12 @@ function dragMove(x, y) {
   }
 
   flip(strip, reorder)
-  updateArrows()
 }
 
-function dragEnd(asClick) {
+function dragEnd() {
   if (!pendingDrag && !dragging) return
 
   if (pendingDrag && !dragging) {
-    if (asClick) setCover(pendingDrag.idx)
     pendingDrag = null
     return
   }
@@ -769,6 +777,8 @@ function dragEnd(asClick) {
 
   const cappedTo = to > files.length - 1 ? files.length - 1 : to
   if (from !== cappedTo) moveIndex(from, cappedTo)
+
+  if (strip) strip.classList.remove("is-dragging")
   renderAll()
 }
 
@@ -781,8 +791,9 @@ function initDragSorting() {
     if (e.target && e.target.closest && e.target.closest(".upthumb__rm")) return
     const idx = Number(t.dataset.idx)
     if (!Number.isFinite(idx)) return
+    e.preventDefault()
     pendingDrag = { idx, el: t, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, pointerId: e.pointerId, started: false }
-    t.setPointerCapture(e.pointerId)
+    if (strip.setPointerCapture) strip.setPointerCapture(e.pointerId)
   })
 
   strip.addEventListener("pointermove", (e) => {
@@ -804,22 +815,33 @@ function initDragSorting() {
   strip.addEventListener("pointerup", (e) => {
     if (!pendingDrag) return
     if (pendingDrag.pointerId !== e.pointerId) return
-    const asClick = !pendingDrag.started
-    dragEnd(asClick)
+    if (strip.releasePointerCapture) {
+      try {
+        strip.releasePointerCapture(e.pointerId)
+      } catch (e2) {}
+    }
+    dragEnd()
   })
 
   strip.addEventListener("pointercancel", (e) => {
     if (!pendingDrag) return
     if (pendingDrag.pointerId !== e.pointerId) return
-    dragEnd(false)
+    if (strip.releasePointerCapture) {
+      try {
+        strip.releasePointerCapture(e.pointerId)
+      } catch (e2) {}
+    }
+    dragEnd()
   })
+
+  strip.addEventListener("dragstart", (e) => e.preventDefault())
 }
 
 function canScroll() {
   if (!strip) return { overflow: false, canL: false, canR: false }
   const overflow = strip.scrollWidth > strip.clientWidth + 2
   const canL = strip.scrollLeft > 2
-  const canR = strip.scrollLeft < (strip.scrollWidth - strip.clientWidth - 2)
+  const canR = strip.scrollLeft < strip.scrollWidth - strip.clientWidth - 2
   return { overflow, canL, canR }
 }
 
@@ -827,12 +849,18 @@ function decideEdge(frameW) {
   if (hoverArrow) return hoverArrow
   if (!hoverInFrame || hoverX === null) return null
   if (hoverX <= EDGE_SHOW) return "l"
-  if (hoverX >= (frameW - EDGE_SHOW)) return "r"
+  if (hoverX >= frameW - EDGE_SHOW) return "r"
   return null
 }
 
 function updateArrows() {
   if (!strip || !stripFrame || !arrowL || !arrowR) return
+  if (isReordering()) {
+    arrowL.classList.remove("is-on")
+    arrowR.classList.remove("is-on")
+    return
+  }
+
   const { overflow, canL, canR } = canScroll()
   if (!overflow) {
     arrowL.classList.remove("is-on")
@@ -856,13 +884,17 @@ function stopArrowAnim() {
 }
 
 function arrowLoop() {
-  if (!strip || arrowDir === 0) { stopArrowAnim(); return }
+  if (!strip || arrowDir === 0) {
+    stopArrowAnim()
+    return
+  }
   strip.scrollLeft += arrowDir * 12
   updateArrows()
   arrowAnim = requestAnimationFrame(arrowLoop)
 }
 
 function startArrow(dir) {
+  if (isReordering()) return
   arrowDir = dir
   stopArrowAnim()
   arrowAnim = requestAnimationFrame(arrowLoop)
@@ -884,7 +916,7 @@ function clampScrollLeft(v) {
 function arrowJump(dir) {
   if (!strip) return
   const step = 260
-  strip.scrollLeft = clampScrollLeft(strip.scrollLeft + (dir * step))
+  strip.scrollLeft = clampScrollLeft(strip.scrollLeft + dir * step)
   updateArrows()
 }
 
@@ -919,6 +951,7 @@ function initArrowsAndWheel() {
   })
 
   stripFrame.addEventListener("mousemove", (e) => {
+    if (isReordering()) return
     const r = stripFrame.getBoundingClientRect()
     const x = e.clientX - r.left
     hoverX = x
@@ -926,23 +959,31 @@ function initArrowsAndWheel() {
     if (!hoverArrow) {
       const w = stripFrame.clientWidth
       const inL = x <= EDGE_HIDE
-      const inR = x >= (w - EDGE_HIDE)
+      const inR = x >= w - EDGE_HIDE
       if (!inL && !inR) hoverX = null
     }
-
     updateArrows()
   })
 
-  arrowL.addEventListener("pointerenter", () => {
-    hoverArrow = "l"
-    updateArrows()
+  const stopOnUp = () => stopArrow()
+  window.addEventListener("pointerup", stopOnUp)
+  window.addEventListener("pointercancel", stopOnUp)
+
+  arrowL.addEventListener("pointerdown", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    lockHoverArrow("l")
+    arrowJump(-1)
     startArrow(-1)
   })
-  arrowR.addEventListener("pointerenter", () => {
-    hoverArrow = "r"
-    updateArrows()
+  arrowR.addEventListener("pointerdown", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    lockHoverArrow("r")
+    arrowJump(1)
     startArrow(1)
   })
+
   arrowL.addEventListener("pointerleave", () => {
     hoverArrow = null
     stopArrow()
@@ -954,29 +995,21 @@ function initArrowsAndWheel() {
     updateArrows()
   })
 
-  arrowL.addEventListener("pointerdown", (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    lockHoverArrow("l")
-    arrowJump(-1)
-  })
-  arrowR.addEventListener("pointerdown", (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    lockHoverArrow("r")
-    arrowJump(1)
-  })
-
-  strip.addEventListener("wheel", (e) => {
-    const { overflow } = canScroll()
-    if (!overflow) return
-    const dx = Math.abs(e.deltaX || 0)
-    const dy = Math.abs(e.deltaY || 0)
-    if (dx === 0 && dy === 0) return
-    e.preventDefault()
-    strip.scrollLeft = clampScrollLeft(strip.scrollLeft + (e.deltaX || 0) + (e.deltaY || 0))
-    updateArrows()
-  }, { passive: false })
+  strip.addEventListener(
+    "wheel",
+    (e) => {
+      if (isReordering()) return
+      const { overflow } = canScroll()
+      if (!overflow) return
+      const dx = Math.abs(e.deltaX || 0)
+      const dy = Math.abs(e.deltaY || 0)
+      if (dx === 0 && dy === 0) return
+      e.preventDefault()
+      strip.scrollLeft = clampScrollLeft(strip.scrollLeft + (e.deltaX || 0) + (e.deltaY || 0))
+      updateArrows()
+    },
+    { passive: false }
+  )
 }
 
 function initTags() {
@@ -1051,7 +1084,7 @@ async function doUpload() {
     const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
-      const msg = String((data && data.detail) ? data.detail : `upload failed status=${res.status}`)
+      const msg = String(data && data.detail ? data.detail : `upload failed status=${res.status}`)
       showToastErr(msg, 6200)
       return
     }
@@ -1060,7 +1093,7 @@ async function doUpload() {
     applyDupMarksFromItems(items)
     renderStrip()
 
-    const dups = items.filter(x => x && x.duplicate === true).length
+    const dups = items.filter((x) => x && x.duplicate === true).length
     const created = items.length - dups
 
     if (dups > 0) {
@@ -1071,7 +1104,9 @@ async function doUpload() {
     const okMsg = created > 0 ? `アップロードしました (${created}枚)` : "アップロードしました"
     showToastOk(okMsg, 1800)
     saveNavToast(okMsg, 3600)
-    setTimeout(() => { location.href = "/gallery/" }, 550)
+    setTimeout(() => {
+      location.href = "/gallery/"
+    }, 550)
   } catch (e) {
     showToastErr(`通信に失敗しました: ${String(e)}`, 6200)
   } finally {
@@ -1107,6 +1142,10 @@ function init() {
   initTags()
   initVis()
   initSubmit()
+
+  document.addEventListener("dragstart", (e) => {
+    if (e.target && e.target.closest && e.target.closest("#upStrip")) e.preventDefault()
+  })
 
   renderAll()
   loadTagPool()

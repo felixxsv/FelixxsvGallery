@@ -1,6 +1,4 @@
-.upthumb{
-  position:relative;
-}
+.upthumb{position:relative}
 
 .upthumb.is-dup::before{
   content:"";
@@ -18,7 +16,7 @@
   position:absolute;
   left:10px;
   top:10px;
-  z-index:3;
+  z-index:4;
   padding:4px 8px;
   border-radius:999px;
   border:1px solid rgba(255,80,80,.35);
@@ -29,9 +27,24 @@
   pointer-events:none;
 }
 
+.upthumb__rm{
+  z-index:5;
+  pointer-events:auto;
+  opacity:.92;
+}
+
+.upthumb:hover .upthumb__rm{
+  background:rgba(0,0,0,.38);
+}
+
 .upthumb__img{
-  position:relative;
-  z-index:1;
+  pointer-events:none;
+  -webkit-user-drag:none;
+  user-select:none;
+}
+
+.upstrip.is-dragging{
+  scroll-snap-type:none;
 }
 
 #upSubmit.is-loading{
