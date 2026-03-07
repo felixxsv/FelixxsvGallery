@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Felixxsv Gallery - Auth</title>
+  <link rel="stylesheet" href="/gallery/common.css">
+  <link rel="stylesheet" href="/gallery/toast.css">
+  <link rel="stylesheet" href="/gallery/auth/auth.css">
+</head>
+<body>
+  <header class="hdr">
+    <div class="hdr__left">
+      <a class="logo" href="/gallery/">Felixxsv Gallery</a>
+      <div class="upcrumb">/ auth</div>
+    </div>
+    <div class="hdr__right"></div>
+  </header>
+
+  <main class="authmain">
+    <div class="authcard">
+      <div class="authtitle">Login</div>
+
+      <form class="authform" id="loginForm">
+        <label class="authlabel">Email</label>
+        <input class="authinp" id="loginEmail" type="email" autocomplete="email" required>
+
+        <label class="authlabel">Password</label>
+        <input class="authinp" id="loginPw" type="password" autocomplete="current-password" required>
+
+        <button class="authbtn authbtn--primary" type="submit" id="loginBtn">Login</button>
+      </form>
+
+      <div class="authsep"></div>
+
+      <div class="authtitle">Create account</div>
+
+      <form class="authform" id="createForm">
+        <label class="authlabel">User key</label>
+        <input class="authinp" id="createUserKey" type="text" inputmode="latin" autocomplete="username" required>
+
+        <label class="authlabel">Display name</label>
+        <input class="authinp" id="createDisplay" type="text" autocomplete="nickname">
+
+        <label class="authlabel">Email</label>
+        <input class="authinp" id="createEmail" type="email" autocomplete="email" required>
+
+        <label class="authlabel">Password</label>
+        <input class="authinp" id="createPw" type="password" autocomplete="new-password" required>
+
+        <button class="authbtn" type="submit" id="createBtn">Create</button>
+      </form>
+
+      <div class="authsep"></div>
+
+      <button class="authbtn authbtn--ghost" type="button" id="discordBtn">Continue with Discord (later)</button>
+    </div>
+  </main>
+
+  <script src="/gallery/auth/auth.js"></script>
+</body>
+</html>

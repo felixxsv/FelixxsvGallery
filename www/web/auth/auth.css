@@ -1,0 +1,40 @@
+:root{--hdr-h:65px}
+.authmain{
+  min-height:calc(100vh - var(--hdr-h));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:clamp(18px,3vw,28px);
+}
+.authcard{
+  width:min(720px,92vw);
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(14,18,26,.72);
+  backdrop-filter:blur(12px);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.authtitle{font-weight:800;font-size:16px}
+.authform{display:flex;flex-direction:column;gap:8px}
+.authlabel{font-size:12px;opacity:.8}
+.authinp{
+  height:44px;
+  padding:0 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:#e7eef7;
+}
+.authbtn{
+  height:44px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#e7eef7;
+}
+.authbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.12)}
+.authbtn--ghost{background:transparent}
+.authsep{height:1px;background:rgba(255,255,255,.10);margin:6px 0}

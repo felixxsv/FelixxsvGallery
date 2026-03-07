@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import os
 import re
@@ -9,8 +9,10 @@ import shutil
 import uuid
 import hashlib
 import tempfile
+import base64
+import hmac
 
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request, Response
 from fastapi.responses import FileResponse
 import pymysql
 from pymysql.err import IntegrityError
@@ -246,46 +248,16 @@ def _table_cols(conn: pymysql.Connection, table: str) -> set[str]:
     return {str(r["Field"]).lower() for r in rows}
 
 
-def _img_meta(path: Path) -> tuple[int, int, str]:
-    with Image.open(path) as im:
-        w, h = im.size
-        fmt = (im.format or path.suffix.lstrip(".")).upper()
-        return int(w), int(h), str(fmt)
+def _client_ip(req: Request) -> str:
+    xff = (req.headers.get("x-forwarded-for") or "").strip()
+    if xff:
+        return xff.split(",")[0].strip()
+    if req.client and req.client.host:
+        return str(req.client.host)
+    return ""
 
 
-def _id_dir3(image_id: int) -> str:
-    s = f"{image_id:08d}"
-    return f"{s[0:2]}/{s[2:4]}/{s[4:6]}"
-
-
-def _render_webp(src: Path, dst: Path, max_w: int) -> None:
-    img = Image.open(src)
-    if img.mode not in ("RGB", "RGBA"):
-        img = img.convert("RGBA")
-    w, h = img.size
-    if w > max_w:
-        scale = max_w / float(w)
-        nw = max_w
-        nh = int(h * scale)
-        if nh < 1:
-            nh = 1
-        img = img.resize((nw, nh), Image.Resampling.LANCZOS)
-    ensure_dir(dst.parent)
-    img.save(dst, "WEBP", quality=82, method=6)
-
-
-_VRCHAT_RE = re.compile(r"^VRChat_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})(?:\.\d+)?_")
-
-
-def _parse_vrchat_shot_at(name: str) -> datetime | None:
-    m = _VRCHAT_RE.match(name)
-    if not m:
-        return None
-    y, mo, d, hh, mm, ss = map(int, m.groups())
-    return datetime(y, mo, d, hh, mm, ss)
-
-
-def _now_local(conf: dict) -> datetime:
+def _now_local_naive(conf: dict) -> datetime:
     tz = str((conf.get("app") or {}).get("timezone") or "Asia/Tokyo")
     try:
         dt = datetime.now(ZoneInfo(tz))
@@ -294,94 +266,117 @@ def _now_local(conf: dict) -> datetime:
         return datetime.now()
 
 
-def _make_vrchat_filename(dt: datetime, ext: str) -> str:
-    token = uuid.uuid4().hex
-    base = dt.strftime("%Y-%m-%d_%H-%M-%S")
-    return f"VRChat_{base}.000_{token}.{ext}"
+def _b64u(b: bytes) -> str:
+    return base64.urlsafe_b64encode(b).decode("ascii").rstrip("=")
 
 
-def _sha256_copy(upload: UploadFile, dst: Path) -> tuple[str, bytes, int]:
-    h = hashlib.sha256()
-    ensure_dir(dst.parent)
-    total = 0
-    with dst.open("wb") as w:
-        while True:
-            b = upload.file.read(1024 * 1024)
-            if not b:
-                break
-            total += len(b)
-            h.update(b)
-            w.write(b)
-    digest = h.digest()
-    return h.hexdigest(), digest, total
+def _b64u_dec(s: str) -> bytes:
+    pad = "=" * ((4 - (len(s) % 4)) % 4)
+    return base64.urlsafe_b64decode((s + pad).encode("ascii"))
 
 
-def _hash_param_value(col_type: str | None, hex_str: str, digest: bytes) -> object:
-    if not col_type:
-        return hex_str
-    t = col_type.lower()
-    if "binary" in t or "varbinary" in t:
-        return digest
-    return hex_str
+def _hash_password(password: str) -> str:
+    pw = password.encode("utf-8")
+    salt = os.urandom(16)
+    iters = 200_000
+    dk = hashlib.pbkdf2_hmac("sha256", pw, salt, iters, dklen=32)
+    return f"pbkdf2_sha256${iters}${_b64u(salt)}${_b64u(dk)}"
 
 
-def _upsert_tag_id(conn: pymysql.Connection, gallery: str, name: str) -> int:
-    name = name.strip()
-    if not name:
-        raise ValueError("empty tag")
-    with conn.cursor() as cur:
-        try:
-            cur.execute("INSERT INTO tags (gallery, name) VALUES (%s,%s)", (gallery, name))
-            cur.execute("SELECT LAST_INSERT_ID() AS id")
-            return int(cur.fetchone()["id"])
-        except IntegrityError:
-            cur.execute("SELECT id FROM tags WHERE gallery=%s AND name=%s LIMIT 1", (gallery, name))
+def _verify_password(password: str, stored: str) -> bool:
+    try:
+        parts = stored.split("$")
+        if len(parts) != 4:
+            return False
+        algo, iters_s, salt_s, hash_s = parts
+        if algo != "pbkdf2_sha256":
+            return False
+        iters = int(iters_s)
+        salt = _b64u_dec(salt_s)
+        want = _b64u_dec(hash_s)
+        got = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iters, dklen=len(want))
+        return hmac.compare_digest(got, want)
+    except Exception:
+        return False
+
+
+_USERKEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{3,19}$")
+
+
+def _validate_user_key(user_key: str) -> str:
+    k = str(user_key or "").strip()
+    if not _USERKEY_RE.match(k):
+        raise HTTPException(status_code=400, detail="invalid user_key")
+    return k
+
+
+def _cookie_secure(conf: dict) -> bool:
+    v = (conf.get("app") or {}).get("cookie_secure")
+    if v is None:
+        return False
+    return bool(v)
+
+
+COOKIE_NAME = "sid"
+SESSION_DAYS = 30
+
+
+def _get_current_user(req: Request) -> dict | None:
+    sid = (req.cookies.get(COOKIE_NAME) or "").strip()
+    if not sid:
+        return None
+
+    conn = db_conn(CONF)
+    try:
+        now = _now_local_naive(CONF)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+SELECT
+  s.sid, s.user_id, s.expires_at,
+  u.id AS uid, u.user_key, u.display_name, u.email, u.role, u.can_upload, u.is_disabled
+FROM user_sessions s
+JOIN users u ON u.id=s.user_id AND u.gallery=s.gallery
+WHERE s.sid=%s AND s.gallery=%s
+LIMIT 1
+""",
+                (sid, GALLERY),
+            )
             r = cur.fetchone()
             if not r:
-                raise
-            return int(r["id"])
+                return None
+
+            exp = r.get("expires_at")
+            if exp is None or now > exp:
+                cur.execute("DELETE FROM user_sessions WHERE sid=%s", (sid,))
+                return None
+
+            new_exp = now + timedelta(days=SESSION_DAYS)
+            cur.execute(
+                "UPDATE user_sessions SET last_seen_at=%s, expires_at=%s WHERE sid=%s",
+                (now, new_exp, sid),
+            )
+
+        if int(r.get("is_disabled") or 0) == 1:
+            return None
+
+        return {
+            "id": int(r["uid"]),
+            "user_key": str(r["user_key"]),
+            "display_name": str(r["display_name"]),
+            "email": str(r["email"]),
+            "role": str(r["role"]),
+            "can_upload": int(r.get("can_upload") or 0) == 1,
+        }
+    finally:
+        conn.close()
 
 
-def _insert_image_tag(conn: pymysql.Connection, image_id: int, tag_id: int) -> None:
-    with conn.cursor() as cur:
-        cur.execute("INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (%s,%s)", (image_id, tag_id))
-
-
-def _store_colors(conn: pymysql.Connection, image_id: int, colors: list[dict]) -> None:
-    with conn.cursor() as cur:
-        cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
-        if not colors:
-            return
-        vals = []
-        for c in colors:
-            vals.append((image_id, int(c["rank_no"]), int(c["color_id"]), float(c["ratio"])))
-        cur.executemany(
-            "INSERT INTO image_colors (image_id, rank_no, color_id, ratio) VALUES (%s,%s,%s,%s)",
-            vals,
-        )
-
-
-def _delete_image_everywhere(conn: pymysql.Connection, image_id: int, gallery: str, storage_root: Path) -> None:
-    with conn.cursor() as cur:
-        cur.execute("SELECT thumb_path_480, thumb_path_960, preview_path FROM images WHERE id=%s AND gallery=%s LIMIT 1", (image_id, gallery))
-        row = cur.fetchone() or {}
-
-    for rel in (str(row.get("thumb_path_480") or ""), str(row.get("thumb_path_960") or ""), str(row.get("preview_path") or "")):
-        if not rel:
-            continue
-        p = storage_root / rel
-        try:
-            if p.exists():
-                p.unlink()
-        except Exception:
-            pass
-
-    with conn.cursor() as cur:
-        cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
-        cur.execute("DELETE FROM image_tags WHERE image_id=%s", (image_id,))
-        cur.execute("DELETE FROM image_stats WHERE image_id=%s", (image_id,))
-        cur.execute("DELETE FROM image_sources WHERE gallery=%s AND image_id=%s", (gallery, image_id))
-        cur.execute("DELETE FROM images WHERE id=%s AND gallery=%s", (image_id, gallery))
+def _require_user(req: Request) -> dict:
+    u = _get_current_user(req)
+    if not u:
+        raise HTTPException(status_code=401, detail="login required")
+    return u
 
 
 app = FastAPI()
@@ -403,6 +398,146 @@ def health():
 @app.get("/api/palette")
 def palette():
     return {"items": _palette_from_conf(CONF)}
+
+
+@app.get("/api/auth/me")
+def auth_me(req: Request):
+    u = _get_current_user(req)
+    return {"ok": True, "user": u}
+
+
+@app.post("/api/auth/register")
+def auth_register(
+    email: str = Form(...),
+    password: str = Form(...),
+    user_key: str = Form(...),
+    display_name: str = Form(""),
+):
+    em = str(email or "").strip().lower()
+    if not em or "@" not in em or len(em) > 255:
+        raise HTTPException(status_code=400, detail="invalid email")
+    pw = str(password or "")
+    if len(pw) < 8 or len(pw) > 200:
+        raise HTTPException(status_code=400, detail="invalid password")
+    uk = _validate_user_key(user_key)
+    dn = str(display_name or "").strip()
+    if not dn:
+        dn = uk
+    if len(dn) > 128:
+        dn = dn[:128]
+
+    ph = _hash_password(pw)
+
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            try:
+                cur.execute(
+                    """
+INSERT INTO users (gallery, user_key, display_name, email, password_hash, role, can_upload, is_disabled)
+VALUES (%s,%s,%s,%s,%s,'user',1,0)
+""",
+                    (GALLERY, uk, dn, em, ph),
+                )
+                cur.execute("SELECT LAST_INSERT_ID() AS id")
+                uid = int(cur.fetchone()["id"])
+                return {"ok": True, "user_id": uid}
+            except IntegrityError as e:
+                msg = str(e)
+                if "uq_users_gallery_email" in msg:
+                    raise HTTPException(status_code=409, detail="email already exists")
+                if "uq_users_gallery_user_key" in msg:
+                    raise HTTPException(status_code=409, detail="user_key already exists")
+                raise
+    finally:
+        conn.close()
+
+
+@app.post("/api/auth/login")
+def auth_login(
+    resp: Response,
+    req: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+):
+    em = str(email or "").strip().lower()
+    pw = str(password or "")
+    if not em or not pw:
+        raise HTTPException(status_code=400, detail="email/password required")
+
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+SELECT id, user_key, display_name, email, password_hash, role, can_upload, is_disabled
+FROM users
+WHERE gallery=%s AND email=%s
+LIMIT 1
+""",
+                (GALLERY, em),
+            )
+            u = cur.fetchone()
+            if not u:
+                raise HTTPException(status_code=401, detail="invalid credentials")
+            if int(u.get("is_disabled") or 0) == 1:
+                raise HTTPException(status_code=403, detail="account disabled")
+            if not _verify_password(pw, str(u.get("password_hash") or "")):
+                raise HTTPException(status_code=401, detail="invalid credentials")
+
+            sid = uuid.uuid4().hex + uuid.uuid4().hex
+            now = _now_local_naive(CONF)
+            exp = now + timedelta(days=SESSION_DAYS)
+            ua = str(req.headers.get("user-agent") or "")[:512]
+            ip = _client_ip(req)[:64]
+
+            cur.execute(
+                """
+INSERT INTO user_sessions (sid, gallery, user_id, last_seen_at, expires_at, user_agent, ip_addr)
+VALUES (%s,%s,%s,%s,%s,%s,%s)
+""",
+                (sid, GALLERY, int(u["id"]), now, exp, ua, ip),
+            )
+
+    finally:
+        conn.close()
+
+    resp.set_cookie(
+        key=COOKIE_NAME,
+        value=sid,
+        httponly=True,
+        samesite="lax",
+        secure=_cookie_secure(CONF),
+        max_age=SESSION_DAYS * 24 * 60 * 60,
+        path="/gallery",
+    )
+
+    return {
+        "ok": True,
+        "user": {
+            "id": int(u["id"]),
+            "user_key": str(u["user_key"]),
+            "display_name": str(u["display_name"]),
+            "email": str(u["email"]),
+            "role": str(u["role"]),
+            "can_upload": int(u.get("can_upload") or 0) == 1,
+        },
+    }
+
+
+@app.post("/api/auth/logout")
+def auth_logout(resp: Response, req: Request):
+    sid = (req.cookies.get(COOKIE_NAME) or "").strip()
+    if sid:
+        conn = db_conn(CONF)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM user_sessions WHERE sid=%s AND gallery=%s", (sid, GALLERY))
+        finally:
+            conn.close()
+
+    resp.delete_cookie(key=COOKIE_NAME, path="/gallery")
+    return {"ok": True}
 
 
 @app.get("/api/images")
@@ -575,12 +710,17 @@ LIMIT %s
 
 @app.post("/api/upload")
 def upload_images(
+    req: Request,
     title: str = Form(...),
     alt: str = Form(""),
     tags: str = Form(""),
     is_public: str = Form("true"),
     files: list[UploadFile] = File(...),
 ):
+    u = _require_user(req)
+    if not u.get("can_upload"):
+        raise HTTPException(status_code=403, detail="upload not allowed")
+
     t = str(title or "").strip()
     if not t:
         raise HTTPException(status_code=400, detail="title required")
@@ -589,34 +729,8 @@ def upload_images(
     if len(files) > 20:
         raise HTTPException(status_code=400, detail="too many files (max 20)")
 
-    tz_name = str((CONF.get("app") or {}).get("timezone") or "Asia/Tokyo")
-    try:
-        tz = ZoneInfo(tz_name)
-    except Exception:
-        tz = None
-
-    def now_local_naive() -> datetime:
-        if tz is None:
-            return datetime.now()
-        return datetime.now(tz).replace(tzinfo=None)
-
-    vr_re = re.compile(r"^VRChat_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})")
-
-    def parse_shot_at(name: str) -> datetime:
-        base = (name or "").split("/")[-1].split("\\")[-1]
-        m = vr_re.match(base)
-        if not m:
-            return now_local_naive()
-        y, mo, d, hh, mm, ss = map(int, m.groups())
-        try:
-            return datetime(y, mo, d, hh, mm, ss)
-        except Exception:
-            return now_local_naive()
-
     is_pub = str(is_public or "true").strip().lower() in ("1", "true", "yes", "on")
     tag_list = [x for x in parse_csv_strs(tags) if x]
-
-    storage_root = Path((CONF.get("paths") or {}).get("storage_root") or "/data/felixxsv-gallery/www/storage")
 
     conn = db_conn(CONF)
     try:
@@ -624,12 +738,24 @@ def upload_images(
         img_cols = _table_cols(conn, "images")
 
         staged = []
-
         staging_root = SOURCE_ROOT / "uploads" / "_staging"
         ensure_dir(staging_root)
         tmp_dir = Path(tempfile.mkdtemp(prefix="felixxsv_gallery_upload_", dir=str(staging_root)))
 
         try:
+            vr_re = re.compile(r"^VRChat_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})")
+
+            def parse_shot_at(name: str) -> datetime:
+                base = (name or "").split("/")[-1].split("\\")[-1]
+                m = vr_re.match(base)
+                if not m:
+                    return _now_local_naive(CONF)
+                y, mo, d, hh, mm, ss = map(int, m.groups())
+                try:
+                    return datetime(y, mo, d, hh, mm, ss)
+                except Exception:
+                    return _now_local_naive(CONF)
+
             for idx, uf in enumerate(files):
                 name = uf.filename or f"file{idx}"
                 shot_at = parse_shot_at(name)
@@ -713,6 +839,9 @@ def upload_images(
             if any_dup:
                 return {"ok": True, "has_duplicates": True, "count": 0, "items": items}
 
+            palette = load_palette_from_conf(CONF)
+            cset = load_settings_from_conf(CONF)
+
             conn.autocommit(False)
 
             created_orig_paths = []
@@ -738,9 +867,6 @@ def upload_images(
                 ensure_dir(dst.parent)
                 img.save(dst, "WEBP", quality=82, method=6)
 
-            palette = load_palette_from_conf(CONF)
-            cset = load_settings_from_conf(CONF)
-
             try:
                 for x in staged:
                     shot_at = x["shot_at"]
@@ -761,9 +887,14 @@ def upload_images(
 
                     img_cols_list = ["gallery","shot_at","title","alt","width","height","format","thumb_path_480","thumb_path_960","preview_path","content_hash"]
                     img_vals = [GALLERY, shot_at, t, str(alt or ""), x["width"], x["height"], x["format"], "", "", "", x["sha_hex"]]
+
                     if "is_public" in img_cols:
                         img_cols_list.append("is_public")
                         img_vals.append(1 if is_pub else 0)
+
+                    if "uploader_user_id" in img_cols:
+                        img_cols_list.append("uploader_user_id")
+                        img_vals.append(int(u["id"]))
 
                     with conn.cursor() as cur:
                         cur.execute(
@@ -778,11 +909,11 @@ def upload_images(
                     t960_rel = f"thumbs/{GALLERY}/{dir3}/{image_id}_w960.webp"
                     prev_rel = f"previews/{GALLERY}/{dir3}/{image_id}_max2560.webp"
 
-                    render_webp(abs_path, storage_root / t480_rel, 480)
-                    render_webp(abs_path, storage_root / t960_rel, 960)
-                    render_webp(abs_path, storage_root / prev_rel, 2560)
+                    render_webp(abs_path, STORAGE_ROOT / t480_rel, 480)
+                    render_webp(abs_path, STORAGE_ROOT / t960_rel, 960)
+                    render_webp(abs_path, STORAGE_ROOT / prev_rel, 2560)
 
-                    created_deriv_paths.extend([storage_root / t480_rel, storage_root / t960_rel, storage_root / prev_rel])
+                    created_deriv_paths.extend([STORAGE_ROOT / t480_rel, STORAGE_ROOT / t960_rel, STORAGE_ROOT / prev_rel])
 
                     with conn.cursor() as cur:
                         cur.execute(
@@ -826,7 +957,7 @@ def upload_images(
                                 vals2,
                             )
 
-                    created_items.append({"image_id": image_id, "duplicate": False})
+                    created_items.append({"index": int(x["index"]), "filename": x["filename"], "duplicate": False, "image_id": image_id})
 
                 conn.commit()
                 conn.autocommit(True)
@@ -876,7 +1007,7 @@ def get_original(image_id: int):
                 """
 SELECT s.source_path
 FROM images i
-JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1
 WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
 LIMIT 1
 """,

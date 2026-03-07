@@ -62,6 +62,17 @@ const dupIdx = new Set()
 
 const NAV_TOAST_KEY = "gallery_nav_toast_v1"
 
+const AUTH_ME_ENDPOINTS = [
+  "/gallery/api/auth/me",
+  "/gallery/api/me",
+  "/gallery/api/session"
+]
+
+function gotoAuth() {
+  const next = `${location.pathname}${location.search}${location.hash}`
+  location.replace(`/gallery/auth/?next=${encodeURIComponent(next)}`)
+}
+
 function ensureToast() {
   if (toastWrap && toastBox) return
   toastWrap = document.createElement("div")
@@ -366,7 +377,7 @@ function renderTags() {
 
 async function loadTagPool() {
   try {
-    const res = await fetch("/gallery/api/tags?limit=200", { cache: "no-store" })
+    const res = await fetch("/gallery/api/tags?limit=200", { cache: "no-store", credentials: "same-origin" })
     const data = await res.json()
     const items = Array.isArray(data.items) ? data.items : []
     tagPoolRaw = items.map((x) => ({ name: String(x.name || ""), c: Number(x.c || 0) })).filter((x) => x.name)
@@ -604,6 +615,8 @@ function initPicker() {
       drop.classList.remove("is-drag")
       addFiles(e.dataTransfer.files)
     })
+
+    drop.addEventListener("dragstart", (e) => e.preventDefault())
   }
 }
 
@@ -1080,7 +1093,7 @@ async function doUpload() {
   showToast("アップロード中...", 1400, null)
 
   try {
-    const res = await fetch("/gallery/api/upload", { method: "POST", body: fd })
+    const res = await fetch("/gallery/api/upload", { method: "POST", body: fd, credentials: "same-origin" })
     const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
@@ -1129,7 +1142,37 @@ function renderAll() {
   updateArrows()
 }
 
-function init() {
+async function fetchMeOnce(url) {
+  const res = await fetch(url, { method: "GET", cache: "no-store", credentials: "same-origin" })
+  return res
+}
+
+async function requireLoginOrRedirect() {
+  for (const url of AUTH_ME_ENDPOINTS) {
+    try {
+      const res = await fetchMeOnce(url)
+      if (res.status === 404) continue
+      if (res.status === 200) return true
+      if (res.status === 401) {
+        gotoAuth()
+        return false
+      }
+      if (res.status === 403) {
+        showToastErr("権限がありません。", 5200)
+        setTimeout(() => { location.href = "/gallery/" }, 400)
+        return false
+      }
+      gotoAuth()
+      return false
+    } catch (e) {
+      continue
+    }
+  }
+  gotoAuth()
+  return false
+}
+
+function initMain() {
   if (!fileInput || !drop || !strip || !stripFrame) return
   if (!tagBox || !tagSug || !tagAdd) return
 
@@ -1151,10 +1194,18 @@ function init() {
   loadTagPool()
 }
 
+async function boot() {
+  if (document && document.body) document.body.style.visibility = "hidden"
+  const ok = await requireLoginOrRedirect()
+  if (!ok) return
+  if (document && document.body) document.body.style.visibility = ""
+  initMain()
+}
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init)
+  document.addEventListener("DOMContentLoaded", boot)
 } else {
-  init()
+  boot()
 }
 
 window.addEventListener("beforeunload", () => revokeAll())
