@@ -13,7 +13,7 @@ import base64
 import hmac
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import pymysql
 from pymysql.err import IntegrityError
 import tomllib
@@ -400,11 +400,35 @@ def palette():
     return {"items": _palette_from_conf(CONF)}
 
 
-@app.get("/api/auth/me")
-def auth_me():
+def _auth_me_payload(req: Request) -> dict:
     auth = CONF.get("auth") or {}
     upload_requires_login = bool(auth.get("upload_requires_login") or False)
-    return {"ok": True, "user": None, "upload_requires_login": upload_requires_login}
+    u = _get_current_user(req)
+    return {"ok": True, "user": u, "upload_requires_login": upload_requires_login}
+
+
+@app.get("/api/auth/me")
+def auth_me(req: Request):
+    payload = _auth_me_payload(req)
+    if payload["user"] is None and payload.get("upload_requires_login"):
+        return JSONResponse(status_code=401, content=payload)
+    return payload
+
+
+@app.get("/api/me")
+def me(req: Request):
+    payload = _auth_me_payload(req)
+    if payload["user"] is None and payload.get("upload_requires_login"):
+        return JSONResponse(status_code=401, content=payload)
+    return payload
+
+
+@app.get("/api/session")
+def session(req: Request):
+    payload = _auth_me_payload(req)
+    if payload["user"] is None and payload.get("upload_requires_login"):
+        return JSONResponse(status_code=401, content=payload)
+    return payload
 
 
 @app.post("/api/auth/register")
