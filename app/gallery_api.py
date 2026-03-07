@@ -601,6 +601,7 @@ def upload_images(
         return datetime.now(tz).replace(tzinfo=None)
 
     vr_re = re.compile(r"^VRChat_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})")
+
     def parse_shot_at(name: str) -> datetime:
         base = (name or "").split("/")[-1].split("\\")[-1]
         m = vr_re.match(base)
@@ -623,7 +624,11 @@ def upload_images(
         img_cols = _table_cols(conn, "images")
 
         staged = []
-        tmp_dir = Path(tempfile.mkdtemp(prefix="felixxsv_gallery_upload_"))
+
+        staging_root = SOURCE_ROOT / "uploads" / "_staging"
+        ensure_dir(staging_root)
+        tmp_dir = Path(tempfile.mkdtemp(prefix="felixxsv_gallery_upload_", dir=str(staging_root)))
+
         try:
             for idx, uf in enumerate(files):
                 name = uf.filename or f"file{idx}"
@@ -710,9 +715,9 @@ def upload_images(
 
             conn.autocommit(False)
 
-            created_items = []
             created_orig_paths = []
             created_deriv_paths = []
+            created_items = []
 
             def id_dir3(image_id: int) -> str:
                 s = f"{image_id:08d}"
@@ -733,14 +738,8 @@ def upload_images(
                 ensure_dir(dst.parent)
                 img.save(dst, "WEBP", quality=82, method=6)
 
-            try:
-                palette = load_palette_from_conf(CONF)
-                cset = load_settings_from_conf(CONF)
-                can_colors = True
-            except Exception:
-                palette = None
-                cset = None
-                can_colors = False
+            palette = load_palette_from_conf(CONF)
+            cset = load_settings_from_conf(CONF)
 
             try:
                 for x in staged:
@@ -751,7 +750,10 @@ def upload_images(
                     abs_path = SOURCE_ROOT / rel_path
 
                     ensure_dir(abs_path.parent)
-                    x["tmp_path"].replace(abs_path)
+                    try:
+                        x["tmp_path"].replace(abs_path)
+                    except OSError:
+                        shutil.move(str(x["tmp_path"]), str(abs_path))
                     created_orig_paths.append(abs_path)
 
                     st = abs_path.stat()
@@ -811,19 +813,18 @@ def upload_images(
                                 tag_id = int(cur.fetchone()["id"])
                                 cur.execute("INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (%s,%s)", (image_id, tag_id))
 
-                    if can_colors:
-                        try:
-                            colors = extract_top_colors(abs_path, palette, cset)
-                        except Exception:
-                            colors = []
-                        with conn.cursor() as cur:
-                            cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
-                            if colors:
-                                vals2 = [(image_id, int(c["rank_no"]), int(c["color_id"]), float(c["ratio"])) for c in colors]
-                                cur.executemany(
-                                    "INSERT INTO image_colors (image_id, rank_no, color_id, ratio) VALUES (%s,%s,%s,%s)",
-                                    vals2,
-                                )
+                    try:
+                        colors = extract_top_colors(abs_path, palette, cset)
+                    except Exception:
+                        colors = []
+                    with conn.cursor() as cur:
+                        cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
+                        if colors:
+                            vals2 = [(image_id, int(c["rank_no"]), int(c["color_id"]), float(c["ratio"])) for c in colors]
+                            cur.executemany(
+                                "INSERT INTO image_colors (image_id, rank_no, color_id, ratio) VALUES (%s,%s,%s,%s)",
+                                vals2,
+                            )
 
                     created_items.append({"image_id": image_id, "duplicate": False})
 
