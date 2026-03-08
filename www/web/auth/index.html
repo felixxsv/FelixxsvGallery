@@ -10,51 +10,93 @@
 </head>
 <body>
   <header class="hdr">
-    <div class="hdr__left">
-      <a class="logo" href="/gallery/">Felixxsv Gallery</a>
-      <div class="upcrumb">/ auth</div>
+    <div class="hdr__in">
+      <div class="hdr__l">
+        <a class="hdr__title" href="/gallery/">Felixxsv Gallery</a>
+        <div class="authcrumb">Auth</div>
+      </div>
+      <div class="hdr__r">
+        <a class="hdrbtn" href="/gallery/" aria-label="Close">×</a>
+      </div>
     </div>
-    <div class="hdr__right"></div>
   </header>
 
   <main class="authmain">
-    <div class="authcard">
-      <div class="authtitle">Login</div>
+    <section class="authcard" aria-label="Authentication">
+      <div class="authtop">
+        <div class="authtabs" role="tablist" aria-label="Auth tabs">
+          <button id="authTabLogin" class="authtab is-on" type="button" role="tab" aria-selected="true" aria-controls="authPanelLogin">Login</button>
+          <button id="authTabRegister" class="authtab" type="button" role="tab" aria-selected="false" aria-controls="authPanelRegister">Register</button>
+        </div>
+        <div id="authMeLine" class="authme" aria-live="polite"></div>
+      </div>
 
-      <form class="authform" id="loginForm">
-        <label class="authlabel">Email</label>
-        <input class="authinp" id="loginEmail" type="email" autocomplete="email" required>
+      <div class="authbody">
+        <section id="authPanelLogin" class="authpanel is-on" role="tabpanel" aria-labelledby="authTabLogin">
+          <form id="authLoginForm" class="authform" autocomplete="on">
+            <div class="afield">
+              <label class="alabel" for="authLoginEmail">Email</label>
+              <input id="authLoginEmail" class="ainp" name="email" type="email" required maxlength="255" autocomplete="email">
+            </div>
 
-        <label class="authlabel">Password</label>
-        <input class="authinp" id="loginPw" type="password" autocomplete="current-password" required>
+            <div class="afield">
+              <label class="alabel" for="authLoginPassword">Password</label>
+              <input id="authLoginPassword" class="ainp" name="password" type="password" required minlength="8" maxlength="200" autocomplete="current-password">
+            </div>
 
-        <button class="authbtn authbtn--primary" type="submit" id="loginBtn">Login</button>
-      </form>
+            <div class="arow">
+              <button id="authLoginBtn" class="abtn abtn--primary" type="submit">Login</button>
+              <button id="authGotoRegister" class="abtn" type="button">Create account</button>
+            </div>
 
-      <div class="authsep"></div>
+            <div class="ahint">
+              next: <span id="authNextLabel"></span>
+            </div>
+          </form>
+        </section>
 
-      <div class="authtitle">Create account</div>
+        <section id="authPanelRegister" class="authpanel" role="tabpanel" aria-labelledby="authTabRegister">
+          <form id="authRegisterForm" class="authform" autocomplete="on">
+            <div class="agrid2">
+              <div class="afield">
+                <label class="alabel" for="authRegUserKey">User Key</label>
+                <input id="authRegUserKey" class="ainp" name="user_key" type="text" required minlength="4" maxlength="20" autocomplete="username" inputmode="latin" pattern="[A-Za-z][A-Za-z0-9_-]{3,19}">
+                <div class="asub">4-20文字 / 先頭英字 / 英数字・_・-</div>
+              </div>
 
-      <form class="authform" id="createForm">
-        <label class="authlabel">User key</label>
-        <input class="authinp" id="createUserKey" type="text" inputmode="latin" autocomplete="username" required>
+              <div class="afield">
+                <label class="alabel" for="authRegDisplayName">Display Name</label>
+                <input id="authRegDisplayName" class="ainp" name="display_name" type="text" maxlength="128" autocomplete="nickname">
+                <div class="asub">空の場合は User Key を使用します</div>
+              </div>
+            </div>
 
-        <label class="authlabel">Display name</label>
-        <input class="authinp" id="createDisplay" type="text" autocomplete="nickname">
+            <div class="afield">
+              <label class="alabel" for="authRegEmail">Email</label>
+              <input id="authRegEmail" class="ainp" name="email" type="email" required maxlength="255" autocomplete="email">
+            </div>
 
-        <label class="authlabel">Email</label>
-        <input class="authinp" id="createEmail" type="email" autocomplete="email" required>
+            <div class="afield">
+              <label class="alabel" for="authRegPassword">Password</label>
+              <input id="authRegPassword" class="ainp" name="password" type="password" required minlength="8" maxlength="200" autocomplete="new-password">
+            </div>
 
-        <label class="authlabel">Password</label>
-        <input class="authinp" id="createPw" type="password" autocomplete="new-password" required>
+            <div class="arow">
+              <button id="authRegisterBtn" class="abtn abtn--primary" type="submit">Register</button>
+              <button id="authGotoLogin" class="abtn" type="button">Back to login</button>
+            </div>
 
-        <button class="authbtn" type="submit" id="createBtn">Create</button>
-      </form>
+            <div class="ahint">
+              Register → 自動ログイン → next へ遷移します
+            </div>
+          </form>
+        </section>
+      </div>
 
-      <div class="authsep"></div>
-
-      <button class="authbtn authbtn--ghost" type="button" id="discordBtn">Continue with Discord (later)</button>
-    </div>
+      <div class="authfoot">
+        <button id="authLogoutBtn" class="abtn abtn--danger" type="button" style="display:none">Logout</button>
+      </div>
+    </section>
   </main>
 
   <script src="/gallery/auth/auth.js"></script>
