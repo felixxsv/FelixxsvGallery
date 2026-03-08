@@ -3,121 +3,119 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>VRChat Gallery - Auth</title>
+  <title>Felixxsv Gallery - Auth</title>
   <link rel="stylesheet" href="/gallery/common.css">
   <link rel="stylesheet" href="/gallery/toast.css">
   <link rel="stylesheet" href="/gallery/auth/auth.css">
 </head>
 <body>
-  <header class="hdr authhdr">
-    <div class="hdr__in authhdr__in">
-      <div class="authhdr__l">
-        <a class="authbrand" href="/gallery/" aria-label="Back to Gallery">
-          <span class="authbrand__ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6.5 7.5h11A3.5 3.5 0 0 1 21 11v6.5A3.5 3.5 0 0 1 17.5 21h-11A3.5 3.5 0 0 1 3 17.5V11A3.5 3.5 0 0 1 6.5 7.5Z" stroke="rgba(231,238,247,.9)" stroke-width="1.6"/>
-              <path d="M8 7.5l1.3-2.2A2 2 0 0 1 11 4.3h2A2 2 0 0 1 14.7 5.3L16 7.5" stroke="rgba(231,238,247,.6)" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M12 17.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" stroke="rgba(231,238,247,.9)" stroke-width="1.6"/>
-            </svg>
-          </span>
-          <span class="authbrand__name">VRChat Gallery</span>
-        </a>
-        <div class="authpath">/gallery/auth</div>
+  <header class="hdr">
+    <div class="hdr__in">
+      <div class="hdr__l">
+        <a class="hdr__title" href="/gallery/">Felixxsv Gallery</a>
+        <div class="authhdr__path">/gallery/auth</div>
       </div>
-
-      <div class="authhdr__r">
-        <a class="authback" href="/gallery/">
-          <span class="authback__arr" aria-hidden="true">←</span>
-          <span>Back to Gallery</span>
-        </a>
-        <div id="authUserLine" class="authuser" style="display:none"></div>
-        <button id="authLogoutBtn" class="authlogout" type="button" style="display:none">Logout</button>
+      <div class="hdr__r">
+        <a class="authhdr__back" href="/gallery/">← Back to Gallery</a>
       </div>
     </div>
   </header>
 
   <main class="authmain">
-    <section class="authhero" aria-label="Auth hero">
-      <h1 class="authhero__t">サインインの方法を選択</h1>
-      <p class="authhero__s">サインイン方法を選んで続行してください。</p>
-    </section>
+    <div class="authwrap">
+      <section class="authhero" aria-label="Sign in hero">
+        <h1 class="authhero__title">サインインの方法を選択</h1>
+        <p class="authhero__sub">サインイン方法を選んで続行してください。</p>
+      </section>
 
-    <section class="authgrid" aria-label="Auth methods">
-      <div class="authcard">
-        <div class="authcard__head">
-          <div class="authcard__ttl">Continue with Discord</div>
+      <section class="authgrid" aria-label="Sign in options">
+        <div class="authcard authcard--discord" aria-label="Discord sign in">
+          <div class="authcard__head">
+            <div class="authcard__title">Continue with Discord</div>
+          </div>
+
+          <button id="authDiscordBtn" class="authbtn authbtn--discord" type="button">
+            <span class="authbtn__icon" aria-hidden="true">⟡</span>
+            Discordで続行
+          </button>
+
+          <div class="authcard__note">Discordのアカウントで簡単にサインインできます。</div>
         </div>
 
-        <button id="authDiscordBtn" class="authbtn authbtn--discord" type="button">
-          <span class="authbtn__ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20.3 6.1A16.5 16.5 0 0 0 16.4 4.8l-.2.4c1.4.4 2 .8 2.8 1.2a14.7 14.7 0 0 0-4.4-1.4 15.7 15.7 0 0 0-5.2 0A14.7 14.7 0 0 0 5 6.4c.8-.4 1.5-.7 2.8-1.2l-.2-.4a16.5 16.5 0 0 0-3.9 1.3C2.3 8.3 2 10.6 2 12.9c0 0 2 3.4 7.3 3.6l.9-1.2c-1.7-.5-2.3-1.4-2.3-1.4.5.3 1 .5 1.6.7 1.2.5 2.7.7 4.5.7 1.8 0 3.3-.2 4.5-.7.6-.2 1.1-.4 1.6-.7 0 0-.6.9-2.4 1.4l.9 1.2c5.3-.2 7.3-3.6 7.3-3.6 0-2.3-.3-4.6-1.7-6.8Z" fill="rgba(231,238,247,.92)"/>
-              <path d="M9.3 13.1c.7 0 1.2-.6 1.2-1.3 0-.7-.5-1.3-1.2-1.3s-1.2.6-1.2 1.3c0 .7.5 1.3 1.2 1.3Zm5.4 0c.7 0 1.2-.6 1.2-1.3 0-.7-.5-1.3-1.2-1.3s-1.2.6-1.2 1.3c0 .7.5 1.3 1.2 1.3Z" fill="rgba(20,24,34,.9)"/>
-            </svg>
+        <div class="authcard authcard--email" aria-label="Email sign in">
+          <div class="authcard__head">
+            <div class="authcard__title">メールアドレス</div>
+          </div>
+
+          <form id="authLoginForm" class="authform" autocomplete="on">
+            <input id="authLoginEmail" class="authinp" name="email" type="email" placeholder="メールアドレス" required maxlength="255" autocomplete="email">
+            <input id="authLoginPassword" class="authinp" name="password" type="password" placeholder="パスワード" required minlength="8" maxlength="200" autocomplete="current-password">
+
+            <button id="authLoginBtn" class="authbtn authbtn--primary" type="submit">ログイン</button>
+
+            <div class="authrow authrow--links">
+              <button id="authForgotBtn" class="authlink" type="button">パスワードをお忘れですか？</button>
+              <button id="authOpenRegister" class="authlink" type="button">新規アカウント作成</button>
+            </div>
+
+            <div class="authhint">
+              next: <span id="authNextLabel"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="authcard authcard--register" aria-label="Register">
+        <button id="authRegisterToggle" class="authreghead" type="button" aria-expanded="false" aria-controls="authRegisterPanel">
+          <span class="authreghead__icon" aria-hidden="true">✉</span>
+          <span class="authreghead__text">
+            <span class="authreghead__title">新規アカウント作成</span>
+            <span class="authreghead__sub">メールアドレスを登録して新しいアカウントを作成します。</span>
           </span>
-          <span>Discordで続行</span>
+          <span class="authreghead__chev" aria-hidden="true">▾</span>
         </button>
 
-        <div class="authcard__note">Discordのアカウントで簡単にサインインできます。</div>
-      </div>
+        <div id="authRegisterPanel" class="authregpanel" aria-hidden="true">
+          <form id="authRegisterForm" class="authform authform--register" autocomplete="on">
+            <div class="authgrid2">
+              <div class="authfield">
+                <label class="authlabel" for="authRegUserKey">User Key</label>
+                <input id="authRegUserKey" class="authinp" name="user_key" type="text" required minlength="4" maxlength="20" autocomplete="username" inputmode="latin" pattern="[A-Za-z][A-Za-z0-9_-]{3,19}">
+                <div class="authsub">4-20文字 / 先頭英字 / 英数字・_・-</div>
+              </div>
 
-      <div class="authcard">
-        <div class="authcard__head">
-          <div class="authcard__ttl">メールアドレス</div>
+              <div class="authfield">
+                <label class="authlabel" for="authRegDisplayName">Display Name</label>
+                <input id="authRegDisplayName" class="authinp" name="display_name" type="text" maxlength="128" autocomplete="nickname">
+                <div class="authsub">空の場合は User Key を使用します</div>
+              </div>
+            </div>
+
+            <div class="authfield">
+              <label class="authlabel" for="authRegEmail">Email</label>
+              <input id="authRegEmail" class="authinp" name="email" type="email" required maxlength="255" autocomplete="email">
+            </div>
+
+            <div class="authfield">
+              <label class="authlabel" for="authRegPassword">Password</label>
+              <input id="authRegPassword" class="authinp" name="password" type="password" required minlength="8" maxlength="200" autocomplete="new-password">
+            </div>
+
+            <div class="authrow">
+              <button id="authRegisterBtn" class="authbtn authbtn--primary" type="submit">登録して続行</button>
+              <button id="authCloseRegister" class="authbtn" type="button">閉じる</button>
+            </div>
+
+            <div class="authsub authsub--note">Register → 自動ログイン → next へ遷移します</div>
+          </form>
         </div>
 
-        <form id="authLoginForm" class="authform" autocomplete="on">
-          <input id="authLoginEmail" class="authinp" name="email" type="email" placeholder="メールアドレス" required maxlength="255" autocomplete="email">
-          <input id="authLoginPassword" class="authinp" name="password" type="password" placeholder="パスワード" required minlength="8" maxlength="200" autocomplete="current-password">
-
-          <button id="authLoginBtn" class="authbtn authbtn--primary" type="submit">ログイン</button>
-
-          <div class="authlinks">
-            <button id="authForgotBtn" class="authlink" type="button">パスワードをお忘れですか？</button>
-            <button id="authOpenRegister1" class="authlink" type="button">新規アカウント作成</button>
-          </div>
-
-          <div id="authNextLine" class="authnext" style="display:none"></div>
-        </form>
-      </div>
-    </section>
-
-    <section class="authcta" aria-label="Create account">
-      <button id="authOpenRegister2" class="authcta__btn" type="button">
-        <div class="authcta__in">
-          <div class="authcta__ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 7.5A3.5 3.5 0 0 1 7.5 4h9A3.5 3.5 0 0 1 20 7.5v9A3.5 3.5 0 0 1 16.5 20h-9A3.5 3.5 0 0 1 4 16.5v-9Z" stroke="rgba(231,238,247,.9)" stroke-width="1.6"/>
-              <path d="M6.2 8.3 12 12.3l5.8-4" stroke="rgba(231,238,247,.9)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="authcta__txt">
-            <div class="authcta__t">新規アカウント作成</div>
-            <div class="authcta__s">メールアドレスを登録して新しいアカウントを作成します。</div>
-          </div>
+        <div class="authfoot">
+          <button id="authLogoutBtn" class="authbtn authbtn--danger" type="button" style="display:none">Logout</button>
         </div>
-      </button>
-    </section>
-  </main>
-
-  <div id="authModal" class="authmodal" aria-hidden="true">
-    <div id="authModalBg" class="authmodal__bg"></div>
-    <div class="authmodal__card" role="dialog" aria-modal="true" aria-label="Create account">
-      <div class="authmodal__top">
-        <div class="authmodal__title">新規アカウント作成</div>
-        <button id="authModalX" class="authmodal__x" type="button" aria-label="Close">×</button>
-      </div>
-
-      <form id="authRegisterForm" class="authform" autocomplete="on">
-        <input id="authRegEmail" class="authinp" name="email" type="email" placeholder="メールアドレス" required maxlength="255" autocomplete="email">
-        <input id="authRegPassword" class="authinp" name="password" type="password" placeholder="パスワード（8文字以上）" required minlength="8" maxlength="200" autocomplete="new-password">
-        <input id="authRegDisplayName" class="authinp" name="display_name" type="text" placeholder="表示名（任意）" maxlength="128" autocomplete="nickname">
-
-        <button id="authRegisterBtn" class="authbtn authbtn--primary" type="submit">作成して続行</button>
-        <div class="authmodal__hint">作成後、自動でログインして戻ります。</div>
-      </form>
+      </section>
     </div>
-  </div>
+  </main>
 
   <script src="/gallery/auth/auth.js"></script>
 </body>

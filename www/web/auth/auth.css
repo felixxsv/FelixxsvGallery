@@ -1,224 +1,305 @@
 :root{
-  --hdr-h:65px;
-  --auth-pad:clamp(18px,3vw,34px);
-  --card-r:18px;
-  --card-b:1px solid rgba(255,255,255,.12);
-  --card-bg:rgba(14,18,26,.72);
-  --card-blur:blur(12px);
-  --inp-h:44px;
+  --auth-pad: clamp(18px, 3vw, 28px);
+  --auth-maxw: 1160px;
+  --auth-card-bg: rgba(14,18,26,.68);
+  --auth-card-bd: rgba(255,255,255,.12);
+  --auth-card-shadow: 0 18px 46px rgba(0,0,0,.55);
+  --auth-inp-h: 44px;
 }
 
 @media (min-width: 921px){
   html,body{height:100%}
+  body{overflow:hidden}
 }
 
-.authhdr{backdrop-filter:blur(10px)}
-.authhdr__in{align-items:center}
+.authhdr__path{
+  opacity:.7;
+  font-size:12px;
+  white-space:nowrap;
+}
 
-.authhdr__l{display:flex;align-items:center;gap:12px;min-width:0}
-.authbrand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#e7eef7}
-.authbrand__name{font-weight:800;font-size:20px;letter-spacing:.02em}
-.authpath{opacity:.65;font-size:12px;white-space:nowrap}
-
-.authhdr__r{display:flex;align-items:center;gap:14px}
-.authback{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#e7eef7;opacity:.8}
-.authback:hover{opacity:1}
-.authback__arr{opacity:.85}
-
-.authuser{font-size:12px;opacity:.8;white-space:nowrap}
-.authlogout{
-  height:34px;
-  padding:0 12px;
+.authhdr__back{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:44px;
+  padding:0 14px;
   border-radius:12px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.04);
   color:#e7eef7;
+  text-decoration:none;
+  opacity:.9;
+}
+.authhdr__back:hover{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.18);
 }
 
 .authmain{
-  min-height:calc(100vh - var(--hdr-h));
+  height:calc(100vh - var(--hdr-h, 65px));
   padding:var(--auth-pad);
   display:flex;
+  justify-content:center;
+  align-items:stretch;
+  overflow:auto;
+}
+
+.authwrap{
+  width:100%;
+  max-width:var(--auth-maxw);
+  margin:0 auto;
+  display:flex;
   flex-direction:column;
-  align-items:center;
-  gap:22px;
+  justify-content:center;
+  gap:18px;
+  min-height:100%;
 }
 
 .authhero{
-  width:min(1080px,96vw);
   text-align:center;
-  padding-top:8px;
+  padding-top:6px;
 }
-.authhero__t{
+.authhero__title{
   margin:0;
-  font-size:44px;
+  font-size:clamp(28px, 3.4vw, 44px);
+  font-weight:900;
   letter-spacing:.02em;
 }
-.authhero__s{
+.authhero__sub{
   margin:10px 0 0;
-  opacity:.78;
+  opacity:.82;
   font-size:14px;
 }
 
 .authgrid{
-  width:min(1080px,96vw);
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:18px;
+  align-items:stretch;
 }
 
 .authcard{
-  border-radius:var(--card-r);
-  border:var(--card-b);
-  background:var(--card-bg);
-  backdrop-filter:var(--card-blur);
+  border-radius:16px;
+  border:1px solid var(--auth-card-bd);
+  background:var(--auth-card-bg);
+  backdrop-filter:blur(12px);
+  box-shadow:var(--auth-card-shadow);
   padding:18px;
-  box-shadow:0 14px 40px rgba(0,0,0,.45);
+  min-height:180px;
+}
+
+.authcard__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:10px;
+}
+.authcard__title{
+  font-size:16px;
+  font-weight:800;
+  opacity:.95;
+}
+
+.authcard__note{
+  margin-top:12px;
+  font-size:12px;
+  opacity:.75;
+  line-height:1.5;
+}
+
+.authform{
   display:flex;
   flex-direction:column;
-  gap:14px;
-  min-height:240px;
+  gap:12px;
 }
-
-.authcard__head{display:flex;align-items:center;justify-content:space-between}
-.authcard__ttl{font-weight:800;opacity:.92}
-
-.authcard__note{opacity:.72;font-size:12px;line-height:1.5}
-
-.authform{display:flex;flex-direction:column;gap:12px}
 
 .authinp{
-  height:var(--inp-h);
+  width:100%;
+  height:var(--auth-inp-h);
+  padding:0 12px;
   border-radius:12px;
   border:1px solid rgba(255,255,255,.14);
   background:rgba(255,255,255,.06);
   color:#e7eef7;
-  padding:0 12px;
-  outline:none;
 }
-.authinp::placeholder{color:rgba(231,238,247,.45)}
-.authinp:focus{border-color:rgba(255,255,255,.26);background:rgba(255,255,255,.08)}
 
 .authbtn{
-  height:46px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.06);
-  color:#e7eef7;
   display:inline-flex;
   align-items:center;
   justify-content:center;
   gap:10px;
-  cursor:pointer;
-  user-select:none;
-}
-.authbtn:disabled{opacity:.55;cursor:default}
-.authbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(130,140,255,.22)}
-.authbtn--primary:hover{background:rgba(130,140,255,.28)}
-.authbtn--discord{
-  background:linear-gradient(180deg, rgba(120,130,255,.32), rgba(120,130,255,.22));
-  border-color:rgba(120,130,255,.28);
-}
-.authbtn--discord:hover{background:linear-gradient(180deg, rgba(120,130,255,.38), rgba(120,130,255,.26))}
-.authbtn__ico{display:inline-flex;align-items:center;justify-content:center}
-
-.authlinks{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  padding-top:2px;
-}
-.authlink{
-  background:transparent;
-  border:none;
-  color:rgba(231,238,247,.78);
-  font-size:12px;
-  cursor:pointer;
-  padding:0;
-}
-.authlink:hover{color:rgba(231,238,247,.95);text-decoration:underline}
-
-.authnext{font-size:11px;opacity:.6}
-
-.authcta{
-  width:min(1080px,96vw);
-}
-.authcta__btn{
-  width:100%;
-  border-radius:var(--card-r);
-  border:var(--card-b);
-  background:rgba(14,18,26,.62);
-  backdrop-filter:blur(10px);
-  padding:18px;
-  box-shadow:0 14px 40px rgba(0,0,0,.35);
-  cursor:pointer;
-}
-.authcta__btn:hover{background:rgba(14,18,26,.70)}
-.authcta__in{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:14px;
-  text-align:center;
-}
-.authcta__txt{display:flex;flex-direction:column;gap:4px}
-.authcta__t{font-weight:900;font-size:22px}
-.authcta__s{opacity:.72;font-size:12px}
-
-.authmodal{
-  position:fixed;
-  inset:0;
-  display:none;
-  z-index:280;
-}
-.authmodal.is-on{display:block}
-
-.authmodal__bg{
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,.52);
-  backdrop-filter:blur(6px);
-}
-
-.authmodal__card{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  width:min(520px,92vw);
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(14,18,26,.92);
-  backdrop-filter:blur(12px);
-  box-shadow:0 18px 55px rgba(0,0,0,.6);
-  padding:16px;
-}
-
-.authmodal__top{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:12px;
-}
-.authmodal__title{font-weight:900}
-.authmodal__x{
-  width:38px;
-  height:38px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.14);
+  height:46px;
+  padding:0 16px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
   background:rgba(255,255,255,.06);
   color:#e7eef7;
-  font-size:18px;
   cursor:pointer;
+  text-decoration:none;
+  font-weight:700;
 }
-.authmodal__x:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22)}
+.authbtn:hover{
+  background:rgba(255,255,255,.10);
+  border-color:rgba(255,255,255,.20);
+}
+.authbtn:disabled{
+  opacity:.55;
+  cursor:default;
+}
 
-.authmodal__hint{font-size:11px;opacity:.72}
+.authbtn--primary{
+  border-color:rgba(130,140,255,.35);
+  background:rgba(130,140,255,.18);
+}
+.authbtn--primary:hover{
+  background:rgba(130,140,255,.26);
+  border-color:rgba(130,140,255,.45);
+}
+
+.authbtn--discord{
+  border-color:rgba(120,130,255,.35);
+  background:linear-gradient(180deg, rgba(120,130,255,.28), rgba(120,130,255,.14));
+  height:52px;
+  font-size:15px;
+}
+.authbtn__icon{
+  width:22px;
+  height:22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(0,0,0,.18);
+}
+
+.authbtn--danger{
+  border-color:rgba(255,80,80,.24);
+  background:rgba(255,80,80,.10);
+}
+.authbtn--danger:hover{
+  background:rgba(255,80,80,.16);
+  border-color:rgba(255,80,80,.34);
+}
+
+.authrow{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  align-items:center;
+}
+.authrow--links{
+  justify-content:space-between;
+  padding-top:2px;
+}
+
+.authlink{
+  border:none;
+  background:transparent;
+  color:#e7eef7;
+  opacity:.76;
+  cursor:pointer;
+  padding:6px 0;
+  font-size:12px;
+}
+.authlink:hover{opacity:1}
+
+.authhint{
+  font-size:11px;
+  opacity:.58;
+  padding-top:4px;
+}
+
+.authcard--register{
+  padding:0;
+  overflow:hidden;
+}
+
+.authreghead{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:18px;
+  border:none;
+  background:transparent;
+  color:#e7eef7;
+  cursor:pointer;
+  text-align:left;
+}
+.authreghead:hover{
+  background:rgba(255,255,255,.04);
+}
+
+.authreghead__icon{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  opacity:.9;
+}
+
+.authreghead__text{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  flex:1 1 auto;
+  min-width:0;
+}
+.authreghead__title{
+  font-size:16px;
+  font-weight:900;
+}
+.authreghead__sub{
+  font-size:12px;
+  opacity:.74;
+}
+
+.authreghead__chev{
+  opacity:.7;
+  font-size:16px;
+  transform:translateY(1px);
+}
+
+.authregpanel{
+  display:none;
+  padding:0 18px 18px;
+  border-top:1px solid rgba(255,255,255,.10);
+}
+
+.authcard--register.is-open .authregpanel{display:block}
+.authcard--register.is-open .authreghead__chev{transform:rotate(180deg)}
+
+.authform--register{padding-top:14px}
+
+.authgrid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.authfield{display:flex;flex-direction:column;gap:6px}
+.authlabel{font-size:12px;opacity:.85}
+.authsub{font-size:11px;opacity:.7}
+.authsub--note{padding-top:4px}
+
+.authfoot{
+  display:flex;
+  justify-content:flex-end;
+  padding:0 18px 18px;
+}
 
 @media (max-width: 920px){
-  .authhero__t{font-size:34px}
+  body{overflow:auto}
+  .authmain{height:auto;min-height:calc(100vh - var(--hdr-h, 65px));align-items:flex-start}
+  .authwrap{min-height:auto;justify-content:flex-start}
   .authgrid{grid-template-columns:1fr}
-  .authhdr__r{gap:10px}
-  .authpath{display:none}
+  .authgrid2{grid-template-columns:1fr}
 }
