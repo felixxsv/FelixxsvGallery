@@ -130,48 +130,62 @@
 .authlink:hover{opacity:1;text-decoration:underline}
 
 .authcta{
-  border-radius:var(--card-r);
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(14,18,26,.50);
-  backdrop-filter:blur(12px);
-  padding:22px 18px;
-  text-decoration:none;
-  color:#e7eef7;
   display:flex;
-  flex-direction:column;
-  align-items:center;
   justify-content:center;
-  gap:10px;
-  min-height:120px;
+  text-decoration:none;
+  color:inherit;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(14,18,26,.58);
+  backdrop-filter:blur(12px);
+  padding:18px 16px;
 }
 
 .authcta:hover{
   border-color:rgba(255,255,255,.18);
-  background:rgba(14,18,26,.58);
+  background:rgba(14,18,26,.66);
+}
+
+.authcta__in{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  width:100%;
+  max-width:720px;
 }
 
 .authcta__icon{
   width:46px;
   height:46px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(255,255,255,.04);
+  flex:0 0 auto;
+}
+
+.authcta__txt{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  gap:6px;
 }
 
 .authcta__title{
-  font-size:20px;
+  font-size:16px;
   font-weight:800;
-  letter-spacing:.02em;
-  text-align:center;
+  opacity:.96;
 }
 
 .authcta__sub{
+  font-size:12px;
   opacity:.72;
-  font-size:13px;
-  text-align:center;
+  line-height:1.35;
 }
 
 @media (max-width: 920px){
