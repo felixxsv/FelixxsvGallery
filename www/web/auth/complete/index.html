@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VRChat Gallery - Complete</title>
+  <link rel="stylesheet" href="/gallery/common.css">
+  <link rel="stylesheet" href="/gallery/toast.css">
+  <link rel="stylesheet" href="/gallery/auth/auth.css">
+</head>
+<body>
+  <header class="hdr">
+    <div class="hdr__in authhdr__in">
+      <div class="hdr__l authhdr__l">
+        <a class="hdr__title authhdr__title" href="/gallery/">
+          <span class="authhdr__brand">VRChat Gallery</span>
+          <span class="authhdr__path">/gallery/auth/complete</span>
+        </a>
+      </div>
+      <div class="hdr__r authhdr__r">
+        <a class="authhdr__back" href="/gallery/"><span class="authhdr__backic" aria-hidden="true">←</span><span>Back to Gallery</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="authmain">
+    <div class="authwrap">
+      <div class="authhero">
+        <h1 class="authhero__ttl">アカウント情報の設定</h1>
+        <div class="authhero__sub">ID（User Key）を設定して登録を完了してください。</div>
+      </div>
+
+      <section class="authcard">
+        <div class="authcard__cap">プロフィール</div>
+
+        <form id="cForm" class="authform" autocomplete="on">
+          <label class="sr" for="cUserKey">User Key</label>
+          <input id="cUserKey" class="authinp" type="text" placeholder="User Key（4-20文字 / 先頭英字 / 英数字・_・-）" required minlength="4" maxlength="20" autocomplete="username" inputmode="latin" pattern="[A-Za-z][A-Za-z0-9_-]{3,19}">
+
+          <label class="sr" for="cDisplayName">Display Name</label>
+          <input id="cDisplayName" class="authinp" type="text" placeholder="Display Name（任意）" maxlength="128" autocomplete="nickname">
+
+          <button id="cBtn" class="authbtn authbtn--primary" type="submit">登録完了</button>
+
+          <div class="authlinks">
+            <a class="authlink" href="/gallery/auth/">ログインへ戻る</a>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="/gallery/auth/complete/complete.js"></script>
+</body>
+</html>
