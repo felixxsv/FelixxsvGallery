@@ -1,14 +1,12 @@
 const el = (id) => document.getElementById(id)
 
-const discordBtn = el("authDiscordBtn")
-const emailForm = el("authEmailForm")
-const emailInput = el("authEmail")
-const pwInput = el("authPassword")
+const loginForm = el("authLoginForm")
+const loginId = el("authLoginId")
+const loginPassword = el("authLoginPassword")
 const loginBtn = el("authLoginBtn")
 
-const createLink = el("authCreateLink")
-const createMini = el("authCreateMini")
-const forgotLink = el("authForgotLink")
+const discordBtn = el("authDiscordBtn")
+const registerLink = el("authRegisterLink")
 
 const NAV_TOAST_KEY = "gallery_nav_toast_v1"
 
@@ -43,14 +41,28 @@ function showToast(text, ms, kind) {
   }, dur)
 }
 
-function showToastErr(text, ms) { showToast(text, ms || 5200, "err") }
-function showToastOk(text, ms) { showToast(text, ms || 2600, "ok") }
+function showToastErr(text, ms) {
+  showToast(text, ms || 5200, "err")
+}
 
-function saveNavToast(text, ms) {
+function showToastOk(text, ms) {
+  showToast(text, ms || 2600, "ok")
+}
+
+function readNavToast() {
   try {
-    const v = { text: String(text || ""), ms: Number(ms) || 3600, at: Date.now() }
-    sessionStorage.setItem(NAV_TOAST_KEY, JSON.stringify(v))
-  } catch (e) {}
+    const raw = sessionStorage.getItem(NAV_TOAST_KEY)
+    if (!raw) return null
+    sessionStorage.removeItem(NAV_TOAST_KEY)
+    const v = JSON.parse(raw)
+    if (!v || typeof v !== "object") return null
+    const text = String(v.text || "").trim()
+    const ms = Number(v.ms || 2600)
+    if (!text) return null
+    return { text, ms }
+  } catch (e) {
+    return null
+  }
 }
 
 function parseNext() {
@@ -62,18 +74,6 @@ function parseNext() {
 }
 
 const NEXT = parseNext()
-
-function setCreateLinks() {
-  const url = `/gallery/auth/register/?next=${encodeURIComponent(NEXT)}`
-  if (createLink) createLink.href = url
-  if (createMini) createMini.href = url
-}
-
-async function fetchMe() {
-  const res = await fetch("/gallery/api/auth/me", { method: "GET", cache: "no-store", credentials: "same-origin" })
-  const data = await res.json().catch(() => ({}))
-  return { res, data }
-}
 
 function setBusy(btn, on, label) {
   if (!btn) return
@@ -88,6 +88,12 @@ function setBusy(btn, on, label) {
   if (prev) btn.textContent = prev
 }
 
+async function fetchMe() {
+  const res = await fetch("/gallery/api/auth/me", { method: "GET", cache: "no-store", credentials: "same-origin" })
+  const data = await res.json().catch(() => ({}))
+  return { res, data }
+}
+
 async function postForm(url, obj) {
   const fd = new FormData()
   for (const k of Object.keys(obj)) fd.append(k, String(obj[k] ?? ""))
@@ -96,8 +102,8 @@ async function postForm(url, obj) {
   return { res, data }
 }
 
-async function doLogin(email, password) {
-  const { res, data } = await postForm("/gallery/api/auth/login", { email, password })
+async function doLogin(identifier, password) {
+  const { res, data } = await postForm("/gallery/api/auth/login", { email: identifier, password })
   if (!res.ok) {
     const msg = String(data && data.detail ? data.detail : `login failed status=${res.status}`)
     throw new Error(msg)
@@ -106,45 +112,44 @@ async function doLogin(email, password) {
 }
 
 async function boot() {
-  setCreateLinks()
+  const nav = readNavToast()
+  if (nav) showToastOk(nav.text, nav.ms)
 
-  const me = await fetchMe().catch(() => null)
-  if (me && me.res && me.res.status === 200) {
-    const user = me.data ? me.data.user : null
-    if (user) {
-      showToastOk("ログイン済みです。", 1100)
-      setTimeout(() => { location.replace(NEXT) }, 250)
-      return
-    }
+  if (registerLink) {
+    registerLink.href = `/gallery/auth/register/?next=${encodeURIComponent(NEXT)}`
   }
 
+  try {
+    const me = await fetchMe()
+    const user = me && me.data ? me.data.user : null
+    if (user) {
+      showToastOk("ログイン済みです。", 1200)
+      setTimeout(() => { location.replace(NEXT) }, 250)
+    }
+  } catch (e) {}
+}
+
+function initEvents() {
   if (discordBtn) {
     discordBtn.addEventListener("click", () => {
-      showToast("Discordログインは現在準備中です。", 3400, null)
+      showToast("Discordログインは未設定です。", 3200, null)
     })
   }
 
-  if (forgotLink) {
-    forgotLink.addEventListener("click", (e) => {
-      showToast("パスワード再設定は未実装です。", 3600, null)
-    })
-  }
-
-  if (emailForm) {
-    emailForm.addEventListener("submit", async (e) => {
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
       e.preventDefault()
-      const email = String(emailInput ? emailInput.value : "").trim().toLowerCase()
-      const pw = String(pwInput ? pwInput.value : "")
-      if (!email || !pw) {
-        showToastErr("メールアドレスとパスワードを入力してください。", 4200)
+      const idv = String(loginId ? loginId.value : "").trim()
+      const pw = String(loginPassword ? loginPassword.value : "")
+      if (!idv || !pw) {
+        showToastErr("入力してください。", 4200)
         return
       }
-      setBusy(loginBtn, true, "ログイン中...")
+
+      setBusy(loginBtn, true, "Logging in...")
       try {
-        await doLogin(email, pw)
-        const msg = "ログインしました。"
-        showToastOk(msg, 1200)
-        saveNavToast(msg, 2600)
+        await doLogin(idv, pw)
+        showToastOk("ログインしました。", 1200)
         setTimeout(() => { location.replace(NEXT) }, 250)
       } catch (err) {
         showToastErr(String(err && err.message ? err.message : err), 6200)
@@ -155,8 +160,13 @@ async function boot() {
   }
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", boot)
-} else {
+function init() {
+  initEvents()
   boot()
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init)
+} else {
+  init()
 }
