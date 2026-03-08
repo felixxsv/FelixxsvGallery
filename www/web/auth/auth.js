@@ -6,7 +6,7 @@ const loginPassword = el("authLoginPassword")
 const loginBtn = el("authLoginBtn")
 
 const discordBtn = el("authDiscordBtn")
-const registerLink = el("authRegisterLink")
+const registerCta = el("authRegisterCta")
 
 const NAV_TOAST_KEY = "gallery_nav_toast_v1"
 
@@ -115,8 +115,8 @@ async function boot() {
   const nav = readNavToast()
   if (nav) showToastOk(nav.text, nav.ms)
 
-  if (registerLink) {
-    registerLink.href = `/gallery/auth/register/?next=${encodeURIComponent(NEXT)}`
+  if (registerCta) {
+    registerCta.href = `/gallery/auth/register/?next=${encodeURIComponent(NEXT)}`
   }
 
   try {
