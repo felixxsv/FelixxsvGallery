@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Felixxsv Gallery - Auth</title>
+  <title>VRChat Gallery - Auth</title>
   <link rel="stylesheet" href="/gallery/common.css">
   <link rel="stylesheet" href="/gallery/toast.css">
   <link rel="stylesheet" href="/gallery/auth/auth.css">
@@ -12,108 +12,102 @@
   <header class="hdr">
     <div class="hdr__in">
       <div class="hdr__l">
-        <a class="hdr__title" href="/gallery/">Felixxsv Gallery</a>
-        <div class="authhdr__path">/gallery/auth</div>
+        <a class="hdr__title authbrand" href="/gallery/">
+          <span class="authbrand__icon" aria-hidden="true">📷</span>
+          <span class="authbrand__text">VRChat Gallery</span>
+        </a>
+        <div class="authpath">/gallery/auth</div>
       </div>
       <div class="hdr__r">
-        <a class="authhdr__back" href="/gallery/">← Back to Gallery</a>
+        <a class="authback" href="/gallery/"><span aria-hidden="true">←</span> Back to Gallery</a>
       </div>
     </div>
   </header>
 
   <main class="authmain">
     <div class="authwrap">
-      <section class="authhero" aria-label="Sign in hero">
+      <section class="authhero" aria-label="Auth hero">
         <h1 class="authhero__title">サインインの方法を選択</h1>
-        <p class="authhero__sub">サインイン方法を選んで続行してください。</p>
+        <div class="authhero__sub">サインイン方法を選んで続行してください。</div>
       </section>
 
-      <section class="authgrid" aria-label="Sign in options">
-        <div class="authcard authcard--discord" aria-label="Discord sign in">
-          <div class="authcard__head">
-            <div class="authcard__title">Continue with Discord</div>
-          </div>
-
-          <button id="authDiscordBtn" class="authbtn authbtn--discord" type="button">
-            <span class="authbtn__icon" aria-hidden="true">⟡</span>
-            Discordで続行
+      <section class="authgrid" aria-label="Auth methods">
+        <section class="authbox authbox--discord" aria-label="Discord login">
+          <div class="authbox__cap">Continue with Discord</div>
+          <button id="authDiscordBtn" class="abtn abtn--discord" type="button">
+            <span class="abtn__icon" aria-hidden="true">Discord</span>
+            <span>Discordで続行</span>
           </button>
+          <div class="authbox__note">Discordのアカウントで簡単にサインインできます。</div>
+        </section>
 
-          <div class="authcard__note">Discordのアカウントで簡単にサインインできます。</div>
-        </div>
-
-        <div class="authcard authcard--email" aria-label="Email sign in">
-          <div class="authcard__head">
-            <div class="authcard__title">メールアドレス</div>
-          </div>
+        <section class="authbox authbox--email" aria-label="Email login">
+          <div class="authbox__cap">メールアドレス</div>
 
           <form id="authLoginForm" class="authform" autocomplete="on">
-            <input id="authLoginEmail" class="authinp" name="email" type="email" placeholder="メールアドレス" required maxlength="255" autocomplete="email">
-            <input id="authLoginPassword" class="authinp" name="password" type="password" placeholder="パスワード" required minlength="8" maxlength="200" autocomplete="current-password">
+            <input id="authLoginEmail" class="ainp" name="email" type="email" required maxlength="255" autocomplete="email" placeholder="メールアドレス">
+            <input id="authLoginPassword" class="ainp" name="password" type="password" required minlength="8" maxlength="200" autocomplete="current-password" placeholder="パスワード">
 
-            <button id="authLoginBtn" class="authbtn authbtn--primary" type="submit">ログイン</button>
+            <button id="authLoginBtn" class="abtn abtn--primary" type="submit">ログイン</button>
 
-            <div class="authrow authrow--links">
-              <button id="authForgotBtn" class="authlink" type="button">パスワードをお忘れですか？</button>
-              <button id="authOpenRegister" class="authlink" type="button">新規アカウント作成</button>
+            <div class="authlinks">
+              <button id="authForgotBtn" class="alink" type="button">パスワードをお忘れですか？</button>
+              <button id="authJumpRegister" class="alink" type="button">新規アカウント作成</button>
             </div>
 
-            <div class="authhint">
-              next: <span id="authNextLabel"></span>
-            </div>
+            <div class="authnext">next: <span id="authNextLabel"></span></div>
           </form>
-        </div>
+        </section>
       </section>
 
-      <section class="authcard authcard--register" aria-label="Register">
-        <button id="authRegisterToggle" class="authreghead" type="button" aria-expanded="false" aria-controls="authRegisterPanel">
-          <span class="authreghead__icon" aria-hidden="true">✉</span>
-          <span class="authreghead__text">
-            <span class="authreghead__title">新規アカウント作成</span>
-            <span class="authreghead__sub">メールアドレスを登録して新しいアカウントを作成します。</span>
-          </span>
-          <span class="authreghead__chev" aria-hidden="true">▾</span>
+      <section id="authRegisterBox" class="authbox authbox--register" aria-label="Register">
+        <button id="authRegisterToggle" class="authreghead" type="button">
+          <div class="authreghead__icon" aria-hidden="true">✉</div>
+          <div class="authreghead__txt">
+            <div class="authreghead__title">新規アカウント作成</div>
+            <div class="authreghead__sub">メールアドレスを登録して新しいアカウントを作成します。</div>
+          </div>
         </button>
 
-        <div id="authRegisterPanel" class="authregpanel" aria-hidden="true">
-          <form id="authRegisterForm" class="authform authform--register" autocomplete="on">
-            <div class="authgrid2">
-              <div class="authfield">
-                <label class="authlabel" for="authRegUserKey">User Key</label>
-                <input id="authRegUserKey" class="authinp" name="user_key" type="text" required minlength="4" maxlength="20" autocomplete="username" inputmode="latin" pattern="[A-Za-z][A-Za-z0-9_-]{3,19}">
-                <div class="authsub">4-20文字 / 先頭英字 / 英数字・_・-</div>
+        <div id="authRegisterBody" class="authregbody" aria-hidden="true">
+          <form id="authRegisterForm" class="authform" autocomplete="on">
+            <div class="agrid2">
+              <div class="afield">
+                <div class="alabel">User Key</div>
+                <input id="authRegUserKey" class="ainp" name="user_key" type="text" required minlength="4" maxlength="20" autocomplete="username" inputmode="latin" pattern="[A-Za-z][A-Za-z0-9_-]{3,19}" placeholder="user_key">
+                <div class="asub">4-20文字 / 先頭英字 / 英数字・_・-</div>
               </div>
 
-              <div class="authfield">
-                <label class="authlabel" for="authRegDisplayName">Display Name</label>
-                <input id="authRegDisplayName" class="authinp" name="display_name" type="text" maxlength="128" autocomplete="nickname">
-                <div class="authsub">空の場合は User Key を使用します</div>
+              <div class="afield">
+                <div class="alabel">Display Name</div>
+                <input id="authRegDisplayName" class="ainp" name="display_name" type="text" maxlength="128" autocomplete="nickname" placeholder="任意">
+                <div class="asub">空の場合は User Key を使用します</div>
               </div>
             </div>
 
-            <div class="authfield">
-              <label class="authlabel" for="authRegEmail">Email</label>
-              <input id="authRegEmail" class="authinp" name="email" type="email" required maxlength="255" autocomplete="email">
+            <div class="afield">
+              <div class="alabel">Email</div>
+              <input id="authRegEmail" class="ainp" name="email" type="email" required maxlength="255" autocomplete="email" placeholder="メールアドレス">
             </div>
 
-            <div class="authfield">
-              <label class="authlabel" for="authRegPassword">Password</label>
-              <input id="authRegPassword" class="authinp" name="password" type="password" required minlength="8" maxlength="200" autocomplete="new-password">
+            <div class="afield">
+              <div class="alabel">Password</div>
+              <input id="authRegPassword" class="ainp" name="password" type="password" required minlength="8" maxlength="200" autocomplete="new-password" placeholder="8文字以上">
             </div>
 
-            <div class="authrow">
-              <button id="authRegisterBtn" class="authbtn authbtn--primary" type="submit">登録して続行</button>
-              <button id="authCloseRegister" class="authbtn" type="button">閉じる</button>
+            <div class="authregactions">
+              <button id="authRegisterBtn" class="abtn abtn--primary" type="submit">作成してログイン</button>
+              <button id="authRegisterClose" class="abtn" type="button">閉じる</button>
             </div>
 
-            <div class="authsub authsub--note">Register → 自動ログイン → next へ遷移します</div>
+            <div class="asub">作成後、自動ログインして next に遷移します。</div>
           </form>
         </div>
-
-        <div class="authfoot">
-          <button id="authLogoutBtn" class="authbtn authbtn--danger" type="button" style="display:none">Logout</button>
-        </div>
       </section>
+
+      <div class="authfoot">
+        <button id="authLogoutBtn" class="abtn abtn--danger" type="button" style="display:none">Logout</button>
+      </div>
     </div>
   </main>
 

@@ -1,34 +1,39 @@
 const el = (id) => document.getElementById(id)
 
-const discordBtn = el("authDiscordBtn")
-
-const nextLabel = el("authNextLabel")
-
 const loginForm = el("authLoginForm")
 const loginEmail = el("authLoginEmail")
 const loginPassword = el("authLoginPassword")
 const loginBtn = el("authLoginBtn")
-const openRegisterBtn = el("authOpenRegister")
-const forgotBtn = el("authForgotBtn")
 
-const registerCard = document.querySelector(".authcard--register")
+const discordBtn = el("authDiscordBtn")
+const forgotBtn = el("authForgotBtn")
+const jumpRegisterBtn = el("authJumpRegister")
+
+const regBox = el("authRegisterBox")
 const regToggle = el("authRegisterToggle")
-const regPanel = el("authRegisterPanel")
+const regBody = el("authRegisterBody")
 const regForm = el("authRegisterForm")
 const regUserKey = el("authRegUserKey")
 const regDisplayName = el("authRegDisplayName")
 const regEmail = el("authRegEmail")
 const regPassword = el("authRegPassword")
 const regBtn = el("authRegisterBtn")
-const regCloseBtn = el("authCloseRegister")
+const regCloseBtn = el("authRegisterClose")
 
 const logoutBtn = el("authLogoutBtn")
+const nextLabel = el("authNextLabel")
 
 const NAV_TOAST_KEY = "gallery_nav_toast_v1"
 
 let toastWrap = null
 let toastBox = null
 let toastTimer = null
+
+const AUTH_ME_ENDPOINTS = [
+  "/gallery/api/auth/me",
+  "/gallery/api/me",
+  "/gallery/api/session"
+]
 
 function ensureToast() {
   if (toastWrap && toastBox) return
@@ -105,9 +110,15 @@ function setBusy(btn, on, label) {
 }
 
 async function fetchMe() {
-  const res = await fetch("/gallery/api/auth/me", { method: "GET", cache: "no-store", credentials: "same-origin" })
-  const data = await res.json().catch(() => ({}))
-  return { res, data }
+  for (const url of AUTH_ME_ENDPOINTS) {
+    try {
+      const res = await fetch(url, { method: "GET", cache: "no-store", credentials: "same-origin" })
+      if (res.status === 404) continue
+      const data = await res.json().catch(() => ({}))
+      return { status: res.status, data }
+    } catch (e) {}
+  }
+  return { status: 0, data: null }
 }
 
 async function postForm(url, obj) {
@@ -147,39 +158,67 @@ async function doLogout() {
 }
 
 function openRegister() {
-  if (!registerCard) return
-  registerCard.classList.add("is-open")
-  if (regToggle) regToggle.setAttribute("aria-expanded", "true")
-  if (regPanel) regPanel.setAttribute("aria-hidden", "false")
-  if (regEmail) regEmail.focus()
+  if (!regBody) return
+  regBody.classList.add("is-on")
+  regBody.setAttribute("aria-hidden", "false")
+  requestAnimationFrame(() => {
+    const y = regBox ? regBox.getBoundingClientRect().top + window.scrollY - 18 : window.scrollY
+    window.scrollTo({ top: y, behavior: "smooth" })
+  })
 }
 
 function closeRegister() {
-  if (!registerCard) return
-  registerCard.classList.remove("is-open")
-  if (regToggle) regToggle.setAttribute("aria-expanded", "false")
-  if (regPanel) regPanel.setAttribute("aria-hidden", "true")
+  if (!regBody) return
+  regBody.classList.remove("is-on")
+  regBody.setAttribute("aria-hidden", "true")
 }
 
-function toggleRegister() {
-  if (!registerCard) return
-  if (registerCard.classList.contains("is-open")) closeRegister()
-  else openRegister()
+async function boot() {
+  if (nextLabel) nextLabel.textContent = NEXT
+
+  const nav = readNavToast()
+  if (nav) showToastOk(nav.text, nav.ms)
+
+  const me = await fetchMe()
+  const user = me && me.data ? me.data.user : null
+
+  if (user) {
+    if (logoutBtn) logoutBtn.style.display = "inline-flex"
+    showToastOk("ログイン済みです。", 1200)
+    setTimeout(() => { location.replace(NEXT) }, 250)
+    return
+  }
+
+  if (logoutBtn) logoutBtn.style.display = "none"
 }
 
 function initEvents() {
   if (discordBtn) {
     discordBtn.addEventListener("click", () => {
-      showToastErr("Discordログインは未実装です。", 4200)
+      showToast("Discordログインは準備中です。", 3200, null)
     })
   }
 
-  if (openRegisterBtn) openRegisterBtn.addEventListener("click", openRegister)
-  if (regToggle) regToggle.addEventListener("click", toggleRegister)
-  if (regCloseBtn) regCloseBtn.addEventListener("click", closeRegister)
-
   if (forgotBtn) {
-    forgotBtn.addEventListener("click", () => showToastErr("パスワード再発行は未実装です。", 4200))
+    forgotBtn.addEventListener("click", () => {
+      showToast("パスワード再設定は準備中です。", 3200, null)
+    })
+  }
+
+  if (jumpRegisterBtn) {
+    jumpRegisterBtn.addEventListener("click", () => openRegister())
+  }
+
+  if (regToggle) {
+    regToggle.addEventListener("click", () => {
+      if (!regBody) return
+      if (regBody.classList.contains("is-on")) closeRegister()
+      else openRegister()
+    })
+  }
+
+  if (regCloseBtn) {
+    regCloseBtn.addEventListener("click", () => closeRegister())
   }
 
   if (loginForm) {
@@ -195,7 +234,7 @@ function initEvents() {
       try {
         await doLogin(email, pw)
         showToastOk("ログインしました。", 1200)
-        setTimeout(() => { location.replace(NEXT) }, 260)
+        setTimeout(() => { location.replace(NEXT) }, 250)
       } catch (err) {
         showToastErr(String(err && err.message ? err.message : err), 6200)
       } finally {
@@ -226,7 +265,7 @@ function initEvents() {
         await doRegister(uk, dn, email, pw)
         await doLogin(email, pw)
         showToastOk("登録しました。", 1400)
-        setTimeout(() => { location.replace(NEXT) }, 260)
+        setTimeout(() => { location.replace(NEXT) }, 250)
       } catch (err) {
         showToastErr(String(err && err.message ? err.message : err), 6200)
       } finally {
@@ -241,7 +280,7 @@ function initEvents() {
       try {
         await doLogout()
         showToastOk("ログアウトしました。", 1400)
-        setTimeout(() => { location.replace("/gallery/") }, 260)
+        setTimeout(() => { location.replace("/gallery/") }, 250)
       } catch (err) {
         showToastErr(String(err && err.message ? err.message : err), 6200)
       } finally {
@@ -249,31 +288,6 @@ function initEvents() {
       }
     })
   }
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeRegister()
-  })
-}
-
-async function boot() {
-  if (nextLabel) nextLabel.textContent = NEXT
-
-  const nav = readNavToast()
-  if (nav) showToastOk(nav.text, nav.ms)
-
-  try {
-    const { res, data } = await fetchMe()
-    const user = data ? data.user : null
-
-    if (res.ok && user) {
-      if (logoutBtn) logoutBtn.style.display = "inline-flex"
-      showToastOk("ログイン済みです。", 1200)
-      setTimeout(() => { location.replace(NEXT) }, 260)
-      return
-    }
-  } catch (e) {}
-
-  if (logoutBtn) logoutBtn.style.display = "none"
 }
 
 function init() {
