@@ -13,7 +13,7 @@ import base64
 import hmac
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request, Response
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 import pymysql
 from pymysql.err import IntegrityError
 import tomllib
@@ -379,6 +379,11 @@ def _require_user(req: Request) -> dict:
     return u
 
 
+def _upload_requires_login(conf: dict) -> bool:
+    auth = conf.get("auth") or {}
+    return bool(auth.get("upload_requires_login") or False)
+
+
 app = FastAPI()
 
 CONF_PATH = os.environ.get("GALLERY_CONFIG", "/etc/felixxsv-gallery/gallery.conf")
@@ -400,35 +405,13 @@ def palette():
     return {"items": _palette_from_conf(CONF)}
 
 
-def _auth_me_payload(req: Request) -> dict:
-    auth = CONF.get("auth") or {}
-    upload_requires_login = bool(auth.get("upload_requires_login") or False)
-    u = _get_current_user(req)
-    return {"ok": True, "user": u, "upload_requires_login": upload_requires_login}
-
-
 @app.get("/api/auth/me")
 def auth_me(req: Request):
-    payload = _auth_me_payload(req)
-    if payload["user"] is None and payload.get("upload_requires_login"):
-        return JSONResponse(status_code=401, content=payload)
-    return payload
-
-
-@app.get("/api/me")
-def me(req: Request):
-    payload = _auth_me_payload(req)
-    if payload["user"] is None and payload.get("upload_requires_login"):
-        return JSONResponse(status_code=401, content=payload)
-    return payload
-
-
-@app.get("/api/session")
-def session(req: Request):
-    payload = _auth_me_payload(req)
-    if payload["user"] is None and payload.get("upload_requires_login"):
-        return JSONResponse(status_code=401, content=payload)
-    return payload
+    upload_requires_login = _upload_requires_login(CONF)
+    u = _get_current_user(req)
+    if upload_requires_login and not u:
+        raise HTTPException(status_code=401, detail="login required")
+    return {"ok": True, "user": u, "upload_requires_login": upload_requires_login}
 
 
 @app.post("/api/auth/register")
@@ -742,9 +725,14 @@ def upload_images(
     is_public: str = Form("true"),
     files: list[UploadFile] = File(...),
 ):
-    u = _require_user(req)
-    if not u.get("can_upload"):
-        raise HTTPException(status_code=403, detail="upload not allowed")
+    upload_requires_login = _upload_requires_login(CONF)
+    u = _get_current_user(req)
+
+    if upload_requires_login:
+        if not u:
+            raise HTTPException(status_code=401, detail="login required")
+        if not u.get("can_upload"):
+            raise HTTPException(status_code=403, detail="upload not allowed")
 
     t = str(title or "").strip()
     if not t:
@@ -818,18 +806,20 @@ def upload_images(
                 except (UnidentifiedImageError, OSError):
                     raise HTTPException(status_code=400, detail=f"invalid image: {name}")
 
-                staged.append({
-                    "index": idx,
-                    "filename": name,
-                    "shot_at": shot_at,
-                    "ext": ext,
-                    "tmp_path": tmp_path,
-                    "sha_hex": sha_hex,
-                    "size_bytes": int(size),
-                    "width": int(w),
-                    "height": int(h2),
-                    "format": str(fmt),
-                })
+                staged.append(
+                    {
+                        "index": idx,
+                        "filename": name,
+                        "shot_at": shot_at,
+                        "ext": ext,
+                        "tmp_path": tmp_path,
+                        "sha_hex": sha_hex,
+                        "size_bytes": int(size),
+                        "width": int(w),
+                        "height": int(h2),
+                        "format": str(fmt),
+                    }
+                )
 
             uniq_hashes = sorted({x["sha_hex"] for x in staged})
 
@@ -854,12 +844,14 @@ def upload_images(
                 seen.add(sha)
                 if dup:
                     any_dup = True
-                items.append({
-                    "index": int(x["index"]),
-                    "filename": x["filename"],
-                    "duplicate": bool(dup),
-                    "existing_id": exid,
-                })
+                items.append(
+                    {
+                        "index": int(x["index"]),
+                        "filename": x["filename"],
+                        "duplicate": bool(dup),
+                        "existing_id": exid,
+                    }
+                )
 
             if any_dup:
                 return {"ok": True, "has_duplicates": True, "count": 0, "items": items}
@@ -910,14 +902,38 @@ def upload_images(
                     st = abs_path.stat()
                     mtime_epoch = int(st.st_mtime)
 
-                    img_cols_list = ["gallery","shot_at","title","alt","width","height","format","thumb_path_480","thumb_path_960","preview_path","content_hash"]
-                    img_vals = [GALLERY, shot_at, t, str(alt or ""), x["width"], x["height"], x["format"], "", "", "", x["sha_hex"]]
+                    img_cols_list = [
+                        "gallery",
+                        "shot_at",
+                        "title",
+                        "alt",
+                        "width",
+                        "height",
+                        "format",
+                        "thumb_path_480",
+                        "thumb_path_960",
+                        "preview_path",
+                        "content_hash",
+                    ]
+                    img_vals = [
+                        GALLERY,
+                        shot_at,
+                        t,
+                        str(alt or ""),
+                        x["width"],
+                        x["height"],
+                        x["format"],
+                        "",
+                        "",
+                        "",
+                        x["sha_hex"],
+                    ]
 
                     if "is_public" in img_cols:
                         img_cols_list.append("is_public")
                         img_vals.append(1 if is_pub else 0)
 
-                    if "uploader_user_id" in img_cols:
+                    if "uploader_user_id" in img_cols and u is not None:
                         img_cols_list.append("uploader_user_id")
                         img_vals.append(int(u["id"]))
 
@@ -946,8 +962,28 @@ def upload_images(
                             (t480_rel, t960_rel, prev_rel, image_id, GALLERY),
                         )
 
-                    src_cols_list = ["gallery","image_id","source_path","size_bytes","mtime_epoch","content_hash","is_primary","is_hidden","status"]
-                    src_vals = [GALLERY, image_id, rel_path, int(x["size_bytes"]), int(mtime_epoch), x["sha_hex"], 1, 0, 0]
+                    src_cols_list = [
+                        "gallery",
+                        "image_id",
+                        "source_path",
+                        "size_bytes",
+                        "mtime_epoch",
+                        "content_hash",
+                        "is_primary",
+                        "is_hidden",
+                        "status",
+                    ]
+                    src_vals = [
+                        GALLERY,
+                        image_id,
+                        rel_path,
+                        int(x["size_bytes"]),
+                        int(mtime_epoch),
+                        x["sha_hex"],
+                        1,
+                        0,
+                        0,
+                    ]
                     if "sha256" in src_cols:
                         src_cols_list.append("sha256")
                         src_vals.append(x["sha_hex"])
@@ -982,7 +1018,14 @@ def upload_images(
                                 vals2,
                             )
 
-                    created_items.append({"index": int(x["index"]), "filename": x["filename"], "duplicate": False, "image_id": image_id})
+                    created_items.append(
+                        {
+                            "index": int(x["index"]),
+                            "filename": x["filename"],
+                            "duplicate": False,
+                            "image_id": image_id,
+                        }
+                    )
 
                 conn.commit()
                 conn.autocommit(True)
