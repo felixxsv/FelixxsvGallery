@@ -10,14 +10,28 @@
 </head>
 <body>
   <header class="hdr">
-    <div class="hdr__left">
-      <div class="logo">Felixxsv Gallery</div>
-      <input class="search hdrctrl" type="search" placeholder="Search (later)">
-    </div>
-    <div class="hdr__right" id="colBtns">
-      <button class="btn hdrbtn" data-cols="1" aria-label="1 column">▮</button>
-      <button class="btn hdrbtn is-on" data-cols="2" aria-label="2 columns">▮▮</button>
-      <button class="btn hdrbtn" data-cols="3" aria-label="3 columns">▮▮▮</button>
+    <div class="hdr__in">
+      <div class="hdr__l">
+        <a class="hdr__brand" href="/gallery/">
+          <span class="hdr__mark" aria-hidden="true">F</span>
+          <span class="hdr__brandtext">Felixxsv Gallery</span>
+        </a>
+      </div>
+  
+      <div class="hdr__c">
+        <div class="search">
+          <input id="searchInput" class="search__inp" type="text" placeholder="Search..." autocomplete="off">
+          <button id="searchClear" class="search__x" type="button" aria-label="Clear">×</button>
+        </div>
+      </div>
+  
+      <div class="hdr__r">
+        <div id="colBtns" class="cols">
+          <button class="btn is-on" type="button" data-cols="1">1</button>
+          <button class="btn" type="button" data-cols="2">2</button>
+          <button class="btn" type="button" data-cols="3">3</button>
+        </div>
+      </div>
     </div>
   </header>
 
