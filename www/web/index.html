@@ -6,171 +6,155 @@
   <title>Felixxsv Gallery</title>
   <link rel="stylesheet" href="/gallery/common.css">
   <link rel="stylesheet" href="/gallery/home.css">
-  <link rel="stylesheet" href="/gallery/toast.css">
 </head>
 <body>
   <header class="hdr">
-    <div class="hdr__in">
-      <div class="hdr__l">
-        <a class="hdr__brand" href="/gallery/">
-          <span class="hdr__mark" aria-hidden="true">F</span>
-          <span class="hdr__brandtext">Felixxsv Gallery</span>
+    <div class="hdr__inner">
+      <div class="hdr__left">
+        <a class="hdr__logo" href="/gallery/">
+          <span class="hdr__mark" aria-hidden="true"></span>
+          <span class="hdr__title">Felixxsv Gallery</span>
         </a>
+        <div class="hdr__crumb">Home</div>
       </div>
-  
-      <div class="hdr__c">
-        <div class="search">
-          <input id="searchInput" class="search__inp" type="text" placeholder="Search..." autocomplete="off">
-          <button id="searchClear" class="search__x" type="button" aria-label="Clear">×</button>
-        </div>
-      </div>
-  
-      <div class="hdr__r">
-        <div id="colBtns" class="cols">
-          <button class="btn is-on" type="button" data-cols="1">1</button>
-          <button class="btn" type="button" data-cols="2">2</button>
-          <button class="btn" type="button" data-cols="3">3</button>
-        </div>
+      <div class="hdr__right">
+        <a class="hdrbtn" href="/gallery/upload/" aria-label="Upload">⤴</a>
+        <a class="hdrbtn" href="/gallery/auth/" aria-label="Auth">👤</a>
       </div>
     </div>
   </header>
 
-  <main class="main">
-    <div class="side-tab" id="sideTab" aria-label="open sidebar" title="Open filters">
-      <div class="side-tab__icon">⚙</div>
-    </div>
-
-    <aside class="side" id="sidebar">
+  <div class="home">
+    <aside id="sidebar" class="side glass">
       <div class="side__top">
-        <div class="side__title">Filter</div>
-        <button class="side__close" id="sideClose" aria-label="close">×</button>
+        <div class="side__title">Filters</div>
+        <button id="sideClose" class="hdrbtn" type="button" aria-label="Close">×</button>
       </div>
 
-      <div class="side__body">
-        <div class="block">
-          <div class="block__label">Per page (PC)</div>
-          <div class="cselect" id="perPageSelect">
-            <button class="cselect__btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-              <span class="cselect__value" id="perPageValue">100</span>
-              <span class="cselect__chev">▾</span>
-            </button>
-            <div class="cselect__menu" role="listbox">
-              <button class="cselect__opt" type="button" data-value="50">50</button>
-              <button class="cselect__opt" type="button" data-value="100">100</button>
-              <button class="cselect__opt" type="button" data-value="150">150</button>
-              <button class="cselect__opt" type="button" data-value="200">200</button>
-            </div>
+      <div class="side__section">
+        <div class="side__label">Columns</div>
+        <div id="colBtns" class="seg">
+          <button class="btn btn-ghost" type="button" data-cols="1">1</button>
+          <button class="btn btn-ghost is-on" type="button" data-cols="2">2</button>
+          <button class="btn btn-ghost" type="button" data-cols="3">3</button>
+        </div>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Per Page</div>
+        <div id="perPageSelect" class="cselect">
+          <button class="cselect__btn btn" type="button" aria-expanded="false">
+            <span id="perPageValue">100</span>
+            <span class="cselect__caret">▾</span>
+          </button>
+          <div class="cselect__menu">
+            <button class="cselect__opt is-on" type="button" data-value="100">100</button>
+            <button class="cselect__opt" type="button" data-value="50">50</button>
+            <button class="cselect__opt" type="button" data-value="150">150</button>
+            <button class="cselect__opt" type="button" data-value="200">200</button>
           </div>
         </div>
+      </div>
 
-        <div class="block">
-          <div class="block__label">Tags</div>
-
-          <div class="tagmode">
-            <button class="tbtn is-on" id="tagModeOr" type="button">OR</button>
-            <button class="tbtn" id="tagModeAnd" type="button">AND</button>
-          </div>
-
-          <div class="tagselected" id="tagSelected"></div>
-
-          <div class="taglistwrap">
-            <div class="taglist" id="tagList"></div>
-          </div>
-
-          <button class="moreline" id="tagMore" type="button" style="display:none">More</button>
-        </div>
-
-        <div class="block">
-          <div class="block__label">Colors (top3)</div>
-
-          <div class="tagmode">
-            <button class="tbtn is-on" id="colorModeOr" type="button">OR</button>
-            <button class="tbtn" id="colorModeAnd" type="button">AND</button>
-          </div>
-
-          <div class="tagselected" id="colorSelected"></div>
-
-          <div class="colorwrap">
-            <div class="colorlist" id="colorList"></div>
+      <div class="side__section">
+        <div class="side__label">Sort</div>
+        <div id="sortSelect" class="cselect">
+          <button class="cselect__btn btn" type="button" aria-expanded="false">
+            <span id="sortValue">Latest</span>
+            <span class="cselect__caret">▾</span>
+          </button>
+          <div class="cselect__menu">
+            <button class="cselect__opt is-on" type="button" data-value="latest">Latest</button>
+            <button class="cselect__opt" type="button" data-value="oldest">Oldest</button>
+            <button class="cselect__opt" type="button" data-value="popular">Popular</button>
           </div>
         </div>
+      </div>
 
-        <div class="block">
-          <div class="block__label">Date</div>
-          <div class="dategrid">
-            <div class="datefield">
-              <div class="datelabel">From</div>
-              <input class="dateinp" id="dateFrom" type="date">
-            </div>
-            <div class="datefield">
-              <div class="datelabel">To</div>
-              <input class="dateinp" id="dateTo" type="date">
-            </div>
-          </div>
-          <button class="clearline" id="dateClear" type="button">Clear</button>
+      <div class="side__section">
+        <div class="side__label">Search</div>
+        <div class="searchrow">
+          <input id="searchInput" class="inp" type="text" placeholder="title / alt / tags">
+          <button id="searchClear" class="hdrbtn" type="button" aria-label="Clear">×</button>
         </div>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Date</div>
+        <div class="daterow">
+          <input id="dateFrom" class="inp" type="date">
+          <input id="dateTo" class="inp" type="date">
+        </div>
+        <button id="dateClear" class="btn" type="button">Clear</button>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Tags</div>
+        <div class="seg">
+          <button id="tagModeOr" class="btn btn-ghost is-on" type="button">OR</button>
+          <button id="tagModeAnd" class="btn btn-ghost" type="button">AND</button>
+        </div>
+        <div id="tagSelected" class="chips"></div>
+        <div id="tagList" class="taglist"></div>
+        <button id="tagMore" class="btn btn-ghost" type="button" style="display:none">More</button>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Colors</div>
+        <div class="seg">
+          <button id="colorModeOr" class="btn btn-ghost is-on" type="button">OR</button>
+          <button id="colorModeAnd" class="btn btn-ghost" type="button">AND</button>
+        </div>
+        <div id="colorSelected" class="chips"></div>
+        <div id="colorList" class="colorlist"></div>
       </div>
     </aside>
 
-    <div class="content" id="content">
-      <div class="toprow">
-        <div class="toprow__left">
-          <div class="titleline" id="titleline">All Images</div>
+    <button id="sideTab" class="sidetab btn btn-ghost" type="button">Filters</button>
 
-          <div class="sortwrap">
-            <div class="sortlabel">Sort</div>
-            <div class="cselect" id="sortSelect">
-              <button class="cselect__btn" type="button" aria-expanded="false">
-                <span class="cselect__value" id="sortValue">Latest</span>
-                <span class="cselect__chev">▾</span>
-              </button>
-              <div class="cselect__menu" role="menu">
-                <button class="cselect__opt" data-value="latest" type="button">Latest</button>
-                <button class="cselect__opt" data-value="oldest" type="button">Oldest</button>
-                <button class="cselect__opt is-on" data-value="popular" type="button">Popular</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="pager" id="pagerTop"></div>
+    <main class="main">
+      <div class="main__top">
+        <div id="titleline" class="titleline">All Images</div>
+        <div id="pagerTop" class="pager"></div>
       </div>
 
-      <div class="grid cols-2" id="grid"></div>
+      <div id="grid" class="grid cols-2"></div>
 
-      <div class="pager pager--bottom" id="pagerBottom"></div>
-    </div>
-  </main>
+      <div class="main__bottom">
+        <div id="pagerBottom" class="pager"></div>
+      </div>
+    </main>
+  </div>
 
-  <div class="lightbox" id="lightbox" aria-hidden="true">
-    <div class="lb__bg" id="lbBg"></div>
-    <img class="lb__img" id="lbImg" alt="">
-    <button class="lb__x" id="lbX" aria-label="close">×</button>
-    <div class="lb__bar" id="lbBar">
-      <div class="lb__meta" id="lbMeta"></div>
-      <button class="lb__more" id="lbMore" aria-label="details">…</button>
+  <div id="lightbox" class="lb" aria-hidden="true">
+    <div id="lbBg" class="lb__bg"></div>
+    <img id="lbImg" class="lb__img" alt="">
+    <button id="lbX" class="lb__x" type="button" aria-label="Close">×</button>
+    <div class="lb__bar">
+      <div id="lbMeta" class="lb__meta"></div>
+      <button id="lbMore" class="btn btn-ghost" type="button">Info</button>
     </div>
   </div>
 
-  <div class="modal" id="modal" aria-hidden="true">
-    <div class="modal__bg" id="mBg"></div>
+  <div id="modal" class="modal" aria-hidden="true">
+    <div id="mBg" class="modal__bg"></div>
     <div class="modal__panel">
       <div class="modal__top">
-        <div class="modal__title" id="mTitle">Details</div>
-        <button class="modal__x" id="mX" aria-label="close">×</button>
+        <div class="modal__title">Details</div>
+        <button id="mX" class="modal__close" type="button" aria-label="Close">×</button>
       </div>
-      <div class="modal__body" id="mBody"></div>
+      <div id="mBody" class="modal__body"></div>
     </div>
   </div>
 
-  <div class="tagmodal" id="tagModal" aria-hidden="true">
-    <div class="tagmodal__bg" id="tmBg"></div>
-    <div class="tagmodal__panel">
-      <div class="tagmodal__top">
-        <div class="tagmodal__title">Tags</div>
-        <button class="tagmodal__x" id="tmX" aria-label="close">×</button>
+  <div id="tagModal" class="modal" aria-hidden="true">
+    <div id="tmBg" class="modal__bg"></div>
+    <div class="modal__panel">
+      <div class="modal__top">
+        <div class="modal__title">Tags</div>
+        <button id="tmX" class="modal__close" type="button" aria-label="Close">×</button>
       </div>
-      <div class="tagmodal__body" id="tmBody"></div>
+      <div id="tmBody" class="modal__body"></div>
     </div>
   </div>
 

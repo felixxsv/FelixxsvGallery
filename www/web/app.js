@@ -59,9 +59,6 @@ const LS_VIEWED = "gallery_viewed_v1"
 const VIEW_TTL_MS = 24 * 60 * 60 * 1000
 const VIEW_MAX = 3000
 
-const NAV_TOAST_KEY = "gallery_nav_toast_v1"
-const NAV_TOAST_MAX_AGE_MS = 30 * 1000
-
 let viewedCache = null
 
 let PALETTE = [
@@ -106,48 +103,6 @@ let lbXHideTimer = null
 let lbTapToggle = true
 
 const viewedOnce = new Set()
-
-let navToastWrap = null
-let navToastBox = null
-let navToastTimer = null
-
-function ensureNavToastEl() {
-  if (navToastWrap && navToastBox) return
-  navToastWrap = document.createElement("div")
-  navToastWrap.className = "uptoastwrap"
-  navToastBox = document.createElement("div")
-  navToastBox.className = "uptoast"
-  navToastWrap.appendChild(navToastBox)
-  document.body.appendChild(navToastWrap)
-}
-
-function showNavToast(text, ms) {
-  const s = String(text || "").trim()
-  if (!s) return
-  ensureNavToastEl()
-  navToastBox.textContent = s
-  navToastBox.classList.remove("is-off")
-  navToastBox.classList.add("is-on")
-  if (navToastTimer) clearTimeout(navToastTimer)
-  const dur = Number(ms) > 0 ? Number(ms) : 3200
-  navToastTimer = setTimeout(() => {
-    navToastBox.classList.remove("is-on")
-    navToastBox.classList.add("is-off")
-  }, dur)
-}
-
-function consumeNavToast() {
-  try {
-    const raw = sessionStorage.getItem(NAV_TOAST_KEY)
-    if (!raw) return
-    sessionStorage.removeItem(NAV_TOAST_KEY)
-    const v = JSON.parse(raw)
-    if (!v || typeof v !== "object") return
-    const at = Number(v.at || 0)
-    if (at && (Date.now() - at) > NAV_TOAST_MAX_AGE_MS) return
-    showNavToast(String(v.text || ""), Number(v.ms || 3200))
-  } catch (e) {}
-}
 
 function isMobile() {
   return window.matchMedia("(max-width: 920px)").matches
@@ -1019,8 +974,6 @@ async function init() {
 
   renderSelectedTags()
   renderSelectedColors()
-
-  consumeNavToast()
 
   load()
 }
