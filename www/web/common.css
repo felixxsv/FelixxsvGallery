@@ -162,13 +162,11 @@ img{max-width:100%;display:block}
   background:rgba(255,255,255,.04);
   cursor:pointer;
   transition:background .18s ease, border-color .18s ease;
-  text-decoration:none;
 }
 
 :where(.hdrbtn:hover){
   background:rgba(255,255,255,.08);
   border-color:rgba(255,255,255,.18);
-  text-decoration:none;
 }
 
 :where(.inp){
@@ -335,29 +333,11 @@ img{max-width:100%;display:block}
   min-width:0;
 }
 
-:where(.hdr__logo){
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  min-width:0;
-  text-decoration:none;
-}
-
-:where(.hdr__mark){
-  width:34px;
-  height:34px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.06);
-  flex:0 0 auto;
-}
-
 :where(.hdr__title){
-  font-weight:900;
-  font-size:18px;
+  font-weight:800;
+  font-size:16px;
   letter-spacing:.02em;
   white-space:nowrap;
-  margin:0;
 }
 
 :where(.hdr__crumb){
@@ -368,6 +348,5 @@ img{max-width:100%;display:block}
 
 @media (max-width:920px){
   :root{--hdr-h:60px}
-  :where(.hdr__title){font-size:16px}
-  :where(.hdr__mark){width:32px;height:32px;border-radius:12px}
+  :where(.hdr__title){font-size:15px}
 }
