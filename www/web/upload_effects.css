@@ -1,14 +1,7 @@
-.upthumb{position:relative}
-
-.upthumb.is-dup::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border:2px solid rgba(255,80,80,.92);
-  border-radius:12px;
+.upthumb.is-dup{
+  outline:2px solid rgba(255,80,80,.92);
+  outline-offset:-2px;
   box-shadow:0 0 0 3px rgba(255,80,80,.16);
-  pointer-events:none;
-  z-index:2;
 }
 
 .upthumb.is-dup::after{
@@ -16,7 +9,6 @@
   position:absolute;
   left:10px;
   top:10px;
-  z-index:4;
   padding:4px 8px;
   border-radius:999px;
   border:1px solid rgba(255,80,80,.35);
@@ -24,30 +16,6 @@
   color:#e7eef7;
   font-size:11px;
   letter-spacing:.02em;
-  pointer-events:none;
-}
-
-.upthumb__rm{
-  opacity:0;
-  pointer-events:none;
-  transition:opacity .12s ease, transform .12s ease;
-  transform:translateY(-2px);
-}
-
-.upthumb:hover .upthumb__rm{
-  opacity:1;
-  pointer-events:auto;
-  transform:translateY(0);
-}
-
-.upthumb__img{
-  pointer-events:none;
-  -webkit-user-drag:none;
-  user-select:none;
-}
-
-.upstrip.is-dragging{
-  scroll-snap-type:none;
 }
 
 #upSubmit.is-loading{
@@ -73,8 +41,6 @@
   to{transform:translate(-50%,-50%) rotate(360deg)}
 }
 
-.upvis__btn{
-  padding:6px 10px;
-  border-radius:12px;
-  font-size:12px;
+.upstrip.is-dragging{
+  scroll-snap-type:none;
 }

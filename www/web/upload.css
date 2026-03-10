@@ -1,7 +1,4 @@
-:root{--hdr-h:65px;--up-pad:clamp(18px,3vw,28px);--inp-h:44px}
-
-.upcrumb{opacity:.7;font-size:12px;white-space:nowrap}
-.hdrbtn{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center}
+:root{--up-pad:clamp(18px,3vw,28px)}
 
 @media (min-width: 921px){
   html,body{height:100%}
@@ -137,6 +134,7 @@
   background:rgba(0,0,0,.25);
   color:#e7eef7;
   opacity:0;
+  cursor:pointer;
 }
 .upthumb:hover .upthumb__rm{opacity:1}
 
@@ -213,7 +211,6 @@
   height:78px;
 }
 
-/* TAG UI */
 .uptagbox{
   position:relative;
   display:flex;
@@ -251,7 +248,7 @@
   flex:0 0 auto;
 }
 .uptagchip{display:inline-flex;align-items:center;gap:8px;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);font-size:12px;white-space:nowrap}
-.uptagchip button{width:18px;height:18px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;line-height:1;font-size:12px;padding:0}
+.uptagchip button{width:18px;height:18px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;line-height:1;font-size:12px;padding:0;cursor:pointer}
 
 .uptaginp{
   flex:1 1 auto;
@@ -277,6 +274,7 @@
   align-items:center;
   justify-content:center;
   flex:0 0 auto;
+  cursor:pointer;
 }
 .uptagadd:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22)}
 
@@ -289,7 +287,6 @@
 }
 .uptagbackdrop.is-on{display:block}
 
-/* Popover base */
 .uptagsug{
   border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
@@ -315,7 +312,6 @@
   pointer-events:none;
 }
 
-/* Small popover: anchor to tag box (ABSOLUTE) */
 .uptagsug.is-small{
   position:absolute;
   right:0;
@@ -324,7 +320,6 @@
   display:block;
 }
 
-/* Arrow */
 .uptagsug.uptagsug--popover::before{
   content:"";
   position:absolute;
@@ -338,7 +333,6 @@
   border-bottom:1px solid rgba(255,255,255,.12);
 }
 
-/* Expanded: center modal */
 .uptagsug.is-expanded{
   position:fixed;
   left:50%;
@@ -372,6 +366,7 @@
   color:#e7eef7;
   font-size:18px;
   line-height:1;
+  cursor:pointer;
 }
 
 .uptagrow{
@@ -441,10 +436,9 @@
   color:#e7eef7;
   opacity:.85;
   min-width:92px;
+  cursor:pointer;
 }
 .upvis__btn.is-on{background:rgba(255,255,255,.12);opacity:1}
-
-.upmsg{font-size:12px;opacity:.9;min-height:18px}
 
 .upbottom{
   margin-top:auto;
@@ -456,37 +450,7 @@
 }
 .upactions{display:flex;gap:10px;align-items:center}
 .upbtn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e7eef7;text-decoration:none;min-width:120px}
-.upbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.12)}
-
-.uptoastwrap{
-  position:fixed;
-  left:50%;
-  top:calc(var(--hdr-h) + 14px);
-  transform:translateX(-50%);
-  z-index:300;
-  pointer-events:none;
-}
-.uptoast{
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  padding:10px 12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(14,18,26,.92);
-  backdrop-filter:blur(12px);
-  box-shadow:0 16px 40px rgba(0,0,0,.55);
-  opacity:0;
-  transform:translateY(-6px);
-  transition:opacity .18s ease, transform .18s ease;
-  font-size:12px;
-  color:#e7eef7;
-  max-width:min(720px,92vw);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.uptoast.is-on{opacity:1;transform:translateY(0)}
+.upbtn--primary{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.12);cursor:pointer}
 
 @media (max-width: 920px){
   body{overflow:auto}

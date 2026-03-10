@@ -5,112 +5,60 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Felixxsv Gallery - Auth</title>
   <link rel="stylesheet" href="/gallery/common.css">
-  <link rel="stylesheet" href="/gallery/toast.css">
   <link rel="stylesheet" href="/gallery/auth.css">
-  <script defer src="/gallery/auth.js"></script>
+  <link rel="stylesheet" href="/gallery/toast.css">
 </head>
 <body>
   <header class="hdr">
-    <div class="hdr__in">
-      <div class="hdr__l">
-        <a class="hdr__brand" href="/gallery/" aria-label="Home">
-          <span class="hdr__mark" aria-hidden="true">F</span>
+    <div class="hdr__inner">
+      <div class="hdr__left">
+        <a class="hdr__logo" href="/gallery/">
+          <span class="hdr__mark" aria-hidden="true"></span>
+          <span class="hdr__title">Felixxsv Gallery</span>
         </a>
+        <div class="hdr__crumb">Auth</div>
       </div>
-  
-      <div class="hdr__c">
-        <div class="hdr__title">Felixxsv Gallery</div>
-      </div>
-  
-      <div class="hdr__r">
-        <a class="hdr__back" href="/gallery/">
-          <span class="hdr__backarrow">←</span>
-          <span>戻る</span>
-        </a>
+      <div class="hdr__right">
+        <a class="hdrbtn" href="/gallery/" aria-label="Back">←</a>
       </div>
     </div>
   </header>
 
-  <main class="authmain">
-    <section class="authcard" aria-label="Authentication">
-      <div class="authtop">
-        <div class="authtitle">Account</div>
-        <div class="authhint" id="authHint"></div>
+  <main class="auth">
+    <div class="authcard glass-strong">
+      <div class="authtabs">
+        <button id="tabLogin" class="btn btn-ghost is-on" type="button">Login</button>
+        <button id="tabRegister" class="btn btn-ghost" type="button">Register</button>
       </div>
 
-      <div class="authtabs" role="tablist" aria-label="Auth Tabs">
-        <button type="button" class="authtab is-on" id="tabLogin" role="tab" aria-selected="true">Login</button>
-        <button type="button" class="authtab" id="tabRegister" role="tab" aria-selected="false">Create</button>
+      <div id="paneLogin" class="authpane is-on">
+        <div class="label">Email</div>
+        <input id="loginEmail" class="inp" type="email" autocomplete="email">
+
+        <div class="label">Password</div>
+        <input id="loginPass" class="inp" type="password" autocomplete="current-password">
+
+        <button id="loginBtn" class="btn btn-primary authbtn" type="button">Login</button>
       </div>
 
-      <div class="authpanel is-on" id="panelLogin" role="tabpanel" aria-labelledby="tabLogin">
-        <form id="loginForm" class="authform" autocomplete="on">
-          <div class="authfield">
-            <label class="authlabel" for="loginEmail">Email</label>
-            <input class="authinp" id="loginEmail" name="email" type="email" inputmode="email" autocomplete="email" required>
-          </div>
+      <div id="paneRegister" class="authpane">
+        <div class="label">Email</div>
+        <input id="regEmail" class="inp" type="email" autocomplete="email">
 
-          <div class="authfield">
-            <label class="authlabel" for="loginPassword">Password</label>
-            <input class="authinp" id="loginPassword" name="password" type="password" autocomplete="current-password" required>
-          </div>
+        <div class="label">User Key</div>
+        <input id="regKey" class="inp" type="text" placeholder="4-20 chars (A-Za-z0-9_-)" autocomplete="username">
 
-          <div class="authactions">
-            <button type="submit" class="authbtn authbtn--primary" id="loginBtn">Login</button>
-            <button type="button" class="authbtn" id="loginDiscordBtn">Discord</button>
-          </div>
-        </form>
+        <div class="label">Display Name</div>
+        <input id="regName" class="inp" type="text">
+
+        <div class="label">Password</div>
+        <input id="regPass" class="inp" type="password" autocomplete="new-password">
+
+        <button id="regBtn" class="btn btn-primary authbtn" type="button">Create</button>
       </div>
-
-      <div class="authpanel" id="panelRegister" role="tabpanel" aria-labelledby="tabRegister">
-        <form id="registerForm" class="authform" autocomplete="on">
-          <div class="authfield">
-            <label class="authlabel" for="regEmail">Email</label>
-            <input class="authinp" id="regEmail" name="email" type="email" inputmode="email" autocomplete="email" required>
-          </div>
-
-          <div class="authfield">
-            <label class="authlabel" for="regPassword">Password</label>
-            <input class="authinp" id="regPassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
-          </div>
-
-          <div class="authfield">
-            <label class="authlabel" for="regUserKey">User Key</label>
-            <input class="authinp" id="regUserKey" name="user_key" type="text" autocomplete="username" required>
-            <div class="authsmall">4〜20文字: 英字開始 / 英数 _ -</div>
-          </div>
-
-          <div class="authfield">
-            <label class="authlabel" for="regDisplayName">Display Name</label>
-            <input class="authinp" id="regDisplayName" name="display_name" type="text" autocomplete="nickname">
-          </div>
-
-          <div class="authactions">
-            <button type="submit" class="authbtn authbtn--primary" id="regBtn">Create</button>
-            <button type="button" class="authbtn" id="regDiscordBtn">Discord</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="authme" id="authMeBox" aria-hidden="true">
-        <div class="authme__row">
-          <div class="authme__label">Signed in as</div>
-          <div class="authme__value" id="meName"></div>
-        </div>
-        <div class="authme__row">
-          <div class="authme__label">Email</div>
-          <div class="authme__value" id="meEmail"></div>
-        </div>
-        <div class="authme__row">
-          <div class="authme__label">Role</div>
-          <div class="authme__value" id="meRole"></div>
-        </div>
-        <div class="authactions authactions--me">
-          <button type="button" class="authbtn" id="logoutBtn">Logout</button>
-          <button type="button" class="authbtn authbtn--primary" id="goNextBtn">Continue</button>
-        </div>
-      </div>
-    </section>
+    </div>
   </main>
+
+  <script src="/gallery/auth.js"></script>
 </body>
 </html>

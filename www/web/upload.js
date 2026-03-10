@@ -1147,31 +1147,22 @@ async function fetchMeOnce(url) {
   return res
 }
 
-function hasOwn(obj, key) {
-  return !!obj && Object.prototype.hasOwnProperty.call(obj, key)
-}
-
-function pickUserFromData(data) {
-  if (!data || typeof data !== "object") return null
-  if (hasOwn(data, "user")) return data.user
-  if (hasOwn(data, "id") || hasOwn(data, "email") || hasOwn(data, "name")) return data
-  return null
-}
-
-function pickRequiresLoginFromData(data) {
-  if (!data || typeof data !== "object") return false
-  if (data.upload_requires_login === true) return true
-  if (data.requires_login === true) return true
-  if (data.require_login === true) return true
-  return false
-}
-
 async function requireLoginOrRedirect() {
   for (const url of AUTH_ME_ENDPOINTS) {
     try {
       const res = await fetchMeOnce(url)
-
       if (res.status === 404) continue
+
+      if (res.status === 200) {
+        const data = await res.json().catch(() => ({}))
+        const user = data && data.user ? data.user : null
+        const need = !!(data && data.upload_requires_login)
+        if (need && !user) {
+          gotoAuth()
+          return false
+        }
+        return true
+      }
 
       if (res.status === 401) {
         gotoAuth()
@@ -1179,23 +1170,9 @@ async function requireLoginOrRedirect() {
       }
 
       if (res.status === 403) {
-        if (document && document.body) document.body.style.visibility = ""
         showToastErr("権限がありません。", 5200)
         setTimeout(() => { location.href = "/gallery/" }, 400)
         return false
-      }
-
-      if (res.status === 200) {
-        const data = await res.json().catch(() => null)
-        const requires = pickRequiresLoginFromData(data)
-        if (!requires) return true
-
-        const user = pickUserFromData(data)
-        if (!user) {
-          gotoAuth()
-          return false
-        }
-        return true
       }
 
       gotoAuth()
@@ -1204,8 +1181,8 @@ async function requireLoginOrRedirect() {
       continue
     }
   }
-
-  return true
+  gotoAuth()
+  return false
 }
 
 function initMain() {

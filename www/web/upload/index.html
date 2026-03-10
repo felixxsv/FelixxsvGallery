@@ -11,28 +11,22 @@
 </head>
 <body>
   <header class="hdr">
-    <div class="hdr__in">
-      <div class="hdr__l">
-        <a class="hdr__brand" href="/gallery/" aria-label="Home">
-          <span class="hdr__mark" aria-hidden="true">F</span>
+    <div class="hdr__inner">
+      <div class="hdr__left">
+        <a class="hdr__logo" href="/gallery/">
+          <span class="hdr__mark" aria-hidden="true"></span>
+          <span class="hdr__title">Felixxsv Gallery</span>
         </a>
+        <div class="hdr__crumb">Upload</div>
       </div>
-  
-      <div class="hdr__c">
-        <div class="hdr__title">Felixxsv Gallery</div>
-      </div>
-  
-      <div class="hdr__r">
-        <a class="hdr__back" href="/gallery/">
-          <span class="hdr__backarrow">←</span>
-          <span>戻る</span>
-        </a>
+      <div class="hdr__right">
+        <a class="hdrbtn" href="/gallery/" aria-label="Back">←</a>
       </div>
     </div>
   </header>
 
   <main class="upmain">
-    <section class="upcard" aria-label="upload">
+    <div class="upcard">
       <div class="upgrid">
         <div class="upcol">
           <div class="upcol__head upcol__head--center">
@@ -40,8 +34,17 @@
           </div>
 
           <div class="uppreview__imgwrap">
-            <div class="upcoverph" id="upCoverPh">No image</div>
-            <img class="uppreview__img" id="upCover" alt="" style="display:none">
+            <img id="upCover" class="uppreview__img" alt="" style="display:none">
+            <div id="upCoverPh" class="upcoverph">No image</div>
+          </div>
+
+          <div class="upstripwrap">
+            <div class="upstripframe" id="upStripFrame">
+              <button id="upArrowL" class="uparrow uparrow--l" type="button" aria-label="Left">‹</button>
+              <div id="upStrip" class="upstrip"></div>
+              <button id="upArrowR" class="uparrow uparrow--r" type="button" aria-label="Right">›</button>
+            </div>
+            <div class="upstriphelp">ドラッグ＆ドロップで順番を入れ替えられます</div>
           </div>
         </div>
 
@@ -50,72 +53,57 @@
             <div class="upcol__title">画像をアップロード</div>
           </div>
 
-          <div class="updrop__zone" id="upDrop" role="button" tabindex="0" aria-label="drop files">
+          <div id="upDrop" class="updrop__zone">
             <div class="updrop__pill">UPLOAD</div>
-            <div class="updrop__headline">画像をアップロード</div>
-            <div class="updrop__sub">ここにドラッグ＆ドロップするか、クリックしてファイルを選択</div>
-            <button class="updrop__btn" type="button" id="upPick">ファイルを選択</button>
-            <div class="updrop__hint">.png .jpg .jpeg .webp / 最大50MB / 最大20枚</div>
-            <input id="upFile" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden>
+            <div class="updrop__headline">Drag & Drop</div>
+            <div class="updrop__sub">またはファイルを選択してください</div>
+            <button id="upPick" class="updrop__btn" type="button">ファイルを選択</button>
+            <div class="updrop__hint">PNG / JPG / WEBP</div>
+            <input id="upFile" type="file" hidden>
           </div>
-        </div>
-      </div>
 
-      <div class="upstripwrap" aria-label="strip">
-        <div class="upstripframe" id="upStripFrame">
-          <button class="uparrow uparrow--l" id="upArrowL" type="button" aria-label="scroll left">‹</button>
-          <div class="upstrip" id="upStrip" aria-label="thumbnails"></div>
-          <button class="uparrow uparrow--r" id="upArrowR" type="button" aria-label="scroll right">›</button>
-        </div>
-
-        <div class="upstriphelp">
-          ※一番左の画像がサムネイルになります。ドラッグ＆ドロップで順番を入れ替えられます。
-        </div>
-      </div>
-
-      <div class="upfields" aria-label="fields">
-        <div class="upfield">
-          <div class="upfield__label">タイトル（必須）</div>
-          <input class="upinp" id="upTitle" type="text" maxlength="120" autocomplete="off">
-        </div>
-
-        <div class="upfield">
-          <div class="upfield__label">説明文（ALT）（任意）</div>
-          <textarea class="uparea" id="upAlt" maxlength="800"></textarea>
-        </div>
-
-        <div class="upfield">
-          <div class="upfield__label">タグ（サジェスト）</div>
-          <div class="uptagbox" id="upTagBox">
-            <div class="uptagscroll" id="upTagScroll">
-              <div class="uptagchips" id="upTagChips"></div>
-              <input class="uptaginp" id="upTag" type="text" placeholder="タグを追加..." autocomplete="off">
+          <div class="upfields">
+            <div class="upfield">
+              <div class="upfield__label">Title</div>
+              <input id="upTitle" class="upinp" type="text" placeholder="タイトル">
             </div>
 
-            <button class="uptagadd" id="upTagAdd" type="button" aria-label="add tag">+</button>
+            <div class="upfield">
+              <div class="upfield__label">ALT</div>
+              <textarea id="upAlt" class="uparea" placeholder="説明文（ALT）"></textarea>
+            </div>
 
-            <div class="uptagsug" id="upTagSug" aria-hidden="true"></div>
+            <div class="upfield">
+              <div class="upfield__label">Tags</div>
+              <div id="upTagBox" class="uptagbox">
+                <div class="uptagscroll">
+                  <div id="upTagChips" class="uptagchips"></div>
+                  <input id="upTag" class="uptaginp" type="text" placeholder="タグを入力してEnter">
+                </div>
+                <button id="upTagAdd" class="uptagadd" type="button" aria-label="Add tag">+</button>
+                <div id="upTagSug" class="uptagsug" aria-hidden="true"></div>
+              </div>
+            </div>
+
+            <div class="upfield upfield--vis">
+              <div class="upfield__label">Visibility</div>
+              <input id="upVis" type="hidden" value="public">
+              <div class="upvis">
+                <button class="upvis__btn is-on" type="button" data-vis="public">公開</button>
+                <button class="upvis__btn" type="button" data-vis="private">非公開</button>
+              </div>
+            </div>
+
+            <div class="upbottom">
+              <div class="upactions">
+                <a class="upbtn" href="/gallery/">キャンセル</a>
+                <button id="upSubmit" class="upbtn upbtn--primary" type="button">アップロード</button>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div class="upfield upfield--vis">
-          <div class="upvis" role="group" aria-label="visibility">
-            <button class="upvis__btn is-on" type="button" data-vis="public">公開</button>
-            <button class="upvis__btn" type="button" data-vis="private">非公開</button>
-            <input type="hidden" id="upVis" value="public">
-          </div>
-        </div>
-
-        <div class="upmsg" id="upMsg" aria-live="polite"></div>
       </div>
-
-      <div class="upbottom">
-        <div class="upactions">
-          <a class="upbtn" href="/gallery/">キャンセル</a>
-          <button class="upbtn upbtn--primary" type="button" id="upSubmit">アップロード</button>
-        </div>
-      </div>
-    </section>
+    </div>
   </main>
 
   <script src="/gallery/upload.js"></script>
