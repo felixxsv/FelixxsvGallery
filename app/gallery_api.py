@@ -16,28 +16,41 @@ from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Reque
 from fastapi.responses import FileResponse
 import pymysql
 from pymysql.err import IntegrityError
-import tomllib
 from PIL import Image, UnidentifiedImageError
 
+from db import load_conf, db_conn
+from auth_router import router as auth_router
 from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
 
 
-def load_conf(path: str) -> dict:
-    return tomllib.loads(Path(path).read_text(encoding="utf-8"))
+def clamp_per_page(n: int) -> int:
+    return n if n in (50, 100, 150, 200) else 100
 
 
-def db_conn(conf: dict, autocommit: bool = True) -> pymysql.Connection:
-    db = conf["db"]
-    return pymysql.connect(
-        host=db["host"],
-        port=int(db["port"]),
-        user=db["user"],
-        password=db["password"],
-        database=db["database"],
-        charset="utf8mb4",
-        autocommit=autocommit,
-        cursorclass=pymysql.cursors.DictCursor,
-    )
+def parse_csv_strs(s: str | None) -> list[str]:
+    if not s:
+        return []
+    out: list[str] = []
+    for x in s.split(","):
+        x = x.strip()
+        if x:
+            out.append(x)
+    return out
+
+
+def parse_csv_ints(s: str | None) -> list[int]:
+    if not s:
+        return []
+    out: list[int] = []
+    for x in s.split(","):
+        x = x.strip()
+        if not x:
+            continue
+        try:
+            out.append(int(x))
+        except ValueError:
+            continue
+    return out
 
 
 def clamp_per_page(n: int) -> int:
@@ -385,6 +398,7 @@ def _upload_requires_login(conf: dict) -> bool:
 
 
 app = FastAPI()
+app.include_router(auth_router)
 
 CONF_PATH = os.environ.get("GALLERY_CONFIG", "/etc/felixxsv-gallery/gallery.conf")
 CONF = load_conf(CONF_PATH)

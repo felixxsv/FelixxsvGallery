@@ -1,0 +1,26 @@
+base_url = "https://felixxsv.net"
+
+[db]
+host = "127.0.0.1"
+port = 3306
+user = "gallery"
+password = "gallery-password"
+database = "gallery"
+
+[auth]
+verify_code_expires_sec = 900
+two_factor_code_expires_sec = 300
+reset_token_expires_sec = 1800
+verify_resend_cooldown_sec = 60
+two_factor_resend_cooldown_sec = 60
+verify_max_attempts = 5
+two_factor_max_attempts = 5
+
+[smtp]
+host = "192.168.10.112"
+port = 587
+username = "submission-user"
+password = "submission-password"
+use_starttls = true
+from_email = "no-reply@felixxsv.net"
+from_name = "Felixxsv Gallery"
