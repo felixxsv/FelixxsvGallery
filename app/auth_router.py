@@ -13,7 +13,9 @@ from auth_security import (
     build_session_cookie_max_age,
     build_session_cookie_options,
 )
+
 from auth_service import (
+    change_password_for_current_session,
     check_user_key_availability,
     complete_discord_registration,
     confirm_email_verification,
@@ -78,6 +80,9 @@ class ResetPasswordRequest(BaseModel):
     reset_token: str
     password: str
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 class DiscordRegisterRequest(BaseModel):
     registration_token: str
@@ -154,6 +159,7 @@ def map_error_code_to_http_status(error_code: str) -> int:
         "too_many_attempts": 429,
         "server_error": 500,
         "discord_oauth_not_implemented": 501,
+        "current_password_incorrect": 400,
     }
     return mapping.get(error_code, 400)
 
@@ -497,6 +503,31 @@ async def password_forgot(
             http_status=500,
         )
 
+@router.post("/password/change")
+async def password_change(
+    payload: ChangePasswordRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = change_password_for_current_session(
+            session_token=gallery_session,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="パスワード変更に失敗しました。",
+            http_status=500,
+        )
+        return response
 
 @router.get("/password/reset/status")
 async def password_reset_status(

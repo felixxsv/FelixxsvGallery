@@ -1455,6 +1455,210 @@ def get_password_reset_status(
     finally:
         _safe_close(conn)
 
+def change_password_for_current_session(
+    session_token: str | None,
+    current_password: str | None,
+    new_password: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    current_password_value = "" if current_password is None else str(current_password)
+    new_password_value = "" if new_password is None else str(new_password)
+
+    field_errors: list[dict] = []
+
+    if current_password_value.strip() == "":
+        field_errors.append(
+            {
+                "field": "current_password",
+                "code": "required",
+                "message": "現在のパスワードを入力してください。",
+            }
+        )
+
+    if new_password_value.strip() == "":
+        field_errors.append(
+            {
+                "field": "new_password",
+                "code": "required",
+                "message": "新しいパスワードを入力してください。",
+            }
+        )
+    else:
+        if len(new_password_value) < 8:
+            field_errors.append(
+                {
+                    "field": "new_password",
+                    "code": "too_short",
+                    "message": "新しいパスワードは8文字以上で入力してください。",
+                }
+            )
+        if len(new_password_value) > 32:
+            field_errors.append(
+                {
+                    "field": "new_password",
+                    "code": "too_long",
+                    "message": "新しいパスワードは32文字以内で入力してください。",
+                }
+            )
+        if current_password_value != "" and new_password_value == current_password_value:
+            field_errors.append(
+                {
+                    "field": "new_password",
+                    "code": "password_reuse",
+                    "message": "現在のパスワードとは別のパスワードを設定してください。",
+                }
+            )
+
+    if field_errors:
+        return build_service_error(
+            error_code="validation_error",
+            message="入力内容を確認してください。",
+            field_errors=field_errors,
+        )
+
+    if session_token is None or str(session_token).strip() == "":
+        result = build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+        )
+        result["clear_session_cookie"] = True
+        return result
+
+    conn = None
+    now_dt = _utc_now(now)
+
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+
+        if session_row is None:
+            _safe_rollback(conn)
+            result = build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+            )
+            result["clear_session_cookie"] = True
+            return result
+
+        if session_row.get("revoked_at") is not None or _is_expired(session_row["expires_at"], now_dt):
+            _safe_rollback(conn)
+            result = build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+            )
+            result["clear_session_cookie"] = True
+            return result
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            result = build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+            )
+            result["clear_session_cookie"] = True
+            return result
+
+        force_logout_after = user.get("force_logout_after")
+        if force_logout_after is not None and _coerce_utc_datetime(session_row["created_at"]) < _coerce_utc_datetime(force_logout_after):
+            _safe_rollback(conn)
+            result = build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+            )
+            result["clear_session_cookie"] = True
+            return result
+
+        two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+        if _is_two_factor_required(two_factor_settings):
+            if session_row.get("two_factor_verified_at") is None:
+                _safe_rollback(conn)
+                result = build_service_error(
+                    error_code="not_authenticated",
+                    message="ログインが必要です。",
+                )
+                result["clear_session_cookie"] = True
+                return result
+
+        credentials = get_password_credentials_by_user_id(conn, user["id"])
+        if credentials is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="server_error",
+                message="パスワード変更に失敗しました。",
+            )
+
+        if not verify_password(current_password_value, credentials["password_hash"]):
+            log_auth_event(
+                conn=conn,
+                actor_user_id=user["id"],
+                action_type="auth.password_change",
+                target_type="user",
+                target_id=str(user["id"]),
+                result="failure",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="パスワード変更に失敗しました。",
+                meta_json={"reason": "current_password_incorrect"},
+            )
+            conn.commit()
+            return build_service_error(
+                error_code="current_password_incorrect",
+                message="現在のパスワードが正しくありません。",
+                field_errors=[
+                    {
+                        "field": "current_password",
+                        "code": "current_password_incorrect",
+                        "message": "現在のパスワードが正しくありません。",
+                    }
+                ],
+            )
+
+        new_password_hash = hash_password(new_password_value)
+
+        update_password_hash(
+            conn=conn,
+            user_id=user["id"],
+            password_hash=new_password_hash,
+            password_updated_at=now_dt,
+        )
+        clear_password_failed_attempts(conn, user["id"])
+        set_user_must_reset_password(conn, user["id"], False)
+
+        revoked_count = revoke_sessions_by_user_id(conn, user["id"], now_dt)
+
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user["id"],
+            action_type="auth.password_change",
+            target_type="user",
+            target_id=str(user["id"]),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="パスワードを変更しました。",
+            meta_json={"revoked_sessions": revoked_count},
+        )
+
+        conn.commit()
+        return build_service_success(
+            data={"revoked_sessions": revoked_count},
+            next_kind="redirect",
+            next_to="/gallery/auth",
+            message="パスワードを変更しました。再度ログインしてください。",
+            clear_session_cookie=True,
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="パスワード変更に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
 
 def reset_password(
     reset_token: str | None,
