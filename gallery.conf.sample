@@ -1,11 +1,16 @@
 base_url = "https://felixxsv.net"
 
+[app]
+gallery = "vrchat"
+timezone = "Asia/Tokyo"
+cookie_secure = false
+
 [db]
 host = "127.0.0.1"
 port = 3306
 user = "gallery"
 password = "gallery-password"
-database = "gallery"
+database = "felixxsv_gallery"
 
 [auth]
 verify_code_expires_sec = 900
@@ -15,6 +20,12 @@ verify_resend_cooldown_sec = 60
 two_factor_resend_cooldown_sec = 60
 verify_max_attempts = 5
 two_factor_max_attempts = 5
+
+[paths]
+source_root = "/data/felixxsv-gallery/source/vrchat/gallery"
+original_cache_root = "/data/felixxsv-gallery/cache"
+storage_root = "/data/felixxsv-gallery/www/storage"
+quarantine_root = "/data/felixxsv-gallery/quarantine"
 
 [smtp]
 host = "192.168.10.112"
