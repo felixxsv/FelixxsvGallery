@@ -257,9 +257,7 @@ async def logout(
     request_id = build_request_id()
     try:
         result = logout_by_session_token(session_token=gallery_session)
-        response = _build_response_from_service_result(request_id, result)
-        clear_session_cookie(response)
-        return response
+        return _build_response_from_service_result(request_id, result)
     except Exception:
         response = build_error_response(
             request_id=request_id,
@@ -487,10 +485,7 @@ async def password_reset(
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
-        response = _build_response_from_service_result(request_id, result)
-        if result.get("clear_session_cookie"):
-            clear_session_cookie(response)
-        return response
+        return _build_response_from_service_result(request_id, result)
     except Exception:
         response = build_error_response(
             request_id=request_id,
