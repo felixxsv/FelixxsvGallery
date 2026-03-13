@@ -18,9 +18,8 @@ two_factor_max_attempts = 5
 
 [smtp]
 host = "192.168.10.112"
-port = 587
-username = "submission-user"
-password = "submission-password"
-use_starttls = true
-from_email = "no-reply@felixxsv.net"
+port = 25
+use_starttls = false
+use_auth = false
+from_email = "noreply@felixxsv.net"
 from_name = "Felixxsv Gallery"

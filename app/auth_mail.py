@@ -88,13 +88,41 @@ def validate_smtp_settings(smtp_settings: dict) -> dict:
     normalized = {
         "host": _ensure_non_empty_string(smtp_settings.get("host"), "host"),
         "port": _ensure_positive_int(smtp_settings.get("port"), "port"),
-        "username": _ensure_non_empty_string(smtp_settings.get("username"), "username"),
-        "password": _ensure_non_empty_string(smtp_settings.get("password"), "password"),
-        "use_starttls": _coerce_bool(smtp_settings.get("use_starttls"), "use_starttls"),
+        "username": None,
+        "password": None,
+        "use_starttls": _coerce_bool(smtp_settings.get("use_starttls", False), "use_starttls"),
         "from_email": _ensure_non_empty_string(smtp_settings.get("from_email"), "from_email"),
         "base_url": _ensure_non_empty_string(smtp_settings.get("base_url"), "base_url"),
         "from_name": None,
+        "use_auth": False,
     }
+
+    username = smtp_settings.get("username")
+    password = smtp_settings.get("password")
+    if username is not None:
+        normalized_username = _coerce_to_str(username).strip()
+        normalized["username"] = normalized_username if normalized_username != "" else None
+    if password is not None:
+        normalized_password = _coerce_to_str(password)
+        normalized["password"] = normalized_password if normalized_password != "" else None
+
+    use_auth = smtp_settings.get("use_auth")
+    if use_auth is None:
+        normalized["use_auth"] = bool(normalized["username"] and normalized["password"])
+    else:
+        normalized["use_auth"] = _coerce_bool(use_auth, "use_auth")
+
+    if normalized["use_auth"]:
+        if not normalized["username"]:
+            raise AuthMailError(
+                "invalid_smtp_settings",
+                "SMTP認証を使う場合は username が必要です。",
+            )
+        if normalized["password"] is None:
+            raise AuthMailError(
+                "invalid_smtp_settings",
+                "SMTP認証を使う場合は password が必要です。",
+            )
 
     from_name = smtp_settings.get("from_name")
     if from_name is not None:
@@ -141,7 +169,8 @@ def send_message(smtp_settings: dict, message: EmailMessage) -> None:
                 context = ssl.create_default_context()
                 smtp.starttls(context=context)
                 smtp.ehlo()
-            smtp.login(settings["username"], settings["password"])
+            if settings["use_auth"]:
+                smtp.login(settings["username"], settings["password"])
             smtp.send_message(message)
     except smtplib.SMTPAuthenticationError as exc:
         raise AuthMailError(
