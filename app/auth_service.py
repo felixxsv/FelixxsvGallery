@@ -14,7 +14,6 @@ from auth_models import (
     consume_email_verification,
     consume_password_reset_token,
     consume_two_factor_challenge,
-    create_audit_log,
     create_auth_identity,
     create_email_verification,
     create_password_credentials,
@@ -27,7 +26,6 @@ from auth_models import (
     expire_active_password_reset_tokens,
     expire_active_two_factor_challenges,
     get_active_two_factor_challenge,
-    get_identity_by_provider_user_id,
     get_identity_by_user_and_provider,
     get_latest_active_email_verification,
     get_password_credentials_by_user_id,
@@ -39,7 +37,6 @@ from auth_models import (
     get_user_by_user_key,
     increment_email_verification_attempts,
     increment_two_factor_challenge_attempts,
-    create_audit_log,
     mark_user_email_verified,
     revoke_session_by_id,
     revoke_sessions_by_user_id,
@@ -49,6 +46,7 @@ from auth_models import (
     update_two_factor_settings,
     update_user_profile,
     set_user_must_reset_password,
+    create_audit_log,
 )
 from auth_security import (
     AuthSecurityError,
@@ -69,9 +67,9 @@ from auth_security import (
 from auth_tokens import (
     AuthTokenError,
     create_challenge_token,
-    create_registration_token,
     create_reset_token,
     create_verify_ticket,
+    create_registration_token,
     parse_challenge_token,
     parse_registration_token,
     parse_reset_token,
@@ -564,11 +562,14 @@ def register_user(
                 ],
             )
 
+        password_hash = hash_password(validated["password"])
+
         user_id = create_user(
             conn=conn,
             user_key=validated["user_key"],
             display_name=validated["display_name"],
             primary_email=validated["email"],
+            password_hash=password_hash,
             role="user",
             status="active",
             upload_enabled=True,
@@ -587,7 +588,6 @@ def register_user(
             is_enabled=True,
         )
 
-        password_hash = hash_password(validated["password"])
         create_password_credentials(
             conn=conn,
             user_id=user_id,
@@ -1440,9 +1440,7 @@ def reset_password(
         _safe_close(conn)
 
 
-def start_discord_oauth(
-    now=None,
-) -> dict:
+def start_discord_oauth(now=None) -> dict:
     return build_service_error(
         error_code="discord_oauth_not_implemented",
         message="Discord OAuth はまだ未実装です。",
@@ -1552,6 +1550,7 @@ def complete_discord_registration(
             user_key=validated["user_key"],
             display_name=validated["display_name"],
             primary_email=parsed.get("provider_email"),
+            password_hash=None,
             role="user",
             status="active",
             upload_enabled=True,
@@ -1781,10 +1780,9 @@ def _get_smtp_settings() -> dict:
 
     return {
         "host": "",
-        "port": 587,
-        "username": "",
-        "password": "",
-        "use_starttls": True,
+        "port": 25,
+        "use_starttls": False,
+        "use_auth": False,
         "from_email": "",
         "from_name": "Felixxsv Gallery",
         "base_url": _get_base_url(conf),
@@ -1873,13 +1871,7 @@ def _check_user_login_status(user: dict, credentials: dict, now_dt: datetime) ->
     return None
 
 
-def _build_login_verify_result(
-    conn,
-    user: dict,
-    ip_address: bytes | None,
-    user_agent: str | None,
-    now_dt: datetime,
-) -> dict | None:
+def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict | None:
     if bool(user.get("is_email_verified")):
         return None
 
@@ -1940,13 +1932,7 @@ def _build_login_verify_result(
     }
 
 
-def _build_login_reset_result(
-    conn,
-    user: dict,
-    ip_address: bytes | None,
-    user_agent: str | None,
-    now_dt: datetime,
-) -> dict:
+def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict:
     auth_conf = _get_auth_conf()
     expire_active_password_reset_tokens(
         conn=conn,
@@ -1995,13 +1981,7 @@ def _build_login_reset_result(
     }
 
 
-def _build_login_two_factor_result(
-    conn,
-    user: dict,
-    ip_address: bytes | None,
-    user_agent: str | None,
-    now_dt: datetime,
-) -> dict:
+def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict:
     auth_conf = _get_auth_conf()
     auth_flow_id = generate_auth_flow_id()
     code = _generate_otp_code()
@@ -2060,21 +2040,11 @@ def _build_login_two_factor_result(
     }
 
 
-def _create_authenticated_session_result(
-    conn,
-    user: dict,
-    ip_address: bytes | None,
-    user_agent: str | None,
-    now_dt: datetime,
-    action_type: str,
-    summary: str,
-    meta_json: dict | None = None,
-) -> dict:
+def _create_authenticated_session_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, action_type: str, summary: str, meta_json: dict | None = None) -> dict:
     session_token = generate_session_token()
-    session_id = generate_session_id()
     create_session(
         conn=conn,
-        session_id=session_id,
+        session_id=hash_session_token(session_token),
         user_id=user["id"],
         session_token_hash=hash_session_token(session_token),
         ip_address=ip_address,
@@ -2146,13 +2116,7 @@ def _dispatch_mail_job(mail_job: dict | None) -> None:
         return
 
 
-def _try_send_verification_email(
-    to_email: str,
-    code: str,
-    purpose: str,
-    expires_in_sec: int,
-    display_name: str | None = None,
-) -> None:
+def _try_send_verification_email(to_email: str, code: str, purpose: str, expires_in_sec: int, display_name: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "verification",
@@ -2165,12 +2129,7 @@ def _try_send_verification_email(
     )
 
 
-def _try_send_two_factor_email(
-    to_email: str,
-    code: str,
-    expires_in_sec: int,
-    display_name: str | None = None,
-) -> None:
+def _try_send_two_factor_email(to_email: str, code: str, expires_in_sec: int, display_name: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "two_factor",
@@ -2182,12 +2141,7 @@ def _try_send_two_factor_email(
     )
 
 
-def _try_send_password_reset_email(
-    to_email: str,
-    reset_url: str,
-    expires_in_sec: int,
-    display_name: str | None = None,
-) -> None:
+def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec: int, display_name: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "password_reset",
@@ -2211,11 +2165,7 @@ def _build_verify_2fa_path(challenge_token: str) -> str:
     return f"/gallery/auth/verify?{urlencode({'mode': '2fa', 'challenge': challenge_token})}"
 
 
-def _build_candidate_user_key(
-    provider_username: str | None,
-    provider_display_name: str | None,
-    provider_user_id: str,
-) -> str:
+def _build_candidate_user_key(provider_username: str | None, provider_display_name: str | None, provider_user_id: str) -> str:
     base = provider_username or provider_display_name or f"user_{provider_user_id[-6:]}"
     normalized = []
     for ch in str(base):

@@ -1,7 +1,23 @@
 from __future__ import annotations
 
+import ipaddress
 import json
+import os
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
+
+from db import load_conf
+
+
+@lru_cache(maxsize=1)
+def _get_gallery_name() -> str:
+    conf_path = os.environ.get(
+        "GALLERY_CONF",
+        str(Path(__file__).with_name("gallery.conf")),
+    )
+    conf = load_conf(conf_path)
+    return conf["app"]["gallery"]
 
 
 def _fetch_one_dict(cursor) -> dict | None:
@@ -32,17 +48,27 @@ def _to_json_or_none(value: dict | None) -> str | None:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+def _ip_bytes_to_text(value: bytes | None) -> str | None:
+    if value is None:
+        return None
+    try:
+        return ipaddress.ip_address(value).compressed
+    except Exception:
+        return None
+
+
 def get_user_by_id(conn, user_id: int) -> dict | None:
     sql = """
         SELECT
             id,
+            gallery,
             user_key,
             display_name,
-            primary_email,
-            avatar_path,
+            email AS primary_email,
+            NULL AS avatar_path,
             role,
             status,
-            upload_enabled,
+            can_upload AS upload_enabled,
             is_email_verified,
             must_reset_password,
             force_logout_after,
@@ -51,10 +77,11 @@ def get_user_by_id(conn, user_id: int) -> dict | None:
             updated_at
         FROM users
         WHERE id = %s
+          AND gallery = %s
         LIMIT 1
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (user_id,))
+        cursor.execute(sql, (user_id, _get_gallery_name()))
         return _fetch_one_dict(cursor)
 
 
@@ -62,13 +89,14 @@ def get_user_by_user_key(conn, user_key: str) -> dict | None:
     sql = """
         SELECT
             id,
+            gallery,
             user_key,
             display_name,
-            primary_email,
-            avatar_path,
+            email AS primary_email,
+            NULL AS avatar_path,
             role,
             status,
-            upload_enabled,
+            can_upload AS upload_enabled,
             is_email_verified,
             must_reset_password,
             force_logout_after,
@@ -76,11 +104,12 @@ def get_user_by_user_key(conn, user_key: str) -> dict | None:
             created_at,
             updated_at
         FROM users
-        WHERE user_key = %s
+        WHERE gallery = %s
+          AND user_key = %s
         LIMIT 1
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (user_key,))
+        cursor.execute(sql, (_get_gallery_name(), user_key))
         return _fetch_one_dict(cursor)
 
 
@@ -88,13 +117,14 @@ def get_user_by_primary_email(conn, email: str) -> dict | None:
     sql = """
         SELECT
             id,
+            gallery,
             user_key,
             display_name,
-            primary_email,
-            avatar_path,
+            email AS primary_email,
+            NULL AS avatar_path,
             role,
             status,
-            upload_enabled,
+            can_upload AS upload_enabled,
             is_email_verified,
             must_reset_password,
             force_logout_after,
@@ -102,11 +132,12 @@ def get_user_by_primary_email(conn, email: str) -> dict | None:
             created_at,
             updated_at
         FROM users
-        WHERE primary_email = %s
+        WHERE gallery = %s
+          AND email = %s
         LIMIT 1
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (email,))
+        cursor.execute(sql, (_get_gallery_name(), email))
         return _fetch_one_dict(cursor)
 
 
@@ -115,6 +146,7 @@ def create_user(
     user_key: str,
     display_name: str,
     primary_email: str | None,
+    password_hash: str | None = None,
     role: str = "user",
     status: str = "active",
     upload_enabled: bool = True,
@@ -124,25 +156,29 @@ def create_user(
 ) -> int:
     sql = """
         INSERT INTO users (
+            gallery,
             user_key,
             display_name,
-            primary_email,
-            avatar_path,
+            email,
+            password_hash,
             role,
             status,
-            upload_enabled,
+            can_upload,
+            is_disabled,
             is_email_verified,
             must_reset_password
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (
+        _get_gallery_name(),
         user_key,
         display_name,
         primary_email,
-        avatar_path,
+        password_hash or "!",
         role,
         status,
         1 if upload_enabled else 0,
+        1 if status in {"disabled", "locked", "deleted"} else 0,
         1 if is_email_verified else 0,
         1 if must_reset_password else 0,
     )
@@ -165,11 +201,8 @@ def update_user_profile(
         fields.append("display_name = %s")
         params.append(display_name)
     if primary_email is not None:
-        fields.append("primary_email = %s")
+        fields.append("email = %s")
         params.append(primary_email)
-    if avatar_path is not None:
-        fields.append("avatar_path = %s")
-        params.append(avatar_path)
 
     if not fields:
         return 0
@@ -178,8 +211,10 @@ def update_user_profile(
         UPDATE users
         SET {", ".join(fields)}
         WHERE id = %s
+          AND gallery = %s
     """
     params.append(user_id)
+    params.append(_get_gallery_name())
 
     with conn.cursor() as cursor:
         cursor.execute(sql, tuple(params))
@@ -196,11 +231,14 @@ def update_user_status(
         UPDATE users
         SET
             status = %s,
+            is_disabled = %s,
             deleted_at = %s
         WHERE id = %s
+          AND gallery = %s
     """
+    disabled = 1 if status in {"disabled", "locked", "deleted"} else 0
     with conn.cursor() as cursor:
-        cursor.execute(sql, (status, deleted_at, user_id))
+        cursor.execute(sql, (status, disabled, deleted_at, user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
@@ -209,20 +247,22 @@ def update_user_role(conn, user_id: int, role: str) -> int:
         UPDATE users
         SET role = %s
         WHERE id = %s
+          AND gallery = %s
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (role, user_id))
+        cursor.execute(sql, (role, user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
 def update_user_upload_enabled(conn, user_id: int, upload_enabled: bool) -> int:
     sql = """
         UPDATE users
-        SET upload_enabled = %s
+        SET can_upload = %s
         WHERE id = %s
+          AND gallery = %s
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (1 if upload_enabled else 0, user_id))
+        cursor.execute(sql, (1 if upload_enabled else 0, user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
@@ -231,9 +271,10 @@ def mark_user_email_verified(conn, user_id: int, verified: bool = True) -> int:
         UPDATE users
         SET is_email_verified = %s
         WHERE id = %s
+          AND gallery = %s
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (1 if verified else 0, user_id))
+        cursor.execute(sql, (1 if verified else 0, user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
@@ -242,9 +283,10 @@ def set_user_must_reset_password(conn, user_id: int, must_reset_password: bool =
         UPDATE users
         SET must_reset_password = %s
         WHERE id = %s
+          AND gallery = %s
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (1 if must_reset_password else 0, user_id))
+        cursor.execute(sql, (1 if must_reset_password else 0, user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
@@ -253,9 +295,10 @@ def set_user_force_logout_after(conn, user_id: int, force_logout_after) -> int:
         UPDATE users
         SET force_logout_after = %s
         WHERE id = %s
+          AND gallery = %s
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (force_logout_after, user_id))
+        cursor.execute(sql, (force_logout_after, user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
@@ -408,6 +451,26 @@ def get_password_credentials_by_user_id(conn, user_id: int) -> dict | None:
     """
     with conn.cursor() as cursor:
         cursor.execute(sql, (user_id,))
+        row = _fetch_one_dict(cursor)
+        if row is not None:
+            return row
+
+    fallback_sql = """
+        SELECT
+            id AS user_id,
+            password_hash,
+            created_at AS password_updated_at,
+            0 AS failed_attempts,
+            NULL AS locked_until,
+            created_at,
+            updated_at
+        FROM users
+        WHERE id = %s
+          AND gallery = %s
+        LIMIT 1
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(fallback_sql, (user_id, _get_gallery_name()))
         return _fetch_one_dict(cursor)
 
 
@@ -421,10 +484,21 @@ def create_password_credentials(
             user_id,
             password_hash
         ) VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE
+            password_hash = VALUES(password_hash),
+            password_updated_at = CURRENT_TIMESTAMP(6),
+            updated_at = CURRENT_TIMESTAMP(6)
     """
     with conn.cursor() as cursor:
         cursor.execute(sql, (user_id, password_hash))
-        return _rows_affected(cursor)
+        update_user_sql = """
+            UPDATE users
+            SET password_hash = %s
+            WHERE id = %s
+              AND gallery = %s
+        """
+        cursor.execute(update_user_sql, (password_hash, user_id, _get_gallery_name()))
+        return 1
 
 
 def update_password_hash(
@@ -434,15 +508,30 @@ def update_password_hash(
     password_updated_at,
 ) -> int:
     sql = """
-        UPDATE password_credentials
-        SET
-            password_hash = %s,
-            password_updated_at = %s
-        WHERE user_id = %s
+        INSERT INTO password_credentials (
+            user_id,
+            password_hash,
+            password_updated_at,
+            failed_attempts,
+            locked_until
+        ) VALUES (%s, %s, %s, 0, NULL)
+        ON DUPLICATE KEY UPDATE
+            password_hash = VALUES(password_hash),
+            password_updated_at = VALUES(password_updated_at),
+            failed_attempts = 0,
+            locked_until = NULL,
+            updated_at = CURRENT_TIMESTAMP(6)
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (password_hash, password_updated_at, user_id))
-        return _rows_affected(cursor)
+        cursor.execute(sql, (user_id, password_hash, password_updated_at))
+        update_user_sql = """
+            UPDATE users
+            SET password_hash = %s
+            WHERE id = %s
+              AND gallery = %s
+        """
+        cursor.execute(update_user_sql, (password_hash, user_id, _get_gallery_name()))
+        return 1
 
 
 def update_password_failed_attempts(
@@ -452,37 +541,67 @@ def update_password_failed_attempts(
     locked_until=None,
 ) -> int:
     sql = """
-        UPDATE password_credentials
-        SET
-            failed_attempts = %s,
-            locked_until = %s
-        WHERE user_id = %s
+        INSERT INTO password_credentials (
+            user_id,
+            password_hash,
+            password_updated_at,
+            failed_attempts,
+            locked_until
+        )
+        SELECT
+            id,
+            password_hash,
+            updated_at,
+            %s,
+            %s
+        FROM users
+        WHERE id = %s
+          AND gallery = %s
+        ON DUPLICATE KEY UPDATE
+            failed_attempts = VALUES(failed_attempts),
+            locked_until = VALUES(locked_until),
+            updated_at = CURRENT_TIMESTAMP(6)
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (failed_attempts, locked_until, user_id))
+        cursor.execute(sql, (failed_attempts, locked_until, user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
 def clear_password_failed_attempts(conn, user_id: int) -> int:
     sql = """
-        UPDATE password_credentials
-        SET
+        INSERT INTO password_credentials (
+            user_id,
+            password_hash,
+            password_updated_at,
+            failed_attempts,
+            locked_until
+        )
+        SELECT
+            id,
+            password_hash,
+            updated_at,
+            0,
+            NULL
+        FROM users
+        WHERE id = %s
+          AND gallery = %s
+        ON DUPLICATE KEY UPDATE
             failed_attempts = 0,
-            locked_until = NULL
-        WHERE user_id = %s
+            locked_until = NULL,
+            updated_at = CURRENT_TIMESTAMP(6)
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (user_id,))
+        cursor.execute(sql, (user_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
 def get_session_by_token_hash(conn, session_token_hash: str) -> dict | None:
     sql = """
         SELECT
-            id,
+            sid AS id,
             user_id,
-            session_token_hash,
-            ip_address,
+            sid AS session_token_hash,
+            ip_addr AS ip_address,
             user_agent,
             created_at,
             last_seen_at,
@@ -490,22 +609,23 @@ def get_session_by_token_hash(conn, session_token_hash: str) -> dict | None:
             two_factor_verified_at,
             two_factor_remember_until,
             revoked_at
-        FROM sessions
-        WHERE session_token_hash = %s
+        FROM user_sessions
+        WHERE sid = %s
+          AND gallery = %s
         LIMIT 1
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (session_token_hash,))
+        cursor.execute(sql, (session_token_hash, _get_gallery_name()))
         return _fetch_one_dict(cursor)
 
 
 def get_session_by_id(conn, session_id: str) -> dict | None:
     sql = """
         SELECT
-            id,
+            sid AS id,
             user_id,
-            session_token_hash,
-            ip_address,
+            sid AS session_token_hash,
+            ip_addr AS ip_address,
             user_agent,
             created_at,
             last_seen_at,
@@ -513,22 +633,23 @@ def get_session_by_id(conn, session_id: str) -> dict | None:
             two_factor_verified_at,
             two_factor_remember_until,
             revoked_at
-        FROM sessions
-        WHERE id = %s
+        FROM user_sessions
+        WHERE sid = %s
+          AND gallery = %s
         LIMIT 1
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (session_id,))
+        cursor.execute(sql, (session_id, _get_gallery_name()))
         return _fetch_one_dict(cursor)
 
 
 def list_active_sessions_by_user_id(conn, user_id: int, now) -> list[dict]:
     sql = """
         SELECT
-            id,
+            sid AS id,
             user_id,
-            session_token_hash,
-            ip_address,
+            sid AS session_token_hash,
+            ip_addr AS ip_address,
             user_agent,
             created_at,
             last_seen_at,
@@ -536,14 +657,15 @@ def list_active_sessions_by_user_id(conn, user_id: int, now) -> list[dict]:
             two_factor_verified_at,
             two_factor_remember_until,
             revoked_at
-        FROM sessions
-        WHERE user_id = %s
+        FROM user_sessions
+        WHERE gallery = %s
+          AND user_id = %s
           AND revoked_at IS NULL
           AND expires_at > %s
         ORDER BY created_at DESC
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (user_id, now))
+        cursor.execute(sql, (_get_gallery_name(), user_id, now))
         return _fetch_all_dict(cursor)
 
 
@@ -559,30 +681,32 @@ def create_session(
     two_factor_remember_until=None,
 ) -> str:
     sql = """
-        INSERT INTO sessions (
-            id,
+        INSERT INTO user_sessions (
+            sid,
+            gallery,
             user_id,
-            session_token_hash,
-            ip_address,
-            user_agent,
+            created_at,
+            last_seen_at,
             expires_at,
             two_factor_verified_at,
-            two_factor_remember_until
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            two_factor_remember_until,
+            user_agent,
+            ip_addr
+        ) VALUES (%s, %s, %s, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6), %s, %s, %s, %s, %s)
     """
     params = (
-        session_id,
-        user_id,
         session_token_hash,
-        ip_address,
-        user_agent,
+        _get_gallery_name(),
+        user_id,
         expires_at,
         two_factor_verified_at,
         two_factor_remember_until,
+        user_agent or "",
+        _ip_bytes_to_text(ip_address) or "",
     )
     with conn.cursor() as cursor:
         cursor.execute(sql, params)
-        return session_id
+        return session_token_hash
 
 
 def update_session_last_seen(
@@ -599,11 +723,13 @@ def update_session_last_seen(
         params.append(expires_at)
 
     sql = f"""
-        UPDATE sessions
+        UPDATE user_sessions
         SET {", ".join(fields)}
-        WHERE id = %s
+        WHERE sid = %s
+          AND gallery = %s
     """
     params.append(session_id)
+    params.append(_get_gallery_name())
 
     with conn.cursor() as cursor:
         cursor.execute(sql, tuple(params))
@@ -617,51 +743,55 @@ def mark_session_two_factor_verified(
     remember_until=None,
 ) -> int:
     sql = """
-        UPDATE sessions
+        UPDATE user_sessions
         SET
             two_factor_verified_at = %s,
             two_factor_remember_until = %s
-        WHERE id = %s
+        WHERE sid = %s
+          AND gallery = %s
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (verified_at, remember_until, session_id))
+        cursor.execute(sql, (verified_at, remember_until, session_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
 def revoke_session_by_id(conn, session_id: str, revoked_at) -> int:
     sql = """
-        UPDATE sessions
+        UPDATE user_sessions
         SET revoked_at = %s
-        WHERE id = %s
+        WHERE sid = %s
+          AND gallery = %s
           AND revoked_at IS NULL
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (revoked_at, session_id))
+        cursor.execute(sql, (revoked_at, session_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
 def revoke_sessions_by_user_id(conn, user_id: int, revoked_at) -> int:
     sql = """
-        UPDATE sessions
+        UPDATE user_sessions
         SET revoked_at = %s
-        WHERE user_id = %s
+        WHERE gallery = %s
+          AND user_id = %s
           AND revoked_at IS NULL
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (revoked_at, user_id))
+        cursor.execute(sql, (revoked_at, _get_gallery_name(), user_id))
         return _rows_affected(cursor)
 
 
 def revoke_sessions_before(conn, user_id: int, force_logout_after) -> int:
     sql = """
-        UPDATE sessions
+        UPDATE user_sessions
         SET revoked_at = %s
-        WHERE user_id = %s
+        WHERE gallery = %s
+          AND user_id = %s
           AND created_at < %s
           AND revoked_at IS NULL
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (force_logout_after, user_id, force_logout_after))
+        cursor.execute(sql, (force_logout_after, _get_gallery_name(), user_id, force_logout_after))
         return _rows_affected(cursor)
 
 
@@ -733,13 +863,7 @@ def create_email_verification(
             expires_at
         ) VALUES (%s, %s, %s, %s, %s)
     """
-    params = (
-        user_id,
-        email,
-        code_hash,
-        purpose,
-        expires_at,
-    )
+    params = (user_id, email, code_hash, purpose, expires_at)
     with conn.cursor() as cursor:
         cursor.execute(sql, params)
         return _last_insert_id(cursor)
@@ -871,12 +995,7 @@ def create_password_reset_token(
             expires_at
         ) VALUES (%s, %s, %s, %s)
     """
-    params = (
-        user_id,
-        token_hash,
-        requested_ip,
-        expires_at,
-    )
+    params = (user_id, token_hash, _ip_bytes_to_text(requested_ip), expires_at)
     with conn.cursor() as cursor:
         cursor.execute(sql, params)
         return _last_insert_id(cursor)
@@ -943,16 +1062,16 @@ def create_two_factor_settings(
             is_enabled,
             is_required
         ) VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            method = VALUES(method),
+            is_enabled = VALUES(is_enabled),
+            is_required = VALUES(is_required),
+            updated_at = CURRENT_TIMESTAMP(6)
     """
-    params = (
-        user_id,
-        method,
-        1 if is_enabled else 0,
-        1 if is_required else 0,
-    )
+    params = (user_id, method, 1 if is_enabled else 0, 1 if is_required else 0)
     with conn.cursor() as cursor:
         cursor.execute(sql, params)
-        return _rows_affected(cursor)
+        return 1
 
 
 def update_two_factor_settings(
@@ -1085,13 +1204,7 @@ def create_two_factor_challenge(
             expires_at
         ) VALUES (%s, %s, %s, %s, %s)
     """
-    params = (
-        user_id,
-        session_id,
-        purpose,
-        code_hash,
-        expires_at,
-    )
+    params = (user_id, session_id, purpose, code_hash, expires_at)
     with conn.cursor() as cursor:
         cursor.execute(sql, params)
         return _last_insert_id(cursor)
@@ -1216,13 +1329,7 @@ def create_user_invite(
             expires_at
         ) VALUES (%s, %s, %s, %s, %s)
     """
-    params = (
-        issued_by_user_id,
-        invite_code,
-        email,
-        role,
-        expires_at,
-    )
+    params = (issued_by_user_id, invite_code, email, role, expires_at)
     with conn.cursor() as cursor:
         cursor.execute(sql, params)
         return _last_insert_id(cursor)
@@ -1283,7 +1390,7 @@ def create_audit_log(
         target_type,
         target_id,
         result,
-        ip_address,
+        _ip_bytes_to_text(ip_address),
         user_agent,
         summary,
         _to_json_or_none(meta_json),
