@@ -24,6 +24,7 @@ from auth_service import (
     get_verify_status,
     handle_discord_callback,
     login_with_email_password,
+    logout_all_for_current_session,
     logout_by_session_token,
     register_user,
     request_password_reset,
@@ -269,7 +270,30 @@ async def logout(
         )
         clear_session_cookie(response)
         return response
-
+    
+@router.post("/logout-all")
+async def logout_all(
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = logout_all_for_current_session(
+            session_token=gallery_session,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="全端末ログアウトに失敗しました。",
+            http_status=500,
+        )
+        clear_session_cookie(response)
+        return response
 
 @router.get("/me")
 async def me(

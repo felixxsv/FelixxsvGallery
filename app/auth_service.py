@@ -478,6 +478,100 @@ def logout_all_sessions_for_user(
     finally:
         _safe_close(conn)
 
+def logout_all_for_current_session(
+    session_token: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    now_dt = _utc_now(now)
+
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        if session_row.get("revoked_at") is not None or _is_expired(session_row["expires_at"], now_dt):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        force_logout_after = user.get("force_logout_after")
+        if force_logout_after is not None and _coerce_utc_datetime(session_row["created_at"]) < _coerce_utc_datetime(force_logout_after):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+        if _is_two_factor_required(two_factor_settings):
+            if session_row.get("two_factor_verified_at") is None:
+                _safe_rollback(conn)
+                return build_service_error(
+                    error_code="not_authenticated",
+                    message="ログインが必要です。",
+                    clear_session_cookie=True,
+                )
+
+        revoked_count = revoke_sessions_by_user_id(conn, user["id"], now_dt)
+
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user["id"],
+            action_type="auth.logout_all",
+            target_type="user",
+            target_id=str(user["id"]),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="全端末からログアウトしました。",
+            meta_json={"revoked_sessions": revoked_count},
+        )
+
+        conn.commit()
+        return build_service_success(
+            data={"revoked_sessions": revoked_count},
+            message="全端末からログアウトしました。",
+            clear_session_cookie=True,
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="全端末ログアウトに失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
 
 def check_user_key_availability(
     user_key: str | None,
