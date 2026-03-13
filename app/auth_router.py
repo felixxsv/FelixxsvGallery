@@ -18,6 +18,7 @@ from auth_service import (
     complete_discord_registration,
     confirm_email_verification,
     confirm_two_factor_challenge,
+    get_current_user_profile,
     get_discord_registration_status,
     get_password_reset_status,
     get_verify_status,
@@ -137,6 +138,7 @@ def map_error_code_to_http_status(error_code: str) -> int:
         "invalid_registration_token": 400,
         "invalid_code": 400,
         "invalid_credentials": 401,
+        "not_authenticated": 401,
         "account_disabled": 403,
         "account_deleted": 403,
         "user_key_unavailable": 409,
@@ -266,6 +268,24 @@ async def logout(
             http_status=500,
         )
         clear_session_cookie(response)
+        return response
+
+
+@router.get("/me")
+async def me(
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        result = get_current_user_profile(session_token=gallery_session)
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="ユーザー情報の取得に失敗しました。",
+            http_status=500,
+        )
         return response
 
 

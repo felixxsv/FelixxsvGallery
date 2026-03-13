@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from urllib.parse import urlencode
 import os
@@ -40,6 +41,7 @@ from auth_models import (
     mark_user_email_verified,
     revoke_session_by_id,
     revoke_sessions_by_user_id,
+    update_session_last_seen,
     update_auth_identity_last_used,
     update_password_failed_attempts,
     update_password_hash,
@@ -128,6 +130,7 @@ def build_service_error(
     message: str,
     field_errors: list[dict] | None = None,
     retry_after_sec: int | None = None,
+    clear_session_cookie: bool = False,
 ) -> dict:
     return {
         "ok": False,
@@ -135,6 +138,7 @@ def build_service_error(
         "message": message,
         "field_errors": field_errors or [],
         "retry_after_sec": retry_after_sec,
+        "clear_session_cookie": clear_session_cookie,
     }
 
 
@@ -1715,6 +1719,123 @@ def get_current_user_by_session_token(
         _safe_close(conn)
 
 
+def get_current_user_profile(
+    session_token: str | None,
+    now=None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    now_dt = _utc_now(now)
+
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+        if session_row.get("revoked_at") is not None or _is_expired(session_row["expires_at"], now_dt):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        force_logout_after = user.get("force_logout_after")
+        if force_logout_after is not None and _coerce_utc_datetime(session_row["created_at"]) < _coerce_utc_datetime(force_logout_after):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+        if _is_two_factor_required(two_factor_settings):
+            if session_row.get("two_factor_verified_at") is None:
+                _safe_rollback(conn)
+                return build_service_error(
+                    error_code="not_authenticated",
+                    message="ログインが必要です。",
+                    clear_session_cookie=True,
+                )
+
+        should_refresh = needs_session_refresh(session_row["last_seen_at"], now=now_dt)
+        refreshed_session_token = None
+        if should_refresh:
+            refreshed_expires_at = build_refreshed_session_expiry(now=now_dt)
+            update_session_last_seen(
+                conn=conn,
+                session_id=session_row["id"],
+                last_seen_at=now_dt,
+                expires_at=refreshed_expires_at,
+            )
+            conn.commit()
+            refreshed_session_token = str(session_token)
+        else:
+            conn.commit()
+
+        created_at = user.get("created_at")
+        created_at_text = None
+        if isinstance(created_at, datetime):
+            created_at_text = _to_app_isoformat(created_at)
+
+        can_open_admin = str(user.get("role") or "") == "admin"
+        return build_service_success(
+            data={
+                "user": {
+                    "id": user["id"],
+                    "user_key": user["user_key"],
+                    "display_name": user["display_name"],
+                    "primary_email": user.get("primary_email"),
+                    "role": user.get("role"),
+                    "upload_enabled": bool(user.get("upload_enabled")),
+                    "is_email_verified": bool(user.get("is_email_verified")),
+                    "created_at": created_at_text,
+                },
+                "security": {
+                    "two_factor": {
+                        "is_enabled": bool(two_factor_settings.get("is_enabled")) if two_factor_settings else False,
+                        "is_required": bool(two_factor_settings.get("is_required")) if two_factor_settings else False,
+                    }
+                },
+                "features": {
+                    "can_open_admin": can_open_admin,
+                },
+            },
+            message="ログイン中ユーザー情報を取得しました。",
+            session_token=refreshed_session_token,
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="ユーザー情報の取得に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
 def _get_conf() -> dict:
     conf_path = os.environ.get(
         "GALLERY_CONF",
@@ -1743,6 +1864,27 @@ def _get_base_url(conf: dict) -> str:
         if isinstance(base_url, str) and base_url.strip() != "":
             return base_url.strip()
     return DEFAULT_BASE_URL
+
+
+def _get_app_timezone() -> ZoneInfo:
+    conf = _get_conf()
+    app_section = conf.get("app")
+    if isinstance(app_section, dict):
+        timezone_name = app_section.get("timezone")
+        if isinstance(timezone_name, str) and timezone_name.strip() != "":
+            try:
+                return ZoneInfo(timezone_name.strip())
+            except Exception:
+                return ZoneInfo("Asia/Tokyo")
+    return ZoneInfo("Asia/Tokyo")
+
+
+def _to_app_isoformat(value: datetime) -> str:
+    if value.tzinfo is None:
+        aware = value.replace(tzinfo=timezone.utc)
+    else:
+        aware = value.astimezone(timezone.utc)
+    return aware.astimezone(_get_app_timezone()).isoformat()
 
 
 def _get_auth_conf() -> dict:
