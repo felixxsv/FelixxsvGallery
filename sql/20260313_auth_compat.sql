@@ -1,9 +1,9 @@
 ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS status ENUM('active', 'locked', 'disabled', 'deleted') NOT NULL DEFAULT 'active' AFTER role,
-    ADD COLUMN IF NOT EXISTS is_email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER status,
-    ADD COLUMN IF NOT EXISTS must_reset_password TINYINT(1) NOT NULL DEFAULT 0 AFTER is_email_verified,
-    ADD COLUMN IF NOT EXISTS force_logout_after DATETIME(6) NULL AFTER must_reset_password,
-    ADD COLUMN IF NOT EXISTS deleted_at DATETIME(6) NULL AFTER force_logout_after;
+    ADD COLUMN status ENUM('active', 'locked', 'disabled', 'deleted') NOT NULL DEFAULT 'active' AFTER role,
+    ADD COLUMN is_email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER status,
+    ADD COLUMN must_reset_password TINYINT(1) NOT NULL DEFAULT 0 AFTER is_email_verified,
+    ADD COLUMN force_logout_after DATETIME(6) NULL AFTER must_reset_password,
+    ADD COLUMN deleted_at DATETIME(6) NULL AFTER force_logout_after;
 
 UPDATE users
 SET status = CASE
@@ -12,11 +12,11 @@ SET status = CASE
 END;
 
 ALTER TABLE user_sessions
-    ADD COLUMN IF NOT EXISTS two_factor_verified_at DATETIME(6) NULL AFTER expires_at,
-    ADD COLUMN IF NOT EXISTS two_factor_remember_until DATETIME(6) NULL AFTER two_factor_verified_at,
-    ADD COLUMN IF NOT EXISTS revoked_at DATETIME(6) NULL AFTER two_factor_remember_until;
+    ADD COLUMN two_factor_verified_at DATETIME(6) NULL AFTER expires_at,
+    ADD COLUMN two_factor_remember_until DATETIME(6) NULL AFTER two_factor_verified_at,
+    ADD COLUMN revoked_at DATETIME(6) NULL AFTER two_factor_remember_until;
 
-CREATE TABLE IF NOT EXISTS auth_identities (
+CREATE TABLE auth_identities (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id BIGINT UNSIGNED NOT NULL,
     provider VARCHAR(50) NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS auth_identities (
     CONSTRAINT fk_auth_identities_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS password_credentials (
+CREATE TABLE password_credentials (
     user_id BIGINT UNSIGNED NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     password_updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS password_credentials (
     CONSTRAINT fk_password_credentials_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS email_verifications (
+CREATE TABLE email_verifications (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id BIGINT UNSIGNED NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS email_verifications (
     CONSTRAINT fk_email_verifications_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS password_reset_tokens (
+CREATE TABLE password_reset_tokens (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id BIGINT UNSIGNED NOT NULL,
     token_hash CHAR(64) NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     CONSTRAINT fk_password_reset_tokens_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS two_factor_settings (
+CREATE TABLE two_factor_settings (
     user_id BIGINT UNSIGNED NOT NULL,
     method VARCHAR(50) NOT NULL DEFAULT 'email',
     is_enabled TINYINT(1) NOT NULL DEFAULT 0,
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS two_factor_settings (
     CONSTRAINT fk_two_factor_settings_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS two_factor_challenges (
+CREATE TABLE two_factor_challenges (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id BIGINT UNSIGNED NOT NULL,
     session_id VARCHAR(64) NULL,
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS two_factor_challenges (
     CONSTRAINT fk_two_factor_challenges_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS user_invites (
+CREATE TABLE user_invites (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     issued_by_user_id BIGINT UNSIGNED NULL,
     invite_code VARCHAR(128) NOT NULL,
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS user_invites (
     CONSTRAINT fk_user_invites_issued_by_user_id FOREIGN KEY (issued_by_user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS audit_logs (
+CREATE TABLE audit_logs (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     actor_user_id BIGINT UNSIGNED NULL,
     action_type VARCHAR(100) NOT NULL,
