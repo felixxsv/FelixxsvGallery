@@ -24,6 +24,143 @@
     </div>
   </header>
 
+  <button type="button" data-open-settings-modal>設定</button>
+
+  <div id="settings-modal" class="settings-modal" hidden>
+    <div class="settings-modal__backdrop" data-close-settings-modal></div>
+    <div class="settings-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+      <div class="settings-modal__header">
+        <h2 id="settings-modal-title">ユーザー設定</h2>
+        <button type="button" class="settings-modal__close" data-close-settings-modal>閉じる</button>
+      </div>
+
+      <div id="settings-modal-loading" class="settings-modal__loading" hidden>読み込み中です。</div>
+      <div id="settings-modal-error" class="settings-modal__error" hidden></div>
+
+      <div id="settings-modal-body" class="settings-modal__body" hidden>
+        <section class="settings-section">
+          <h3>アカウント情報</h3>
+          <dl class="settings-kv">
+            <div class="settings-kv__row">
+              <dt>表示名</dt>
+              <dd id="settings-display-name">-</dd>
+            </div>
+            <div class="settings-kv__row">
+              <dt>ユーザーキー</dt>
+              <dd id="settings-user-key">-</dd>
+            </div>
+            <div class="settings-kv__row">
+              <dt>メールアドレス</dt>
+              <dd id="settings-email">-</dd>
+            </div>
+            <div class="settings-kv__row" id="settings-role-row" hidden>
+              <dt>ロール</dt>
+              <dd id="settings-role">-</dd>
+            </div>
+            <div class="settings-kv__row">
+              <dt>登録日時</dt>
+              <dd id="settings-created-at">-</dd>
+            </div>
+          </dl>
+          <p id="settings-upload-disabled" class="settings-note settings-note--warning" hidden>現在、画像投稿は無効化されています。</p>
+        </section>
+
+        <section class="settings-section">
+          <h3>セキュリティ</h3>
+
+          <div class="settings-security-row">
+            <div>
+              <div class="settings-label">2段階認証</div>
+              <div id="settings-2fa-status">-</div>
+            </div>
+            <div class="settings-actions-inline">
+              <button type="button" id="settings-2fa-enable-btn">有効化</button>
+              <button type="button" id="settings-2fa-disable-open-btn" hidden>無効化</button>
+            </div>
+          </div>
+
+          <div id="settings-2fa-setup-box" class="settings-box" hidden>
+            <div id="settings-2fa-setup-message" class="settings-note"></div>
+            <form id="settings-2fa-setup-form" class="settings-form">
+              <label class="settings-form__field">
+                <span>確認コード</span>
+                <input type="text" id="settings-2fa-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+              </label>
+              <div class="settings-form__actions">
+                <button type="submit" id="settings-2fa-confirm-btn">確認して有効化</button>
+                <button type="button" id="settings-2fa-cancel-btn">閉じる</button>
+              </div>
+              <div id="settings-2fa-setup-error" class="settings-form__error" hidden></div>
+            </form>
+          </div>
+
+          <div class="settings-security-actions">
+            <button type="button" id="settings-password-change-open-btn">パスワード変更</button>
+            <button type="button" id="settings-logout-all-btn">全端末ログアウト</button>
+            <button type="button" id="settings-logout-btn">ログアウト</button>
+          </div>
+        </section>
+
+        <section class="settings-section" id="settings-admin-section" hidden>
+          <h3>管理者</h3>
+          <div class="settings-security-actions">
+            <a href="/gallery/admin" id="settings-admin-link">管理画面へ</a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-password-modal" class="settings-modal" hidden>
+    <div class="settings-modal__backdrop" data-close-password-modal></div>
+    <div class="settings-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="settings-password-title">
+      <div class="settings-modal__header">
+        <h2 id="settings-password-title">パスワード変更</h2>
+        <button type="button" class="settings-modal__close" data-close-password-modal>閉じる</button>
+      </div>
+      <div class="settings-modal__body">
+        <form id="settings-password-form" class="settings-form">
+          <label class="settings-form__field">
+            <span>現在のパスワード</span>
+            <input type="password" id="settings-current-password" autocomplete="current-password" />
+          </label>
+          <label class="settings-form__field">
+            <span>新しいパスワード</span>
+            <input type="password" id="settings-new-password" autocomplete="new-password" />
+          </label>
+          <div class="settings-form__actions">
+            <button type="submit" id="settings-password-submit-btn">変更する</button>
+            <button type="button" data-close-password-modal>キャンセル</button>
+          </div>
+          <div id="settings-password-error" class="settings-form__error" hidden></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-2fa-disable-modal" class="settings-modal" hidden>
+    <div class="settings-modal__backdrop" data-close-2fa-disable-modal></div>
+    <div class="settings-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="settings-2fa-disable-title">
+      <div class="settings-modal__header">
+        <h2 id="settings-2fa-disable-title">2段階認証の無効化</h2>
+        <button type="button" class="settings-modal__close" data-close-2fa-disable-modal>閉じる</button>
+      </div>
+      <div class="settings-modal__body">
+        <form id="settings-2fa-disable-form" class="settings-form">
+          <label class="settings-form__field">
+            <span>現在のパスワード</span>
+            <input type="password" id="settings-2fa-disable-password" autocomplete="current-password" />
+          </label>
+          <div class="settings-form__actions">
+            <button type="submit" id="settings-2fa-disable-submit-btn">無効化する</button>
+            <button type="button" data-close-2fa-disable-modal>キャンセル</button>
+          </div>
+          <div id="settings-2fa-disable-error" class="settings-form__error" hidden></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="home">
     <aside id="sidebar" class="side glass">
       <div class="side__top">
