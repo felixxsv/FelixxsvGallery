@@ -15,7 +15,7 @@ from db import load_conf
 
 
 DEFAULT_COOKIE_NAME = "gallery_session"
-DEFAULT_COOKIE_PATH = "/gallery"
+DEFAULT_COOKIE_PATH = "/"
 DEFAULT_COOKIE_HTTPONLY = True
 DEFAULT_COOKIE_SAMESITE = "lax"
 DEFAULT_COOKIE_SECURE = True
