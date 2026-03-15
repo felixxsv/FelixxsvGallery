@@ -8,155 +8,477 @@
   <link rel="stylesheet" href="/gallery/home.css">
 </head>
 <body>
-  <header class="hdr">
-    <div class="hdr__inner">
-      <div class="hdr__left">
-        <a class="hdr__logo" href="/gallery/">
-          <span class="hdr__mark" aria-hidden="true"></span>
-          <span class="hdr__title">Felixxsv Gallery</span>
-        </a>
-        <div class="hdr__crumb">Home</div>
-      </div>
-      <div class="hdr__right">
-        <a class="hdrbtn" href="/gallery/upload/" aria-label="Upload">⤴</a>
-        <a class="hdrbtn" href="/gallery/auth/" aria-label="Auth">👤</a>
-      </div>
+  <header class="app-header">
+    <div class="app-header__left">
+      <a href="/gallery/" class="app-header__logo">Felixxsv Gallery</a>
+    </div>
+
+    <div class="app-header__right">
+      <button
+        type="button"
+        class="user-trigger"
+        data-modal-open="user-info"
+        aria-label="ユーザー情報"
+      >
+        <span class="user-trigger__icon user-trigger__icon--guest" data-auth-icon-guest></span>
+        <span class="user-trigger__icon user-trigger__icon--user" data-auth-icon-user hidden></span>
+      </button>
     </div>
   </header>
 
-  <div class="home">
-    <aside id="sidebar" class="side glass">
-      <div class="side__top">
-        <div class="side__title">Filters</div>
-        <button id="sideClose" class="hdrbtn" type="button" aria-label="Close">×</button>
-      </div>
+  <div id="modal-root" class="modal-root" aria-live="polite">
+    <button
+      type="button"
+      id="global-modal-close"
+      class="global-modal-close"
+      data-modal-close-top
+      aria-label="閉じる"
+      hidden
+    >
+      ×
+    </button>
 
-      <div class="side__section">
-        <div class="side__label">Columns</div>
-        <div id="colBtns" class="seg">
-          <button class="btn btn-ghost" type="button" data-cols="1">1</button>
-          <button class="btn btn-ghost is-on" type="button" data-cols="2">2</button>
-          <button class="btn btn-ghost" type="button" data-cols="3">3</button>
-        </div>
-      </div>
-
-      <div class="side__section">
-        <div class="side__label">Per Page</div>
-        <div id="perPageSelect" class="cselect">
-          <button class="cselect__btn btn" type="button" aria-expanded="false">
-            <span id="perPageValue">100</span>
-            <span class="cselect__caret">▾</span>
-          </button>
-          <div class="cselect__menu">
-            <button class="cselect__opt is-on" type="button" data-value="100">100</button>
-            <button class="cselect__opt" type="button" data-value="50">50</button>
-            <button class="cselect__opt" type="button" data-value="150">150</button>
-            <button class="cselect__opt" type="button" data-value="200">200</button>
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="user-info"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="user-info"></div>
+      <div
+        class="modal-dialog modal-dialog--user-info"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-info-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="user-info-title" class="modal-dialog__title">ユーザー情報</h2>
+          <div class="modal-dialog__header-actions">
+            <button type="button" class="icon-text-button" data-modal-open="settings">設定</button>
+            <button type="button" class="icon-text-button" data-modal-open="help">ヘルプ</button>
+            <button type="button" class="icon-text-button" data-modal-open="credits">クレジット</button>
           </div>
         </div>
-      </div>
 
-      <div class="side__section">
-        <div class="side__label">Sort</div>
-        <div id="sortSelect" class="cselect">
-          <button class="cselect__btn btn" type="button" aria-expanded="false">
-            <span id="sortValue">Latest</span>
-            <span class="cselect__caret">▾</span>
-          </button>
-          <div class="cselect__menu">
-            <button class="cselect__opt is-on" type="button" data-value="latest">Latest</button>
-            <button class="cselect__opt" type="button" data-value="oldest">Oldest</button>
-            <button class="cselect__opt" type="button" data-value="popular">Popular</button>
+        <div class="modal-dialog__body">
+          <section
+            class="user-card"
+            id="user-card"
+            data-user-card
+          >
+            <div class="user-card__guest-overlay" data-guest-overlay hidden>
+              <button
+                type="button"
+                class="primary-button"
+                data-auth-login-button
+              >
+                ログイン
+              </button>
+            </div>
+
+            <div class="user-card__content">
+              <div class="user-card__profile-row">
+                <div class="user-card__avatar" data-user-avatar></div>
+
+                <div class="user-card__identity">
+                  <div class="user-card__name-row">
+                    <div class="user-card__name" data-user-display-name>-</div>
+                    <button
+                      type="button"
+                      class="icon-button"
+                      data-modal-open="account"
+                      aria-label="アカウント設定"
+                      data-account-edit-button
+                    >
+                      <span class="icon-button__pen"></span>
+                    </button>
+                  </div>
+                  <div class="user-card__meta" data-user-key>-</div>
+                </div>
+              </div>
+
+              <dl class="user-card__details">
+                <div class="user-card__detail-row">
+                  <dt>メールアドレス</dt>
+                  <dd data-user-email>-</dd>
+                </div>
+
+                <div class="user-card__detail-row">
+                  <dt>登録日時</dt>
+                  <dd data-user-created-at>-</dd>
+                </div>
+
+                <div class="user-card__detail-row">
+                  <dt>2段階認証</dt>
+                  <dd data-user-twofactor-status>-</dd>
+                </div>
+
+                <div class="user-card__detail-row" data-user-role-row hidden>
+                  <dt>ロール</dt>
+                  <dd data-user-role>-</dd>
+                </div>
+              </dl>
+
+              <p class="user-card__warning" data-upload-disabled-message hidden>
+                現在、画像投稿は無効化されています。
+              </p>
+
+              <div class="user-card__secondary-actions" data-authenticated-actions hidden>
+                <button
+                  type="button"
+                  class="secondary-button"
+                  data-modal-open="account"
+                >
+                  アカウント設定
+                </button>
+
+                <a
+                  href="/gallery/admin"
+                  class="secondary-button"
+                  data-admin-link
+                  hidden
+                >
+                  管理画面へ
+                </a>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="modal-dialog__footer modal-dialog__footer--end" data-authenticated-footer hidden>
+          <button type="button" class="ghost-button" data-logout-all-button>全端末ログアウト</button>
+          <button type="button" class="danger-button" data-logout-button>ログアウト</button>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="settings"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="settings"></div>
+      <div
+        class="modal-dialog modal-dialog--child"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="settings-title" class="modal-dialog__title">設定</h2>
+        </div>
+
+        <div class="modal-dialog__body">
+          <form class="stack-form" data-settings-form>
+            <label class="form-field">
+              <span class="form-field__label">言語</span>
+              <select name="language" data-setting-language>
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+
+            <label class="form-field">
+              <span class="form-field__label">カラーテーマ</span>
+              <select name="theme" data-setting-theme>
+                <option value="light">ライト</option>
+                <option value="dark">ダーク</option>
+                <option value="system">システム</option>
+              </select>
+            </label>
+          </form>
+        </div>
+
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="primary-button" data-modal-close="settings">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="help"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="help"></div>
+      <div
+        class="modal-dialog modal-dialog--child modal-dialog--scrollable"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="help-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="help-title" class="modal-dialog__title">ヘルプ</h2>
+        </div>
+
+        <div class="modal-dialog__body modal-dialog__body--scroll">
+          <div class="empty-content" data-help-content></div>
+        </div>
+
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="primary-button" data-modal-close="help">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="credits"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="credits"></div>
+      <div
+        class="modal-dialog modal-dialog--child modal-dialog--scrollable"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="credits-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="credits-title" class="modal-dialog__title">クレジット</h2>
+        </div>
+
+        <div class="modal-dialog__body modal-dialog__body--scroll">
+          <dl class="credits-list">
+            <div class="credits-list__row">
+              <dt>サービス名</dt>
+              <dd>Felixxsv Gallery</dd>
+            </div>
+            <div class="credits-list__row">
+              <dt>作成者</dt>
+              <dd data-credit-author></dd>
+            </div>
+            <div class="credits-list__row">
+              <dt>使用技術</dt>
+              <dd data-credit-stack></dd>
+            </div>
+            <div class="credits-list__row">
+              <dt>ライセンス</dt>
+              <dd data-credit-license></dd>
+            </div>
+            <div class="credits-list__row">
+              <dt>更新日</dt>
+              <dd data-credit-updated-at></dd>
+            </div>
+            <div class="credits-list__row">
+              <dt>バージョン</dt>
+              <dd data-credit-version></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="primary-button" data-modal-close="credits">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="account"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="account"></div>
+      <div
+        class="modal-dialog modal-dialog--child"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="account-title" class="modal-dialog__title">アカウント設定</h2>
+        </div>
+
+        <div class="modal-dialog__body">
+          <dl class="account-settings-list">
+            <div class="account-settings-list__row">
+              <dt>表示名</dt>
+              <dd data-account-display-name>-</dd>
+            </div>
+            <div class="account-settings-list__row">
+              <dt>user_key</dt>
+              <dd data-account-user-key>-</dd>
+            </div>
+            <div class="account-settings-list__row">
+              <dt>メールアドレス</dt>
+              <dd data-account-email>-</dd>
+            </div>
+            <div class="account-settings-list__row">
+              <dt>登録日時</dt>
+              <dd data-account-created-at>-</dd>
+            </div>
+            <div class="account-settings-list__row">
+              <dt>2段階認証</dt>
+              <dd data-account-twofactor-status>-</dd>
+            </div>
+          </dl>
+
+          <div class="account-settings-actions">
+            <button type="button" class="secondary-button" data-modal-open="email" data-email-action-button>
+              メールアドレス変更
+            </button>
+            <button type="button" class="secondary-button" data-modal-open="password">
+              パスワード変更
+            </button>
+            <button type="button" class="secondary-button" data-twofactor-enable-button>
+              2段階認証を有効化
+            </button>
+            <button type="button" class="secondary-button" data-modal-open="2fa-disable" data-twofactor-disable-open-button hidden>
+              2段階認証を無効化
+            </button>
           </div>
         </div>
-      </div>
 
-      <div class="side__section">
-        <div class="side__label">Search</div>
-        <div class="searchrow">
-          <input id="searchInput" class="inp" type="text" placeholder="title / alt / tags">
-          <button id="searchClear" class="hdrbtn" type="button" aria-label="Clear">×</button>
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="primary-button" data-modal-close="account">閉じる</button>
         </div>
       </div>
+    </section>
 
-      <div class="side__section">
-        <div class="side__label">Date</div>
-        <div class="daterow">
-          <input id="dateFrom" class="inp" type="date">
-          <input id="dateTo" class="inp" type="date">
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="email"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="email"></div>
+      <div
+        class="modal-dialog modal-dialog--child"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="email-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="email-title" class="modal-dialog__title" data-email-modal-title>メールアドレス変更</h2>
         </div>
-        <button id="dateClear" class="btn" type="button">Clear</button>
-      </div>
 
-      <div class="side__section">
-        <div class="side__label">Tags</div>
-        <div class="seg">
-          <button id="tagModeOr" class="btn btn-ghost is-on" type="button">OR</button>
-          <button id="tagModeAnd" class="btn btn-ghost" type="button">AND</button>
+        <div class="modal-dialog__body">
+          <form class="stack-form" data-email-form>
+            <label class="form-field">
+              <span class="form-field__label">メールアドレス</span>
+              <input type="email" name="email" data-email-input />
+            </label>
+          </form>
         </div>
-        <div id="tagSelected" class="chips"></div>
-        <div id="tagList" class="taglist"></div>
-        <button id="tagMore" class="btn btn-ghost" type="button" style="display:none">More</button>
-      </div>
 
-      <div class="side__section">
-        <div class="side__label">Colors</div>
-        <div class="seg">
-          <button id="colorModeOr" class="btn btn-ghost is-on" type="button">OR</button>
-          <button id="colorModeAnd" class="btn btn-ghost" type="button">AND</button>
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="primary-button" data-email-save-button>保存</button>
+          <button type="button" class="ghost-button" data-modal-close="email">キャンセル</button>
         </div>
-        <div id="colorSelected" class="chips"></div>
-        <div id="colorList" class="colorlist"></div>
       </div>
-    </aside>
+    </section>
 
-    <button id="sideTab" class="sidetab btn btn-ghost" type="button">Filters</button>
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="password"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="password"></div>
+      <div
+        class="modal-dialog modal-dialog--child"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="password-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="password-title" class="modal-dialog__title">パスワード変更</h2>
+        </div>
 
-    <main class="main">
-      <div class="main__top">
-        <div id="titleline" class="titleline">All Images</div>
-        <div id="pagerTop" class="pager"></div>
+        <div class="modal-dialog__body">
+          <form class="stack-form" data-password-form>
+            <label class="form-field">
+              <span class="form-field__label">現在のパスワード</span>
+              <input type="password" name="current_password" data-current-password-input />
+            </label>
+
+            <label class="form-field">
+              <span class="form-field__label">新しいパスワード</span>
+              <input type="password" name="new_password" data-new-password-input />
+            </label>
+          </form>
+        </div>
+
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="primary-button" data-password-save-button>変更する</button>
+          <button type="button" class="ghost-button" data-modal-close="password">キャンセル</button>
+        </div>
       </div>
+    </section>
 
-      <div id="grid" class="grid cols-2"></div>
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="2fa-setup"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="2fa-setup"></div>
+      <div
+        class="modal-dialog modal-dialog--child"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="twofactor-setup-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="twofactor-setup-title" class="modal-dialog__title">2段階認証の確認</h2>
+        </div>
 
-      <div class="main__bottom">
-        <div id="pagerBottom" class="pager"></div>
+        <div class="modal-dialog__body">
+          <p class="inline-message" data-twofactor-setup-message></p>
+
+          <form class="stack-form" data-twofactor-setup-form>
+            <label class="form-field">
+              <span class="form-field__label">確認コード</span>
+              <input type="text" name="code" maxlength="6" inputmode="numeric" data-twofactor-setup-code-input />
+            </label>
+          </form>
+        </div>
+
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="primary-button" data-twofactor-setup-confirm-button>確認</button>
+          <button type="button" class="ghost-button" data-modal-close="2fa-setup">キャンセル</button>
+        </div>
       </div>
-    </main>
+    </section>
+
+    <section
+      class="modal-layer"
+      data-modal-layer
+      data-modal-id="2fa-disable"
+      hidden
+    >
+      <div class="modal-layer__backdrop" data-modal-backdrop="2fa-disable"></div>
+      <div
+        class="modal-dialog modal-dialog--child"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="twofactor-disable-title"
+      >
+        <div class="modal-dialog__header">
+          <h2 id="twofactor-disable-title" class="modal-dialog__title">2段階認証の無効化</h2>
+        </div>
+
+        <div class="modal-dialog__body">
+          <form class="stack-form" data-twofactor-disable-form>
+            <label class="form-field">
+              <span class="form-field__label">現在のパスワード</span>
+              <input type="password" name="password" data-twofactor-disable-password-input />
+            </label>
+          </form>
+        </div>
+
+        <div class="modal-dialog__footer modal-dialog__footer--end">
+          <button type="button" class="danger-button" data-twofactor-disable-confirm-button>無効化する</button>
+          <button type="button" class="ghost-button" data-modal-close="2fa-disable">キャンセル</button>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div id="lightbox" class="lb" aria-hidden="true">
-    <div id="lbBg" class="lb__bg"></div>
-    <img id="lbImg" class="lb__img" alt="">
-    <button id="lbX" class="lb__x" type="button" aria-label="Close">×</button>
-    <div class="lb__bar">
-      <div id="lbMeta" class="lb__meta"></div>
-      <button id="lbMore" class="btn btn-ghost" type="button">Info</button>
-    </div>
-  </div>
-
-  <div id="modal" class="modal" aria-hidden="true">
-    <div id="mBg" class="modal__bg"></div>
-    <div class="modal__panel">
-      <div class="modal__top">
-        <div class="modal__title">Details</div>
-        <button id="mX" class="modal__close" type="button" aria-label="Close">×</button>
-      </div>
-      <div id="mBody" class="modal__body"></div>
-    </div>
-  </div>
-
-  <div id="tagModal" class="modal" aria-hidden="true">
-    <div id="tmBg" class="modal__bg"></div>
-    <div class="modal__panel">
-      <div class="modal__top">
-        <div class="modal__title">Tags</div>
-        <button id="tmX" class="modal__close" type="button" aria-label="Close">×</button>
-      </div>
-      <div id="tmBody" class="modal__body"></div>
-    </div>
-  </div>
+  <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>
 
   <script src="/gallery/app.js"></script>
 </body>
