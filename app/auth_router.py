@@ -20,6 +20,8 @@ from auth_service import (
     complete_discord_registration,
     confirm_email_verification,
     confirm_two_factor_challenge,
+    confirm_two_factor_setup_for_current_session,
+    disable_two_factor_for_current_session,
     get_current_user_profile,
     get_discord_registration_status,
     get_password_reset_status,
@@ -34,6 +36,7 @@ from auth_service import (
     send_email_verification_again,
     send_two_factor_challenge_again,
     start_discord_oauth,
+    start_two_factor_setup_for_current_session,
 )
 
 
@@ -88,6 +91,14 @@ class DiscordRegisterRequest(BaseModel):
     registration_token: str
     user_key: str
     display_name: str
+
+class TwoFactorSetupConfirmRequest(BaseModel):
+    verify_ticket: str
+    code: str
+
+
+class TwoFactorDisableRequest(BaseModel):
+    password: str
 
 
 def build_request_id() -> str:
@@ -159,6 +170,11 @@ def map_error_code_to_http_status(error_code: str) -> int:
         "too_many_attempts": 429,
         "server_error": 500,
         "discord_oauth_not_implemented": 501,
+        "current_password_incorrect": 400,
+        "email_not_verified": 403,
+        "email_not_available": 400,
+        "already_enabled": 409,
+        "not_enabled": 409,
         "current_password_incorrect": 400,
     }
     return mapping.get(error_code, 400)
@@ -479,7 +495,82 @@ async def two_factor_verify(
             message="2段階認証に失敗しました。",
             http_status=500,
         )
+    
+@router.post("/2fa/setup/start")
+async def two_factor_setup_start(
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = start_two_factor_setup_for_current_session(
+            session_token=gallery_session,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="2段階認証の開始に失敗しました。",
+            http_status=500,
+        )
+        return response
 
+
+@router.post("/2fa/setup/confirm")
+async def two_factor_setup_confirm(
+    payload: TwoFactorSetupConfirmRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = confirm_two_factor_setup_for_current_session(
+            session_token=gallery_session,
+            verify_ticket=payload.verify_ticket,
+            code=payload.code,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="2段階認証の有効化に失敗しました。",
+            http_status=500,
+        )
+        return response
+
+
+@router.post("/2fa/disable")
+async def two_factor_disable(
+    payload: TwoFactorDisableRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = disable_two_factor_for_current_session(
+            session_token=gallery_session,
+            password=payload.password,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="2段階認証の無効化に失敗しました。",
+            http_status=500,
+        )
+        return response
 
 @router.post("/password/forgot")
 async def password_forgot(

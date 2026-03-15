@@ -1,3 +1,335 @@
+(() => {
+  const state = {
+    profile: null,
+    twoFactorSetupTicket: null,
+    twoFactorSetupMaskedEmail: null,
+    twoFactorSetupExpiresInSec: null
+  };
+
+  const settingsModal = document.getElementById('settings-modal');
+  const settingsBody = document.getElementById('settings-modal-body');
+  const settingsLoading = document.getElementById('settings-modal-loading');
+  const settingsError = document.getElementById('settings-modal-error');
+
+  const passwordModal = document.getElementById('settings-password-modal');
+  const passwordForm = document.getElementById('settings-password-form');
+  const passwordError = document.getElementById('settings-password-error');
+
+  const twoFactorDisableModal = document.getElementById('settings-2fa-disable-modal');
+  const twoFactorDisableForm = document.getElementById('settings-2fa-disable-form');
+  const twoFactorDisableError = document.getElementById('settings-2fa-disable-error');
+
+  const displayNameEl = document.getElementById('settings-display-name');
+  const userKeyEl = document.getElementById('settings-user-key');
+  const emailEl = document.getElementById('settings-email');
+  const createdAtEl = document.getElementById('settings-created-at');
+  const roleRowEl = document.getElementById('settings-role-row');
+  const roleEl = document.getElementById('settings-role');
+  const uploadDisabledEl = document.getElementById('settings-upload-disabled');
+  const twoFactorStatusEl = document.getElementById('settings-2fa-status');
+  const adminSectionEl = document.getElementById('settings-admin-section');
+
+  const twoFactorEnableBtn = document.getElementById('settings-2fa-enable-btn');
+  const twoFactorDisableOpenBtn = document.getElementById('settings-2fa-disable-open-btn');
+  const twoFactorSetupBox = document.getElementById('settings-2fa-setup-box');
+  const twoFactorSetupMessage = document.getElementById('settings-2fa-setup-message');
+  const twoFactorSetupForm = document.getElementById('settings-2fa-setup-form');
+  const twoFactorSetupCode = document.getElementById('settings-2fa-code');
+  const twoFactorSetupError = document.getElementById('settings-2fa-setup-error');
+  const twoFactorCancelBtn = document.getElementById('settings-2fa-cancel-btn');
+
+  const logoutBtn = document.getElementById('settings-logout-btn');
+  const logoutAllBtn = document.getElementById('settings-logout-all-btn');
+  const passwordChangeOpenBtn = document.getElementById('settings-password-change-open-btn');
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  async function api(path, options = {}) {
+    const response = await fetch(path, {
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      },
+      credentials: 'include',
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (response.status === 401) {
+      window.location.href = '/gallery/auth';
+      throw new Error('ログインが必要です。');
+    }
+
+    if (!response.ok || !payload || payload.ok === false) {
+      const message = payload?.error?.message || '処理に失敗しました。';
+      const error = new Error(message);
+      error.payload = payload;
+      throw error;
+    }
+
+    return payload;
+  }
+
+  function setMainLoading(isLoading) {
+    settingsLoading.hidden = !isLoading;
+    settingsBody.hidden = isLoading;
+    settingsError.hidden = true;
+    settingsError.textContent = '';
+  }
+
+  function showMainError(message) {
+    settingsError.hidden = false;
+    settingsError.textContent = message;
+  }
+
+  function closeSettingsModal() {
+    settingsModal.hidden = true;
+    resetTwoFactorSetupBox();
+  }
+
+  function openSettingsModal() {
+    settingsModal.hidden = false;
+    loadProfile();
+  }
+
+  function openPasswordModal() {
+    passwordModal.hidden = false;
+    passwordError.hidden = true;
+    passwordError.textContent = '';
+    passwordForm.reset();
+  }
+
+  function closePasswordModal() {
+    passwordModal.hidden = true;
+    passwordError.hidden = true;
+    passwordError.textContent = '';
+    passwordForm.reset();
+  }
+
+  function openTwoFactorDisableModal() {
+    twoFactorDisableModal.hidden = false;
+    twoFactorDisableError.hidden = true;
+    twoFactorDisableError.textContent = '';
+    twoFactorDisableForm.reset();
+  }
+
+  function closeTwoFactorDisableModal() {
+    twoFactorDisableModal.hidden = true;
+    twoFactorDisableError.hidden = true;
+    twoFactorDisableError.textContent = '';
+    twoFactorDisableForm.reset();
+  }
+
+  function resetTwoFactorSetupBox() {
+    state.twoFactorSetupTicket = null;
+    state.twoFactorSetupMaskedEmail = null;
+    state.twoFactorSetupExpiresInSec = null;
+    twoFactorSetupBox.hidden = true;
+    twoFactorSetupMessage.textContent = '';
+    twoFactorSetupError.hidden = true;
+    twoFactorSetupError.textContent = '';
+    twoFactorSetupForm.reset();
+  }
+
+  function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return escapeHtml(value);
+    return date.toLocaleString('ja-JP');
+  }
+
+  function renderProfile(data) {
+    state.profile = data;
+
+    const user = data.user;
+    const twoFactor = data.security.two_factor;
+    const canOpenAdmin = data.features.can_open_admin;
+
+    displayNameEl.textContent = user.display_name || '-';
+    userKeyEl.textContent = user.user_key || '-';
+    emailEl.textContent = user.primary_email || '-';
+    createdAtEl.textContent = formatDate(user.created_at);
+
+    if (user.role === 'admin') {
+      roleRowEl.hidden = false;
+      roleEl.textContent = '管理者';
+    } else {
+      roleRowEl.hidden = true;
+      roleEl.textContent = '';
+    }
+
+    uploadDisabledEl.hidden = user.upload_enabled !== false;
+    twoFactorStatusEl.textContent = twoFactor.is_enabled ? '有効' : '無効';
+
+    twoFactorEnableBtn.hidden = twoFactor.is_enabled;
+    twoFactorDisableOpenBtn.hidden = !twoFactor.is_enabled;
+
+    adminSectionEl.hidden = !canOpenAdmin;
+  }
+
+  async function loadProfile() {
+    setMainLoading(true);
+    resetTwoFactorSetupBox();
+    try {
+      const payload = await api('/api/auth/me');
+      renderProfile(payload.data);
+      setMainLoading(false);
+    } catch (error) {
+      setMainLoading(false);
+      showMainError(error.message || 'ユーザー情報の取得に失敗しました。');
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await api('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/gallery/auth';
+    } catch (error) {
+      showMainError(error.message || 'ログアウトに失敗しました。');
+    }
+  }
+
+  async function handleLogoutAll() {
+    const ok = window.confirm('全端末からログアウトします。よろしいですか。');
+    if (!ok) return;
+
+    try {
+      await api('/api/auth/logout-all', { method: 'POST' });
+      window.location.href = '/gallery/auth';
+    } catch (error) {
+      showMainError(error.message || '全端末ログアウトに失敗しました。');
+    }
+  }
+
+  async function handlePasswordChangeSubmit(event) {
+    event.preventDefault();
+    passwordError.hidden = true;
+    passwordError.textContent = '';
+
+    const currentPassword = document.getElementById('settings-current-password').value;
+    const newPassword = document.getElementById('settings-new-password').value;
+
+    try {
+      await api('/api/auth/password/change', {
+        method: 'POST',
+        body: {
+          current_password: currentPassword,
+          new_password: newPassword
+        }
+      });
+      window.location.href = '/gallery/auth';
+    } catch (error) {
+      passwordError.hidden = false;
+      passwordError.textContent = error.message || 'パスワード変更に失敗しました。';
+    }
+  }
+
+  async function handleTwoFactorSetupStart() {
+    resetTwoFactorSetupBox();
+    twoFactorSetupError.hidden = true;
+    twoFactorSetupError.textContent = '';
+
+    try {
+      const payload = await api('/api/auth/2fa/setup/start', { method: 'POST' });
+      state.twoFactorSetupTicket = payload.data.verify_ticket;
+      state.twoFactorSetupMaskedEmail = payload.data.masked_email;
+      state.twoFactorSetupExpiresInSec = payload.data.expires_in_sec;
+      twoFactorSetupMessage.textContent = `${payload.data.masked_email} に確認コードを送信しました。コードを入力してください。`;
+      twoFactorSetupBox.hidden = false;
+      twoFactorSetupCode.focus();
+    } catch (error) {
+      twoFactorSetupError.hidden = false;
+      twoFactorSetupError.textContent = error.message || '2段階認証の開始に失敗しました。';
+      twoFactorSetupBox.hidden = false;
+    }
+  }
+
+  async function handleTwoFactorSetupConfirm(event) {
+    event.preventDefault();
+    twoFactorSetupError.hidden = true;
+    twoFactorSetupError.textContent = '';
+
+    try {
+      await api('/api/auth/2fa/setup/confirm', {
+        method: 'POST',
+        body: {
+          verify_ticket: state.twoFactorSetupTicket,
+          code: twoFactorSetupCode.value
+        }
+      });
+      resetTwoFactorSetupBox();
+      await loadProfile();
+    } catch (error) {
+      twoFactorSetupError.hidden = false;
+      twoFactorSetupError.textContent = error.message || '2段階認証の有効化に失敗しました。';
+    }
+  }
+
+  async function handleTwoFactorDisableSubmit(event) {
+    event.preventDefault();
+    twoFactorDisableError.hidden = true;
+    twoFactorDisableError.textContent = '';
+
+    const password = document.getElementById('settings-2fa-disable-password').value;
+
+    try {
+      await api('/api/auth/2fa/disable', {
+        method: 'POST',
+        body: {
+          password
+        }
+      });
+      closeTwoFactorDisableModal();
+      await loadProfile();
+    } catch (error) {
+      twoFactorDisableError.hidden = false;
+      twoFactorDisableError.textContent = error.message || '2段階認証の無効化に失敗しました。';
+    }
+  }
+
+  document.querySelectorAll('[data-open-settings-modal]').forEach((button) => {
+    button.addEventListener('click', openSettingsModal);
+  });
+
+  document.querySelectorAll('[data-close-settings-modal]').forEach((button) => {
+    button.addEventListener('click', closeSettingsModal);
+  });
+
+  document.querySelectorAll('[data-close-password-modal]').forEach((button) => {
+    button.addEventListener('click', closePasswordModal);
+  });
+
+  document.querySelectorAll('[data-close-2fa-disable-modal]').forEach((button) => {
+    button.addEventListener('click', closeTwoFactorDisableModal);
+  });
+
+  logoutBtn.addEventListener('click', handleLogout);
+  logoutAllBtn.addEventListener('click', handleLogoutAll);
+  passwordChangeOpenBtn.addEventListener('click', openPasswordModal);
+  passwordForm.addEventListener('submit', handlePasswordChangeSubmit);
+
+  twoFactorEnableBtn.addEventListener('click', handleTwoFactorSetupStart);
+  twoFactorSetupForm.addEventListener('submit', handleTwoFactorSetupConfirm);
+  twoFactorCancelBtn.addEventListener('click', resetTwoFactorSetupBox);
+
+  twoFactorDisableOpenBtn.addEventListener('click', openTwoFactorDisableModal);
+  twoFactorDisableForm.addEventListener('submit', handleTwoFactorDisableSubmit);
+})();
+
 const el = (id) => document.getElementById(id)
 
 const grid = el("grid")
