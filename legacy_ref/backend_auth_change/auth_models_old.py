@@ -221,45 +221,6 @@ def update_user_profile(
         return _rows_affected(cursor)
 
 
-
-def update_user_registration_profile(
-    conn,
-    user_id: int,
-    user_key: str,
-    display_name: str,
-    primary_email: str | None,
-    is_email_verified: bool,
-    status: str = "active",
-    upload_enabled: bool = True,
-) -> int:
-    sql = """
-        UPDATE users
-        SET
-            user_key = %s,
-            display_name = %s,
-            email = %s,
-            status = %s,
-            can_upload = %s,
-            is_disabled = %s,
-            is_email_verified = %s
-        WHERE id = %s
-          AND gallery = %s
-    """
-    params = (
-        user_key,
-        display_name,
-        primary_email,
-        status,
-        1 if upload_enabled else 0,
-        1 if status in {"disabled", "locked", "deleted"} else 0,
-        1 if is_email_verified else 0,
-        user_id,
-        _get_gallery_name(),
-    )
-    with conn.cursor() as cursor:
-        cursor.execute(sql, params)
-        return _rows_affected(cursor)
-
 def update_user_status(
     conn,
     user_id: int,

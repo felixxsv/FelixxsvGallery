@@ -6,7 +6,7 @@ import smtplib
 import ssl
 
 
-_VERIFY_PURPOSES = {"signup", "email_signup", "email_change", "2fa_setup"}
+_VERIFY_PURPOSES = {"signup", "email_change", "2fa_setup"}
 
 
 class AuthMailError(Exception):
@@ -222,7 +222,7 @@ def build_verification_body_text(
     expiry_text = _format_expiry_minutes(expires_in_sec)
     greeting = _build_greeting(display_name)
 
-    if purpose in {"signup", "email_signup"}:
+    if purpose == "signup":
         purpose_text = "Felixxsv Gallery のアカウント登録を完了するため、下記の確認コードを入力してください。"
     elif purpose == "email_change":
         purpose_text = "メールアドレス変更を完了するため、下記の確認コードを入力してください。"

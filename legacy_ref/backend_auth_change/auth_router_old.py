@@ -14,7 +14,7 @@ from auth_security import (
     build_session_cookie_options,
 )
 
-from auth_service import (
+from app.auth_service_old import (
     change_password_for_current_session,
     check_user_key_availability,
     complete_discord_registration,
@@ -30,8 +30,7 @@ from auth_service import (
     login_with_email_password,
     logout_all_for_current_session,
     logout_by_session_token,
-    start_registration,
-    complete_registration,
+    register_user,
     request_password_reset,
     reset_password,
     send_email_verification_again,
@@ -50,13 +49,9 @@ class LoginRequest(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    email: str
-
-
-class RegisterCompleteRequest(BaseModel):
-    registration_token: str
     user_key: str
     display_name: str
+    email: str
     password: str
     terms_agreed: bool
 
@@ -348,56 +343,10 @@ async def register(
     request_id = build_request_id()
     context = extract_request_context(request)
     try:
-        result = start_registration(
-            email=payload.email,
-            ip_address=context["ip_address"],
-            user_agent=context["user_agent"],
-        )
-        return _build_response_from_service_result(request_id, result)
-    except Exception:
-        return build_error_response(
-            request_id=request_id,
-            error_code="server_error",
-            message="登録開始処理に失敗しました。",
-            http_status=500,
-        )
-
-
-@router.post("/register/start")
-async def register_start(
-    payload: RegisterRequest,
-    request: Request,
-):
-    request_id = build_request_id()
-    context = extract_request_context(request)
-    try:
-        result = start_registration(
-            email=payload.email,
-            ip_address=context["ip_address"],
-            user_agent=context["user_agent"],
-        )
-        return _build_response_from_service_result(request_id, result)
-    except Exception:
-        return build_error_response(
-            request_id=request_id,
-            error_code="server_error",
-            message="登録開始処理に失敗しました。",
-            http_status=500,
-        )
-
-
-@router.post("/register/complete")
-async def register_complete(
-    payload: RegisterCompleteRequest,
-    request: Request,
-):
-    request_id = build_request_id()
-    context = extract_request_context(request)
-    try:
-        result = complete_registration(
-            registration_token=payload.registration_token,
+        result = register_user(
             user_key=payload.user_key,
             display_name=payload.display_name,
+            email=payload.email,
             password=payload.password,
             terms_agreed=payload.terms_agreed,
             ip_address=context["ip_address"],
@@ -408,7 +357,7 @@ async def register_complete(
         return build_error_response(
             request_id=request_id,
             error_code="server_error",
-            message="登録完了処理に失敗しました。",
+            message="登録処理に失敗しました。",
             http_status=500,
         )
 

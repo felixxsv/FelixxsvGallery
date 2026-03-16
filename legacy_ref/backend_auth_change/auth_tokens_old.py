@@ -13,10 +13,9 @@ DEFAULT_VERIFY_TICKET_EXPIRES_SEC = 900
 DEFAULT_CHALLENGE_TOKEN_EXPIRES_SEC = 300
 DEFAULT_REGISTRATION_TOKEN_EXPIRES_SEC = 900
 DEFAULT_RESET_TOKEN_EXPIRES_SEC = 1800
-DEFAULT_EMAIL_REGISTRATION_TOKEN_EXPIRES_SEC = 1800
 
 _RESERVED_PAYLOAD_KEYS = {"kind", "sub", "iat", "exp", "jti"}
-_VERIFY_PURPOSES = {"signup", "email_signup", "email_change", "2fa_setup"}
+_VERIFY_PURPOSES = {"signup", "email_change", "2fa_setup"}
 _CHALLENGE_PURPOSE = "login"
 _REGISTRATION_PROVIDER = "discord"
 
@@ -368,46 +367,6 @@ def parse_challenge_token(
         "exp": int(_extract_required(payload, "exp")),
     }
 
-
-
-def create_email_registration_token(
-    user_id: int,
-    email: str | None,
-    expires_in_sec: int = DEFAULT_EMAIL_REGISTRATION_TOKEN_EXPIRES_SEC,
-    now: int | float | datetime | None = None,
-) -> str:
-    if not isinstance(user_id, int) or user_id <= 0:
-        raise AuthTokenError("invalid_user_id", "ユーザーIDが不正です。")
-
-    payload = build_token_payload(
-        kind="email_registration_token",
-        subject=user_id,
-        expires_in_sec=expires_in_sec,
-        extra={
-            "email": email,
-        },
-        now=now,
-    )
-    return sign_payload(payload)
-
-
-def parse_email_registration_token(
-    token: str,
-    now: int | float | datetime | None = None,
-) -> dict:
-    payload = _parse_and_validate_token(token, "email_registration_token", now=now)
-    email = payload.get("email")
-    if email is not None and not isinstance(email, str):
-        raise InvalidAuthTokenError()
-
-    return {
-        "kind": "email_registration_token",
-        "user_id": _coerce_user_id(_extract_required(payload, "sub")),
-        "email": email,
-        "jti": str(_extract_required(payload, "jti")),
-        "iat": int(_extract_required(payload, "iat")),
-        "exp": int(_extract_required(payload, "exp")),
-    }
 
 def create_registration_token(
     provider_user_id: str,

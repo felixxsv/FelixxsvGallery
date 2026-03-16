@@ -19,7 +19,7 @@ from pymysql.err import IntegrityError
 from PIL import Image, UnidentifiedImageError
 
 from db import load_conf, db_conn
-from auth_router import router as auth_router
+from app.auth_router_old import router as auth_router
 from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
 
 

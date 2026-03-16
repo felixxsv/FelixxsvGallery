@@ -28,33 +28,69 @@
     <div class="authcard glass-strong">
       <div class="authtabs">
         <button id="tabLogin" class="btn btn-ghost is-on" type="button">Login</button>
-        <button id="tabRegister" class="btn btn-ghost" type="button">Register</button>
+        <button id="tabSignup" class="btn btn-ghost" type="button">新規登録</button>
       </div>
 
       <div id="paneLogin" class="authpane is-on">
-        <div class="label">Email</div>
-        <input id="loginEmail" class="inp" type="email" autocomplete="email">
+        <div id="loginStageCredentials">
+          <div class="label">Email</div>
+          <input id="loginEmail" class="inp" type="email" autocomplete="email">
 
-        <div class="label">Password</div>
-        <input id="loginPass" class="inp" type="password" autocomplete="current-password">
+          <div class="label">Password</div>
+          <input id="loginPass" class="inp" type="password" autocomplete="current-password">
 
-        <button id="loginBtn" class="btn btn-primary authbtn" type="button">Login</button>
+          <button id="loginBtn" class="btn btn-primary authbtn" type="button">Login</button>
+        </div>
+
+        <div id="loginStageTwoFactor" hidden>
+          <div id="loginTwoFactorMessage" class="label">認証コードを入力してください。</div>
+
+          <div class="label">認証コード</div>
+          <input id="loginTwoFactorCode" class="inp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+
+          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button id="loginTwoFactorVerifyBtn" class="btn btn-primary authbtn" type="button">確認</button>
+            <button id="loginTwoFactorResendBtn" class="btn btn-ghost authbtn" type="button">再送</button>
+            <button id="loginBackBtn" class="btn btn-ghost authbtn" type="button">戻る</button>
+          </div>
+        </div>
       </div>
 
-      <div id="paneRegister" class="authpane">
-        <div class="label">Email</div>
-        <input id="regEmail" class="inp" type="email" autocomplete="email">
+      <div id="paneSignup" class="authpane">
+        <div id="signupStageStart">
+          <div class="label">Email</div>
+          <input id="signupEmail" class="inp" type="email" autocomplete="email">
 
-        <div class="label">User Key</div>
-        <input id="regKey" class="inp" type="text" placeholder="4-20 chars (A-Za-z0-9_-)" autocomplete="username">
+          <button id="signupStartBtn" class="btn btn-primary authbtn" type="button">認証コードを送信</button>
+        </div>
 
-        <div class="label">Display Name</div>
-        <input id="regName" class="inp" type="text">
+        <div id="signupStageVerify" hidden>
+          <div id="signupVerifyMessage" class="label">メールに届いた認証コードを入力してください。</div>
 
-        <div class="label">Password</div>
-        <input id="regPass" class="inp" type="password" autocomplete="new-password">
+          <div class="label">認証コード</div>
+          <input id="signupVerifyCode" class="inp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
 
-        <button id="regBtn" class="btn btn-primary authbtn" type="button">Create</button>
+          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button id="signupVerifyBtn" class="btn btn-primary authbtn" type="button">認証する</button>
+            <button id="signupResendBtn" class="btn btn-ghost authbtn" type="button">再送</button>
+            <button id="signupRestartBtn" class="btn btn-ghost authbtn" type="button">戻る</button>
+          </div>
+        </div>
+
+        <div id="signupStageComplete" hidden>
+          <div id="signupCompleteMessage" class="label">アカウント情報を入力してください。</div>
+
+          <div class="label">User Key</div>
+          <input id="completeUserKey" class="inp" type="text" placeholder="4-20 chars (A-Za-z0-9_-)" autocomplete="username">
+
+          <div class="label">Display Name</div>
+          <input id="completeDisplayName" class="inp" type="text">
+
+          <div class="label">Password</div>
+          <input id="completePassword" class="inp" type="password" autocomplete="new-password">
+
+          <button id="completeRegisterBtn" class="btn btn-primary authbtn" type="button">アカウントを作成</button>
+        </div>
       </div>
     </div>
   </main>

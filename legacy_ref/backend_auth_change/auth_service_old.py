@@ -9,8 +9,8 @@ import secrets
 import uuid
 
 from db import db_conn, load_conf
-from auth_mail import AuthMailError, send_password_reset_email, send_two_factor_code_email, send_verification_email
-from auth_models import (
+from app.auth_mail_old import AuthMailError, send_password_reset_email, send_two_factor_code_email, send_verification_email
+from app.auth_models_old import (
     clear_password_failed_attempts,
     consume_email_verification,
     consume_password_reset_token,
@@ -47,7 +47,6 @@ from auth_models import (
     update_password_hash,
     update_two_factor_settings,
     update_user_profile,
-    update_user_registration_profile,
     set_user_must_reset_password,
     create_audit_log,
 )
@@ -73,10 +72,8 @@ from auth_tokens import (
     create_reset_token,
     create_verify_ticket,
     create_registration_token,
-    create_email_registration_token,
     parse_challenge_token,
     parse_registration_token,
-    parse_email_registration_token,
     parse_reset_token,
     parse_verify_ticket,
 )
@@ -88,8 +85,6 @@ from auth_validators import (
     validate_forgot_password_input,
     validate_login_input,
     validate_register_input,
-    validate_register_start_input,
-    validate_register_complete_input,
     validate_reset_password_input,
     validate_reset_status_query,
     validate_user_key_availability_input,
@@ -607,140 +602,6 @@ def check_user_key_availability(
         _safe_close(conn)
 
 
-
-def start_registration(
-    email: str | None,
-    ip_address: bytes | None = None,
-    user_agent: str | None = None,
-    now=None,
-) -> dict:
-    try:
-        validated = validate_register_start_input(email=email)
-    except (AuthValidationError, AuthValidationErrors) as exc:
-        return convert_validation_error_to_result(exc)
-
-    conn = None
-    now_dt = _utc_now(now)
-    auth_conf = _get_auth_conf()
-    verify_code = _generate_otp_code()
-    verify_ticket = None
-
-    try:
-        conn = _get_db_connection(autocommit=False)
-
-        existing_user = get_user_by_primary_email(conn, validated["email"])
-        if existing_user is not None:
-            existing_identity = get_identity_by_user_and_provider(conn, existing_user["id"], "email_password")
-            if existing_identity is not None or bool(existing_user.get("is_email_verified")):
-                _safe_rollback(conn)
-                return build_service_error(
-                    error_code="email_already_used",
-                    message="このメールアドレスはすでに使用されています。",
-                    field_errors=[
-                        {
-                            "field": "email",
-                            "code": "email_already_used",
-                            "message": "このメールアドレスはすでに使用されています。",
-                        }
-                    ],
-                )
-
-            user_id = existing_user["id"]
-            expire_active_email_verifications(
-                conn=conn,
-                user_id=user_id,
-                purpose="email_signup",
-                now=now_dt,
-            )
-        else:
-            pending_user_key = None
-            for _ in range(10):
-                candidate = _build_pending_user_key()
-                if get_user_by_user_key(conn, candidate) is None:
-                    pending_user_key = candidate
-                    break
-            if pending_user_key is None:
-                raise RuntimeError("pending_user_key_generation_failed")
-
-            user_id = create_user(
-                conn=conn,
-                user_key=pending_user_key,
-                display_name="仮登録",
-                primary_email=validated["email"],
-                password_hash=None,
-                role="user",
-                status="active",
-                upload_enabled=True,
-                is_email_verified=False,
-                must_reset_password=True,
-                avatar_path=None,
-            )
-
-        create_email_verification(
-            conn=conn,
-            user_id=user_id,
-            email=validated["email"],
-            code_hash=hash_token_value(verify_code),
-            purpose="email_signup",
-            expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
-        )
-
-        verify_ticket = create_verify_ticket(
-            user_id=user_id,
-            purpose="email_signup",
-            email=validated["email"],
-            expires_in_sec=auth_conf["verify_code_expires_sec"],
-            now=now_dt,
-        )
-
-        log_auth_event(
-            conn=conn,
-            actor_user_id=user_id,
-            action_type="auth.register.start",
-            target_type="user",
-            target_id=str(user_id),
-            result="success",
-            ip_address=ip_address,
-            user_agent=user_agent,
-            summary="登録開始用の確認コードを送信しました。",
-        )
-
-        conn.commit()
-    except (AuthSecurityError, AuthTokenError) as exc:
-        _safe_rollback(conn)
-        return build_service_error(
-            error_code="server_error",
-            message=exc.message,
-        )
-    except Exception:
-        _safe_rollback(conn)
-        return build_service_error(
-            error_code="server_error",
-            message="登録開始処理に失敗しました。",
-        )
-    finally:
-        _safe_close(conn)
-
-    _try_send_verification_email(
-        to_email=validated["email"],
-        code=verify_code,
-        purpose="email_signup",
-        expires_in_sec=auth_conf["verify_code_expires_sec"],
-        display_name=None,
-    )
-
-    return build_service_success(
-        data={
-            "verify_ticket": verify_ticket,
-            "masked_email": mask_email_address(validated["email"]),
-            "expires_in_sec": auth_conf["verify_code_expires_sec"],
-            "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
-        },
-        next_kind="verify_email",
-        next_to=_build_register_verify_path(verify_ticket),
-        message="確認コードを送信しました。",
-    )
-
 def register_user(
     user_key: str | None,
     display_name: str | None,
@@ -1069,10 +930,6 @@ def send_email_verification_again(
         expires_in_sec=auth_conf["verify_code_expires_sec"],
     )
 
-    next_to = _build_verify_email_path(new_verify_ticket)
-    if parsed["purpose"] == "email_signup":
-        next_to = _build_register_verify_path(new_verify_ticket)
-
     return build_service_success(
         data={
             "verify_ticket": new_verify_ticket,
@@ -1081,7 +938,7 @@ def send_email_verification_again(
             "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
         },
         next_kind="verify_email",
-        next_to=next_to,
+        next_to=_build_verify_email_path(new_verify_ticket),
         message="確認コードを再送しました。",
     )
 
@@ -1146,40 +1003,6 @@ def confirm_email_verification(
             )
 
         consume_email_verification(conn, row["id"], now_dt)
-
-        if parsed["purpose"] == "email_signup":
-            mark_user_email_verified(conn, parsed["user_id"], True)
-
-            registration_token = create_email_registration_token(
-                user_id=parsed["user_id"],
-                email=parsed["email"],
-                now=now_dt,
-            )
-
-            log_auth_event(
-                conn=conn,
-                actor_user_id=parsed["user_id"],
-                action_type="auth.verify_email.confirm",
-                target_type="user",
-                target_id=str(parsed["user_id"]),
-                result="success",
-                ip_address=ip_address,
-                user_agent=user_agent,
-                summary="登録開始メールの確認を完了しました。",
-                meta_json={"purpose": "email_signup"},
-            )
-
-            conn.commit()
-            return build_service_success(
-                data={
-                    "registration_token": registration_token,
-                    "email": parsed["email"],
-                    "expires_in_sec": 1800,
-                },
-                next_kind="complete_profile",
-                next_to=_build_register_complete_path(registration_token),
-                message="メール認証が完了しました。",
-            )
 
         if parsed["purpose"] == "signup":
             mark_user_email_verified(conn, parsed["user_id"], True)
@@ -2552,136 +2375,6 @@ def complete_discord_registration(
         _safe_close(conn)
 
 
-
-def complete_registration(
-    registration_token: str | None,
-    user_key: str | None,
-    display_name: str | None,
-    password: str | None,
-    terms_agreed,
-    ip_address: bytes | None = None,
-    user_agent: str | None = None,
-    now=None,
-) -> dict:
-    try:
-        validated = validate_register_complete_input(
-            registration_token=registration_token,
-            user_key=user_key,
-            display_name=display_name,
-            password=password,
-            terms_agreed=terms_agreed,
-        )
-    except (AuthValidationError, AuthValidationErrors) as exc:
-        return convert_validation_error_to_result(exc)
-
-    conn = None
-    now_dt = _utc_now(now)
-
-    try:
-        parsed = parse_email_registration_token(validated["registration_token"], now=now_dt)
-        conn = _get_db_connection(autocommit=False)
-
-        user = get_user_by_id(conn, parsed["user_id"])
-        if user is None:
-            _safe_rollback(conn)
-            return build_service_error(
-                error_code="invalid_registration_token",
-                message="登録トークンが正しくありません。",
-            )
-
-        duplicate_user = get_user_by_user_key(conn, validated["user_key"])
-        if duplicate_user is not None and duplicate_user["id"] != parsed["user_id"]:
-            _safe_rollback(conn)
-            return build_service_error(
-                error_code="user_key_unavailable",
-                message="この user_key はすでに使用されています。",
-                field_errors=[
-                    {
-                        "field": "user_key",
-                        "code": "user_key_unavailable",
-                        "message": "この user_key はすでに使用されています。",
-                    }
-                ],
-            )
-
-        password_hash = hash_password(validated["password"])
-
-        update_user_registration_profile(
-            conn=conn,
-            user_id=parsed["user_id"],
-            user_key=validated["user_key"],
-            display_name=validated["display_name"],
-            primary_email=parsed.get("email"),
-            is_email_verified=True,
-            status="active",
-            upload_enabled=True,
-        )
-
-        identity = get_identity_by_user_and_provider(conn, parsed["user_id"], "email_password")
-        if identity is None:
-            create_auth_identity(
-                conn=conn,
-                user_id=parsed["user_id"],
-                provider="email_password",
-                provider_user_id=None,
-                provider_email=parsed.get("email"),
-                provider_display_name=validated["display_name"],
-                is_enabled=True,
-            )
-
-        create_password_credentials(
-            conn=conn,
-            user_id=parsed["user_id"],
-            password_hash=password_hash,
-        )
-
-        if get_two_factor_settings_by_user_id(conn, parsed["user_id"]) is None:
-            create_two_factor_settings(
-                conn=conn,
-                user_id=parsed["user_id"],
-                method="email",
-                is_enabled=False,
-                is_required=False,
-            )
-
-        set_user_must_reset_password(conn, parsed["user_id"], False)
-
-        log_auth_event(
-            conn=conn,
-            actor_user_id=parsed["user_id"],
-            action_type="auth.register.complete",
-            target_type="user",
-            target_id=str(parsed["user_id"]),
-            result="success",
-            ip_address=ip_address,
-            user_agent=user_agent,
-            summary="アカウント登録を完了しました。",
-        )
-
-        conn.commit()
-        return build_service_success(
-            next_kind="redirect",
-            next_to="/gallery/auth",
-            message="アカウントを作成しました。ログインしてください。",
-        )
-    except AuthTokenError as exc:
-        _safe_rollback(conn)
-        return _token_error_to_result(exc, "registration")
-    except (AuthSecurityError,) as exc:
-        _safe_rollback(conn)
-        return build_service_error(
-            error_code="server_error",
-            message=exc.message,
-        )
-    except Exception:
-        _safe_rollback(conn)
-        return build_service_error(
-            error_code="server_error",
-            message="登録完了処理に失敗しました。",
-        )
-    finally:
-        _safe_close(conn)
-
 def get_current_user_by_session_token(
     session_token: str | None,
     now=None,
@@ -3310,18 +3003,6 @@ def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec
 
 def _generate_otp_code() -> str:
     return f"{secrets.randbelow(1000000):06d}"
-
-
-def _build_pending_user_key() -> str:
-    return f"r_{secrets.token_hex(6)}"[:20]
-
-
-def _build_register_verify_path(verify_ticket: str) -> str:
-    return f"/gallery/auth/?{urlencode({'step': 'verify-email', 'ticket': verify_ticket})}"
-
-
-def _build_register_complete_path(registration_token: str) -> str:
-    return f"/gallery/auth/?{urlencode({'step': 'complete-registration', 'registration': registration_token})}"
 
 
 def _build_verify_email_path(verify_ticket: str) -> str:
