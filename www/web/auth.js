@@ -69,75 +69,116 @@ function nextUrl() {
   return "/gallery/"
 }
 
-async function postForm(url, fd) {
-  const res = await fetch(url, { method: "POST", body: fd, credentials: "same-origin" })
+async function postJson(url, payload) {
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
   const data = await res.json().catch(() => ({}))
   return { res, data }
+}
+
+function getErrorMessage(data, fallback) {
+  return String(
+    data?.error?.message ||
+    data?.message ||
+    data?.detail ||
+    fallback
+  )
 }
 
 async function doLogin() {
   const em = String(loginEmail.value || "").trim()
   const pw = String(loginPass.value || "")
+
   if (!em || !pw) {
     showToastErr("email/password を入力してください。", 4200)
     return
   }
 
-  const fd = new FormData()
-  fd.append("email", em)
-  fd.append("password", pw)
+  const { res, data } = await postJson("/gallery/api/auth/login", {
+    email: em,
+    password: pw
+  })
 
-  const { res, data } = await postForm("/gallery/api/auth/login", fd)
   if (!res.ok) {
-    showToastErr(String(data && data.detail ? data.detail : `login failed (${res.status})`), 5200)
+    showToastErr(getErrorMessage(data, `login failed (${res.status})`), 5200)
     return
   }
 
-  showToastOk("ログインしました。", 1600)
-  setTimeout(() => { location.replace(nextUrl()) }, 450)
+  if (data?.next?.to) {
+    showToastOk(String(data.message || "ログインしました。"), 1600)
+    setTimeout(() => {
+      location.replace(data.next.to)
+    }, 450)
+    return
+  }
+
+  showToastOk(String(data?.message || "ログインしました。"), 1600)
+  setTimeout(() => {
+    location.replace(nextUrl())
+  }, 450)
 }
 
 async function doRegister() {
   const em = String(regEmail.value || "").trim()
   const uk = String(regKey.value || "").trim()
-  const dn = String(regName.value || "").trim()
+  const dnRaw = String(regName.value || "").trim()
+  const dn = dnRaw || uk
   const pw = String(regPass.value || "")
+
   if (!em || !uk || !pw) {
     showToastErr("email / user_key / password を入力してください。", 5200)
     return
   }
 
-  const fd = new FormData()
-  fd.append("email", em)
-  fd.append("password", pw)
-  fd.append("user_key", uk)
-  fd.append("display_name", dn)
+  const { res, data } = await postJson("/gallery/api/auth/register", {
+    email: em,
+    password: pw,
+    user_key: uk,
+    display_name: dn,
+    terms_agreed: true
+  })
 
-  const { res, data } = await postForm("/gallery/api/auth/register", fd)
   if (!res.ok) {
-    showToastErr(String(data && data.detail ? data.detail : `register failed (${res.status})`), 5200)
+    showToastErr(getErrorMessage(data, `register failed (${res.status})`), 5200)
     return
   }
 
-  showToastOk("作成しました。続けてログインしてください。", 2200)
+  showToastOk(String(data?.message || "作成しました。"), 2200)
+
+  if (data?.next?.to) {
+    setTimeout(() => {
+      location.replace(data.next.to)
+    }, 450)
+    return
+  }
+
   setTab("login")
   loginEmail.value = em
   loginPass.value = ""
-  setTimeout(() => { loginPass.focus() }, 0)
+  setTimeout(() => {
+    loginPass.focus()
+  }, 0)
 }
 
 function init() {
   if (tabLogin) tabLogin.addEventListener("click", () => setTab("login"))
   if (tabRegister) tabRegister.addEventListener("click", () => setTab("register"))
-
   if (loginBtn) loginBtn.addEventListener("click", doLogin)
   if (regBtn) regBtn.addEventListener("click", doRegister)
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      if (paneLogin.classList.contains("is-on")) doLogin()
-      else doRegister()
+    if (e.key !== "Enter") return
+    if (paneLogin.classList.contains("is-on")) {
+      doLogin()
+      return
     }
+    doRegister()
   })
 }
 
