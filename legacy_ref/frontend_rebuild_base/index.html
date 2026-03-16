@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/common.css">
+  <link rel="stylesheet" href="/gallery/home.css">
+  <link rel="stylesheet" href="/gallery/user-shell.css">
+</head>
+<body
+  data-app-version="2026.03-user-shell-v1"
+  data-credit-author="Felix"
+  data-credit-stack="FastAPI / MySQL / JavaScript / CSS / Apache"
+  data-credit-license="TBD"
+  data-credit-updated-at="2026-03-15"
+>
+  <header class="hdr">
+    <div class="hdr__inner">
+      <div class="hdr__left">
+        <a class="hdr__logo" href="/gallery/">
+          <span class="hdr__mark" aria-hidden="true"></span>
+          <span class="hdr__title">Felixxsv Gallery</span>
+        </a>
+        <div class="hdr__crumb">Home</div>
+      </div>
+
+      <div class="hdr__right">
+        <button
+          id="userTrigger"
+          class="hdrbtn shell-user-trigger"
+          type="button"
+          aria-label="ユーザー情報"
+          data-modal-open="user-info"
+        >
+          <span class="shell-user-trigger__icon shell-user-trigger__icon--guest" data-auth-icon-guest aria-hidden="true"></span>
+          <span class="shell-user-trigger__icon shell-user-trigger__icon--user" data-auth-icon-user aria-hidden="true" hidden></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="home">
+    <aside id="sidebar" class="side glass">
+      <div class="side__top">
+        <div class="side__title">Filters</div>
+        <button id="sideClose" class="hdrbtn" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Columns</div>
+        <div id="colBtns" class="seg">
+          <button class="btn btn-ghost" type="button" data-cols="1">1</button>
+          <button class="btn btn-ghost is-on" type="button" data-cols="2">2</button>
+          <button class="btn btn-ghost" type="button" data-cols="3">3</button>
+        </div>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Per Page</div>
+        <div id="perPageSelect" class="cselect">
+          <button class="cselect__btn btn" type="button" aria-expanded="false">
+            <span id="perPageValue">100</span>
+            <span class="cselect__caret">▾</span>
+          </button>
+          <div class="cselect__menu">
+            <button class="cselect__opt is-on" type="button" data-value="100">100</button>
+            <button class="cselect__opt" type="button" data-value="50">50</button>
+            <button class="cselect__opt" type="button" data-value="150">150</button>
+            <button class="cselect__opt" type="button" data-value="200">200</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Sort</div>
+        <div id="sortSelect" class="cselect">
+          <button class="cselect__btn btn" type="button" aria-expanded="false">
+            <span id="sortValue">Latest</span>
+            <span class="cselect__caret">▾</span>
+          </button>
+          <div class="cselect__menu">
+            <button class="cselect__opt is-on" type="button" data-value="latest">Latest</button>
+            <button class="cselect__opt" type="button" data-value="oldest">Oldest</button>
+            <button class="cselect__opt" type="button" data-value="popular">Popular</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Search</div>
+        <div class="searchrow">
+          <input id="searchInput" class="inp" type="text" placeholder="title / alt / tags">
+          <button id="searchClear" class="hdrbtn" type="button" aria-label="Clear">×</button>
+        </div>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Date</div>
+        <div class="daterow">
+          <input id="dateFrom" class="inp" type="date">
+          <input id="dateTo" class="inp" type="date">
+        </div>
+        <button id="dateClear" class="btn" type="button">Clear</button>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Tags</div>
+        <div class="seg">
+          <button id="tagModeOr" class="btn btn-ghost is-on" type="button">OR</button>
+          <button id="tagModeAnd" class="btn btn-ghost" type="button">AND</button>
+        </div>
+        <div id="tagSelected" class="chips"></div>
+        <div id="tagList" class="taglist"></div>
+        <button id="tagMore" class="btn btn-ghost" type="button" style="display:none">More</button>
+      </div>
+
+      <div class="side__section">
+        <div class="side__label">Colors</div>
+        <div class="seg">
+          <button id="colorModeOr" class="btn btn-ghost is-on" type="button">OR</button>
+          <button id="colorModeAnd" class="btn btn-ghost" type="button">AND</button>
+        </div>
+        <div id="colorSelected" class="chips"></div>
+        <div id="colorList" class="colorlist"></div>
+      </div>
+    </aside>
+
+    <button id="sideTab" class="sidetab btn btn-ghost" type="button">Filters</button>
+
+    <main class="main">
+      <div class="main__top">
+        <div id="titleline" class="titleline">All Images</div>
+        <div id="pagerTop" class="pager"></div>
+      </div>
+
+      <div id="grid" class="grid cols-2"></div>
+
+      <div class="main__bottom">
+        <div id="pagerBottom" class="pager"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lb" aria-hidden="true">
+    <div id="lbBg" class="lb__bg"></div>
+    <img id="lbImg" class="lb__img" alt="">
+    <button id="lbX" class="lb__x" type="button" aria-label="Close">×</button>
+    <div class="lb__bar">
+      <div id="lbMeta" class="lb__meta"></div>
+      <button id="lbMore" class="btn btn-ghost" type="button">Info</button>
+    </div>
+  </div>
+
+  <div id="modal" class="modal" aria-hidden="true">
+    <div id="mBg" class="modal__bg"></div>
+    <div class="modal__panel">
+      <div class="modal__top">
+        <div class="modal__title">Details</div>
+        <button id="mX" class="modal__close" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="mBody" class="modal__body"></div>
+    </div>
+  </div>
+
+  <div id="tagModal" class="modal" aria-hidden="true">
+    <div id="tmBg" class="modal__bg"></div>
+    <div class="modal__panel">
+      <div class="modal__top">
+        <div class="modal__title">Tags</div>
+        <button id="tmX" class="modal__close" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="tmBody" class="modal__body"></div>
+    </div>
+  </div>
+
+  <div id="modalRoot" class="shell-modal-root" aria-live="polite">
+    <button
+      id="shellGlobalClose"
+      class="shell-global-close"
+      type="button"
+      aria-label="閉じる"
+      data-modal-close-top
+      hidden
+    >
+      ×
+    </button>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="user-info" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="user-info"></div>
+      <div class="shell-dialog shell-dialog--user" role="dialog" aria-modal="true" aria-labelledby="shellUserInfoTitle">
+        <div class="shell-dialog__header">
+          <h2 id="shellUserInfoTitle" class="shell-dialog__title">ユーザー情報</h2>
+          <div class="shell-dialog__actions">
+            <button type="button" class="shell-link-button" data-modal-open="settings">設定</button>
+            <button type="button" class="shell-link-button" data-modal-open="help">ヘルプ</button>
+            <button type="button" class="shell-link-button" data-modal-open="credits">クレジット</button>
+          </div>
+        </div>
+
+        <div class="shell-dialog__body">
+          <section id="userCard" class="user-card" data-user-card>
+            <div id="userCardGuestOverlay" class="user-card__guest-overlay" hidden>
+              <button id="shellLoginButton" type="button" class="shell-primary-button">ログイン</button>
+            </div>
+
+            <div class="user-card__content">
+              <div class="user-card__profile">
+                <div id="userCardAvatar" class="user-card__avatar" aria-hidden="true"></div>
+
+                <div class="user-card__identity">
+                  <div class="user-card__name-row">
+                    <div id="userCardDisplayName" class="user-card__display-name"></div>
+                    <button
+                      id="userCardEditButton"
+                      type="button"
+                      class="shell-icon-button"
+                      aria-label="アカウント設定"
+                      data-modal-open="account"
+                      hidden
+                    >
+                      <span class="shell-icon-button__pen" aria-hidden="true"></span>
+                    </button>
+                  </div>
+                  <div id="userCardUserKey" class="user-card__subline"></div>
+                </div>
+              </div>
+
+              <dl class="user-card__details">
+                <div class="user-card__detail-row">
+                  <dt>メールアドレス</dt>
+                  <dd id="userCardEmail"></dd>
+                </div>
+                <div class="user-card__detail-row">
+                  <dt>登録日時</dt>
+                  <dd id="userCardCreatedAt"></dd>
+                </div>
+                <div class="user-card__detail-row">
+                  <dt>2段階認証</dt>
+                  <dd id="userCardTwoFactor"></dd>
+                </div>
+                <div id="userCardRoleRow" class="user-card__detail-row" hidden>
+                  <dt>ロール</dt>
+                  <dd id="userCardRole"></dd>
+                </div>
+              </dl>
+
+              <p id="userCardUploadDisabled" class="user-card__warning" hidden>
+                現在、画像投稿は無効化されています。
+              </p>
+
+              <div class="user-card__actions">
+                <button
+                  id="userCardAccountButton"
+                  type="button"
+                  class="shell-secondary-button"
+                  data-modal-open="account"
+                  hidden
+                >
+                  アカウント設定
+                </button>
+
+                <a
+                  id="userCardAdminLink"
+                  href="/gallery/admin"
+                  class="shell-secondary-button"
+                  hidden
+                >
+                  管理画面へ
+                </a>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div id="userCardFooter" class="shell-dialog__footer shell-dialog__footer--end" hidden>
+          <button id="logoutAllButton" type="button" class="shell-ghost-button">全端末ログアウト</button>
+          <button id="logoutButton" type="button" class="shell-danger-button">ログアウト</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="settings" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="settings"></div>
+      <div class="shell-dialog shell-dialog--child" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="settingsModalTitle" class="shell-dialog__title">設定</h2>
+        </div>
+
+        <div class="shell-dialog__body">
+          <form id="settingsForm" class="shell-form-grid">
+            <label class="shell-field">
+              <span class="shell-field__label">言語</span>
+              <select id="settingLanguage" class="shell-select">
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+
+            <label class="shell-field">
+              <span class="shell-field__label">カラーテーマ</span>
+              <select id="settingTheme" class="shell-select">
+                <option value="light">ライト</option>
+                <option value="dark">ダーク</option>
+                <option value="system">システム</option>
+              </select>
+            </label>
+          </form>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button type="button" class="shell-primary-button" data-modal-close="settings">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="help" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="help"></div>
+      <div class="shell-dialog shell-dialog--child shell-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="helpModalTitle" class="shell-dialog__title">ヘルプ</h2>
+        </div>
+
+        <div class="shell-dialog__body shell-dialog__body--scroll">
+          <div id="helpContent" class="shell-empty-content"></div>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button type="button" class="shell-primary-button" data-modal-close="help">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="credits" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="credits"></div>
+      <div class="shell-dialog shell-dialog--child shell-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="creditsModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="creditsModalTitle" class="shell-dialog__title">クレジット</h2>
+        </div>
+
+        <div class="shell-dialog__body shell-dialog__body--scroll">
+          <dl class="shell-definition-list">
+            <div class="shell-definition-list__row">
+              <dt>サービス名</dt>
+              <dd>Felixxsv Gallery</dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>作成者</dt>
+              <dd id="creditAuthor"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>使用技術</dt>
+              <dd id="creditStack"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>ライセンス</dt>
+              <dd id="creditLicense"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>更新日</dt>
+              <dd id="creditUpdatedAt"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>バージョン</dt>
+              <dd id="creditVersion"></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button type="button" class="shell-primary-button" data-modal-close="credits">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="account" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="account"></div>
+      <div class="shell-dialog shell-dialog--child" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="accountModalTitle" class="shell-dialog__title">アカウント設定</h2>
+        </div>
+
+        <div class="shell-dialog__body">
+          <dl class="shell-definition-list">
+            <div class="shell-definition-list__row">
+              <dt>表示名</dt>
+              <dd id="accountDisplayName"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>user_key</dt>
+              <dd id="accountUserKey"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>メールアドレス</dt>
+              <dd id="accountEmail"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>登録日時</dt>
+              <dd id="accountCreatedAt"></dd>
+            </div>
+            <div class="shell-definition-list__row">
+              <dt>2段階認証</dt>
+              <dd id="accountTwoFactor"></dd>
+            </div>
+          </dl>
+
+          <div class="shell-action-stack">
+            <button id="emailActionButton" type="button" class="shell-secondary-button" data-modal-open="email">メールアドレス変更</button>
+            <button id="passwordActionButton" type="button" class="shell-secondary-button" data-modal-open="password">パスワード変更</button>
+            <button id="twoFactorEnableButton" type="button" class="shell-secondary-button">2段階認証を有効化</button>
+            <button id="twoFactorDisableOpenButton" type="button" class="shell-secondary-button" data-modal-open="2fa-disable" hidden>2段階認証を無効化</button>
+          </div>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button type="button" class="shell-primary-button" data-modal-close="account">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="email" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="email"></div>
+      <div class="shell-dialog shell-dialog--child" role="dialog" aria-modal="true" aria-labelledby="emailModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="emailModalTitle" class="shell-dialog__title">メールアドレス変更</h2>
+        </div>
+
+        <div class="shell-dialog__body">
+          <form id="emailForm" class="shell-form-grid">
+            <label class="shell-field">
+              <span class="shell-field__label">メールアドレス</span>
+              <input id="emailInput" class="shell-input" type="email" autocomplete="email">
+            </label>
+          </form>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button id="emailSaveButton" type="button" class="shell-primary-button">保存</button>
+          <button type="button" class="shell-ghost-button" data-modal-close="email">キャンセル</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="password" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="password"></div>
+      <div class="shell-dialog shell-dialog--child" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="passwordModalTitle" class="shell-dialog__title">パスワード変更</h2>
+        </div>
+
+        <div class="shell-dialog__body">
+          <form id="passwordForm" class="shell-form-grid">
+            <label class="shell-field">
+              <span class="shell-field__label">現在のパスワード</span>
+              <input id="currentPasswordInput" class="shell-input" type="password" autocomplete="current-password">
+            </label>
+            <label class="shell-field">
+              <span class="shell-field__label">新しいパスワード</span>
+              <input id="newPasswordInput" class="shell-input" type="password" autocomplete="new-password">
+            </label>
+          </form>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button id="passwordSaveButton" type="button" class="shell-primary-button">変更する</button>
+          <button type="button" class="shell-ghost-button" data-modal-close="password">キャンセル</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="2fa-setup" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="2fa-setup"></div>
+      <div class="shell-dialog shell-dialog--child" role="dialog" aria-modal="true" aria-labelledby="twoFactorSetupModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="twoFactorSetupModalTitle" class="shell-dialog__title">2段階認証の確認</h2>
+        </div>
+
+        <div class="shell-dialog__body">
+          <p id="twoFactorSetupMessage" class="shell-inline-message"></p>
+
+          <form id="twoFactorSetupForm" class="shell-form-grid">
+            <label class="shell-field">
+              <span class="shell-field__label">確認コード</span>
+              <input
+                id="twoFactorSetupCodeInput"
+                class="shell-input"
+                type="text"
+                maxlength="6"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+              >
+            </label>
+          </form>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button id="twoFactorSetupConfirmButton" type="button" class="shell-primary-button">確認</button>
+          <button type="button" class="shell-ghost-button" data-modal-close="2fa-setup">キャンセル</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell-layer" data-modal-layer data-modal-id="2fa-disable" hidden>
+      <div class="shell-layer__backdrop" data-modal-backdrop="2fa-disable"></div>
+      <div class="shell-dialog shell-dialog--child" role="dialog" aria-modal="true" aria-labelledby="twoFactorDisableModalTitle">
+        <div class="shell-dialog__header">
+          <h2 id="twoFactorDisableModalTitle" class="shell-dialog__title">2段階認証の無効化</h2>
+        </div>
+
+        <div class="shell-dialog__body">
+          <form id="twoFactorDisableForm" class="shell-form-grid">
+            <label class="shell-field">
+              <span class="shell-field__label">現在のパスワード</span>
+              <input id="twoFactorDisablePasswordInput" class="shell-input" type="password" autocomplete="current-password">
+            </label>
+          </form>
+        </div>
+
+        <div class="shell-dialog__footer shell-dialog__footer--end">
+          <button id="twoFactorDisableConfirmButton" type="button" class="shell-danger-button">無効化する</button>
+          <button type="button" class="shell-ghost-button" data-modal-close="2fa-disable">キャンセル</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toastRoot" class="shell-toast-root" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/gallery/app.js"></script>
+  <script src="/gallery/gallery-home.js"></script>
+</body>
+</html>

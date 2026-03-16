@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Felixxsv Gallery - Upload</title>
+  <link rel="stylesheet" href="/gallery/common.css">
+  <link rel="stylesheet" href="/gallery/upload.css">
+  <link rel="stylesheet" href="/gallery/toast.css">
+  <link rel="stylesheet" href="/gallery/upload_effects.css">
+</head>
+<body>
+  <header class="hdr">
+    <div class="hdr__inner">
+      <div class="hdr__left">
+        <a class="hdr__logo" href="/gallery/">
+          <span class="hdr__mark" aria-hidden="true"></span>
+          <span class="hdr__title">Felixxsv Gallery</span>
+        </a>
+        <div class="hdr__crumb">Upload</div>
+      </div>
+      <div class="hdr__right">
+        <a class="hdrbtn" href="/gallery/" aria-label="Back">←</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="upmain">
+    <div class="upcard">
+      <div class="upgrid">
+        <div class="upcol">
+          <div class="upcol__head upcol__head--center">
+            <div class="upcol__title">サムネイル</div>
+          </div>
+
+          <div class="uppreview__imgwrap">
+            <img id="upCover" class="uppreview__img" alt="" style="display:none">
+            <div id="upCoverPh" class="upcoverph">No image</div>
+          </div>
+
+          <div class="upstripwrap">
+            <div class="upstripframe" id="upStripFrame">
+              <button id="upArrowL" class="uparrow uparrow--l" type="button" aria-label="Left">‹</button>
+              <div id="upStrip" class="upstrip"></div>
+              <button id="upArrowR" class="uparrow uparrow--r" type="button" aria-label="Right">›</button>
+            </div>
+            <div class="upstriphelp">ドラッグ＆ドロップで順番を入れ替えられます</div>
+          </div>
+        </div>
+
+        <div class="upcol">
+          <div class="upcol__head upcol__head--center">
+            <div class="upcol__title">画像をアップロード</div>
+          </div>
+
+          <div id="upDrop" class="updrop__zone">
+            <div class="updrop__pill">UPLOAD</div>
+            <div class="updrop__headline">Drag & Drop</div>
+            <div class="updrop__sub">またはファイルを選択してください</div>
+            <button id="upPick" class="updrop__btn" type="button">ファイルを選択</button>
+            <div class="updrop__hint">PNG / JPG / WEBP</div>
+            <input id="upFile" type="file" hidden>
+          </div>
+
+          <div class="upfields">
+            <div class="upfield">
+              <div class="upfield__label">Title</div>
+              <input id="upTitle" class="upinp" type="text" placeholder="タイトル">
+            </div>
+
+            <div class="upfield">
+              <div class="upfield__label">ALT</div>
+              <textarea id="upAlt" class="uparea" placeholder="説明文（ALT）"></textarea>
+            </div>
+
+            <div class="upfield">
+              <div class="upfield__label">Tags</div>
+              <div id="upTagBox" class="uptagbox">
+                <div class="uptagscroll">
+                  <div id="upTagChips" class="uptagchips"></div>
+                  <input id="upTag" class="uptaginp" type="text" placeholder="タグを入力してEnter">
+                </div>
+                <button id="upTagAdd" class="uptagadd" type="button" aria-label="Add tag">+</button>
+                <div id="upTagSug" class="uptagsug" aria-hidden="true"></div>
+              </div>
+            </div>
+
+            <div class="upfield upfield--vis">
+              <div class="upfield__label">Visibility</div>
+              <input id="upVis" type="hidden" value="public">
+              <div class="upvis">
+                <button class="upvis__btn is-on" type="button" data-vis="public">公開</button>
+                <button class="upvis__btn" type="button" data-vis="private">非公開</button>
+              </div>
+            </div>
+
+            <div class="upbottom">
+              <div class="upactions">
+                <a class="upbtn" href="/gallery/">キャンセル</a>
+                <button id="upSubmit" class="upbtn upbtn--primary" type="button">アップロード</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/gallery/upload.js"></script>
+</body>
+</html>
