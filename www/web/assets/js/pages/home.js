@@ -22,11 +22,19 @@ function withAppBase(path) {
     return path;
   }
 
+  if (path.startsWith("/storage/") || path.startsWith("/media/") || path.startsWith("/api/")) {
+    return `${appBase}${path}`;
+  }
+
+  if (path.startsWith("storage/") || path.startsWith("media/") || path.startsWith("api/")) {
+    return `${appBase}/${path}`;
+  }
+
   if (path.startsWith("/")) {
     return `${appBase}${path}`;
   }
 
-  return `${appBase}/${path.replace(/^\/+/, "")}`;
+  return `${appBase}/storage/${path.replace(/^\/+/, "")}`;
 }
 
 function normalizeImageUrl(image) {
