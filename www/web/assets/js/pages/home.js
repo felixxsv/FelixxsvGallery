@@ -7,6 +7,28 @@ function textOrDash(value) {
   return String(value);
 }
 
+function withAppBase(path) {
+  const appBase = document.body.dataset.appBase || "/gallery";
+
+  if (!path) {
+    return "";
+  }
+
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  if (path.startsWith("/gallery/")) {
+    return path;
+  }
+
+  if (path.startsWith("/")) {
+    return `${appBase}${path}`;
+  }
+
+  return `${appBase}/${path.replace(/^\/+/, "")}`;
+}
+
 function normalizeImageUrl(image) {
   const candidates = [
     image.preview_path,
@@ -21,20 +43,11 @@ function normalizeImageUrl(image) {
     if (!candidate || typeof candidate !== "string") {
       continue;
     }
-
-    if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
-      return candidate;
-    }
-
-    if (candidate.startsWith("/")) {
-      return candidate;
-    }
-
-    return `/${candidate.replace(/^\/+/, "")}`;
+    return withAppBase(candidate);
   }
 
   if (image.id !== undefined && image.id !== null) {
-    return `/media/original/${image.id}`;
+    return withAppBase(`/media/original/${image.id}`);
   }
 
   return "";
@@ -147,6 +160,7 @@ export function initHomePage(app) {
       link.href = imageUrl;
       imageNode.src = imageUrl;
       imageNode.alt = textOrDash(image.alt || image.title || "");
+      imageNode.hidden = false;
       emptyNode.hidden = true;
     } else {
       link.href = "#";

@@ -10,7 +10,8 @@ import { initUserShell } from "./components/user-shell.js";
 import { initHomePage } from "./pages/home.js";
 
 function createAppContext() {
-  const api = createApiClient();
+  const appBase = document.body.dataset.appBase || "/gallery";
+  const api = createApiClient({ baseUrl: appBase });
   const settings = createSettingsStore();
   const theme = createThemeController(settings);
   const session = createSessionStore(api);
@@ -31,6 +32,7 @@ function createAppContext() {
 
   return {
     api,
+    appBase,
     settings,
     theme,
     session,
