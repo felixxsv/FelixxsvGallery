@@ -195,7 +195,7 @@ def send_message(smtp_settings: dict, message: EmailMessage) -> None:
 
 
 def build_verification_subject(purpose: str) -> str:
-    if purpose == "signup":
+    if purpose in {"signup", "email_signup"}:
         return "【Felixxsv Gallery】メールアドレス確認コード"
     if purpose == "email_change":
         return "【Felixxsv Gallery】メールアドレス変更確認コード"
