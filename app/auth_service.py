@@ -3196,11 +3196,23 @@ def _remaining_seconds(target, now_dt: datetime) -> int:
     return remaining if remaining > 0 else 0
 
 
+def _coerce_app_local_datetime(value) -> datetime:
+    tz = _get_app_timezone()
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=tz)
+        return value.astimezone(tz)
+    raise ValueError("invalid datetime value")
+
+
 def _remaining_cooldown(created_at, cooldown_sec: int, now_dt: datetime) -> int:
     if cooldown_sec <= 0:
         return 0
-    until = _coerce_utc_datetime(created_at) + timedelta(seconds=cooldown_sec)
-    return _remaining_seconds(until, now_dt)
+    created_local = _coerce_app_local_datetime(created_at)
+    now_local = _coerce_app_local_datetime(now_dt)
+    until_local = created_local + timedelta(seconds=cooldown_sec)
+    remaining = int((until_local - now_local).total_seconds())
+    return remaining if remaining > 0 else 0
 
 
 def _safe_rollback(conn) -> None:
