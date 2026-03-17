@@ -608,6 +608,7 @@ def check_user_key_availability(
 
 
 
+
 def start_registration(
     email: str | None,
     ip_address: bytes | None = None,
@@ -622,8 +623,12 @@ def start_registration(
     conn = None
     now_dt = _utc_now(now)
     auth_conf = _get_auth_conf()
-    verify_code = _generate_otp_code()
+    verify_code = None
     verify_ticket = None
+    response_expires_in_sec = auth_conf["verify_code_expires_sec"]
+    response_resend_cooldown_sec = auth_conf["verify_resend_cooldown_sec"]
+    response_message = "確認コードを送信しました。"
+    should_send_mail = False
 
     try:
         conn = _get_db_connection(autocommit=False)
@@ -644,14 +649,7 @@ def start_registration(
                         }
                     ],
                 )
-
             user_id = existing_user["id"]
-            expire_active_email_verifications(
-                conn=conn,
-                user_id=user_id,
-                purpose="email_signup",
-                now=now_dt,
-            )
         else:
             pending_user_key = None
             for _ in range(10):
@@ -676,36 +674,71 @@ def start_registration(
                 avatar_path=None,
             )
 
-        create_email_verification(
+        latest = get_latest_active_email_verification(
             conn=conn,
             user_id=user_id,
-            email=validated["email"],
-            code_hash=hash_token_value(verify_code),
             purpose="email_signup",
-            expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
-        )
-
-        verify_ticket = create_verify_ticket(
-            user_id=user_id,
-            purpose="email_signup",
-            email=validated["email"],
-            expires_in_sec=auth_conf["verify_code_expires_sec"],
             now=now_dt,
         )
-
-        log_auth_event(
-            conn=conn,
-            actor_user_id=user_id,
-            action_type="auth.register.start",
-            target_type="user",
-            target_id=str(user_id),
-            result="success",
-            ip_address=ip_address,
-            user_agent=user_agent,
-            summary="登録開始用の確認コードを送信しました。",
-        )
-
-        conn.commit()
+        if latest is not None:
+            response_expires_in_sec = _remaining_seconds(latest["expires_at"], now_dt)
+            response_resend_cooldown_sec = _remaining_cooldown(
+                latest["created_at"],
+                auth_conf["verify_resend_cooldown_sec"],
+                now_dt,
+            )
+            verify_ticket = create_verify_ticket(
+                user_id=user_id,
+                purpose="email_signup",
+                email=validated["email"],
+                expires_in_sec=response_expires_in_sec,
+                now=now_dt,
+            )
+            response_message = "送信済みの確認コードを入力してください。"
+            log_auth_event(
+                conn=conn,
+                actor_user_id=user_id,
+                action_type="auth.register.start",
+                target_type="user",
+                target_id=str(user_id),
+                result="success",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="登録開始用の確認コードを再利用しました。",
+                meta_json={"reused": True},
+            )
+            conn.commit()
+        else:
+            verify_code = _generate_otp_code()
+            create_email_verification(
+                conn=conn,
+                user_id=user_id,
+                email=validated["email"],
+                code_hash=hash_token_value(verify_code),
+                purpose="email_signup",
+                expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
+            )
+            verify_ticket = create_verify_ticket(
+                user_id=user_id,
+                purpose="email_signup",
+                email=validated["email"],
+                expires_in_sec=auth_conf["verify_code_expires_sec"],
+                now=now_dt,
+            )
+            should_send_mail = True
+            log_auth_event(
+                conn=conn,
+                actor_user_id=user_id,
+                action_type="auth.register.start",
+                target_type="user",
+                target_id=str(user_id),
+                result="success",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="登録開始用の確認コードを送信しました。",
+                meta_json={"reused": False},
+            )
+            conn.commit()
     except (AuthSecurityError, AuthTokenError) as exc:
         _safe_rollback(conn)
         return build_service_error(
@@ -721,24 +754,26 @@ def start_registration(
     finally:
         _safe_close(conn)
 
-    _try_send_verification_email(
-        to_email=validated["email"],
-        code=verify_code,
-        purpose="email_signup",
-        expires_in_sec=auth_conf["verify_code_expires_sec"],
-        display_name=None,
-    )
+    if should_send_mail and verify_code is not None:
+        _try_send_verification_email(
+            to_email=validated["email"],
+            code=verify_code,
+            purpose="email_signup",
+            expires_in_sec=auth_conf["verify_code_expires_sec"],
+            display_name=None,
+        )
 
     return build_service_success(
         data={
             "verify_ticket": verify_ticket,
             "masked_email": mask_email_address(validated["email"]),
-            "expires_in_sec": auth_conf["verify_code_expires_sec"],
-            "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
+            "expires_in_sec": response_expires_in_sec,
+            "resend_cooldown_sec": response_resend_cooldown_sec,
+            "sent_now": should_send_mail,
         },
         next_kind="verify_email",
         next_to=_build_register_verify_path(verify_ticket),
-        message="確認コードを送信しました。",
+        message=response_message,
     )
 
 def register_user(
@@ -1925,6 +1960,7 @@ def start_discord_oauth(now=None) -> dict:
         message="Discord OAuth はまだ未実装です。",
     )
 
+
 def start_two_factor_setup_for_current_session(
     session_token: str | None,
     ip_address: bytes | None = None,
@@ -1949,13 +1985,6 @@ def start_two_factor_setup_for_current_session(
         return result
 
     user = current["user"]
-
-    if not bool(user.get("is_email_verified")):
-        return build_service_error(
-            error_code="email_not_verified",
-            message="メールアドレス確認後に2段階認証を設定できます。",
-        )
-
     primary_email = user.get("primary_email")
     if primary_email is None or str(primary_email).strip() == "":
         return build_service_error(
@@ -1966,8 +1995,12 @@ def start_two_factor_setup_for_current_session(
     conn = None
     now_dt = _utc_now(now)
     auth_conf = _get_auth_conf()
-    verify_code = _generate_otp_code()
+    verify_code = None
     verify_ticket = None
+    response_expires_in_sec = auth_conf["verify_code_expires_sec"]
+    response_resend_cooldown_sec = auth_conf["verify_resend_cooldown_sec"]
+    response_message = "2段階認証の確認コードを送信しました。"
+    should_send_mail = False
 
     try:
         conn = _get_db_connection(autocommit=False)
@@ -1980,52 +2013,71 @@ def start_two_factor_setup_for_current_session(
                 message="2段階認証はすでに有効です。",
             )
 
-        if two_factor_settings is None:
-            create_two_factor_settings(
+        latest = get_latest_active_email_verification(
+            conn=conn,
+            user_id=user["id"],
+            purpose="2fa_setup",
+            now=now_dt,
+        )
+        if latest is not None:
+            response_expires_in_sec = _remaining_seconds(latest["expires_at"], now_dt)
+            response_resend_cooldown_sec = _remaining_cooldown(
+                latest["created_at"],
+                auth_conf["verify_resend_cooldown_sec"],
+                now_dt,
+            )
+            verify_ticket = create_verify_ticket(
+                user_id=user["id"],
+                purpose="2fa_setup",
+                email=primary_email,
+                expires_in_sec=response_expires_in_sec,
+                now=now_dt,
+            )
+            response_message = "送信済みの確認コードを入力してください。"
+            log_auth_event(
+                conn=conn,
+                actor_user_id=user["id"],
+                action_type="auth.2fa.setup.start",
+                target_type="user",
+                target_id=str(user["id"]),
+                result="success",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="2段階認証設定コードを再利用しました。",
+                meta_json={"reused": True},
+            )
+            conn.commit()
+        else:
+            verify_code = _generate_otp_code()
+            create_email_verification(
                 conn=conn,
                 user_id=user["id"],
-                method="email",
-                is_enabled=False,
-                is_required=False,
+                email=primary_email,
+                code_hash=hash_token_value(verify_code),
+                purpose="2fa_setup",
+                expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
             )
-
-        expire_active_email_verifications(
-            conn=conn,
-            user_id=user["id"],
-            purpose="2fa_setup",
-            now=now_dt,
-        )
-
-        create_email_verification(
-            conn=conn,
-            user_id=user["id"],
-            email=primary_email,
-            code_hash=hash_token_value(verify_code),
-            purpose="2fa_setup",
-            expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
-        )
-
-        verify_ticket = create_verify_ticket(
-            user_id=user["id"],
-            purpose="2fa_setup",
-            email=primary_email,
-            expires_in_sec=auth_conf["verify_code_expires_sec"],
-            now=now_dt,
-        )
-
-        log_auth_event(
-            conn=conn,
-            actor_user_id=user["id"],
-            action_type="auth.2fa.setup.start",
-            target_type="user",
-            target_id=str(user["id"]),
-            result="success",
-            ip_address=ip_address,
-            user_agent=user_agent,
-            summary="2段階認証設定コードを送信しました。",
-        )
-
-        conn.commit()
+            verify_ticket = create_verify_ticket(
+                user_id=user["id"],
+                purpose="2fa_setup",
+                email=primary_email,
+                expires_in_sec=auth_conf["verify_code_expires_sec"],
+                now=now_dt,
+            )
+            should_send_mail = True
+            log_auth_event(
+                conn=conn,
+                actor_user_id=user["id"],
+                action_type="auth.2fa.setup.start",
+                target_type="user",
+                target_id=str(user["id"]),
+                result="success",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="2段階認証設定コードを送信しました。",
+                meta_json={"reused": False},
+            )
+            conn.commit()
     except Exception:
         _safe_rollback(conn)
         return build_service_error(
@@ -2035,26 +2087,27 @@ def start_two_factor_setup_for_current_session(
     finally:
         _safe_close(conn)
 
-    _try_send_verification_email(
-        to_email=primary_email,
-        code=verify_code,
-        purpose="2fa_setup",
-        expires_in_sec=auth_conf["verify_code_expires_sec"],
-        display_name=user.get("display_name"),
-    )
+    if should_send_mail and verify_code is not None:
+        _try_send_verification_email(
+            to_email=primary_email,
+            code=verify_code,
+            purpose="2fa_setup",
+            expires_in_sec=auth_conf["verify_code_expires_sec"],
+            display_name=user.get("display_name"),
+        )
 
     return build_service_success(
         data={
             "verify_ticket": verify_ticket,
             "masked_email": mask_email_address(primary_email),
-            "expires_in_sec": auth_conf["verify_code_expires_sec"],
-            "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
+            "expires_in_sec": response_expires_in_sec,
+            "resend_cooldown_sec": response_resend_cooldown_sec,
+            "sent_now": should_send_mail,
         },
         next_kind="verify_2fa_setup",
         next_to=None,
-        message="2段階認証の確認コードを送信しました。",
+        message=response_message,
     )
-
 
 def confirm_two_factor_setup_for_current_session(
     session_token: str | None,
@@ -2206,6 +2259,7 @@ def confirm_two_factor_setup_for_current_session(
         _safe_close(conn)
 
 
+
 def start_two_factor_disable_for_current_session(
     session_token: str | None,
     ip_address: bytes | None = None,
@@ -2240,8 +2294,12 @@ def start_two_factor_disable_for_current_session(
     conn = None
     now_dt = _utc_now(now)
     auth_conf = _get_auth_conf()
-    verify_code = _generate_otp_code()
+    verify_code = None
     verify_ticket = None
+    response_expires_in_sec = auth_conf["verify_code_expires_sec"]
+    response_resend_cooldown_sec = auth_conf["verify_resend_cooldown_sec"]
+    response_message = "2段階認証の無効化コードを送信しました。"
+    should_send_mail = False
 
     try:
         conn = _get_db_connection(autocommit=False)
@@ -2254,43 +2312,71 @@ def start_two_factor_disable_for_current_session(
                 message="2段階認証は有効ではありません。",
             )
 
-        expire_active_email_verifications(
+        latest = get_latest_active_email_verification(
             conn=conn,
             user_id=user["id"],
             purpose="2fa_disable",
             now=now_dt,
         )
-
-        create_email_verification(
-            conn=conn,
-            user_id=user["id"],
-            email=primary_email,
-            code_hash=hash_token_value(verify_code),
-            purpose="2fa_disable",
-            expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
-        )
-
-        verify_ticket = create_verify_ticket(
-            user_id=user["id"],
-            purpose="2fa_disable",
-            email=primary_email,
-            expires_in_sec=auth_conf["verify_code_expires_sec"],
-            now=now_dt,
-        )
-
-        log_auth_event(
-            conn=conn,
-            actor_user_id=user["id"],
-            action_type="auth.2fa.disable.start",
-            target_type="user",
-            target_id=str(user["id"]),
-            result="success",
-            ip_address=ip_address,
-            user_agent=user_agent,
-            summary="2段階認証無効化コードを送信しました。",
-        )
-
-        conn.commit()
+        if latest is not None:
+            response_expires_in_sec = _remaining_seconds(latest["expires_at"], now_dt)
+            response_resend_cooldown_sec = _remaining_cooldown(
+                latest["created_at"],
+                auth_conf["verify_resend_cooldown_sec"],
+                now_dt,
+            )
+            verify_ticket = create_verify_ticket(
+                user_id=user["id"],
+                purpose="2fa_disable",
+                email=primary_email,
+                expires_in_sec=response_expires_in_sec,
+                now=now_dt,
+            )
+            response_message = "送信済みの確認コードを入力してください。"
+            log_auth_event(
+                conn=conn,
+                actor_user_id=user["id"],
+                action_type="auth.2fa.disable.start",
+                target_type="user",
+                target_id=str(user["id"]),
+                result="success",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="2段階認証無効化コードを再利用しました。",
+                meta_json={"reused": True},
+            )
+            conn.commit()
+        else:
+            verify_code = _generate_otp_code()
+            create_email_verification(
+                conn=conn,
+                user_id=user["id"],
+                email=primary_email,
+                code_hash=hash_token_value(verify_code),
+                purpose="2fa_disable",
+                expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
+            )
+            verify_ticket = create_verify_ticket(
+                user_id=user["id"],
+                purpose="2fa_disable",
+                email=primary_email,
+                expires_in_sec=auth_conf["verify_code_expires_sec"],
+                now=now_dt,
+            )
+            should_send_mail = True
+            log_auth_event(
+                conn=conn,
+                actor_user_id=user["id"],
+                action_type="auth.2fa.disable.start",
+                target_type="user",
+                target_id=str(user["id"]),
+                result="success",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="2段階認証無効化コードを送信しました。",
+                meta_json={"reused": False},
+            )
+            conn.commit()
     except Exception:
         _safe_rollback(conn)
         return build_service_error(
@@ -2300,26 +2386,27 @@ def start_two_factor_disable_for_current_session(
     finally:
         _safe_close(conn)
 
-    _try_send_verification_email(
-        to_email=primary_email,
-        code=verify_code,
-        purpose="2fa_disable",
-        expires_in_sec=auth_conf["verify_code_expires_sec"],
-        display_name=user.get("display_name"),
-    )
+    if should_send_mail and verify_code is not None:
+        _try_send_verification_email(
+            to_email=primary_email,
+            code=verify_code,
+            purpose="2fa_disable",
+            expires_in_sec=auth_conf["verify_code_expires_sec"],
+            display_name=user.get("display_name"),
+        )
 
     return build_service_success(
         data={
             "verify_ticket": verify_ticket,
             "masked_email": mask_email_address(primary_email),
-            "expires_in_sec": auth_conf["verify_code_expires_sec"],
-            "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
+            "expires_in_sec": response_expires_in_sec,
+            "resend_cooldown_sec": response_resend_cooldown_sec,
+            "sent_now": should_send_mail,
         },
         next_kind="verify_2fa_disable",
         next_to=None,
-        message="2段階認証の無効化コードを送信しました。",
+        message=response_message,
     )
-
 
 def confirm_two_factor_disable_for_current_session(
     session_token: str | None,
@@ -3270,17 +3357,57 @@ def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_a
     }
 
 
+
 def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict:
     auth_conf = _get_auth_conf()
-    auth_flow_id = generate_auth_flow_id()
-    code = _generate_otp_code()
-
-    expire_active_two_factor_challenges(
+    latest = get_active_two_factor_challenge(
         conn=conn,
         user_id=user["id"],
         purpose="login",
         now=now_dt,
     )
+
+    if latest is not None:
+        challenge_token = create_challenge_token(
+            user_id=user["id"],
+            auth_flow_id=generate_auth_flow_id(),
+            email=user["primary_email"],
+            expires_in_sec=_remaining_seconds(latest["expires_at"], now_dt),
+            now=now_dt,
+        )
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user["id"],
+            action_type="auth.login",
+            target_type="user",
+            target_id=str(user["id"]),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="送信済みの2段階認証コードを再利用します。",
+            meta_json={"reused": True},
+        )
+        return {
+            "result": build_service_success(
+                data={
+                    "challenge_token": challenge_token,
+                    "masked_email": mask_email_address(user["primary_email"]),
+                    "expires_in_sec": _remaining_seconds(latest["expires_at"], now_dt),
+                    "resend_cooldown_sec": _remaining_cooldown(
+                        latest["created_at"],
+                        auth_conf["two_factor_resend_cooldown_sec"],
+                        now_dt,
+                    ),
+                    "sent_now": False,
+                },
+                next_kind="verify_2fa",
+                next_to=_build_verify_2fa_path(challenge_token),
+                message="送信済みの認証コードを入力してください。",
+            ),
+            "mail_job": None,
+        }
+
+    code = _generate_otp_code()
     create_two_factor_challenge(
         conn=conn,
         user_id=user["id"],
@@ -3291,7 +3418,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
     )
     challenge_token = create_challenge_token(
         user_id=user["id"],
-        auth_flow_id=auth_flow_id,
+        auth_flow_id=generate_auth_flow_id(),
         email=user["primary_email"],
         expires_in_sec=auth_conf["two_factor_code_expires_sec"],
         now=now_dt,
@@ -3306,6 +3433,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
         ip_address=ip_address,
         user_agent=user_agent,
         summary="2段階認証が必要です。",
+        meta_json={"reused": False},
     )
     return {
         "result": build_service_success(
@@ -3314,6 +3442,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
                 "masked_email": mask_email_address(user["primary_email"]),
                 "expires_in_sec": auth_conf["two_factor_code_expires_sec"],
                 "resend_cooldown_sec": auth_conf["two_factor_resend_cooldown_sec"],
+                "sent_now": True,
             },
             next_kind="verify_2fa",
             next_to=_build_verify_2fa_path(challenge_token),
@@ -3327,7 +3456,6 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
             "display_name": user["display_name"],
         },
     }
-
 
 def _create_authenticated_session_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, action_type: str, summary: str, meta_json: dict | None = None) -> dict:
     session_token = generate_session_token()

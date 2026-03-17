@@ -411,7 +411,8 @@
         </div>
         <div class="app-modal-footer app-modal-footer--end">
           <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary">確認</button>
-          <button type="button" class="app-button app-button--ghost" data-modal-close="twofactor-setup">キャンセル</button>
+          <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost">再送</button>
+          <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
         </div>
       </div>
     </section>
@@ -433,7 +434,24 @@
         </div>
         <div class="app-modal-footer app-modal-footer--end">
           <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger">無効化する</button>
-          <button type="button" class="app-button app-button--ghost" data-modal-close="twofactor-disable">キャンセル</button>
+          <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost">再送</button>
+          <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="twofactor-action-confirm" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorActionConfirmTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="twofactorActionConfirmTitle" class="app-modal-title">確認</h2>
+        </div>
+        <div class="app-modal-body">
+          <p id="shellTwoFactorActionConfirmMessage" class="app-form-message">本当に実行しますか？</p>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary">実行する</button>
+          <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
         </div>
       </div>
     </section>
