@@ -201,6 +201,8 @@ def build_verification_subject(purpose: str) -> str:
         return "【Felixxsv Gallery】メールアドレス変更確認コード"
     if purpose == "2fa_setup":
         return "【Felixxsv Gallery】2段階認証設定確認コード"
+    if purpose == "2fa_disable":
+        return "【Felixxsv Gallery】2段階認証無効化確認コード"
     raise AuthMailError(
         "invalid_verify_purpose",
         "メール確認用途が正しくありません。",
