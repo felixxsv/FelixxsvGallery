@@ -338,7 +338,7 @@
             <button id="shellEmailActionButton" type="button" class="app-button" data-modal-open="email">メールアドレス変更</button>
             <button id="shellPasswordActionButton" type="button" class="app-button" data-modal-open="password">パスワード変更</button>
             <button id="shellTwoFactorEnableButton" type="button" class="app-button">2段階認証を有効化</button>
-            <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button" data-modal-open="twofactor-disable" hidden>2段階認証を無効化</button>
+            <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button" hidden>2段階認証を無効化</button>
           </div>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
@@ -424,9 +424,10 @@
         </div>
         <div class="app-modal-body">
           <form class="app-form-stack">
+            <p id="shellTwoFactorDisableMessage" class="app-form-message">確認コードを送信します。</p>
             <label class="app-field">
-              <span class="app-field__label">現在のパスワード</span>
-              <input id="shellTwoFactorDisablePasswordInput" class="app-input" type="password" autocomplete="current-password">
+              <span class="app-field__label">確認コード</span>
+              <input id="shellTwoFactorDisableCodeInput" class="app-input" type="text" inputmode="numeric" autocomplete="one-time-code">
             </label>
           </form>
         </div>

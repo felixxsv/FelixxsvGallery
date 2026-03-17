@@ -77,7 +77,7 @@ CREATE TABLE email_verifications (
     user_id BIGINT UNSIGNED NOT NULL,
     email VARCHAR(255) NOT NULL,
     code_hash CHAR(64) NOT NULL,
-    purpose ENUM('signup', 'email_signup', 'email_change', '2fa_setup') NOT NULL,
+    purpose ENUM('signup', 'email_signup', 'email_change', '2fa_setup', '2fa_disable') NOT NULL,
     attempt_count INT UNSIGNED NOT NULL DEFAULT 0,
     expires_at DATETIME(6) NOT NULL,
     consumed_at DATETIME(6) NULL,

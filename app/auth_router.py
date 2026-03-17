@@ -21,7 +21,8 @@ from auth_service import (
     confirm_email_verification,
     confirm_two_factor_challenge,
     confirm_two_factor_setup_for_current_session,
-    disable_two_factor_for_current_session,
+    start_two_factor_disable_for_current_session,
+    confirm_two_factor_disable_for_current_session,
     get_current_user_profile,
     get_discord_registration_status,
     get_password_reset_status,
@@ -102,8 +103,9 @@ class TwoFactorSetupConfirmRequest(BaseModel):
     code: str
 
 
-class TwoFactorDisableRequest(BaseModel):
-    password: str
+class TwoFactorDisableConfirmRequest(BaseModel):
+    verify_ticket: str
+    code: str
 
 
 def build_request_id() -> str:
@@ -598,18 +600,43 @@ async def two_factor_setup_confirm(
         return response
 
 
-@router.post("/2fa/disable")
-async def two_factor_disable(
-    payload: TwoFactorDisableRequest,
+@router.post("/2fa/disable/start")
+async def two_factor_disable_start(
     request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
     context = extract_request_context(request)
     try:
-        result = disable_two_factor_for_current_session(
+        result = start_two_factor_disable_for_current_session(
             session_token=gallery_session,
-            password=payload.password,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="2段階認証の無効化開始に失敗しました。",
+            http_status=500,
+        )
+        return response
+
+
+@router.post("/2fa/disable/confirm")
+async def two_factor_disable_confirm(
+    payload: TwoFactorDisableConfirmRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = confirm_two_factor_disable_for_current_session(
+            session_token=gallery_session,
+            verify_ticket=payload.verify_ticket,
+            code=payload.code,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )

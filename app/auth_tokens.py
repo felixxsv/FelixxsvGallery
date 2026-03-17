@@ -16,7 +16,7 @@ DEFAULT_RESET_TOKEN_EXPIRES_SEC = 1800
 DEFAULT_EMAIL_REGISTRATION_TOKEN_EXPIRES_SEC = 1800
 
 _RESERVED_PAYLOAD_KEYS = {"kind", "sub", "iat", "exp", "jti"}
-_VERIFY_PURPOSES = {"signup", "email_signup", "email_change", "2fa_setup"}
+_VERIFY_PURPOSES = {"signup", "email_signup", "email_change", "2fa_setup", "2fa_disable"}
 _CHALLENGE_PURPOSE = "login"
 _REGISTRATION_PROVIDER = "discord"
 

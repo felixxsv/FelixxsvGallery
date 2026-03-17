@@ -2206,28 +2206,12 @@ def confirm_two_factor_setup_for_current_session(
         _safe_close(conn)
 
 
-def disable_two_factor_for_current_session(
+def start_two_factor_disable_for_current_session(
     session_token: str | None,
-    password: str | None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
 ) -> dict:
-    password_value = "" if password is None else str(password)
-
-    if password_value.strip() == "":
-        return build_service_error(
-            error_code="validation_error",
-            message="入力内容を確認してください。",
-            field_errors=[
-                {
-                    "field": "password",
-                    "code": "required",
-                    "message": "現在のパスワードを入力してください。",
-                }
-            ],
-        )
-
     if session_token is None or str(session_token).strip() == "":
         result = build_service_error(
             error_code="not_authenticated",
@@ -2246,8 +2230,18 @@ def disable_two_factor_for_current_session(
         return result
 
     user = current["user"]
+    primary_email = user.get("primary_email")
+    if primary_email is None or str(primary_email).strip() == "":
+        return build_service_error(
+            error_code="email_not_available",
+            message="利用可能なメールアドレスが設定されていません。",
+        )
+
     conn = None
     now_dt = _utc_now(now)
+    auth_conf = _get_auth_conf()
+    verify_code = _generate_otp_code()
+    verify_ticket = None
 
     try:
         conn = _get_db_connection(autocommit=False)
@@ -2260,39 +2254,176 @@ def disable_two_factor_for_current_session(
                 message="2段階認証は有効ではありません。",
             )
 
-        credentials = get_password_credentials_by_user_id(conn, user["id"])
-        if credentials is None:
-            _safe_rollback(conn)
+        expire_active_email_verifications(
+            conn=conn,
+            user_id=user["id"],
+            purpose="2fa_disable",
+            now=now_dt,
+        )
+
+        create_email_verification(
+            conn=conn,
+            user_id=user["id"],
+            email=primary_email,
+            code_hash=hash_token_value(verify_code),
+            purpose="2fa_disable",
+            expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
+        )
+
+        verify_ticket = create_verify_ticket(
+            user_id=user["id"],
+            purpose="2fa_disable",
+            email=primary_email,
+            expires_in_sec=auth_conf["verify_code_expires_sec"],
+            now=now_dt,
+        )
+
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user["id"],
+            action_type="auth.2fa.disable.start",
+            target_type="user",
+            target_id=str(user["id"]),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="2段階認証無効化コードを送信しました。",
+        )
+
+        conn.commit()
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="2段階認証の無効化開始に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+    _try_send_verification_email(
+        to_email=primary_email,
+        code=verify_code,
+        purpose="2fa_disable",
+        expires_in_sec=auth_conf["verify_code_expires_sec"],
+        display_name=user.get("display_name"),
+    )
+
+    return build_service_success(
+        data={
+            "verify_ticket": verify_ticket,
+            "masked_email": mask_email_address(primary_email),
+            "expires_in_sec": auth_conf["verify_code_expires_sec"],
+            "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
+        },
+        next_kind="verify_2fa_disable",
+        next_to=None,
+        message="2段階認証の無効化コードを送信しました。",
+    )
+
+
+def confirm_two_factor_disable_for_current_session(
+    session_token: str | None,
+    verify_ticket: str | None,
+    code: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        result = build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+        )
+        result["clear_session_cookie"] = True
+        return result
+
+    current = get_current_user_by_session_token(session_token=session_token, now=now)
+    if current is None:
+        result = build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+        )
+        result["clear_session_cookie"] = True
+        return result
+
+    try:
+        validated = validate_verify_email_input(verify_ticket=verify_ticket, code=code)
+    except (AuthValidationError, AuthValidationErrors) as exc:
+        return convert_validation_error_to_result(exc)
+
+    user = current["user"]
+    now_dt = _utc_now(now)
+    entered_code_hash = hash_token_value(validated["code"])
+    conn = None
+
+    try:
+        parsed = parse_verify_ticket(validated["verify_ticket"], now=now_dt)
+
+        if parsed["purpose"] != "2fa_disable":
             return build_service_error(
-                error_code="server_error",
-                message="2段階認証の無効化に失敗しました。",
+                error_code="invalid_ticket",
+                message="確認トークンが無効です。",
             )
 
-        if not verify_password(password_value, credentials["password_hash"]):
+        if int(parsed["user_id"]) != int(user["id"]):
+            result = build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+            )
+            result["clear_session_cookie"] = True
+            return result
+
+        conn = _get_db_connection(autocommit=False)
+
+        two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+        if two_factor_settings is None or not bool(two_factor_settings.get("is_enabled")):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_enabled",
+                message="2段階認証は有効ではありません。",
+            )
+
+        row = get_latest_active_email_verification(
+            conn=conn,
+            user_id=user["id"],
+            purpose="2fa_disable",
+            now=now_dt,
+        )
+        if row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="ticket_expired",
+                message="確認トークンの有効期限が切れています。",
+            )
+
+        if int(row["attempt_count"] or 0) >= _get_auth_conf()["verify_max_attempts"]:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="too_many_attempts",
+                message="確認コードの入力回数が上限に達しました。",
+            )
+
+        if row["code_hash"] != entered_code_hash:
+            increment_email_verification_attempts(conn, row["id"])
             log_auth_event(
                 conn=conn,
                 actor_user_id=user["id"],
-                action_type="auth.2fa.disable",
+                action_type="auth.2fa.disable.confirm",
                 target_type="user",
                 target_id=str(user["id"]),
                 result="failure",
                 ip_address=ip_address,
                 user_agent=user_agent,
-                summary="2段階認証の無効化に失敗しました。",
-                meta_json={"reason": "current_password_incorrect"},
+                summary="2段階認証無効化確認に失敗しました。",
+                meta_json={"reason": "invalid_code"},
             )
             conn.commit()
             return build_service_error(
-                error_code="current_password_incorrect",
-                message="現在のパスワードが正しくありません。",
-                field_errors=[
-                    {
-                        "field": "password",
-                        "code": "current_password_incorrect",
-                        "message": "現在のパスワードが正しくありません。",
-                    }
-                ],
+                error_code="invalid_code",
+                message="確認コードが正しくありません。",
             )
+
+        consume_email_verification(conn, row["id"], now_dt)
 
         update_two_factor_settings(
             conn=conn,
@@ -2304,7 +2435,7 @@ def disable_two_factor_for_current_session(
         log_auth_event(
             conn=conn,
             actor_user_id=user["id"],
-            action_type="auth.2fa.disable",
+            action_type="auth.2fa.disable.confirm",
             target_type="user",
             target_id=str(user["id"]),
             result="success",
@@ -2325,6 +2456,9 @@ def disable_two_factor_for_current_session(
             next_to=None,
             message="2段階認証を無効化しました。",
         )
+    except AuthTokenError as exc:
+        _safe_rollback(conn)
+        return _token_error_to_result(exc, "ticket")
     except Exception:
         _safe_rollback(conn)
         return build_service_error(

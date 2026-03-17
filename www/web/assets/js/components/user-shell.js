@@ -67,12 +67,14 @@ export function initUserShell(app) {
     twoFactorCodeInput: byId("shellTwoFactorCodeInput"),
     twoFactorSetupConfirmButton: byId("shellTwoFactorSetupConfirmButton"),
 
-    twoFactorDisablePasswordInput: byId("shellTwoFactorDisablePasswordInput"),
+    twoFactorDisableMessage: byId("shellTwoFactorDisableMessage"),
+    twoFactorDisableCodeInput: byId("shellTwoFactorDisableCodeInput"),
     twoFactorDisableConfirmButton: byId("shellTwoFactorDisableConfirmButton")
   };
 
   const shellState = {
-    twoFactorSetupTicket: null
+    twoFactorSetupTicket: null,
+    twoFactorDisableTicket: null
   };
 
   function getSessionState() {
@@ -295,11 +297,40 @@ export function initUserShell(app) {
     }
   }
 
-  async function handleTwoFactorDisable() {
+  async function handleTwoFactorDisableStart() {
+    if (!isAuthenticated()) {
+      toast.error("ログインが必要です。");
+      return;
+    }
+
+    if (!currentEmail()) {
+      toast.error("メールアドレスを入力してください。");
+      return;
+    }
+
     try {
-      await app.api.post("/api/auth/2fa/disable", {
-        password: refs.twoFactorDisablePasswordInput.value
+      const payload = await app.api.post("/api/auth/2fa/disable/start");
+      shellState.twoFactorDisableTicket = payload.data.verify_ticket;
+      refs.twoFactorDisableMessage.textContent = `${payload.data.masked_email} に確認コードを送信しました。`;
+      refs.twoFactorDisableCodeInput.value = "";
+      app.modal.open("twofactor-disable");
+    } catch (error) {
+      toast.error(error.message || "2段階認証の無効化開始に失敗しました。");
+    }
+  }
+
+  async function handleTwoFactorDisableConfirm() {
+    if (!shellState.twoFactorDisableTicket) {
+      toast.error("確認トークンがありません。");
+      return;
+    }
+
+    try {
+      await app.api.post("/api/auth/2fa/disable/confirm", {
+        verify_ticket: shellState.twoFactorDisableTicket,
+        code: refs.twoFactorDisableCodeInput.value
       });
+      shellState.twoFactorDisableTicket = null;
       app.modal.close("twofactor-disable");
       await refreshSession();
       renderAccountModal();
@@ -333,7 +364,8 @@ export function initUserShell(app) {
     refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
     refs.twoFactorEnableButton.addEventListener("click", handleTwoFactorEnable);
     refs.twoFactorSetupConfirmButton.addEventListener("click", handleTwoFactorSetupConfirm);
-    refs.twoFactorDisableConfirmButton.addEventListener("click", handleTwoFactorDisable);
+    refs.twoFactorDisableOpenButton.addEventListener("click", handleTwoFactorDisableStart);
+    refs.twoFactorDisableConfirmButton.addEventListener("click", handleTwoFactorDisableConfirm);
     refs.emailSaveButton.addEventListener("click", handleEmailSave);
 
     refs.settingLanguage.addEventListener("change", () => {
