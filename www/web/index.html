@@ -241,6 +241,30 @@
                 <option value="light">ライト</option>
               </select>
             </label>
+
+            <label class="app-field">
+              <span class="app-field__label">画像クリック時の挙動</span>
+              <select id="shellSettingImageOpenBehavior" class="app-select">
+                <option value="modal">モーダルで表示</option>
+                <option value="new_tab">別タブで表示</option>
+              </select>
+            </label>
+
+            <label class="app-field">
+              <span class="app-field__label">画像モーダルの背景クリック</span>
+              <select id="shellSettingImageBackdropClose" class="app-select">
+                <option value="true">閉じる</option>
+                <option value="false">閉じない</option>
+              </select>
+            </label>
+
+            <label class="app-field">
+              <span class="app-field__label">画像モーダルのメタ情報バー</span>
+              <select id="shellSettingImageMetaPinned" class="app-select">
+                <option value="false">自動表示</option>
+                <option value="true">常時表示</option>
+              </select>
+            </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
@@ -266,7 +290,7 @@
 
     <section class="app-modal-layer" data-modal-layer data-modal-id="credits" hidden>
       <div class="app-modal-backdrop" data-modal-backdrop="credits"></div>
-      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" tabindex="-1">
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" tabindex="-1">
         <div class="app-modal-header">
           <h2 id="creditsTitle" class="app-modal-title">クレジット</h2>
         </div>

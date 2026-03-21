@@ -1,4 +1,3 @@
-
 import { byId } from "../core/dom.js";
 
 function formatDate(value) {
@@ -44,6 +43,9 @@ export function initUserShell(app) {
 
     settingLanguage: byId("shellSettingLanguage"),
     settingTheme: byId("shellSettingTheme"),
+    settingImageOpenBehavior: byId("shellSettingImageOpenBehavior"),
+    settingImageBackdropClose: byId("shellSettingImageBackdropClose"),
+    settingImageMetaPinned: byId("shellSettingImageMetaPinned"),
 
     creditAuthor: byId("shellCreditAuthor"),
     creditStack: byId("shellCreditStack"),
@@ -209,6 +211,15 @@ export function initUserShell(app) {
   function renderSettings() {
     refs.settingLanguage.value = app.settings.getLanguage();
     refs.settingTheme.value = app.settings.getTheme();
+    if (refs.settingImageOpenBehavior) {
+      refs.settingImageOpenBehavior.value = app.settings.getImageOpenBehavior();
+    }
+    if (refs.settingImageBackdropClose) {
+      refs.settingImageBackdropClose.value = String(app.settings.getImageBackdropClose());
+    }
+    if (refs.settingImageMetaPinned) {
+      refs.settingImageMetaPinned.value = String(app.settings.getImageMetaPinned());
+    }
   }
 
   function renderUserCard() {
@@ -585,6 +596,27 @@ export function initUserShell(app) {
       app.theme.apply(refs.settingTheme.value);
       toast.success("テーマ設定を保存しました。");
     });
+
+    if (refs.settingImageOpenBehavior) {
+      refs.settingImageOpenBehavior.addEventListener("change", () => {
+        app.settings.setImageOpenBehavior(refs.settingImageOpenBehavior.value);
+        toast.success("画像の開き方を保存しました。");
+      });
+    }
+
+    if (refs.settingImageBackdropClose) {
+      refs.settingImageBackdropClose.addEventListener("change", () => {
+        app.settings.setImageBackdropClose(refs.settingImageBackdropClose.value === "true");
+        toast.success("画像モーダルの背景クリック設定を保存しました。");
+      });
+    }
+
+    if (refs.settingImageMetaPinned) {
+      refs.settingImageMetaPinned.addEventListener("change", () => {
+        app.settings.setImageMetaPinned(refs.settingImageMetaPinned.value === "true");
+        toast.success("画像モーダルのメタ情報バー設定を保存しました。");
+      });
+    }
 
     document.getElementById("appModalRoot").addEventListener("app:modal-open", (event) => {
       const id = event.detail.id;
