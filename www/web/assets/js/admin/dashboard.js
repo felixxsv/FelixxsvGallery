@@ -14,12 +14,8 @@ function formatElapsed(sec) {
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
-  if (hours > 0) {
-    return `${hours}時間 ${minutes}分`;
-  }
-  if (minutes > 0) {
-    return `${minutes}分 ${seconds}秒`;
-  }
+  if (hours > 0) return `${hours}時間 ${minutes}分`;
+  if (minutes > 0) return `${minutes}分 ${seconds}秒`;
   return `${seconds}秒`;
 }
 
@@ -44,17 +40,8 @@ function updateDigitalClock() {
   const el = byId("adminDashboardClockDigital");
   if (!el || el.hidden) return;
   const now = new Date();
-  const text = now.toLocaleTimeString("ja-JP", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
-  const date = now.toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "short"
-  });
+  const text = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const date = now.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" });
   const timeEl = el.querySelector("[data-clock-time]");
   const dateEl = el.querySelector("[data-clock-date]");
   if (timeEl) timeEl.textContent = text;
@@ -96,7 +83,7 @@ function renderStats(stats) {
     privateCount: byId("adminStatPrivateCount"),
     quarantine: byId("adminStatQuarantineCount"),
     storageUsed: byId("adminStatStorageUsed"),
-    storageTotal: byId("adminStatStorageTotal")
+    storageTotal: byId("adminStatStorageTotal"),
   };
   if (refs.online) refs.online.textContent = String(stats.online_user_count ?? 0);
   if (refs.upload) refs.upload.textContent = String(stats.today_upload_count ?? 0);
@@ -122,17 +109,17 @@ function renderActiveUsers(items) {
     const row = document.createElement("article");
     row.className = "admin-active-user";
     const avatar = item.avatar_url
-      ? `<img class="admin-active-user__avatar-image" src="${item.avatar_url}" alt="">`
-      : `<span class="admin-active-user__avatar-fallback">${(item.display_name || "?").slice(0, 1)}</span>`;
+      ? `<img src="${item.avatar_url}" alt="">`
+      : `${(item.display_name || "?").slice(0, 1)}`;
     row.innerHTML = `
       <div class="admin-active-user__avatar">${avatar}</div>
-      <div class="admin-active-user__body">
-        <div class="admin-active-user__name">${item.display_name || "-"}</div>
-        <div class="admin-active-user__meta">@${item.user_key || "-"}</div>
+      <div class="admin-active-user__meta">
+        <strong>${item.display_name || "-"}</strong>
+        <div>@${item.user_key || "-"}</div>
       </div>
-      <div class="admin-active-user__timing">
-        <div class="admin-active-user__timing-label">セッション時間</div>
-        <div class="admin-active-user__timing-value">${formatElapsed(item.session_elapsed_sec)}</div>
+      <div class="admin-active-user__elapsed">
+        <div>セッション時間</div>
+        <strong>${formatElapsed(item.session_elapsed_sec)}</strong>
       </div>
     `;
     container.appendChild(row);
@@ -154,21 +141,48 @@ function renderAuditLogs(items) {
     const row = document.createElement("article");
     row.className = "admin-log-item";
     row.innerHTML = `
-      <div class="admin-log-item__top">
-        <span class="admin-log-item__action">${item.action_type || "-"}</span>
-        <span class="admin-log-item__time">${formatDateTime(item.created_at)}</span>
-      </div>
+      <div class="admin-log-item__meta">${item.action_type || "-"} ・ ${formatDateTime(item.created_at)}</div>
       <div class="admin-log-item__summary">${item.summary || "-"}</div>
-      <div class="admin-log-item__meta">
-        <span>${item.actor?.display_name || "system"}</span>
-        <span>${item.result || "-"}</span>
-      </div>
+      <div class="admin-log-item__actor">${item.actor?.display_name || "system"} / ${item.result || "-"}</div>
     `;
     container.appendChild(row);
   }
 }
 
+let latestImageItem = null;
+
+function buildDashboardDetail(item) {
+  return {
+    image_id: item.image_id || item.id || null,
+    title: item.title || "タイトル未設定",
+    alt: item.alt || "",
+    posted_at: item.posted_at || null,
+    shot_at: item.shot_at || null,
+    like_count: Number(item.like_count || 0),
+    view_count: Number(item.view_count || 0),
+    user: item.user || {
+      display_name: item.uploader_display_name || "投稿者不明",
+      user_key: item.uploader_user_key || "-",
+      avatar_url: item.uploader_avatar_url || item.uploader_avatar_path || "",
+    },
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    color_tags: Array.isArray(item.color_tags) ? item.color_tags : [],
+    file_size_bytes: item.file_size_bytes ?? null,
+    image_width: item.image_width ?? item.width ?? null,
+    image_height: item.image_height ?? item.height ?? null,
+    admin_meta: item.admin_meta || {},
+  };
+}
+
+async function loadAdminContentDetail(imageId) {
+  const app = window.AdminApp;
+  const payload = await app.api.get(`/api/admin/content/${imageId}`);
+  const content = payload.data?.content || {};
+  return buildDashboardDetail(content);
+}
+
 function renderLatestImage(item) {
+  latestImageItem = item || null;
   const card = byId("adminDashboardLatestImageCard");
   const image = byId("adminDashboardLatestImage");
   const title = byId("adminDashboardLatestImageTitle");
@@ -187,7 +201,7 @@ function renderLatestImage(item) {
   image.alt = item.title || "latest image";
   title.textContent = item.title || "タイトル未設定";
   meta.textContent = `${formatDateTime(item.posted_at)} ・ ${item.user?.display_name || "投稿者不明"}`;
-  stats.textContent = `♥ ${item.like_count_short || "0"} ・ 👁 ${item.view_count_short || "0"}`;
+  stats.textContent = `♥ ${item.like_count_short || "0"} ・ ${item.view_count_short || "0"}`;
   card.hidden = false;
   placeholder.hidden = true;
 }
@@ -197,10 +211,8 @@ async function saveClockMode(mode) {
   const response = await fetch(`${app.appBase}/api/admin/dashboard/preferences`, {
     method: "PATCH",
     credentials: "same-origin",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ clock_mode: mode })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clock_mode: mode }),
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload.ok) {
@@ -215,11 +227,12 @@ async function loadDashboard() {
   const data = payload.data || {};
   renderStats({
     online_user_count: data.online_user_count ?? 0,
-    ...(data.stats || {})
+    ...(data.stats || {}),
   });
   renderActiveUsers(data.active_users || []);
   renderAuditLogs(data.recent_audit_logs || []);
   renderLatestImage(data.latest_image || null);
+
   const mode = data.clock_mode === "analog" ? "analog" : "digital";
   const digitalBtn = byId("adminClockModeDigital");
   const analogBtn = byId("adminClockModeAnalog");
@@ -233,6 +246,7 @@ async function loadDashboard() {
 function bindClockButtons() {
   const digitalBtn = byId("adminClockModeDigital");
   const analogBtn = byId("adminClockModeAnalog");
+
   if (digitalBtn) {
     digitalBtn.addEventListener("click", async () => {
       try {
@@ -245,6 +259,7 @@ function bindClockButtons() {
       }
     });
   }
+
   if (analogBtn) {
     analogBtn.addEventListener("click", async () => {
       try {
@@ -259,9 +274,30 @@ function bindClockButtons() {
   }
 }
 
+function bindLatestImage() {
+  const card = byId("adminDashboardLatestImageCard");
+  if (!card) return;
+
+  card.addEventListener("click", async (event) => {
+    event.preventDefault();
+    if (!latestImageItem || !window.AdminApp?.imageModal) return;
+    const imageId = latestImageItem.image_id || latestImageItem.id;
+    window.AdminApp.imageModal.openByPreference(
+      {
+        ...latestImageItem,
+        original_url: latestImageItem.original_url || latestImageItem.preview_url,
+      },
+      {
+        detailLoader: async () => loadAdminContentDetail(imageId),
+      },
+    );
+  });
+}
+
 async function initDashboard() {
   if (!window.AdminApp || !window.AdminApp.ready) return;
   bindClockButtons();
+  bindLatestImage();
   startClockLoop();
   try {
     await loadDashboard();

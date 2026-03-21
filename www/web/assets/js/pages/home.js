@@ -9,31 +9,24 @@ function textOrDash(value) {
 
 function withAppBase(path) {
   const appBase = document.body.dataset.appBase || "/gallery";
-
   if (!path) {
     return "";
   }
-
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-
   if (path.startsWith("/gallery/")) {
     return path;
   }
-
   if (path.startsWith("/storage/") || path.startsWith("/media/") || path.startsWith("/api/")) {
     return `${appBase}${path}`;
   }
-
   if (path.startsWith("storage/") || path.startsWith("media/") || path.startsWith("api/")) {
     return `${appBase}/${path}`;
   }
-
   if (path.startsWith("/")) {
     return `${appBase}${path}`;
   }
-
   return `${appBase}/storage/${path.replace(/^\/+/, "")}`;
 }
 
@@ -44,58 +37,55 @@ function normalizeImageUrl(image) {
     image.thumb_path_480,
     image.thumb_path,
     image.image_url,
-    image.url
+    image.url,
   ];
-
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== "string") {
       continue;
     }
     return withAppBase(candidate);
   }
-
   if (image.id !== undefined && image.id !== null) {
     return withAppBase(`/media/original/${image.id}`);
   }
-
   return "";
 }
 
 function extractListPayload(payload) {
   const root = payload?.data ?? payload;
-
   if (Array.isArray(root)) {
-    return {
-      items: root,
-      page: 1,
-      perPage: root.length,
-      total: root.length,
-      hasNext: false
-    };
+    return { items: root, page: 1, perPage: root.length, total: root.length, hasNext: false };
   }
-
   if (!root || typeof root !== "object") {
-    return {
-      items: [],
-      page: 1,
-      perPage: 24,
-      total: 0,
-      hasNext: false
-    };
+    return { items: [], page: 1, perPage: 24, total: 0, hasNext: false };
   }
-
   const items = root.items || root.images || root.records || root.results || [];
   const page = Number(root.page || root.current_page || 1);
   const perPage = Number(root.per_page || root.perPage || items.length || 24);
   const total = Number(root.total || root.total_count || items.length || 0);
   const hasNext = root.has_next ?? (page * perPage < total);
+  return { items: Array.isArray(items) ? items : [], page, perPage, total, hasNext: Boolean(hasNext) };
+}
 
+function buildPublicDetail(image) {
   return {
-    items: Array.isArray(items) ? items : [],
-    page,
-    perPage,
-    total,
-    hasNext: Boolean(hasNext)
+    image_id: image.id ?? null,
+    title: image.title || "タイトル未設定",
+    alt: image.alt || "",
+    posted_at: image.created_at || image.posted_at || image.shot_at || null,
+    shot_at: image.shot_at || null,
+    like_count: Number(image.like_count || 0),
+    view_count: Number(image.view_count || 0),
+    tags: Array.isArray(image.tags) ? image.tags : [],
+    color_tags: Array.isArray(image.color_tags) ? image.color_tags : [],
+    file_size_bytes: image.file_size_bytes ?? null,
+    image_width: image.image_width ?? image.width ?? null,
+    image_height: image.image_height ?? image.height ?? null,
+    user: image.user || {
+      display_name: image.uploader_display_name || image.display_name || "投稿者不明",
+      user_key: image.uploader_user_key || image.user_key || "-",
+      avatar_url: withAppBase(image.uploader_avatar_url || image.uploader_avatar_path || image.avatar_url || ""),
+    },
   };
 }
 
@@ -113,7 +103,7 @@ export function initHomePage(app) {
     paginationMeta: byId("homePaginationMeta"),
     prevPageButton: byId("homePrevPageButton"),
     nextPageButton: byId("homeNextPageButton"),
-    cardTemplate: byId("homeImageCardTemplate")
+    cardTemplate: byId("homeImageCardTemplate"),
   };
 
   const state = {
@@ -123,7 +113,8 @@ export function initHomePage(app) {
     q: "",
     total: 0,
     hasNext: false,
-    debounceTimer: null
+    debounceTimer: null,
+    items: [],
   };
 
   function setLoading(loading) {
@@ -146,14 +137,13 @@ export function initHomePage(app) {
   function updateStatus() {
     const start = state.total === 0 ? 0 : (state.page - 1) * state.perPage + 1;
     const end = Math.min(state.page * state.perPage, state.total);
-
     refs.statusText.textContent = `検索: ${state.q ? `"${state.q}"` : "なし"} / 並び順: ${state.sort} / ${start}-${end}件 / 総件数 ${state.total}件`;
     refs.paginationMeta.textContent = `Page ${state.page}`;
     refs.prevPageButton.disabled = state.page <= 1;
     refs.nextPageButton.disabled = !state.hasNext;
   }
 
-  function createCard(image) {
+  function createCard(image, index) {
     const fragment = refs.cardTemplate.content.cloneNode(true);
     const article = fragment.querySelector(".home-gallery-card");
     const link = fragment.querySelector("[data-card-link]");
@@ -161,11 +151,14 @@ export function initHomePage(app) {
     const emptyNode = fragment.querySelector("[data-card-empty]");
     const titleNode = fragment.querySelector("[data-card-title]");
     const metaNode = fragment.querySelector("[data-card-meta]");
-
     const imageUrl = normalizeImageUrl(image);
+
+    article.dataset.imageIndex = String(index);
+    article.dataset.imageId = String(image.id ?? "");
 
     if (imageUrl) {
       link.href = imageUrl;
+      link.dataset.action = "open-image";
       imageNode.src = imageUrl;
       imageNode.alt = textOrDash(image.alt || image.title || "");
       imageNode.hidden = false;
@@ -178,13 +171,11 @@ export function initHomePage(app) {
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
     metaNode.textContent = textOrDash(image.shot_at || image.created_at || image.date || "");
-
     return article;
   }
 
   function renderItems(items) {
     refs.galleryGrid.textContent = "";
-
     if (!items.length) {
       setGridVisible(false);
       setEmpty(true);
@@ -192,14 +183,30 @@ export function initHomePage(app) {
     }
 
     const fragment = document.createDocumentFragment();
-
-    for (const item of items) {
-      fragment.appendChild(createCard(item));
-    }
+    items.forEach((item, index) => {
+      fragment.appendChild(createCard(item, index));
+    });
 
     refs.galleryGrid.appendChild(fragment);
     setGridVisible(true);
     setEmpty(false);
+  }
+
+  async function openImageFromCard(index) {
+    const item = state.items[index];
+    if (!item) return;
+
+    const payload = {
+      ...item,
+      preview_url: normalizeImageUrl(item),
+      original_url: normalizeImageUrl(item),
+      detailLoader: async () => buildPublicDetail(item),
+    };
+
+    app.imageModal.openByPreference(payload, {
+      detail: buildPublicDetail(item),
+      detailLoader: async () => buildPublicDetail(item),
+    });
   }
 
   async function load() {
@@ -211,19 +218,17 @@ export function initHomePage(app) {
       const query = new URLSearchParams({
         page: String(state.page),
         per_page: String(state.perPage),
-        sort: state.sort
+        sort: state.sort,
       });
-
       if (state.q) {
         query.set("q", state.q);
       }
 
       const payload = await app.api.get(`/api/images?${query.toString()}`);
       const list = extractListPayload(payload);
-
+      state.items = list.items;
       state.total = Number(list.total || 0);
       state.hasNext = Boolean(list.hasNext);
-
       renderItems(list.items);
       updateStatus();
     } catch (error) {
@@ -246,24 +251,30 @@ export function initHomePage(app) {
     }, 300);
   }
 
-  refs.searchInput.addEventListener("input", scheduleSearch);
+  refs.galleryGrid.addEventListener("click", (event) => {
+    const link = event.target.closest("[data-action='open-image']");
+    if (!link) return;
+    const article = link.closest(".home-gallery-card");
+    const index = Number(article?.dataset.imageIndex);
+    if (!Number.isFinite(index)) return;
+    event.preventDefault();
+    openImageFromCard(index);
+  });
 
+  refs.searchInput.addEventListener("input", scheduleSearch);
   refs.sortSelect.addEventListener("change", () => {
     state.page = 1;
     state.sort = refs.sortSelect.value;
     load();
   });
-
   refs.perPageSelect.addEventListener("change", () => {
     state.page = 1;
     state.perPage = Number(refs.perPageSelect.value || 24);
     load();
   });
-
   refs.reloadButton.addEventListener("click", () => {
     load();
   });
-
   refs.prevPageButton.addEventListener("click", () => {
     if (state.page <= 1) {
       return;
@@ -271,7 +282,6 @@ export function initHomePage(app) {
     state.page -= 1;
     load();
   });
-
   refs.nextPageButton.addEventListener("click", () => {
     if (!state.hasNext) {
       return;
