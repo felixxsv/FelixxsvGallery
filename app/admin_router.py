@@ -500,6 +500,25 @@ LIMIT 1
         },
     }
 
+def _ensure_admin_content_states_table(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS admin_content_states (
+    image_id BIGINT UNSIGNED NOT NULL,
+    moderation_status ENUM('normal', 'quarantined', 'deleted') NOT NULL DEFAULT 'normal',
+    previous_is_public TINYINT(1) NULL,
+    updated_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (image_id),
+    KEY idx_admin_content_states_status (moderation_status),
+    KEY idx_admin_content_states_updated_by_user_id (updated_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+
+
 def _load_dashboard_stats(conn) -> dict:
     image_cols = _table_columns(conn, "images")
     public_count = 0
@@ -532,6 +551,22 @@ WHERE COALESCE(created_at, shot_at) >= CURRENT_DATE()
         )
         today_row = cur.fetchone() or {}
 
+    quarantine_count = 0
+    try:
+        _ensure_admin_content_states_table(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+SELECT COUNT(*) AS c
+FROM admin_content_states
+WHERE moderation_status='quarantined'
+"""
+            )
+            q_row = cur.fetchone() or {}
+        quarantine_count = int(q_row.get("c") or 0)
+    except Exception:
+        quarantine_count = 0
+
     conf = _get_conf()
     storage_root = ((conf.get("paths") or {}).get("storage_root") or "").strip()
     storage_total_bytes = None
@@ -549,7 +584,7 @@ WHERE COALESCE(created_at, shot_at) >= CURRENT_DATE()
         "today_upload_count": int(today_row.get("c") or 0),
         "public_count": public_count,
         "private_count": private_count,
-        "quarantine_count": 0,
+        "quarantine_count": quarantine_count,
         "storage_used_bytes": storage_used_bytes,
         "storage_total_bytes": storage_total_bytes,
     }
@@ -1447,6 +1482,706 @@ WHERE id=%s
             except Exception:
                 pass
         return _json_error(500, request_id, "server_error", "ユーザー削除に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def _images_columns(conn) -> set[str]:
+    return _table_columns(conn, "images")
+
+
+def _image_sources_table(conn) -> str | None:
+    return _detect_table(conn, "image_sources")
+
+
+def _image_stats_table(conn) -> str | None:
+    return _detect_table(conn, "image_stats")
+
+
+def _image_tags_table(conn) -> str | None:
+    return _detect_table(conn, "image_tags")
+
+
+def _tags_table(conn) -> str | None:
+    return _detect_table(conn, "tags")
+
+
+def _image_colors_table(conn) -> str | None:
+    return _detect_table(conn, "image_colors")
+
+
+def _images_visibility_column(conn) -> str | None:
+    cols = _images_columns(conn)
+    if "is_public" in cols:
+        return "is_public"
+    return None
+
+
+def _images_uploader_column(conn) -> str | None:
+    cols = _images_columns(conn)
+    if "uploader_user_id" in cols:
+        return "uploader_user_id"
+    if "owner_user_id" in cols:
+        return "owner_user_id"
+    return None
+
+
+def _ensure_admin_content_row(conn, image_id: int) -> None:
+    _ensure_admin_content_states_table(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+INSERT INTO admin_content_states (image_id, moderation_status, previous_is_public, updated_by_user_id)
+VALUES (%s, 'normal', NULL, NULL)
+ON DUPLICATE KEY UPDATE image_id=image_id
+""",
+            (image_id,),
+        )
+
+
+def _content_preview_url(row: dict) -> str | None:
+    return (
+        _build_preview_url(row.get("preview_path"))
+        or _build_preview_url(row.get("thumb_path_960"))
+        or _build_preview_url(row.get("thumb_path_480"))
+        or _build_preview_url(row.get("thumb_path"))
+    )
+
+
+def _build_content_list_item(row: dict) -> dict:
+    moderation_status = str(row.get("moderation_status") or "normal")
+    visibility = bool(row.get("is_public")) if row.get("is_public") is not None else True
+    return {
+        "image_id": int(row.get("image_id")),
+        "title": row.get("title") or "(無題)",
+        "alt": row.get("alt") or "",
+        "preview_url": _content_preview_url(row),
+        "posted_at": _coerce_utc_text(row.get("posted_at")),
+        "shot_at": _coerce_utc_text(row.get("shot_at")),
+        "visibility": "public" if visibility else "private",
+        "status": moderation_status,
+        "like_count": int(row.get("like_count") or 0),
+        "view_count": int(row.get("view_count") or 0),
+        "like_count_text": _format_count_short(row.get("like_count")),
+        "view_count_text": _format_count_short(row.get("view_count")),
+        "uploader": {
+            "user_id": row.get("uploader_user_id"),
+            "display_name": row.get("uploader_display_name"),
+            "user_key": row.get("uploader_user_key"),
+            "avatar_url": _build_preview_url(row.get("uploader_avatar_path")),
+        },
+    }
+
+
+def _load_content_page(conn, page: int, per_page: int, q: str | None, visibility: str | None, status: str | None, uploader_user_id: int | None, sort: str | None) -> dict:
+    _ensure_admin_content_states_table(conn)
+
+    page = max(1, int(page or 1))
+    per_page = max(1, min(100, int(per_page or 20)))
+    offset = (page - 1) * per_page
+
+    q_value = str(q or "").strip()
+    visibility_value = str(visibility or "").strip().lower() or None
+    status_value = str(status or "").strip().lower() or None
+    sort_value = str(sort or "posted_desc").strip().lower()
+
+    image_cols = _images_columns(conn)
+    visibility_col = _images_visibility_column(conn)
+    uploader_col = _images_uploader_column(conn)
+    avatar_col = _users_avatar_column(conn)
+    has_stats = _image_stats_table(conn) is not None
+    has_tags = _image_tags_table(conn) is not None and _tags_table(conn) is not None
+
+    where = ["1=1"]
+    params: list = []
+
+    if q_value:
+        like = f"%{q_value}%"
+        q_parts = ["COALESCE(i.title, '') LIKE %s", "COALESCE(i.alt, '') LIKE %s"]
+        q_params = [like, like]
+        if has_tags:
+            q_parts.append("EXISTS (SELECT 1 FROM image_tags it JOIN tags t ON t.id=it.tag_id WHERE it.image_id=i.id AND t.name LIKE %s)")
+            q_params.append(like)
+        where.append("(" + " OR ".join(q_parts) + ")")
+        params.extend(q_params)
+
+    if visibility_value in {"public", "private"} and visibility_col:
+        where.append(f"COALESCE(i.{visibility_col}, 1)=%s")
+        params.append(1 if visibility_value == "public" else 0)
+
+    if status_value in {"normal", "quarantined", "deleted"}:
+        where.append("COALESCE(acs.moderation_status, 'normal')=%s")
+        params.append(status_value)
+
+    if uploader_user_id:
+        if uploader_col:
+            where.append(f"i.{uploader_col}=%s")
+            params.append(int(uploader_user_id))
+        else:
+            where.append("1=0")
+
+    if sort_value == "posted_asc":
+        order_sql = "COALESCE(i.created_at, i.shot_at) ASC, i.id ASC"
+    elif sort_value == "likes_desc" and has_stats:
+        order_sql = "COALESCE(st.like_count, 0) DESC, i.id DESC"
+    elif sort_value == "views_desc" and has_stats:
+        order_sql = "COALESCE(st.view_count, 0) DESC, i.id DESC"
+    elif sort_value == "title_asc":
+        order_sql = "COALESCE(i.title, '') ASC, i.id ASC"
+    else:
+        order_sql = "COALESCE(i.created_at, i.shot_at) DESC, i.id DESC"
+
+    where_sql = " AND ".join(where)
+    stats_join = "LEFT JOIN image_stats st ON st.image_id=i.id" if has_stats else "LEFT JOIN (SELECT NULL AS image_id, 0 AS like_count, 0 AS view_count) st ON st.image_id=i.id"
+
+    uploader_join = ""
+    uploader_select = "NULL AS uploader_user_id, NULL AS uploader_display_name, NULL AS uploader_user_key, NULL AS uploader_avatar_path"
+    if uploader_col:
+        uploader_join = f"LEFT JOIN users u ON u.id=i.{uploader_col}"
+        parts = [f"i.{uploader_col} AS uploader_user_id", "u.display_name AS uploader_display_name", "u.user_key AS uploader_user_key"]
+        if avatar_col:
+            parts.append(f"u.{avatar_col} AS uploader_avatar_path")
+        else:
+            parts.append("NULL AS uploader_avatar_path")
+        uploader_select = ", ".join(parts)
+
+    visibility_select = f"COALESCE(i.{visibility_col}, 1) AS is_public" if visibility_col else "1 AS is_public"
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT COUNT(*) AS c
+FROM images i
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+WHERE {where_sql}
+""",
+            params,
+        )
+        total = int((cur.fetchone() or {}).get("c") or 0)
+
+        cur.execute(
+            f"""
+SELECT
+    i.id AS image_id,
+    i.title,
+    i.alt,
+    i.preview_path,
+    i.thumb_path_960,
+    i.thumb_path_480,
+    {visibility_select},
+    COALESCE(acs.moderation_status, 'normal') AS moderation_status,
+    COALESCE(i.created_at, i.shot_at) AS posted_at,
+    i.shot_at,
+    COALESCE(st.like_count, 0) AS like_count,
+    COALESCE(st.view_count, 0) AS view_count,
+    {uploader_select}
+FROM images i
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+{stats_join}
+{uploader_join}
+WHERE {where_sql}
+ORDER BY {order_sql}
+LIMIT %s OFFSET %s
+""",
+            [*params, per_page, offset],
+        )
+        rows = cur.fetchall()
+
+    items = [_build_content_list_item(row) for row in rows]
+    pages = (total + per_page - 1) // per_page if total > 0 else 1
+    return {
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+        "total": total,
+        "items": items,
+    }
+
+
+def _load_content_tags(conn, image_id: int) -> list[str]:
+    if _image_tags_table(conn) is None or _tags_table(conn) is None:
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT t.name
+FROM image_tags it
+JOIN tags t ON t.id=it.tag_id
+WHERE it.image_id=%s
+ORDER BY t.name ASC
+""",
+            (image_id,),
+        )
+        rows = cur.fetchall()
+    return [str(row.get("name") or "") for row in rows if str(row.get("name") or "").strip()]
+
+
+def _load_content_colors(conn, image_id: int) -> list[dict]:
+    if _image_colors_table(conn) is None:
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT color_id, ratio, rank_no
+FROM image_colors
+WHERE image_id=%s
+ORDER BY rank_no ASC
+""",
+            (image_id,),
+        )
+        rows = cur.fetchall()
+    colors = []
+    for row in rows:
+        colors.append({
+            "color_id": row.get("color_id"),
+            "ratio": float(row.get("ratio") or 0),
+            "rank_no": int(row.get("rank_no") or 0),
+            "label": f"Color {row.get('color_id')}" if row.get("color_id") is not None else "Color",
+        })
+    return colors
+
+
+def _load_content_file_meta(conn, image_id: int) -> dict:
+    source_table = _image_sources_table(conn)
+    if source_table is None:
+        return {"file_size_bytes": None, "file_name": None, "source_path": None}
+    cols = _table_columns(conn, source_table)
+    size_col = "size_bytes" if "size_bytes" in cols else None
+    path_col = "source_path" if "source_path" in cols else None
+    primary_where = "AND is_primary=1" if "is_primary" in cols else ""
+    select_parts = []
+    if size_col:
+        select_parts.append(f"{size_col} AS file_size_bytes")
+    else:
+        select_parts.append("NULL AS file_size_bytes")
+    if path_col:
+        select_parts.append(f"{path_col} AS source_path")
+    else:
+        select_parts.append("NULL AS source_path")
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT {', '.join(select_parts)}
+FROM `{source_table}`
+WHERE image_id=%s
+  {primary_where}
+ORDER BY id ASC
+LIMIT 1
+""",
+            (image_id,),
+        )
+        row = cur.fetchone() or {}
+    source_path = row.get("source_path")
+    file_name = None
+    if source_path:
+        file_name = str(source_path).split("/")[-1]
+    return {
+        "file_size_bytes": int(row.get("file_size_bytes") or 0) if row.get("file_size_bytes") is not None else None,
+        "file_name": file_name,
+        "source_path": source_path,
+    }
+
+
+def _load_content_detail(conn, image_id: int) -> dict | None:
+    _ensure_admin_content_states_table(conn)
+
+    image_cols = _images_columns(conn)
+    visibility_col = _images_visibility_column(conn)
+    uploader_col = _images_uploader_column(conn)
+    avatar_col = _users_avatar_column(conn)
+    has_stats = _image_stats_table(conn) is not None
+
+    stats_join = "LEFT JOIN image_stats st ON st.image_id=i.id" if has_stats else "LEFT JOIN (SELECT NULL AS image_id, 0 AS like_count, 0 AS view_count) st ON st.image_id=i.id"
+
+    uploader_join = ""
+    uploader_select = "NULL AS uploader_user_id, NULL AS uploader_display_name, NULL AS uploader_user_key, NULL AS uploader_avatar_path"
+    if uploader_col:
+        uploader_join = f"LEFT JOIN users u ON u.id=i.{uploader_col}"
+        parts = [f"i.{uploader_col} AS uploader_user_id", "u.display_name AS uploader_display_name", "u.user_key AS uploader_user_key"]
+        if avatar_col:
+            parts.append(f"u.{avatar_col} AS uploader_avatar_path")
+        else:
+            parts.append("NULL AS uploader_avatar_path")
+        uploader_select = ", ".join(parts)
+
+    visibility_select = f"COALESCE(i.{visibility_col}, 1) AS is_public" if visibility_col else "1 AS is_public"
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT
+    i.id AS image_id,
+    i.title,
+    i.alt,
+    i.preview_path,
+    i.thumb_path_960,
+    i.thumb_path_480,
+    i.width AS image_width,
+    i.height AS image_height,
+    {visibility_select},
+    COALESCE(acs.moderation_status, 'normal') AS moderation_status,
+    COALESCE(i.created_at, i.shot_at) AS posted_at,
+    i.shot_at,
+    COALESCE(st.like_count, 0) AS like_count,
+    COALESCE(st.view_count, 0) AS view_count,
+    {uploader_select}
+FROM images i
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+{stats_join}
+{uploader_join}
+WHERE i.id=%s
+LIMIT 1
+""",
+            (image_id,),
+        )
+        row = cur.fetchone()
+
+    if not row:
+        return None
+
+    file_meta = _load_content_file_meta(conn, image_id)
+    return {
+        "image_id": int(row.get("image_id")),
+        "title": row.get("title") or "(無題)",
+        "alt": row.get("alt") or "",
+        "preview_url": _content_preview_url(row),
+        "original_url": f"/gallery/media/original/{int(row.get('image_id'))}",
+        "posted_at": _coerce_utc_text(row.get("posted_at")),
+        "shot_at": _coerce_utc_text(row.get("shot_at")),
+        "visibility": "public" if bool(row.get("is_public")) else "private",
+        "status": str(row.get("moderation_status") or "normal"),
+        "image_width": row.get("image_width"),
+        "image_height": row.get("image_height"),
+        "file_size_bytes": file_meta.get("file_size_bytes"),
+        "tags": _load_content_tags(conn, image_id),
+        "color_tags": _load_content_colors(conn, image_id),
+        "like_count": int(row.get("like_count") or 0),
+        "view_count": int(row.get("view_count") or 0),
+        "like_count_text": _format_count_short(row.get("like_count")),
+        "view_count_text": _format_count_short(row.get("view_count")),
+        "uploader": {
+            "user_id": row.get("uploader_user_id"),
+            "display_name": row.get("uploader_display_name"),
+            "user_key": row.get("uploader_user_key"),
+            "avatar_url": _build_preview_url(row.get("uploader_avatar_path")),
+        },
+        "admin_meta": {
+            "is_public": bool(row.get("is_public")),
+            "file_name": file_meta.get("file_name"),
+        },
+    }
+
+
+def _update_content_visibility(conn, image_id: int, actor_user_id: int | None, is_public: bool) -> dict | None:
+    visibility_col = _images_visibility_column(conn)
+    if not visibility_col:
+        raise ValueError("visibility_unsupported")
+
+    current = _load_content_detail(conn, image_id)
+    if current is None:
+        return None
+
+    with conn.cursor() as cur:
+        cur.execute(f"UPDATE images SET {visibility_col}=%s WHERE id=%s", (1 if is_public else 0, image_id))
+        _ensure_admin_content_row(conn, image_id)
+        cur.execute(
+            """
+UPDATE admin_content_states
+SET updated_by_user_id=%s, updated_at=CURRENT_TIMESTAMP(6)
+WHERE image_id=%s
+""",
+            (actor_user_id, image_id),
+        )
+
+    _log_audit_event(
+        conn,
+        actor_user_id=actor_user_id,
+        action_type="admin.content.visibility",
+        target_type="image",
+        target_id=str(image_id),
+        result="success",
+        summary="コンテンツの公開状態を更新しました。",
+        meta_json={"is_public": bool(is_public)},
+    )
+    return _load_content_detail(conn, image_id)
+
+
+def _set_content_moderation_status(conn, image_id: int, actor_user_id: int | None, moderation_status: str) -> dict | None:
+    current = _load_content_detail(conn, image_id)
+    if current is None:
+        return None
+
+    visibility_col = _images_visibility_column(conn)
+    _ensure_admin_content_row(conn, image_id)
+
+    with conn.cursor() as cur:
+        if moderation_status == "quarantined":
+            prev_visibility = 1 if current.get("visibility") == "public" else 0
+            cur.execute(
+                """
+UPDATE admin_content_states
+SET moderation_status='quarantined',
+    previous_is_public=%s,
+    updated_by_user_id=%s,
+    updated_at=CURRENT_TIMESTAMP(6)
+WHERE image_id=%s
+""",
+                (prev_visibility, actor_user_id, image_id),
+            )
+            if visibility_col:
+                cur.execute(f"UPDATE images SET {visibility_col}=0 WHERE id=%s", (image_id,))
+            action_type = "admin.content.quarantine"
+            summary = "コンテンツを隔離しました。"
+        elif moderation_status == "normal":
+            cur.execute(
+                """
+SELECT previous_is_public
+FROM admin_content_states
+WHERE image_id=%s
+LIMIT 1
+""",
+                (image_id,),
+            )
+            row = cur.fetchone() or {}
+            prev_visibility = row.get("previous_is_public")
+            cur.execute(
+                """
+UPDATE admin_content_states
+SET moderation_status='normal',
+    previous_is_public=NULL,
+    updated_by_user_id=%s,
+    updated_at=CURRENT_TIMESTAMP(6)
+WHERE image_id=%s
+""",
+                (actor_user_id, image_id),
+            )
+            if visibility_col and prev_visibility is not None:
+                cur.execute(f"UPDATE images SET {visibility_col}=%s WHERE id=%s", (1 if prev_visibility else 0, image_id))
+            action_type = "admin.content.restore"
+            summary = "コンテンツを復元しました。"
+        else:
+            prev_visibility = 1 if current.get("visibility") == "public" else 0
+            cur.execute(
+                """
+UPDATE admin_content_states
+SET moderation_status='deleted',
+    previous_is_public=%s,
+    updated_by_user_id=%s,
+    updated_at=CURRENT_TIMESTAMP(6)
+WHERE image_id=%s
+""",
+                (prev_visibility, actor_user_id, image_id),
+            )
+            if visibility_col:
+                cur.execute(f"UPDATE images SET {visibility_col}=0 WHERE id=%s", (image_id,))
+            action_type = "admin.content.delete"
+            summary = "コンテンツを管理画面から非表示にしました。"
+
+    _log_audit_event(
+        conn,
+        actor_user_id=actor_user_id,
+        action_type=action_type,
+        target_type="image",
+        target_id=str(image_id),
+        result="success",
+        summary=summary,
+        meta_json={"status": moderation_status},
+    )
+    return _load_content_detail(conn, image_id)
+
+
+@router.get("/content")
+def admin_content_list(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    q: str | None = Query(default=None),
+    visibility: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    uploader_user_id: int | None = Query(default=None),
+    sort: str | None = Query(default="posted_desc"),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        data = _load_content_page(
+            conn,
+            page=page,
+            per_page=per_page,
+            q=q,
+            visibility=visibility,
+            status=status,
+            uploader_user_id=uploader_user_id,
+            sort=sort,
+        )
+        return _json_success(request_id=request_id, data=data, message="コンテンツ一覧を取得しました。")
+    except Exception:
+        return _json_error(500, request_id, "server_error", "コンテンツ一覧の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/content/{image_id}")
+def admin_content_detail(
+    image_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        data = _load_content_detail(conn, image_id)
+        if data is None:
+            return _json_error(404, request_id, "not_found", "対象コンテンツが見つかりません。")
+        return _json_success(request_id=request_id, data={"content": data}, message="コンテンツ詳細を取得しました。")
+    except Exception:
+        return _json_error(500, request_id, "server_error", "コンテンツ詳細の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/content/{image_id}/visibility")
+def admin_content_visibility_update(
+    image_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    if "is_public" not in (payload or {}):
+        return _json_error(400, request_id, "validation_error", "is_public の値が必要です。", field_errors={"is_public": {"code": "required", "message": "is_public の値が必要です。"}})
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        updated = _update_content_visibility(conn, image_id, int(actor.get("id") or 0) or None, bool(payload.get("is_public")))
+        if updated is None:
+            return _json_error(404, request_id, "not_found", "対象コンテンツが見つかりません。")
+        conn.commit()
+        return _json_success(request_id=request_id, data={"content": updated}, message="公開状態を更新しました。")
+    except ValueError:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(409, request_id, "visibility_unsupported", "この環境では公開状態の変更に対応していません。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "公開状態の更新に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.post("/content/{image_id}/quarantine")
+def admin_content_quarantine(
+    image_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        updated = _set_content_moderation_status(conn, image_id, int(actor.get("id") or 0) or None, "quarantined")
+        if updated is None:
+            return _json_error(404, request_id, "not_found", "対象コンテンツが見つかりません。")
+        conn.commit()
+        return _json_success(request_id=request_id, data={"content": updated}, message="コンテンツを隔離しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "コンテンツの隔離に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.post("/content/{image_id}/restore")
+def admin_content_restore(
+    image_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        updated = _set_content_moderation_status(conn, image_id, int(actor.get("id") or 0) or None, "normal")
+        if updated is None:
+            return _json_error(404, request_id, "not_found", "対象コンテンツが見つかりません。")
+        conn.commit()
+        return _json_success(request_id=request_id, data={"content": updated}, message="コンテンツを復元しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "コンテンツの復元に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.post("/content/{image_id}/delete")
+def admin_content_delete(
+    image_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        updated = _set_content_moderation_status(conn, image_id, int(actor.get("id") or 0) or None, "deleted")
+        if updated is None:
+            return _json_error(404, request_id, "not_found", "対象コンテンツが見つかりません。")
+        conn.commit()
+        return _json_success(request_id=request_id, data={"content": updated}, message="コンテンツを削除状態にしました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "コンテンツの削除に失敗しました。")
     finally:
         if conn is not None:
             conn.close()

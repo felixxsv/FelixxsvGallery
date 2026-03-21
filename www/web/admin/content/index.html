@@ -7,28 +7,25 @@
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
   <link rel="stylesheet" href="/gallery/assets/css/components.css">
   <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/admin-content.css">
 </head>
 <body
   class="admin-page"
   data-app-base="/gallery"
   data-admin-page="content"
-  data-admin-description="公開状態変更や隔離などの危険操作は後続フェーズで実装します。"
+  data-admin-description="公開状態変更、隔離、復元、削除状態管理を行います。"
 >
   <section id="adminLoadingState" class="admin-state-screen">
     <div class="admin-state-card">
       <h1 class="admin-state-card__title">管理画面を確認しています</h1>
-      <p class="admin-state-card__description">
-        admin 権限の確認が完了するまで、管理画面本体は描画しません。
-      </p>
+      <p class="admin-state-card__description">admin 権限の確認が完了するまで、管理画面本体は描画しません。</p>
     </div>
   </section>
 
   <section id="adminNotFoundState" class="admin-state-screen" hidden>
     <div class="admin-state-card">
       <h1 class="admin-state-card__title">404</h1>
-      <p class="admin-state-card__description">
-        お探しのページは見つかりませんでした。
-      </p>
+      <p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
       <div class="admin-state-card__actions">
         <a href="/gallery/" class="app-button app-button--primary">ホームへ戻る</a>
       </div>
@@ -52,56 +49,30 @@
           <div class="admin-sidebar__title">Felixxsv Gallery</div>
           <div class="admin-sidebar__subtitle">Admin Console</div>
         </div>
-        <button
-          id="adminSidebarToggle"
-          class="app-icon-button admin-sidebar__toggle"
-          type="button"
-          aria-label="サイドバーを折りたたむ"
-          aria-expanded="true"
-        >
+        <button id="adminSidebarToggle" class="app-icon-button admin-sidebar__toggle" type="button" aria-label="サイドバーを折りたたむ" aria-expanded="true">
           <span aria-hidden="true">⇔</span>
         </button>
       </div>
 
       <div class="admin-sidebar__scroll">
         <nav id="adminSidebarNav" class="admin-sidebar__nav" aria-label="管理画面ナビゲーション">
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/">
-                <span class="admin-sidebar__icon" aria-hidden="true">⌂</span>
-                <span class="admin-sidebar__label">ダッシュボード</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/">
-                <span class="admin-sidebar__icon" aria-hidden="true">▣</span>
-                <span class="admin-sidebar__label">コンテンツ管理</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/">
-                <span class="admin-sidebar__icon" aria-hidden="true">👥</span>
-                <span class="admin-sidebar__label">ユーザー管理</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
-                <span class="admin-sidebar__icon" aria-hidden="true">✉</span>
-                <span class="admin-sidebar__label">メール配信</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
-                <span class="admin-sidebar__icon" aria-hidden="true">⚙</span>
-                <span class="admin-sidebar__label">サイト設定</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
-                <span class="admin-sidebar__icon" aria-hidden="true">☰</span>
-                <span class="admin-sidebar__label">監査ログ</span>
-              </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/"><span class="admin-sidebar__icon" aria-hidden="true">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/"><span class="admin-sidebar__icon" aria-hidden="true">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/"><span class="admin-sidebar__icon" aria-hidden="true">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/"><span class="admin-sidebar__icon" aria-hidden="true">✉</span><span class="admin-sidebar__label">メール配信</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/"><span class="admin-sidebar__icon" aria-hidden="true">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/"><span class="admin-sidebar__icon" aria-hidden="true">☰</span><span class="admin-sidebar__label">監査ログ</span></a>
         </nav>
       </div>
 
-      <div class="admin-sidebar__footer">
-        管理画面は権限確認後にのみ表示します。
-      </div>
+      <div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
     </aside>
 
     <div class="admin-shell__main">
       <header class="admin-topbar">
         <div class="admin-topbar__heading">
           <h1 id="adminPageTitle" class="admin-topbar__title">コンテンツ管理</h1>
-          <p id="adminPageDescription" class="admin-topbar__description">公開状態変更や隔離などの危険操作は後続フェーズで実装します。</p>
+          <p id="adminPageDescription" class="admin-topbar__description">公開状態変更、隔離、復元、削除状態管理を行います。</p>
         </div>
 
         <div class="admin-topbar__meta">
@@ -112,15 +83,88 @@
       </header>
 
       <main class="admin-main-scroll">
+        <section class="admin-page-grid admin-page-grid--single">
+          <article class="admin-panel admin-content-panel">
+            <div class="admin-panel__header admin-content-toolbar">
+              <div>
+                <h2 class="admin-panel__title">コンテンツ一覧</h2>
+                <p class="admin-panel__meta">公開状態変更、隔離、復元、削除状態管理を行います。</p>
+              </div>
+              <div class="admin-content-toolbar__actions">
+                <button id="adminContentReloadButton" type="button" class="app-button app-button--ghost">再読込</button>
+              </div>
+            </div>
 
-          <section class="admin-page-grid">
-            <article class="admin-panel">
-              <h2 class="admin-panel__title">コンテンツ管理</h2>
-              <p class="admin-panel__meta">公開状態変更や隔離などの危険操作は後続フェーズで実装します。</p>
-              <div class="admin-panel__placeholder">このページの本実装は次のフェーズで追加します。</div>
-            </article>
-          </section>
-        
+            <div class="admin-content-filters">
+              <label class="admin-field">
+                <span class="admin-field__label">検索</span>
+                <input id="adminContentSearchInput" type="search" class="app-input" placeholder="タイトル / ALT / タグで検索">
+              </label>
+
+              <label class="admin-field">
+                <span class="admin-field__label">公開状態</span>
+                <select id="adminContentVisibilityFilter" class="app-select">
+                  <option value="">すべて</option>
+                  <option value="public">public</option>
+                  <option value="private">private</option>
+                </select>
+              </label>
+
+              <label class="admin-field">
+                <span class="admin-field__label">状態</span>
+                <select id="adminContentStatusFilter" class="app-select">
+                  <option value="">すべて</option>
+                  <option value="normal">normal</option>
+                  <option value="quarantined">quarantined</option>
+                  <option value="deleted">deleted</option>
+                </select>
+              </label>
+
+              <label class="admin-field">
+                <span class="admin-field__label">並び順</span>
+                <select id="adminContentSort" class="app-select">
+                  <option value="posted_desc">新しい順</option>
+                  <option value="posted_asc">古い順</option>
+                  <option value="likes_desc">いいね順</option>
+                  <option value="views_desc">閲覧数順</option>
+                  <option value="title_asc">タイトル昇順</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="admin-content-summary-row">
+              <div id="adminContentSummary" class="admin-panel__meta">-</div>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-content-table">
+                <thead>
+                  <tr>
+                    <th>画像</th>
+                    <th>タイトル / 投稿者</th>
+                    <th>公開</th>
+                    <th>状態</th>
+                    <th>いいね</th>
+                    <th>閲覧</th>
+                    <th>投稿日</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adminContentTableBody">
+                  <tr>
+                    <td colspan="8" class="admin-content-table__empty">読み込み中です。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="admin-table-pager">
+              <button id="adminContentPrevPage" type="button" class="app-button app-button--ghost">前へ</button>
+              <span id="adminContentPageInfo" class="admin-table-pager__info">-</span>
+              <button id="adminContentNextPage" type="button" class="app-button app-button--ghost">次へ</button>
+            </div>
+          </article>
+        </section>
       </main>
     </div>
   </section>
@@ -143,10 +187,73 @@
         </div>
       </div>
     </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-content-detail" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="admin-content-detail"></div>
+      <div class="app-modal-dialog app-modal-dialog--wide" role="dialog" aria-modal="true" aria-labelledby="adminContentDetailTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminContentDetailTitle" class="app-modal-title">コンテンツ詳細</h2>
+        </div>
+        <div class="app-modal-body">
+          <div class="admin-content-detail">
+            <div class="admin-content-detail__preview-wrap">
+              <img id="adminContentDetailPreview" class="admin-content-detail__preview" alt="preview">
+            </div>
+            <div class="admin-content-detail__meta">
+              <div class="admin-content-detail__headline">
+                <div>
+                  <div id="adminContentDetailName" class="admin-content-detail__title">-</div>
+                  <div id="adminContentDetailSubline" class="admin-content-detail__subline">-</div>
+                </div>
+              </div>
+              <dl class="admin-content-detail__grid">
+                <div><dt>タイトル</dt><dd id="adminContentDetailFieldTitle">-</dd></div>
+                <div><dt>ALT</dt><dd id="adminContentDetailFieldAlt">-</dd></div>
+                <div><dt>タグ</dt><dd id="adminContentDetailFieldTags">-</dd></div>
+                <div><dt>投稿日</dt><dd id="adminContentDetailFieldPostedAt">-</dd></div>
+                <div><dt>撮影日</dt><dd id="adminContentDetailFieldShotAt">-</dd></div>
+                <div><dt>データ容量</dt><dd id="adminContentDetailFieldFileSize">-</dd></div>
+                <div><dt>画像サイズ</dt><dd id="adminContentDetailFieldDimensions">-</dd></div>
+                <div><dt>いいね数</dt><dd id="adminContentDetailFieldLikes">-</dd></div>
+                <div><dt>閲覧数</dt><dd id="adminContentDetailFieldViews">-</dd></div>
+                <div><dt>カラータグ</dt><dd id="adminContentDetailFieldColors">-</dd></div>
+                <div><dt>公開状態</dt><dd id="adminContentDetailFieldVisibility">-</dd></div>
+                <div><dt>状態</dt><dd id="adminContentDetailFieldStatus">-</dd></div>
+                <div class="admin-content-detail__admin-only"><dt>ファイル名</dt><dd id="adminContentDetailFieldFileName">-</dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+        <div class="app-modal-footer admin-content-detail__footer">
+          <button id="adminContentVisibilityButton" type="button" class="app-button app-button--ghost">公開状態切替</button>
+          <button id="adminContentQuarantineButton" type="button" class="app-button app-button--ghost">隔離</button>
+          <button id="adminContentRestoreButton" type="button" class="app-button app-button--ghost">復元</button>
+          <button id="adminContentDeleteButton" type="button" class="app-button app-button--danger">削除状態にする</button>
+          <button id="adminContentDetailCloseButton" type="button" class="app-button app-button--primary">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-content-action-confirm" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="admin-content-action-confirm"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminContentActionConfirmTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminContentActionConfirmTitle" class="app-modal-title">確認</h2>
+        </div>
+        <div class="app-modal-body">
+          <p id="adminContentActionConfirmMessage">この操作を実行しますか？</p>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="adminContentActionConfirmApprove" type="button" class="app-button app-button--primary">実行</button>
+          <button id="adminContentActionConfirmCancel" type="button" class="app-button app-button--ghost">キャンセル</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div id="appToastRoot" class="app-toast-root" aria-live="polite"></div>
 
   <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
+  <script type="module" src="/gallery/assets/js/admin/content.js"></script>
 </body>
 </html>
