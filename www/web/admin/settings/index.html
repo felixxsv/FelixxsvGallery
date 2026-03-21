@@ -79,12 +79,12 @@
         </div>
 
         <div class="admin-settings-layout">
-          <aside class="admin-settings-tabs" aria-label="設定タブ">
-            <button type="button" class="admin-settings-tabs__button is-active" data-settings-tab="general">全般</button>
-            <button type="button" class="admin-settings-tabs__button" data-settings-tab="security">セキュリティ</button>
-            <button type="button" class="admin-settings-tabs__button" data-settings-tab="smtp">メール (SMTP)</button>
-            <button type="button" class="admin-settings-tabs__button" data-settings-tab="storage">ストレージ</button>
-          </aside>
+          <div class="admin-settings-tabs" role="tablist" aria-label="設定タブ">
+            <button type="button" class="admin-settings-tabs__button is-active" data-settings-tab="general" role="tab" aria-selected="true">全般</button>
+            <button type="button" class="admin-settings-tabs__button" data-settings-tab="security" role="tab" aria-selected="false">セキュリティ</button>
+            <button type="button" class="admin-settings-tabs__button" data-settings-tab="smtp" role="tab" aria-selected="false">メール (SMTP)</button>
+            <button type="button" class="admin-settings-tabs__button" data-settings-tab="storage" role="tab" aria-selected="false">ストレージ</button>
+          </div>
 
           <section class="admin-settings-panel admin-card">
             <div class="admin-settings-panel__head">
