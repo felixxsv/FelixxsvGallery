@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ユーザー管理 - Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
+</head>
+<body
+  class="admin-page"
+  data-app-base="/gallery"
+  data-admin-page="users"
+  data-admin-description="一覧、編集、仮ユーザー作成は後続フェーズで実装します。"
+>
+  <section id="adminLoadingState" class="admin-state-screen">
+    <div class="admin-state-card">
+      <h1 class="admin-state-card__title">管理画面を確認しています</h1>
+      <p class="admin-state-card__description">
+        admin 権限の確認が完了するまで、管理画面本体は描画しません。
+      </p>
+    </div>
+  </section>
+
+  <section id="adminNotFoundState" class="admin-state-screen" hidden>
+    <div class="admin-state-card">
+      <h1 class="admin-state-card__title">404</h1>
+      <p class="admin-state-card__description">
+        お探しのページは見つかりませんでした。
+      </p>
+      <div class="admin-state-card__actions">
+        <a href="/gallery/" class="app-button app-button--primary">ホームへ戻る</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="adminErrorState" class="admin-state-screen" hidden>
+    <div class="admin-state-card">
+      <h1 class="admin-state-card__title">初期化に失敗しました</h1>
+      <p class="admin-state-card__description">管理画面の初期化中にエラーが発生しました。</p>
+      <div class="admin-state-card__actions">
+        <button id="adminReloadButton" type="button" class="app-button app-button--primary">再読み込み</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="adminAppShell" class="admin-shell" hidden>
+    <aside id="adminSidebar" class="admin-sidebar">
+      <div class="admin-sidebar__header">
+        <div class="admin-sidebar__brand">
+          <div class="admin-sidebar__title">Felixxsv Gallery</div>
+          <div class="admin-sidebar__subtitle">Admin Console</div>
+        </div>
+        <button
+          id="adminSidebarToggle"
+          class="app-icon-button admin-sidebar__toggle"
+          type="button"
+          aria-label="サイドバーを折りたたむ"
+          aria-expanded="true"
+        >
+          <span aria-hidden="true">⇔</span>
+        </button>
+      </div>
+
+      <div class="admin-sidebar__scroll">
+        <nav id="adminSidebarNav" class="admin-sidebar__nav" aria-label="管理画面ナビゲーション">
+              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/">
+                <span class="admin-sidebar__icon" aria-hidden="true">⌂</span>
+                <span class="admin-sidebar__label">ダッシュボード</span>
+              </a>
+              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/">
+                <span class="admin-sidebar__icon" aria-hidden="true">▣</span>
+                <span class="admin-sidebar__label">コンテンツ管理</span>
+              </a>
+              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/">
+                <span class="admin-sidebar__icon" aria-hidden="true">👥</span>
+                <span class="admin-sidebar__label">ユーザー管理</span>
+              </a>
+              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
+                <span class="admin-sidebar__icon" aria-hidden="true">✉</span>
+                <span class="admin-sidebar__label">メール配信</span>
+              </a>
+              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
+                <span class="admin-sidebar__icon" aria-hidden="true">⚙</span>
+                <span class="admin-sidebar__label">サイト設定</span>
+              </a>
+              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
+                <span class="admin-sidebar__icon" aria-hidden="true">☰</span>
+                <span class="admin-sidebar__label">監査ログ</span>
+              </a>
+        </nav>
+      </div>
+
+      <div class="admin-sidebar__footer">
+        管理画面は権限確認後にのみ表示します。
+      </div>
+    </aside>
+
+    <div class="admin-shell__main">
+      <header class="admin-topbar">
+        <div class="admin-topbar__heading">
+          <h1 id="adminPageTitle" class="admin-topbar__title">ユーザー管理</h1>
+          <p id="adminPageDescription" class="admin-topbar__description">一覧、編集、仮ユーザー作成は後続フェーズで実装します。</p>
+        </div>
+
+        <div class="admin-topbar__meta">
+          <div class="admin-topbar__meta-label">ログイン中の管理者</div>
+          <div id="adminHeaderUserName" class="admin-topbar__meta-value">-</div>
+          <div id="adminHeaderUserKey" class="admin-topbar__meta-label">-</div>
+        </div>
+      </header>
+
+      <main class="admin-main-scroll">
+
+          <section class="admin-page-grid">
+            <article class="admin-panel">
+              <h2 class="admin-panel__title">ユーザー管理</h2>
+              <p class="admin-panel__meta">一覧、編集、仮ユーザー作成は後続フェーズで実装します。</p>
+              <div class="admin-panel__placeholder">このページの本実装は次のフェーズで追加します。</div>
+            </article>
+          </section>
+        
+      </main>
+    </div>
+  </section>
+
+  <div id="appModalRoot" class="app-modal-root" aria-live="polite">
+    <button id="appGlobalClose" class="app-global-close" type="button" aria-label="閉じる" hidden>×</button>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-discard-confirm" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDiscardConfirmTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminDiscardConfirmTitle" class="app-modal-title">確認</h2>
+        </div>
+        <div class="app-modal-body">
+          <p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="adminDiscardConfirmApproveButton" type="button" class="app-button app-button--danger">破棄して移動</button>
+          <button id="adminDiscardConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="appToastRoot" class="app-toast-root" aria-live="polite"></div>
+
+  <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
+</body>
+</html>
