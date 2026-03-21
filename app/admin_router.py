@@ -3458,3 +3458,557 @@ def admin_mail_send(
     finally:
         if conn is not None:
             conn.close()
+
+
+
+def _ensure_admin_site_settings_tables(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS admin_site_settings (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    setting_group VARCHAR(50) NOT NULL,
+    setting_key VARCHAR(100) NOT NULL,
+    value_json JSON NOT NULL,
+    updated_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_admin_site_settings_group_key (setting_group, setting_key),
+    KEY idx_admin_site_settings_group (setting_group),
+    KEY idx_admin_site_settings_updated_by (updated_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS admin_site_setting_history (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    setting_group VARCHAR(50) NOT NULL,
+    before_json JSON NOT NULL,
+    after_json JSON NOT NULL,
+    changed_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY idx_admin_site_setting_history_group (setting_group),
+    KEY idx_admin_site_setting_history_changed_by (changed_by_user_id),
+    KEY idx_admin_site_setting_history_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+
+
+def _decode_setting_json(value, fallback=None):
+    if value is None:
+        return fallback
+    if isinstance(value, (dict, list, bool, int, float)):
+        return value
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="ignore")
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except Exception:
+            return fallback if fallback is not None else value
+    return fallback if fallback is not None else value
+
+
+def _coerce_bool_setting(value, default=False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return bool(default)
+
+
+def _coerce_int_setting(value, default=0, min_value=None, max_value=None) -> int:
+    try:
+        n = int(value)
+    except Exception:
+        n = int(default)
+    if min_value is not None and n < min_value:
+        n = min_value
+    if max_value is not None and n > max_value:
+        n = max_value
+    return n
+
+
+def _coerce_text_setting(value, default="", max_length=None) -> str:
+    text = str(value if value is not None else default).strip()
+    if max_length is not None:
+        text = text[:max_length]
+    return text
+
+
+def _settings_general_defaults() -> dict:
+    conf = _get_conf()
+    app = conf.get("app") or {}
+    return {
+        "site_name": _coerce_text_setting(app.get("site_name") or "Felixxsv Gallery", "Felixxsv Gallery", 120),
+        "gallery_key": _coerce_text_setting(app.get("gallery") or "vrchat", "vrchat", 64),
+        "deleted_user_display_name": _coerce_text_setting(app.get("deleted_user_display_name") or "Deleted User", "Deleted User", 120),
+        "default_image_open_behavior": "modal",
+        "default_image_backdrop_close": True,
+        "default_image_meta_bar_pinned": False,
+    }
+
+
+def _settings_security_defaults() -> dict:
+    return {
+        "password_min_length": 12,
+        "password_require_uppercase": True,
+        "password_require_lowercase": True,
+        "password_require_number": True,
+        "login_rate_limit_per_10_min": 10,
+        "session_idle_timeout_minutes": 1440,
+        "admin_2fa_recommended": True,
+    }
+
+
+def _settings_smtp_defaults_from_conf() -> dict:
+    conf = _get_conf()
+    smtp = conf.get("smtp") or {}
+    return {
+        "host": _coerce_text_setting(smtp.get("host") or "127.0.0.1", "127.0.0.1", 255),
+        "port": _coerce_int_setting(smtp.get("port") or 25, 25, 1, 65535),
+        "use_starttls": _coerce_bool_setting(smtp.get("use_starttls"), False),
+        "from_email": _coerce_text_setting(smtp.get("from_email") or "noreply@felixxsv.net", "noreply@felixxsv.net", 255),
+        "from_name": _coerce_text_setting(smtp.get("from_name") or "Felixxsv Gallery", "Felixxsv Gallery", 255),
+    }
+
+
+def _settings_storage_defaults() -> dict:
+    conf = _get_conf()
+    paths = conf.get("paths") or {}
+    return {
+        "source_root": _coerce_text_setting(paths.get("source_root") or "", "", 500),
+        "storage_root": _coerce_text_setting(paths.get("storage_root") or "/data/felixxsv-gallery/www/storage", "/data/felixxsv-gallery/www/storage", 500),
+        "original_cache_root": _coerce_text_setting(paths.get("original_cache_root") or "", "", 500),
+        "max_upload_files": 20,
+        "max_upload_size_mb": 100,
+    }
+
+
+_SETTINGS_GROUP_DEFAULT_FACTORIES = {
+    "general": _settings_general_defaults,
+    "security": _settings_security_defaults,
+    "smtp": _settings_smtp_defaults_from_conf,
+    "storage": _settings_storage_defaults,
+}
+
+
+def _settings_group_defaults(group: str) -> dict:
+    factory = _SETTINGS_GROUP_DEFAULT_FACTORIES.get(group)
+    if not factory:
+        return {}
+    return dict(factory())
+
+
+def _load_site_settings_group(conn, group: str) -> dict:
+    defaults = _settings_group_defaults(group)
+    _ensure_admin_site_settings_tables(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT setting_key, value_json, updated_at, updated_by_user_id
+FROM admin_site_settings
+WHERE setting_group=%s
+ORDER BY setting_key ASC
+""",
+            (group,),
+        )
+        rows = cur.fetchall()
+
+    values = dict(defaults)
+    updated_at = None
+    updated_by_user_id = None
+    for row in rows:
+        key = str(row.get("setting_key") or "")
+        if not key:
+            continue
+        values[key] = _decode_setting_json(row.get("value_json"), defaults.get(key))
+        row_updated_at = row.get("updated_at")
+        if updated_at is None or (row_updated_at and row_updated_at > updated_at):
+            updated_at = row_updated_at
+            updated_by_user_id = row.get("updated_by_user_id")
+
+    return {
+        "group": group,
+        "scope": "site",
+        "settings": values,
+        "updated_at": _coerce_utc_text(updated_at),
+        "updated_by_user_id": int(updated_by_user_id) if updated_by_user_id else None,
+        "defaults": defaults,
+    }
+
+
+def _normalize_settings_group_payload(group: str, payload: dict) -> tuple[dict, dict]:
+    data = payload or {}
+    field_errors: dict = {}
+
+    if group == "general":
+        open_behavior = str(data.get("default_image_open_behavior") or "modal").strip().lower()
+        if open_behavior not in {"modal", "new_tab"}:
+            field_errors["default_image_open_behavior"] = "invalid"
+            open_behavior = "modal"
+        normalized = {
+            "site_name": _coerce_text_setting(data.get("site_name"), "Felixxsv Gallery", 120),
+            "gallery_key": _coerce_text_setting(data.get("gallery_key"), "vrchat", 64),
+            "deleted_user_display_name": _coerce_text_setting(data.get("deleted_user_display_name"), "Deleted User", 120),
+            "default_image_open_behavior": open_behavior,
+            "default_image_backdrop_close": _coerce_bool_setting(data.get("default_image_backdrop_close"), True),
+            "default_image_meta_bar_pinned": _coerce_bool_setting(data.get("default_image_meta_bar_pinned"), False),
+        }
+        if not normalized["site_name"]:
+            field_errors["site_name"] = "required"
+        if not normalized["gallery_key"]:
+            field_errors["gallery_key"] = "required"
+        return normalized, field_errors
+
+    if group == "security":
+        return {
+            "password_min_length": _coerce_int_setting(data.get("password_min_length"), 12, 8, 128),
+            "password_require_uppercase": _coerce_bool_setting(data.get("password_require_uppercase"), True),
+            "password_require_lowercase": _coerce_bool_setting(data.get("password_require_lowercase"), True),
+            "password_require_number": _coerce_bool_setting(data.get("password_require_number"), True),
+            "login_rate_limit_per_10_min": _coerce_int_setting(data.get("login_rate_limit_per_10_min"), 10, 1, 1000),
+            "session_idle_timeout_minutes": _coerce_int_setting(data.get("session_idle_timeout_minutes"), 1440, 5, 10080),
+            "admin_2fa_recommended": _coerce_bool_setting(data.get("admin_2fa_recommended"), True),
+        }, field_errors
+
+    if group == "smtp":
+        normalized = {
+            "host": _coerce_text_setting(data.get("host"), "127.0.0.1", 255),
+            "port": _coerce_int_setting(data.get("port"), 25, 1, 65535),
+            "use_starttls": _coerce_bool_setting(data.get("use_starttls"), False),
+            "from_email": _coerce_text_setting(data.get("from_email"), "noreply@felixxsv.net", 255),
+            "from_name": _coerce_text_setting(data.get("from_name"), "Felixxsv Gallery", 255),
+        }
+        if not normalized["host"]:
+            field_errors["host"] = "required"
+        if not normalized["from_email"]:
+            field_errors["from_email"] = "required"
+        return normalized, field_errors
+
+    if group == "storage":
+        normalized = {
+            "source_root": _coerce_text_setting(data.get("source_root"), "", 500),
+            "storage_root": _coerce_text_setting(data.get("storage_root"), "/data/felixxsv-gallery/www/storage", 500),
+            "original_cache_root": _coerce_text_setting(data.get("original_cache_root"), "", 500),
+            "max_upload_files": _coerce_int_setting(data.get("max_upload_files"), 20, 1, 1000),
+            "max_upload_size_mb": _coerce_int_setting(data.get("max_upload_size_mb"), 100, 1, 10240),
+        }
+        if not normalized["storage_root"]:
+            field_errors["storage_root"] = "required"
+        return normalized, field_errors
+
+    return {}, {"group": "unsupported"}
+
+
+def _save_site_settings_group(conn, group: str, values: dict, actor_user_id: int) -> dict:
+    _ensure_admin_site_settings_tables(conn)
+    before_payload = _load_site_settings_group(conn, group)
+    before_settings = before_payload.get("settings") or {}
+
+    with conn.cursor() as cur:
+        for key, value in values.items():
+            value_json = json.dumps(value, ensure_ascii=False)
+            cur.execute(
+                """
+INSERT INTO admin_site_settings (setting_group, setting_key, value_json, updated_by_user_id)
+VALUES (%s, %s, CAST(%s AS JSON), %s)
+ON DUPLICATE KEY UPDATE
+    value_json=CAST(%s AS JSON),
+    updated_by_user_id=VALUES(updated_by_user_id),
+    updated_at=CURRENT_TIMESTAMP(6)
+""",
+                (group, key, value_json, actor_user_id, value_json),
+            )
+
+    after_payload = _load_site_settings_group(conn, group)
+    after_settings = after_payload.get("settings") or {}
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+INSERT INTO admin_site_setting_history (setting_group, before_json, after_json, changed_by_user_id)
+VALUES (%s, CAST(%s AS JSON), CAST(%s AS JSON), %s)
+""",
+            (
+                group,
+                json.dumps(before_settings, ensure_ascii=False),
+                json.dumps(after_settings, ensure_ascii=False),
+                actor_user_id,
+            ),
+        )
+
+    _log_audit_event(
+        conn,
+        actor_user_id,
+        f"admin.settings.{group}.update",
+        "site_settings",
+        group,
+        "success",
+        f"{group} 設定を更新しました。",
+        meta_json={
+            "before": before_settings,
+            "after": after_settings,
+        },
+    )
+    return after_payload
+
+
+def _mail_sender_settings(conn=None) -> dict:
+    conf = _get_conf()
+    smtp_conf = conf.get("smtp") or {}
+    app_conf = conf.get("app") or {}
+    base_url = str(
+        app_conf.get("base_url")
+        or app_conf.get("public_base_url")
+        or app_conf.get("site_url")
+        or "https://felixxsv.net/gallery"
+    ).strip()
+
+    effective = _settings_smtp_defaults_from_conf()
+    if conn is None:
+        close_conn = True
+        conn = _get_db_connection()
+    else:
+        close_conn = False
+    try:
+        payload = _load_site_settings_group(conn, "smtp")
+        settings = payload.get("settings") or {}
+        effective.update({
+            "host": _coerce_text_setting(settings.get("host"), effective.get("host"), 255),
+            "port": _coerce_int_setting(settings.get("port"), effective.get("port") or 25, 1, 65535),
+            "use_starttls": _coerce_bool_setting(settings.get("use_starttls"), effective.get("use_starttls")),
+            "from_email": _coerce_text_setting(settings.get("from_email"), effective.get("from_email"), 255),
+            "from_name": _coerce_text_setting(settings.get("from_name"), effective.get("from_name"), 255),
+        })
+    except Exception:
+        pass
+    finally:
+        if close_conn and conn is not None:
+            conn.close()
+
+    return {
+        "host": effective.get("host") or smtp_conf.get("host") or "127.0.0.1",
+        "port": int(effective.get("port") or smtp_conf.get("port") or 25),
+        "use_starttls": bool(effective.get("use_starttls", smtp_conf.get("use_starttls", False))),
+        "from_email": str(effective.get("from_email") or smtp_conf.get("from_email") or "noreply@felixxsv.net").strip(),
+        "from_name": str(effective.get("from_name") or smtp_conf.get("from_name") or "Felixxsv Gallery").strip(),
+        "username": smtp_conf.get("username"),
+        "password": smtp_conf.get("password"),
+        "use_auth": smtp_conf.get("use_auth"),
+        "base_url": base_url,
+    }
+
+
+@router.get("/settings/general")
+def admin_settings_general(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_site_settings_group(conn, "general")
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "全般設定の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/settings/general")
+def admin_settings_general_update(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    normalized, field_errors = _normalize_settings_group_payload("general", payload)
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力値に誤りがあります。", field_errors=field_errors)
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        result = _save_site_settings_group(conn, "general", normalized, int(actor.get("id") or 0))
+        conn.commit()
+        return _json_success(request_id=request_id, data=result, message="全般設定を更新しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "全般設定の更新に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/settings/security")
+def admin_settings_security(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_site_settings_group(conn, "security")
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "セキュリティ設定の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/settings/security")
+def admin_settings_security_update(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    normalized, field_errors = _normalize_settings_group_payload("security", payload)
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力値に誤りがあります。", field_errors=field_errors)
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        result = _save_site_settings_group(conn, "security", normalized, int(actor.get("id") or 0))
+        conn.commit()
+        return _json_success(request_id=request_id, data=result, message="セキュリティ設定を更新しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "セキュリティ設定の更新に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/settings/smtp")
+def admin_settings_smtp(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_site_settings_group(conn, "smtp")
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "SMTP 設定の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/settings/smtp")
+def admin_settings_smtp_update(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    normalized, field_errors = _normalize_settings_group_payload("smtp", payload)
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力値に誤りがあります。", field_errors=field_errors)
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        result = _save_site_settings_group(conn, "smtp", normalized, int(actor.get("id") or 0))
+        conn.commit()
+        return _json_success(request_id=request_id, data=result, message="SMTP 設定を更新しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "SMTP 設定の更新に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/settings/storage")
+def admin_settings_storage(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_site_settings_group(conn, "storage")
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "ストレージ設定の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/settings/storage")
+def admin_settings_storage_update(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    normalized, field_errors = _normalize_settings_group_payload("storage", payload)
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力値に誤りがあります。", field_errors=field_errors)
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        result = _save_site_settings_group(conn, "storage", normalized, int(actor.get("id") or 0))
+        conn.commit()
+        return _json_success(request_id=request_id, data=result, message="ストレージ設定を更新しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "ストレージ設定の更新に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
