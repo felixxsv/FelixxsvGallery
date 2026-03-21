@@ -2,38 +2,44 @@ body.is-modal-open {
   overflow: hidden;
 }
 
-.admin-settings-page {
-  display: flex;
-  flex-direction: column;
+.admin-page-grid--settings {
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
-  min-height: calc(100vh - 140px);
+}
+
+.admin-settings-intro {
+  padding-bottom: 20px;
+}
+
+.admin-settings-intro__content {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-settings-intro__notes {
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(226, 232, 240, 0.8);
+  line-height: 1.7;
 }
 
 .admin-page-message {
   padding: 12px 16px;
-  border-radius: 12px;
-  background: rgba(77, 181, 255, 0.12);
-  color: #cfe8ff;
-  border: 1px solid rgba(77, 181, 255, 0.24);
+  border-radius: 16px;
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  color: #dbeafe;
 }
 
 .admin-page-message.is-error {
-  background: rgba(255, 91, 91, 0.12);
-  color: #ffd0d0;
-  border-color: rgba(255, 91, 91, 0.28);
+  background: rgba(248, 113, 113, 0.14);
+  border-color: rgba(248, 113, 113, 0.22);
+  color: #fee2e2;
 }
 
-.admin-settings-page__intro-list {
-  margin: 12px 0 0;
-  padding-left: 20px;
-  color: rgba(236, 242, 255, 0.85);
-}
-
-.admin-settings-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 0;
+.admin-settings-panel {
+  display: grid;
+  gap: 18px;
 }
 
 .admin-settings-tabs {
@@ -42,7 +48,7 @@ body.is-modal-open {
   gap: 10px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 2px 0;
+  padding-bottom: 2px;
   scrollbar-width: thin;
 }
 
@@ -55,39 +61,33 @@ body.is-modal-open {
   border-radius: 999px;
 }
 
-.admin-settings-tabs__button {
+.admin-settings-tab {
   flex: 0 0 auto;
-  min-width: 150px;
-  padding: 13px 18px;
-  border-radius: 14px 14px 0 0;
+  min-width: 140px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 16px 16px 0 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom-color: rgba(255, 255, 255, 0.12);
-  background: rgba(12, 22, 40, 0.58);
-  color: rgba(232, 239, 255, 0.82);
-  text-align: center;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.82);
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
-.admin-settings-tabs__button:hover {
-  background: rgba(20, 34, 58, 0.82);
-  color: #f4f7ff;
+.admin-settings-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
 }
 
-.admin-settings-tabs__button.is-active {
-  background: linear-gradient(180deg, rgba(54, 109, 255, 0.35), rgba(35, 63, 143, 0.26));
-  border-color: rgba(116, 161, 255, 0.45);
+.admin-settings-tab.is-active {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.24), rgba(59, 130, 246, 0.16));
+  border-color: rgba(96, 165, 250, 0.36);
   border-bottom-color: transparent;
-  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
+  color: #f8fafc;
   transform: translateY(1px);
-}
-
-.admin-settings-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-height: 0;
-  border-top-left-radius: 0;
 }
 
 .admin-settings-panel__head {
@@ -98,14 +98,23 @@ body.is-modal-open {
 }
 
 .admin-settings-save-state {
-  min-width: 120px;
+  min-width: 136px;
   text-align: right;
-  font-size: 13px;
-  color: rgba(236, 242, 255, 0.8);
+  font-size: 0.84rem;
+  color: rgba(226, 232, 240, 0.7);
 }
 
 .admin-settings-save-state[data-state="error"] {
-  color: #ffb1b1;
+  color: #fecaca;
+}
+
+.admin-settings-panel__body {
+  display: grid;
+  gap: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 18px;
 }
 
 .admin-settings-form {
@@ -121,25 +130,19 @@ body.is-modal-open {
 }
 
 .admin-settings-field {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 8px;
 }
 
 .admin-settings-field > span {
-  font-size: 13px;
-  color: rgba(236, 242, 255, 0.82);
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.84rem;
 }
 
 .admin-settings-field input,
 .admin-settings-field select,
 .admin-settings-field textarea {
   width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(8, 16, 30, 0.82);
-  color: #f3f7ff;
-  padding: 12px 14px;
 }
 
 .admin-settings-field--full {
@@ -147,42 +150,43 @@ body.is-modal-open {
 }
 
 .admin-settings-field--checkbox {
-  flex-direction: row;
+  display: flex;
   align-items: center;
   gap: 10px;
   min-height: 48px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(8, 16, 30, 0.56);
   padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .admin-settings-field--checkbox input {
+  flex: 0 0 auto;
   width: auto;
 }
 
+.admin-settings-field--checkbox span {
+  font-size: 0.92rem;
+  color: #e2e8f0;
+}
+
 .admin-settings-footer {
-  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 12px;
+  padding-top: 4px;
 }
 
 .admin-settings-updated-meta {
-  font-size: 13px;
-  color: rgba(236, 242, 255, 0.74);
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.84rem;
 }
 
-@media (max-width: 1080px) {
-  .admin-settings-tabs {
-    gap: 8px;
-  }
-
-  .admin-settings-tabs__button {
-    min-width: 132px;
-    padding: 12px 15px;
+@media (max-width: 960px) {
+  .admin-settings-tab {
+    min-width: 128px;
+    padding: 0 16px;
   }
 }
 
@@ -191,8 +195,8 @@ body.is-modal-open {
     grid-template-columns: 1fr;
   }
 
-  .admin-settings-footer,
-  .admin-settings-panel__head {
+  .admin-settings-panel__head,
+  .admin-settings-footer {
     flex-direction: column;
     align-items: stretch;
   }
@@ -200,13 +204,5 @@ body.is-modal-open {
   .admin-settings-save-state,
   .admin-settings-updated-meta {
     text-align: left;
-  }
-
-  .admin-settings-tabs {
-    padding-bottom: 2px;
-  }
-
-  .admin-settings-tabs__button {
-    min-width: 120px;
   }
 }

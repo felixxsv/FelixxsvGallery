@@ -1,265 +1,297 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>サイト設定 - Felixxsv Gallery</title>
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
   <link rel="stylesheet" href="/gallery/assets/css/components.css">
   <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
   <link rel="stylesheet" href="/gallery/assets/css/admin-settings.css">
 </head>
-<body data-app-base="/gallery" data-admin-page="settings" data-admin-description="サイト共通の運用設定を管理します。ダッシュボードなどの個人表示設定は管理者ごとに保持されます。">
-  <div id="adminLoadingState" class="admin-state-screen">
+<body
+  class="admin-page"
+  data-app-base="/gallery"
+  data-admin-page="settings"
+  data-admin-description="サイト共通の運用設定を管理します。ダッシュボードなどの個人表示設定は管理者ごとに保持されます。"
+>
+  <section id="adminLoadingState" class="admin-state-screen">
     <div class="admin-state-card">
       <h1 class="admin-state-card__title">管理画面を確認しています</h1>
       <p class="admin-state-card__description">admin 権限の確認が完了するまで、管理画面本体は描画しません。</p>
     </div>
-  </div>
+  </section>
 
-  <div id="adminNotFoundState" class="admin-state-screen" hidden>
+  <section id="adminNotFoundState" class="admin-state-screen" hidden>
     <div class="admin-state-card">
       <h1 class="admin-state-card__title">404</h1>
       <p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
-      <a class="admin-state-card__link" href="/gallery/">ホームへ戻る</a>
+      <div class="admin-state-card__actions">
+        <a href="/gallery/" class="app-button app-button--primary">ホームへ戻る</a>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div id="adminErrorState" class="admin-state-screen" hidden>
+  <section id="adminErrorState" class="admin-state-screen" hidden>
     <div class="admin-state-card">
       <h1 class="admin-state-card__title">初期化に失敗しました</h1>
       <p class="admin-state-card__description">管理画面の初期化中にエラーが発生しました。</p>
-      <button id="adminReloadButton" type="button" class="admin-button admin-button--primary">再読み込み</button>
+      <div class="admin-state-card__actions">
+        <button id="adminReloadButton" type="button" class="app-button app-button--primary">再読み込み</button>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div id="adminAppShell" class="admin-shell" hidden>
+  <section id="adminAppShell" class="admin-shell" hidden>
     <aside id="adminSidebar" class="admin-sidebar">
       <div class="admin-sidebar__header">
-        <div>
-          <div class="admin-sidebar__brand">Felixxsv Gallery</div>
-          <div class="admin-sidebar__subbrand">Admin Console</div>
+        <div class="admin-sidebar__brand">
+          <div class="admin-sidebar__title">Felixxsv Gallery</div>
+          <div class="admin-sidebar__subtitle">Admin Console</div>
         </div>
-        <button id="adminSidebarToggle" type="button" class="admin-sidebar__toggle" aria-label="サイドバーを折りたたむ">⇔</button>
+        <button id="adminSidebarToggle" class="app-icon-button admin-sidebar__toggle" type="button" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+          <span aria-hidden="true">⇔</span>
+        </button>
       </div>
-      <nav id="adminSidebarNav" class="admin-sidebar__nav">
-        <a href="/gallery/admin/" data-admin-nav-link data-admin-nav-link-key="dashboard">⌂ <span class="admin-sidebar__label">ダッシュボード</span></a>
-        <a href="/gallery/admin/content/" data-admin-nav-link data-admin-nav-link-key="content">▣ <span class="admin-sidebar__label">コンテンツ管理</span></a>
-        <a href="/gallery/admin/users/" data-admin-nav-link data-admin-nav-link-key="users">👤 <span class="admin-sidebar__label">ユーザー管理</span></a>
-        <a href="/gallery/admin/mail/" data-admin-nav-link data-admin-nav-link-key="mail">✉ <span class="admin-sidebar__label">メール配信</span></a>
-        <a href="/gallery/admin/settings/" data-admin-nav-link data-admin-nav-link-key="settings">⚙ <span class="admin-sidebar__label">サイト設定</span></a>
-        <a href="/gallery/admin/audit-logs/" data-admin-nav-link data-admin-nav-link-key="audit-logs">☰ <span class="admin-sidebar__label">監査ログ</span></a>
-      </nav>
+      <div class="admin-sidebar__scroll">
+        <nav id="adminSidebarNav" class="admin-sidebar__nav" aria-label="管理画面ナビゲーション">
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/">
+            <span class="admin-sidebar__icon" aria-hidden="true">⌂</span>
+            <span class="admin-sidebar__label">ダッシュボード</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/">
+            <span class="admin-sidebar__icon" aria-hidden="true">▣</span>
+            <span class="admin-sidebar__label">コンテンツ管理</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/">
+            <span class="admin-sidebar__icon" aria-hidden="true">👥</span>
+            <span class="admin-sidebar__label">ユーザー管理</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
+            <span class="admin-sidebar__icon" aria-hidden="true">✉</span>
+            <span class="admin-sidebar__label">メール配信</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
+            <span class="admin-sidebar__icon" aria-hidden="true">⚙</span>
+            <span class="admin-sidebar__label">サイト設定</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
+            <span class="admin-sidebar__icon" aria-hidden="true">☰</span>
+            <span class="admin-sidebar__label">監査ログ</span>
+          </a>
+        </nav>
+      </div>
+      <div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
     </aside>
 
-    <main class="admin-main">
-      <header class="admin-page-header">
-        <div>
-          <h1 id="adminPageTitle" class="admin-page-header__title">サイト設定</h1>
-          <p id="adminPageDescription" class="admin-page-header__description">サイト共通の運用設定を管理します。</p>
+    <div class="admin-shell__main">
+      <header class="admin-topbar">
+        <div class="admin-topbar__heading">
+          <h1 id="adminPageTitle" class="admin-topbar__title">サイト設定</h1>
+          <p id="adminPageDescription" class="admin-topbar__description">サイト共通の運用設定を管理します。</p>
         </div>
-        <div class="admin-page-header__user">
-          <span>ログイン中の管理者</span>
-          <strong id="adminHeaderUserName">-</strong>
-          <span id="adminHeaderUserKey">-</span>
+        <div class="admin-topbar__meta">
+          <div class="admin-topbar__meta-label">ログイン中の管理者</div>
+          <div id="adminHeaderUserName" class="admin-topbar__meta-value">-</div>
+          <div id="adminHeaderUserKey" class="admin-topbar__meta-label">-</div>
         </div>
       </header>
 
-      <section class="admin-settings-page">
-        <div id="adminSettingsMessage" class="admin-page-message" hidden></div>
+      <main class="admin-main-scroll">
+        <section class="admin-page-grid admin-page-grid--settings">
+          <article class="admin-panel admin-settings-intro">
+            <div class="admin-settings-intro__content">
+              <div>
+                <h2 class="admin-panel__title">サイト設定</h2>
+                <p class="admin-panel__meta">ここではサイト共通の運用設定を編集します。ダッシュボードなどの管理者個人設定は別に保持されます。</p>
+              </div>
+              <ul class="admin-settings-intro__notes">
+                <li>SMTP パスワードは後続フェーズで反映します。</li>
+                <li>時間指定反映は後続フェーズで反映します。</li>
+                <li>値を変更していない場合、確認モーダルは表示しません。</li>
+              </ul>
+            </div>
+          </article>
 
-        <div class="admin-settings-page__intro admin-card">
-          <h2 class="admin-card__title">サイト設定</h2>
-          <p class="admin-card__description">ここではサイト共通の設定を編集します。ダッシュボードなどの管理者個人設定は別に保持されます。</p>
-          <ul class="admin-settings-page__intro-list">
-            <li>SMTP パスワードは後続フェーズで反映します。</li>
-            <li>時間指定反映は後続フェーズで反映します。</li>
-            <li>値を変更していない場合、確認モーダルは表示しません。</li>
-          </ul>
-        </div>
+          <div id="adminSettingsMessage" class="admin-page-message" hidden></div>
 
-        <div class="admin-settings-layout">
-          <div class="admin-settings-tabs" role="tablist" aria-label="設定タブ">
-            <button type="button" class="admin-settings-tabs__button is-active" data-settings-tab="general" role="tab" aria-selected="true">全般</button>
-            <button type="button" class="admin-settings-tabs__button" data-settings-tab="security" role="tab" aria-selected="false">セキュリティ</button>
-            <button type="button" class="admin-settings-tabs__button" data-settings-tab="smtp" role="tab" aria-selected="false">メール (SMTP)</button>
-            <button type="button" class="admin-settings-tabs__button" data-settings-tab="storage" role="tab" aria-selected="false">ストレージ</button>
-          </div>
+          <article class="admin-panel admin-settings-panel">
+            <div class="admin-settings-tabs" role="tablist" aria-label="設定タブ">
+              <button type="button" class="admin-settings-tab is-active" data-settings-tab="general" role="tab" aria-selected="true">全般</button>
+              <button type="button" class="admin-settings-tab" data-settings-tab="security" role="tab" aria-selected="false">セキュリティ</button>
+              <button type="button" class="admin-settings-tab" data-settings-tab="smtp" role="tab" aria-selected="false">メール (SMTP)</button>
+              <button type="button" class="admin-settings-tab" data-settings-tab="storage" role="tab" aria-selected="false">ストレージ</button>
+            </div>
 
-          <section class="admin-settings-panel admin-card">
             <div class="admin-settings-panel__head">
               <div>
-                <h2 id="adminSettingsPanelTitle" class="admin-card__title">全般</h2>
-                <p id="adminSettingsPanelDescription" class="admin-card__description">サイト名や画像モーダルの既定値を管理します。</p>
+                <h2 id="adminSettingsPanelTitle" class="admin-panel__title">全般</h2>
+                <p id="adminSettingsPanelDescription" class="admin-panel__meta">サイト名や画像モーダルの既定値を管理します。</p>
               </div>
               <div id="adminSettingsSaveState" class="admin-settings-save-state">読み込み中…</div>
             </div>
 
-            <form id="adminSettingsFormGeneral" class="admin-settings-form" data-settings-form="general" novalidate>
-              <div class="admin-settings-grid">
-                <label class="admin-settings-field">
-                  <span>サイト名</span>
-                  <input id="adminSettingsGeneralSiteName" type="text" maxlength="120">
-                </label>
-                <label class="admin-settings-field">
-                  <span>ギャラリーキー</span>
-                  <input id="adminSettingsGeneralGalleryKey" type="text" maxlength="64">
-                </label>
-                <label class="admin-settings-field admin-settings-field--full">
-                  <span>Deleted User 表示名</span>
-                  <input id="adminSettingsGeneralDeletedUserDisplayName" type="text" maxlength="120">
-                </label>
-                <label class="admin-settings-field">
-                  <span>画像クリック時の既定挙動</span>
-                  <select id="adminSettingsGeneralImageOpenBehavior">
-                    <option value="modal">モーダル表示</option>
-                    <option value="new_tab">別タブ表示</option>
-                  </select>
-                </label>
-                <label class="admin-settings-field admin-settings-field--checkbox">
-                  <input id="adminSettingsGeneralBackdropClose" type="checkbox">
-                  <span>画像モーダルで背景クリックを既定で許可する</span>
-                </label>
-                <label class="admin-settings-field admin-settings-field--checkbox">
-                  <input id="adminSettingsGeneralMetaBarPinned" type="checkbox">
-                  <span>画像モーダルのメタ情報バーを既定で常時表示する</span>
-                </label>
-              </div>
-            </form>
+            <div class="admin-settings-panel__body">
+              <form id="adminSettingsFormGeneral" class="admin-settings-form" data-settings-form="general" novalidate>
+                <div class="admin-settings-grid">
+                  <label class="admin-settings-field">
+                    <span>サイト名</span>
+                    <input id="adminSettingsGeneralSiteName" type="text" maxlength="120">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>ギャラリーキー</span>
+                    <input id="adminSettingsGeneralGalleryKey" type="text" maxlength="64">
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--full">
+                    <span>Deleted User 表示名</span>
+                    <input id="adminSettingsGeneralDeletedUserDisplayName" type="text" maxlength="120">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>画像クリック時の既定挙動</span>
+                    <select id="adminSettingsGeneralImageOpenBehavior">
+                      <option value="modal">モーダル表示</option>
+                      <option value="new_tab">別タブ表示</option>
+                    </select>
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--checkbox">
+                    <input id="adminSettingsGeneralBackdropClose" type="checkbox">
+                    <span>画像モーダルで背景クリックを既定で許可する</span>
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--checkbox admin-settings-field--full">
+                    <input id="adminSettingsGeneralMetaBarPinned" type="checkbox">
+                    <span>画像モーダルのメタ情報バーを既定で常時表示する</span>
+                  </label>
+                </div>
+              </form>
 
-            <form id="adminSettingsFormSecurity" class="admin-settings-form" data-settings-form="security" hidden novalidate>
-              <div class="admin-settings-grid">
-                <label class="admin-settings-field">
-                  <span>最小パスワード長</span>
-                  <input id="adminSettingsSecurityPasswordMinLength" type="number" min="8" max="128">
-                </label>
-                <label class="admin-settings-field">
-                  <span>10分あたりのログイン試行上限</span>
-                  <input id="adminSettingsSecurityLoginRateLimit" type="number" min="1" max="1000">
-                </label>
-                <label class="admin-settings-field">
-                  <span>セッションアイドルタイムアウト (分)</span>
-                  <input id="adminSettingsSecuritySessionIdleTimeout" type="number" min="5" max="10080">
-                </label>
-                <label class="admin-settings-field admin-settings-field--checkbox">
-                  <input id="adminSettingsSecurityRequireUppercase" type="checkbox">
-                  <span>大文字を必須にする</span>
-                </label>
-                <label class="admin-settings-field admin-settings-field--checkbox">
-                  <input id="adminSettingsSecurityRequireLowercase" type="checkbox">
-                  <span>小文字を必須にする</span>
-                </label>
-                <label class="admin-settings-field admin-settings-field--checkbox">
-                  <input id="adminSettingsSecurityRequireNumber" type="checkbox">
-                  <span>数字を必須にする</span>
-                </label>
-                <label class="admin-settings-field admin-settings-field--checkbox admin-settings-field--full">
-                  <input id="adminSettingsSecurityAdmin2faRecommended" type="checkbox">
-                  <span>管理者に 2FA 有効化を推奨する</span>
-                </label>
-              </div>
-            </form>
+              <form id="adminSettingsFormSecurity" class="admin-settings-form" data-settings-form="security" hidden novalidate>
+                <div class="admin-settings-grid">
+                  <label class="admin-settings-field">
+                    <span>最小パスワード長</span>
+                    <input id="adminSettingsSecurityPasswordMinLength" type="number" min="8" max="128">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>10分あたりのログイン試行上限</span>
+                    <input id="adminSettingsSecurityLoginRateLimit" type="number" min="1" max="1000">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>セッションアイドルタイムアウト (分)</span>
+                    <input id="adminSettingsSecuritySessionIdleTimeout" type="number" min="5" max="10080">
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--checkbox">
+                    <input id="adminSettingsSecurityRequireUppercase" type="checkbox">
+                    <span>大文字を必須にする</span>
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--checkbox">
+                    <input id="adminSettingsSecurityRequireLowercase" type="checkbox">
+                    <span>小文字を必須にする</span>
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--checkbox">
+                    <input id="adminSettingsSecurityRequireNumber" type="checkbox">
+                    <span>数字を必須にする</span>
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--checkbox admin-settings-field--full">
+                    <input id="adminSettingsSecurityAdmin2faRecommended" type="checkbox">
+                    <span>管理者に 2FA 有効化を推奨する</span>
+                  </label>
+                </div>
+              </form>
 
-            <form id="adminSettingsFormSmtp" class="admin-settings-form" data-settings-form="smtp" hidden novalidate>
-              <div class="admin-settings-grid">
-                <label class="admin-settings-field">
-                  <span>SMTP ホスト</span>
-                  <input id="adminSettingsSmtpHost" type="text" maxlength="255">
-                </label>
-                <label class="admin-settings-field">
-                  <span>ポート</span>
-                  <input id="adminSettingsSmtpPort" type="number" min="1" max="65535">
-                </label>
-                <label class="admin-settings-field admin-settings-field--full">
-                  <span>送信元メールアドレス</span>
-                  <input id="adminSettingsSmtpFromEmail" type="email" maxlength="255">
-                </label>
-                <label class="admin-settings-field admin-settings-field--full">
-                  <span>送信元表示名</span>
-                  <input id="adminSettingsSmtpFromName" type="text" maxlength="255">
-                </label>
-                <label class="admin-settings-field admin-settings-field--checkbox">
-                  <input id="adminSettingsSmtpUseStarttls" type="checkbox">
-                  <span>STARTTLS を使用する</span>
-                </label>
-              </div>
-            </form>
+              <form id="adminSettingsFormSmtp" class="admin-settings-form" data-settings-form="smtp" hidden novalidate>
+                <div class="admin-settings-grid">
+                  <label class="admin-settings-field">
+                    <span>SMTP ホスト</span>
+                    <input id="adminSettingsSmtpHost" type="text" maxlength="255">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>ポート</span>
+                    <input id="adminSettingsSmtpPort" type="number" min="1" max="65535">
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--full">
+                    <span>送信元メールアドレス</span>
+                    <input id="adminSettingsSmtpFromEmail" type="email" maxlength="255">
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--full">
+                    <span>送信元表示名</span>
+                    <input id="adminSettingsSmtpFromName" type="text" maxlength="255">
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--checkbox admin-settings-field--full">
+                    <input id="adminSettingsSmtpUseStarttls" type="checkbox">
+                    <span>STARTTLS を使用する</span>
+                  </label>
+                </div>
+              </form>
 
-            <form id="adminSettingsFormStorage" class="admin-settings-form" data-settings-form="storage" hidden novalidate>
-              <div class="admin-settings-grid">
-                <label class="admin-settings-field admin-settings-field--full">
-                  <span>source_root</span>
-                  <input id="adminSettingsStorageSourceRoot" type="text" maxlength="500">
-                </label>
-                <label class="admin-settings-field admin-settings-field--full">
-                  <span>storage_root</span>
-                  <input id="adminSettingsStorageStorageRoot" type="text" maxlength="500">
-                </label>
-                <label class="admin-settings-field admin-settings-field--full">
-                  <span>original_cache_root</span>
-                  <input id="adminSettingsStorageOriginalCacheRoot" type="text" maxlength="500">
-                </label>
-                <label class="admin-settings-field">
-                  <span>アップロード可能ファイル数</span>
-                  <input id="adminSettingsStorageMaxUploadFiles" type="number" min="1" max="1000">
-                </label>
-                <label class="admin-settings-field">
-                  <span>最大アップロードサイズ (MB)</span>
-                  <input id="adminSettingsStorageMaxUploadSizeMb" type="number" min="1" max="10240">
-                </label>
-              </div>
-            </form>
+              <form id="adminSettingsFormStorage" class="admin-settings-form" data-settings-form="storage" hidden novalidate>
+                <div class="admin-settings-grid">
+                  <label class="admin-settings-field admin-settings-field--full">
+                    <span>source_root</span>
+                    <input id="adminSettingsStorageSourceRoot" type="text" maxlength="500">
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--full">
+                    <span>storage_root</span>
+                    <input id="adminSettingsStorageStorageRoot" type="text" maxlength="500">
+                  </label>
+                  <label class="admin-settings-field admin-settings-field--full">
+                    <span>original_cache_root</span>
+                    <input id="adminSettingsStorageOriginalCacheRoot" type="text" maxlength="500">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>アップロード可能ファイル数</span>
+                    <input id="adminSettingsStorageMaxUploadFiles" type="number" min="1" max="1000">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>最大アップロードサイズ (MB)</span>
+                    <input id="adminSettingsStorageMaxUploadSizeMb" type="number" min="1" max="10240">
+                  </label>
+                </div>
+              </form>
+            </div>
 
             <div class="admin-settings-footer">
               <div id="adminSettingsUpdatedMeta" class="admin-settings-updated-meta">-</div>
-              <button id="adminSettingsApplyButton" type="button" class="admin-button admin-button--primary">適用</button>
+              <button id="adminSettingsApplyButton" type="button" class="app-button app-button--primary">適用</button>
             </div>
-          </section>
-        </div>
-      </section>
-    </main>
-  </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </section>
 
-  <button id="appGlobalClose" type="button" class="app-global-close" hidden aria-label="モーダルを閉じる">×</button>
+  <div id="appModalRoot" class="app-modal-root" aria-live="polite">
+    <button id="appGlobalClose" class="app-global-close" type="button" aria-label="閉じる" hidden>×</button>
 
-  <div id="appToastRoot" class="app-toast-root" aria-live="polite" aria-atomic="true"></div>
-
-  <div id="appModalRoot" class="app-modal-root">
-    <div class="app-modal-layer" data-modal-layer data-modal-id="admin-discard-confirm" hidden>
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-discard-confirm" hidden>
       <div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
-      <div class="app-modal-dialog app-modal-dialog--sm" role="dialog" aria-modal="true" tabindex="-1">
-        <div class="app-modal-card">
-          <div class="app-modal-card__header">
-            <h2 class="app-modal-card__title">確認</h2>
-          </div>
-          <div class="app-modal-card__body">
-            <p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
-          </div>
-          <div class="app-modal-card__footer">
-            <button id="adminDiscardConfirmApproveButton" type="button" class="admin-button admin-button--danger">破棄して移動</button>
-            <button id="adminDiscardConfirmCancelButton" type="button" class="admin-button admin-button--ghost">キャンセル</button>
-          </div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDiscardConfirmTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminDiscardConfirmTitle" class="app-modal-title">確認</h2>
+        </div>
+        <div class="app-modal-body">
+          <p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="adminDiscardConfirmApproveButton" type="button" class="app-button app-button--danger">破棄して移動</button>
+          <button id="adminDiscardConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="app-modal-layer" data-modal-layer data-modal-id="admin-settings-apply-confirm" hidden>
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-settings-apply-confirm" hidden>
       <div class="app-modal-backdrop" data-modal-backdrop="admin-settings-apply-confirm"></div>
-      <div class="app-modal-dialog app-modal-dialog--sm" role="dialog" aria-modal="true" tabindex="-1">
-        <div class="app-modal-card">
-          <div class="app-modal-card__header">
-            <h2 class="app-modal-card__title">設定を適用しますか？</h2>
-          </div>
-          <div class="app-modal-card__body">
-            <p id="adminSettingsApplyConfirmMessage">現在の変更を適用します。よろしいですか？</p>
-          </div>
-          <div class="app-modal-card__footer">
-            <button id="adminSettingsApplyConfirmApprove" type="button" class="admin-button admin-button--primary">適用</button>
-            <button id="adminSettingsApplyConfirmCancel" type="button" class="admin-button admin-button--ghost">キャンセル</button>
-          </div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminSettingsApplyConfirmTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminSettingsApplyConfirmTitle" class="app-modal-title">設定を適用しますか？</h2>
+        </div>
+        <div class="app-modal-body">
+          <p id="adminSettingsApplyConfirmMessage">現在の変更を適用します。よろしいですか？</p>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="adminSettingsApplyConfirmApprove" type="button" class="app-button app-button--primary">適用</button>
+          <button id="adminSettingsApplyConfirmCancel" type="button" class="app-button app-button--ghost">キャンセル</button>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
