@@ -7,12 +7,13 @@
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
   <link rel="stylesheet" href="/gallery/assets/css/components.css">
   <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/admin-dashboard.css">
 </head>
 <body
   class="admin-page"
   data-app-base="/gallery"
   data-admin-page="dashboard"
-  data-admin-description="管理画面トップです。共通レイアウトとアクセス制御の確認を行います。"
+  data-admin-description="管理画面トップです。オンラインユーザー、時計、直近ログ、新着画像を表示します。"
 >
   <section id="adminLoadingState" class="admin-state-screen">
     <div class="admin-state-card">
@@ -65,30 +66,30 @@
 
       <div class="admin-sidebar__scroll">
         <nav id="adminSidebarNav" class="admin-sidebar__nav" aria-label="管理画面ナビゲーション">
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/">
-                <span class="admin-sidebar__icon" aria-hidden="true">⌂</span>
-                <span class="admin-sidebar__label">ダッシュボード</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/">
-                <span class="admin-sidebar__icon" aria-hidden="true">▣</span>
-                <span class="admin-sidebar__label">コンテンツ管理</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/">
-                <span class="admin-sidebar__icon" aria-hidden="true">👥</span>
-                <span class="admin-sidebar__label">ユーザー管理</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
-                <span class="admin-sidebar__icon" aria-hidden="true">✉</span>
-                <span class="admin-sidebar__label">メール配信</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
-                <span class="admin-sidebar__icon" aria-hidden="true">⚙</span>
-                <span class="admin-sidebar__label">サイト設定</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
-                <span class="admin-sidebar__icon" aria-hidden="true">☰</span>
-                <span class="admin-sidebar__label">監査ログ</span>
-              </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/">
+            <span class="admin-sidebar__icon" aria-hidden="true">⌂</span>
+            <span class="admin-sidebar__label">ダッシュボード</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/">
+            <span class="admin-sidebar__icon" aria-hidden="true">▣</span>
+            <span class="admin-sidebar__label">コンテンツ管理</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/">
+            <span class="admin-sidebar__icon" aria-hidden="true">👥</span>
+            <span class="admin-sidebar__label">ユーザー管理</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
+            <span class="admin-sidebar__icon" aria-hidden="true">✉</span>
+            <span class="admin-sidebar__label">メール配信</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
+            <span class="admin-sidebar__icon" aria-hidden="true">⚙</span>
+            <span class="admin-sidebar__label">サイト設定</span>
+          </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
+            <span class="admin-sidebar__icon" aria-hidden="true">☰</span>
+            <span class="admin-sidebar__label">監査ログ</span>
+          </a>
         </nav>
       </div>
 
@@ -101,7 +102,7 @@
       <header class="admin-topbar">
         <div class="admin-topbar__heading">
           <h1 id="adminPageTitle" class="admin-topbar__title">ダッシュボード</h1>
-          <p id="adminPageDescription" class="admin-topbar__description">管理画面トップです。共通レイアウトとアクセス制御の確認を行います。</p>
+          <p id="adminPageDescription" class="admin-topbar__description">管理画面トップです。オンラインユーザー、時計、直近ログ、新着画像を表示します。</p>
         </div>
 
         <div class="admin-topbar__meta">
@@ -111,26 +112,104 @@
         </div>
       </header>
 
-      <main class="admin-main-scroll">
+      <main class="admin-main-scroll admin-main-scroll--dashboard">
+        <section class="admin-dashboard-grid">
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--clock">
+            <div class="admin-dashboard-card__header">
+              <h2 class="admin-panel__title">時計</h2>
+              <div class="admin-segmented-control">
+                <button id="adminClockModeDigital" type="button" class="admin-segmented-control__button is-active">デジタル</button>
+                <button id="adminClockModeAnalog" type="button" class="admin-segmented-control__button">アナログ</button>
+              </div>
+            </div>
 
-          <section class="admin-page-grid admin-page-grid--dashboard">
-            <article class="admin-panel">
-              <h2 class="admin-panel__title">ダッシュボード</h2>
-              <p class="admin-panel__meta">
-                この段階では、管理画面共通基盤の確認用プレースホルダーを表示します。後続フェーズで時計、オンラインユーザー、直近ログ、新着画像を実装します。
-              </p>
-              <div class="admin-panel__placeholder">ダッシュボードウィジェットは後続フェーズで実装します。</div>
-            </article>
+            <div id="adminDashboardClockDigital" class="admin-dashboard-clock admin-dashboard-clock--digital">
+              <div class="admin-dashboard-clock__time" data-clock-time>--:--:--</div>
+              <div class="admin-dashboard-clock__date" data-clock-date>----</div>
+            </div>
 
-            <article class="admin-panel admin-panel--soft">
-              <h2 class="admin-panel__title">Step 1 で確認するもの</h2>
-              <p class="admin-panel__meta">
-                admin 権限判定、404 扱い、サイドバー折りたたみ、独立スクロール、共通 dirty guard の土台を先に通します。
-              </p>
-              <div class="admin-panel__placeholder">新着画像、時計、オンラインユーザーは次の実装単位です。</div>
-            </article>
-          </section>
-        
+            <div id="adminDashboardClockAnalog" class="admin-dashboard-clock admin-dashboard-clock--analog" hidden>
+              <div class="admin-analog-clock">
+                <div class="admin-analog-clock__dial"></div>
+                <div class="admin-analog-clock__hand admin-analog-clock__hand--hour" data-clock-hand="hour"></div>
+                <div class="admin-analog-clock__hand admin-analog-clock__hand--minute" data-clock-hand="minute"></div>
+                <div class="admin-analog-clock__hand admin-analog-clock__hand--second" data-clock-hand="second"></div>
+                <div class="admin-analog-clock__center"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--stats">
+            <div class="admin-dashboard-card__header">
+              <h2 class="admin-panel__title">概要</h2>
+            </div>
+            <div class="admin-dashboard-stats">
+              <div class="admin-stat">
+                <div class="admin-stat__label">オンラインユーザー</div>
+                <div id="adminStatOnlineUsers" class="admin-stat__value">-</div>
+              </div>
+              <div class="admin-stat">
+                <div class="admin-stat__label">本日の投稿数</div>
+                <div id="adminStatTodayUploads" class="admin-stat__value">-</div>
+              </div>
+              <div class="admin-stat">
+                <div class="admin-stat__label">公開</div>
+                <div id="adminStatPublicCount" class="admin-stat__value">-</div>
+              </div>
+              <div class="admin-stat">
+                <div class="admin-stat__label">非公開</div>
+                <div id="adminStatPrivateCount" class="admin-stat__value">-</div>
+              </div>
+              <div class="admin-stat">
+                <div class="admin-stat__label">隔離中</div>
+                <div id="adminStatQuarantineCount" class="admin-stat__value">-</div>
+              </div>
+              <div class="admin-stat admin-stat--wide">
+                <div class="admin-stat__label">ストレージ使用量</div>
+                <div class="admin-stat__value-wrap">
+                  <span id="adminStatStorageUsed" class="admin-stat__value">-</span>
+                  <span class="admin-stat__divider">/</span>
+                  <span id="adminStatStorageTotal" class="admin-stat__subvalue">-</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--latest">
+            <div class="admin-dashboard-card__header">
+              <h2 class="admin-panel__title">新着画像</h2>
+            </div>
+
+            <div id="adminDashboardLatestImagePlaceholder" class="admin-dashboard-empty">
+              新着画像はまだありません。
+            </div>
+
+            <div id="adminDashboardLatestImageCard" class="admin-dashboard-latest" hidden>
+              <div class="admin-dashboard-latest__image-wrap">
+                <img id="adminDashboardLatestImage" class="admin-dashboard-latest__image" alt="">
+              </div>
+              <div class="admin-dashboard-latest__body">
+                <div id="adminDashboardLatestImageTitle" class="admin-dashboard-latest__title">-</div>
+                <div id="adminDashboardLatestImageMeta" class="admin-dashboard-latest__meta">-</div>
+                <div id="adminDashboardLatestImageStats" class="admin-dashboard-latest__stats">-</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--users">
+            <div class="admin-dashboard-card__header">
+              <h2 class="admin-panel__title">現在アクセス中ユーザー</h2>
+            </div>
+            <div id="adminDashboardActiveUsers" class="admin-active-user-list"></div>
+          </article>
+
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--logs">
+            <div class="admin-dashboard-card__header">
+              <h2 class="admin-panel__title">直近操作ログ</h2>
+            </div>
+            <div id="adminDashboardRecentLogs" class="admin-log-list"></div>
+          </article>
+        </section>
       </main>
     </div>
   </section>
@@ -158,5 +237,6 @@
   <div id="appToastRoot" class="app-toast-root" aria-live="polite"></div>
 
   <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
+  <script type="module" src="/gallery/assets/js/admin/dashboard.js"></script>
 </body>
 </html>

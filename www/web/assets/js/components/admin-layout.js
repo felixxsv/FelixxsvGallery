@@ -21,7 +21,9 @@ function createAdminContext() {
     session,
     modal,
     toast,
-    page: document.body.dataset.adminPage || "dashboard"
+    page: document.body.dataset.adminPage || "dashboard",
+    ready: false,
+    bootstrapData: null
   };
 }
 
@@ -65,6 +67,7 @@ export async function initAdminLayout() {
     hide(refs.appShell);
     show(refs.notFound);
     document.title = "404 - Felixxsv Gallery";
+    document.dispatchEvent(new CustomEvent("admin:not-found"));
   }
 
   function showError(message) {
@@ -72,9 +75,11 @@ export async function initAdminLayout() {
     hide(refs.notFound);
     hide(refs.appShell);
     show(refs.error);
-    if (refs.error) {
-      refs.error.textContent = message || "管理画面の初期化に失敗しました。";
+    const description = refs.error?.querySelector(".admin-state-card__description");
+    if (description) {
+      description.textContent = message || "管理画面の初期化に失敗しました。";
     }
+    document.dispatchEvent(new CustomEvent("admin:error", { detail: { message } }));
   }
 
   function showApp() {
@@ -184,7 +189,10 @@ export async function initAdminLayout() {
     if (refs.pageDescription) refs.pageDescription.textContent = desc;
 
     populateNavigation(data.navigation || []);
+    app.bootstrapData = data;
+    app.ready = true;
     showApp();
+    document.dispatchEvent(new CustomEvent("admin:ready", { detail: { app, bootstrap: data } }));
   } catch (error) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
       showNotFound();
