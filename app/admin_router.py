@@ -2654,6 +2654,200 @@ CREATE TABLE IF NOT EXISTS admin_notification_recipients (
         )
 
 
+
+def _ensure_admin_mail_drafts_table(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS admin_mail_drafts (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    recipient_scope VARCHAR(50) NOT NULL DEFAULT 'selected',
+    recipient_user_ids_json JSON NOT NULL,
+    subject VARCHAR(255) NOT NULL DEFAULT '',
+    body MEDIUMTEXT NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_admin_mail_drafts_user_id (user_id),
+    KEY idx_admin_mail_drafts_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+
+
+def _normalize_draft_scope(value) -> str:
+    scope = str(value or "selected").strip().lower()
+    return scope if scope in {"selected", "everyone"} else "selected"
+
+
+def _normalize_draft_recipient_ids(value) -> list[int]:
+    if not isinstance(value, list):
+        return []
+    out: list[int] = []
+    for item in value:
+        try:
+            user_id = int(item)
+        except Exception:
+            continue
+        if user_id > 0 and user_id not in out:
+            out.append(user_id)
+    return out
+
+
+def _build_mail_draft_payload(payload: dict | None) -> tuple[dict, dict]:
+    data = payload or {}
+    field_errors: dict = {}
+
+    scope = _normalize_draft_scope(data.get("recipient_scope"))
+    recipient_ids = _normalize_draft_recipient_ids(data.get("recipient_user_ids"))
+    subject = str(data.get("subject") or "")
+    body = str(data.get("body") or "")
+
+    if len(subject) > 255:
+        field_errors["subject"] = {"code": "too_long", "message": "件名が長すぎます。"}
+
+    return {
+        "recipient_scope": scope,
+        "recipient_user_ids": recipient_ids,
+        "subject": subject[:255],
+        "body": body,
+    }, field_errors
+
+
+def _mail_draft_is_empty(draft: dict) -> bool:
+    return (
+        str(draft.get("recipient_scope") or "selected") == "selected"
+        and not (draft.get("recipient_user_ids") or [])
+        and str(draft.get("subject") or "").strip() == ""
+        and str(draft.get("body") or "").strip() == ""
+    )
+
+
+def _resolve_mail_draft_recipients(conn, recipient_ids: list[int]) -> list[dict]:
+    if not recipient_ids:
+        return []
+    placeholders = ",".join(["%s"] * len(recipient_ids))
+    email_col = _users_email_column(conn)
+    select_cols = ["id", "display_name", "user_key"]
+    if email_col:
+        select_cols.append(f"{email_col} AS primary_email")
+    else:
+        select_cols.append("NULL AS primary_email")
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT {", ".join(select_cols)}
+FROM users
+WHERE id IN ({placeholders})
+ORDER BY display_name ASC, id ASC
+""",
+            recipient_ids,
+        )
+        rows = cur.fetchall()
+    items = []
+    for row in rows:
+        items.append(
+            {
+                "user_id": int(row.get("id")),
+                "display_name": row.get("display_name") or "",
+                "user_key": row.get("user_key") or "",
+                "primary_email": row.get("primary_email") or None,
+            }
+        )
+    return items
+
+
+def _load_admin_mail_draft(conn, user_id: int) -> dict:
+    _ensure_admin_mail_drafts_table(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT recipient_scope, recipient_user_ids_json, subject, body, created_at, updated_at
+FROM admin_mail_drafts
+WHERE user_id=%s
+LIMIT 1
+""",
+            (user_id,),
+        )
+        row = cur.fetchone()
+
+    if not row:
+        return {
+            "recipient_scope": "selected",
+            "recipient_user_ids": [],
+            "subject": "",
+            "body": "",
+            "created_at": None,
+            "updated_at": None,
+            "selected_recipients": [],
+            "selected_count": 0,
+        }
+
+    recipient_user_ids = row.get("recipient_user_ids_json")
+    if isinstance(recipient_user_ids, str):
+        try:
+            recipient_user_ids = json.loads(recipient_user_ids)
+        except Exception:
+            recipient_user_ids = []
+    recipient_user_ids = _normalize_draft_recipient_ids(recipient_user_ids)
+    selected_recipients = _resolve_mail_draft_recipients(conn, recipient_user_ids)
+
+    return {
+        "recipient_scope": _normalize_draft_scope(row.get("recipient_scope")),
+        "recipient_user_ids": recipient_user_ids,
+        "subject": row.get("subject") or "",
+        "body": row.get("body") or "",
+        "created_at": _coerce_utc_text(row.get("created_at")),
+        "updated_at": _coerce_utc_text(row.get("updated_at")),
+        "selected_recipients": selected_recipients,
+        "selected_count": len(recipient_user_ids),
+    }
+
+
+def _save_admin_mail_draft(conn, user_id: int, draft: dict) -> dict:
+    _ensure_admin_mail_drafts_table(conn)
+
+    if _mail_draft_is_empty(draft):
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM admin_mail_drafts WHERE user_id=%s", (user_id,))
+        return _load_admin_mail_draft(conn, user_id)
+
+    recipient_ids_json = json.dumps(draft.get("recipient_user_ids") or [], ensure_ascii=False)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+INSERT INTO admin_mail_drafts (
+    user_id,
+    recipient_scope,
+    recipient_user_ids_json,
+    subject,
+    body
+)
+VALUES (%s, %s, CAST(%s AS JSON), %s, %s)
+ON DUPLICATE KEY UPDATE
+    recipient_scope=VALUES(recipient_scope),
+    recipient_user_ids_json=VALUES(recipient_user_ids_json),
+    subject=VALUES(subject),
+    body=VALUES(body),
+    updated_at=CURRENT_TIMESTAMP(6)
+""",
+            (
+                user_id,
+                _normalize_draft_scope(draft.get("recipient_scope")),
+                recipient_ids_json,
+                str(draft.get("subject") or "")[:255],
+                str(draft.get("body") or ""),
+            ),
+        )
+    return _load_admin_mail_draft(conn, user_id)
+
+
+def _delete_admin_mail_draft(conn, user_id: int) -> None:
+    _ensure_admin_mail_drafts_table(conn)
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM admin_mail_drafts WHERE user_id=%s", (user_id,))
+
 def _mail_sender_settings() -> dict:
     conf = _get_conf()
     smtp = conf.get("smtp") or {}
@@ -3080,9 +3274,67 @@ WHERE id=%s
         },
     )
 
+    if actor_id is not None:
+        _delete_admin_mail_draft(conn, actor_id)
+
     history = _load_mail_history_page(conn, 1, 1)
     item = (history.get("items") or [{}])[0]
     return item, {"success_count": success_count, "failure_count": failure_count, "recipient_summary": summary}
+
+
+
+@router.get("/mail/draft")
+def admin_mail_draft(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection()
+        draft = _load_admin_mail_draft(conn, int(actor.get("id") or 0))
+        return _json_success(request_id=request_id, data={"draft": draft}, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "メール下書きの取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.put("/mail/draft")
+def admin_mail_draft_save(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+
+    normalized, field_errors = _build_mail_draft_payload(payload)
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "下書きの保存に失敗しました。", field_errors=field_errors)
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        draft = _save_admin_mail_draft(conn, int(actor.get("id") or 0), normalized)
+        conn.commit()
+        return _json_success(request_id=request_id, data={"draft": draft}, message="下書きを保存しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "下書きの保存に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @router.get("/mail/templates")
