@@ -2219,6 +2219,61 @@ def _normalize_meta_json(value):
     return value
 
 
+
+
+def _resolve_audit_target_label(conn, target_type: str | None, target_id) -> str:
+    normalized_type = str(target_type or '').strip()
+    if target_id in (None, ''):
+        return normalized_type or '-'
+
+    target_id_text = str(target_id).strip()
+    if not target_id_text:
+        return normalized_type or '-'
+
+    try:
+        if normalized_type == 'user':
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+SELECT display_name, user_key
+FROM users
+WHERE id=%s
+LIMIT 1
+""",
+                    (target_id_text,),
+                )
+                row = cur.fetchone()
+            if row:
+                display_name = str(row.get('display_name') or '').strip()
+                user_key = str(row.get('user_key') or '').strip()
+                if display_name and user_key:
+                    return f'ユーザー:{display_name} ({user_key})'
+                if display_name:
+                    return f'ユーザー:{display_name}'
+                if user_key:
+                    return f'ユーザー:{user_key}'
+            return f'ユーザー:{target_id_text}'
+
+        if normalized_type in {'image', 'content'}:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+SELECT title
+FROM images
+WHERE id=%s
+LIMIT 1
+""",
+                    (target_id_text,),
+                )
+                row = cur.fetchone()
+            if row and row.get('title'):
+                return f'画像:{row.get("title")}'
+            return f'画像:{target_id_text}'
+    except Exception:
+        pass
+
+    return f'{normalized_type}:{target_id_text}' if normalized_type else target_id_text
+
 def _load_audit_logs_page(
     conn,
     page: int,
@@ -2337,9 +2392,7 @@ LIMIT %s OFFSET %s
     items = []
     for row in rows:
         target_id = row.get("target_id")
-        target_label = row.get("target_type") or "-"
-        if target_id not in (None, ""):
-            target_label = f"{target_label}:{target_id}"
+        target_label = _resolve_audit_target_label(conn, row.get("target_type"), target_id)
         items.append(
             {
                 "id": int(row.get("id")),
@@ -2421,9 +2474,7 @@ LIMIT 1
         return None
 
     target_id = row.get("target_id")
-    target_label = row.get("target_type") or "-"
-    if target_id not in (None, ""):
-        target_label = f"{target_label}:{target_id}"
+    target_label = _resolve_audit_target_label(conn, row.get("target_type"), target_id)
 
     return {
         "id": int(row.get("id")),
@@ -2448,7 +2499,7 @@ LIMIT 1
 def _build_audit_logs_csv(items: list[dict]) -> str:
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["id", "created_at", "actor_display_name", "actor_user_key", "action_type", "target_type", "target_id", "result", "summary", "ip_address"])
+    writer.writerow(["id", "created_at", "actor_display_name", "actor_user_key", "action_type", "target_type", "target_id", "target_label", "result", "summary", "ip_address"])
     for item in items:
         actor = item.get("actor") or {}
         writer.writerow(
@@ -2460,6 +2511,7 @@ def _build_audit_logs_csv(items: list[dict]) -> str:
                 item.get("action_type"),
                 item.get("target_type"),
                 item.get("target_id"),
+                item.get("target_label"),
                 item.get("result"),
                 item.get("summary"),
                 item.get("ip_address"),

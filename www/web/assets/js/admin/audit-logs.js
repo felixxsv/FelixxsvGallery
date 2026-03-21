@@ -1,4 +1,3 @@
-
 function byId(id) {
   return document.getElementById(id);
 }
@@ -59,9 +58,9 @@ function renderTable(errorMessage = "") {
   if (!tbody) return;
 
   if (errorMessage) {
-    tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__error">${escapeHtml(errorMessage)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-audit-table__error">${escapeHtml(errorMessage)}</td></tr>`;
   } else if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__empty">該当する監査ログがありません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-audit-table__empty">該当する監査ログがありません。</td></tr>`;
   } else {
     tbody.innerHTML = state.items.map((item) => {
       const actor = item.actor?.display_name || item.actor?.user_key || "-";
@@ -70,10 +69,11 @@ function renderTable(errorMessage = "") {
           <td>${escapeHtml(formatDateTime(item.created_at))}</td>
           <td>${escapeHtml(actor)}</td>
           <td>${escapeHtml(item.action_type || "-")}</td>
-          <td>${escapeHtml(item.target_label || "-")}</td>
           <td>${resultPill(item.result)}</td>
-          <td><div class="admin-audit-summary">${escapeHtml(item.summary || "-")}</div></td>
-          <td><button type="button" class="app-button app-button--ghost admin-users-mini-button" data-action="detail" data-log-id="${item.id}">詳細</button></td>
+          <td class="admin-audit-summary">${escapeHtml(item.summary || "-")}</td>
+          <td>
+            <button type="button" class="app-button app-button--ghost app-button--sm" data-action="detail" data-log-id="${Number(item.id || 0)}">詳細</button>
+          </td>
         </tr>
       `;
     }).join("");
@@ -88,7 +88,7 @@ function renderTable(errorMessage = "") {
 async function loadAuditLogs() {
   const tbody = byId("adminAuditTableBody");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__empty">読み込み中です。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-audit-table__empty">読み込み中です。</td></tr>`;
   }
   try {
     const payload = await window.AdminApp.api.get(`/api/admin/audit-logs?${buildQuery()}`);

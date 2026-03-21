@@ -56,7 +56,7 @@
 .admin-audit-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 860px;
 }
 
 .admin-audit-table th,
