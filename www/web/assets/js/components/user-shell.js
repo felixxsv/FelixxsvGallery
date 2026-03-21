@@ -1,3 +1,4 @@
+
 import { byId } from "../core/dom.js";
 
 function formatDate(value) {
@@ -7,6 +8,10 @@ function formatDate(value) {
     return String(value);
   }
   return date.toLocaleString("ja-JP");
+}
+
+function nowMs() {
+  return Date.now();
 }
 
 export function initUserShell(app) {
@@ -66,16 +71,31 @@ export function initUserShell(app) {
     twoFactorSetupMessage: byId("shellTwoFactorSetupMessage"),
     twoFactorCodeInput: byId("shellTwoFactorCodeInput"),
     twoFactorSetupConfirmButton: byId("shellTwoFactorSetupConfirmButton"),
+    twoFactorSetupResendButton: byId("shellTwoFactorSetupResendButton"),
+    twoFactorSetupCancelButton: byId("shellTwoFactorSetupCancelButton"),
 
     twoFactorDisableMessage: byId("shellTwoFactorDisableMessage"),
     twoFactorDisableCodeInput: byId("shellTwoFactorDisableCodeInput"),
-    twoFactorDisableConfirmButton: byId("shellTwoFactorDisableConfirmButton")
+    twoFactorDisableConfirmButton: byId("shellTwoFactorDisableConfirmButton"),
+    twoFactorDisableResendButton: byId("shellTwoFactorDisableResendButton"),
+    twoFactorDisableCancelButton: byId("shellTwoFactorDisableCancelButton"),
+
+    actionConfirmMessage: byId("shellTwoFactorActionConfirmMessage"),
+    actionConfirmApproveButton: byId("shellTwoFactorActionConfirmApproveButton"),
+    actionConfirmCancelButton: byId("shellTwoFactorActionConfirmCancelButton")
   };
 
   const shellState = {
     twoFactorSetupTicket: null,
-    twoFactorDisableTicket: null
+    twoFactorDisableTicket: null,
+    twoFactorSetupResendAvailableAt: 0,
+    twoFactorDisableResendAvailableAt: 0,
+    bypassVerificationCloseGuard: false,
+    allowBrowserLeave: false,
+    actionConfirmResolver: null
   };
+
+  let countdownTimer = null;
 
   function getSessionState() {
     return session.getState();
@@ -99,6 +119,78 @@ export function initUserShell(app) {
 
   function currentEmail() {
     return (getUser()?.primary_email || "").trim();
+  }
+
+  function hasSetupFlow() {
+    return !!shellState.twoFactorSetupTicket;
+  }
+
+  function hasDisableFlow() {
+    return !!shellState.twoFactorDisableTicket;
+  }
+
+  function hasPendingVerificationFlow() {
+    return hasSetupFlow() || hasDisableFlow();
+  }
+
+  function getCooldownRemainingSec(kind) {
+    const until = kind === "setup" ? shellState.twoFactorSetupResendAvailableAt : shellState.twoFactorDisableResendAvailableAt;
+    return Math.max(0, Math.ceil((Number(until || 0) - nowMs()) / 1000));
+  }
+
+  function setCooldownFromSeconds(kind, seconds) {
+    const safe = Math.max(0, Number(seconds) || 0);
+    const until = nowMs() + safe * 1000;
+    if (kind === "setup") shellState.twoFactorSetupResendAvailableAt = until;
+    if (kind === "disable") shellState.twoFactorDisableResendAvailableAt = until;
+    refreshResendButtons();
+  }
+
+  function refreshResendButtons() {
+    const setupRemain = getCooldownRemainingSec("setup");
+    if (refs.twoFactorSetupResendButton) {
+      refs.twoFactorSetupResendButton.disabled = setupRemain > 0;
+      refs.twoFactorSetupResendButton.textContent = setupRemain > 0 ? `再送 (${setupRemain}秒)` : "再送";
+    }
+
+    const disableRemain = getCooldownRemainingSec("disable");
+    if (refs.twoFactorDisableResendButton) {
+      refs.twoFactorDisableResendButton.disabled = disableRemain > 0;
+      refs.twoFactorDisableResendButton.textContent = disableRemain > 0 ? `再送 (${disableRemain}秒)` : "再送";
+    }
+  }
+
+  function startCountdownTimer() {
+    if (countdownTimer) {
+      window.clearInterval(countdownTimer);
+    }
+    countdownTimer = window.setInterval(() => {
+      refreshResendButtons();
+    }, 1000);
+  }
+
+  function openActionConfirm(message, approveText = "実行する", danger = false) {
+    if (!refs.actionConfirmApproveButton || !refs.actionConfirmCancelButton || !refs.actionConfirmMessage) {
+      return Promise.resolve(window.confirm(message));
+    }
+
+    refs.actionConfirmMessage.textContent = message;
+    refs.actionConfirmApproveButton.textContent = approveText;
+    refs.actionConfirmApproveButton.classList.toggle("app-button--danger", danger);
+    app.modal.open("twofactor-action-confirm");
+
+    return new Promise((resolve) => {
+      shellState.actionConfirmResolver = resolve;
+    });
+  }
+
+  function closeActionConfirm(result) {
+    if (shellState.actionConfirmResolver) {
+      const resolve = shellState.actionConfirmResolver;
+      shellState.actionConfirmResolver = null;
+      resolve(Boolean(result));
+    }
+    app.modal.close("twofactor-action-confirm");
   }
 
   function renderHeaderIcon() {
@@ -253,7 +345,7 @@ export function initUserShell(app) {
     }
   }
 
-  async function handleTwoFactorEnable() {
+  async function beginTwoFactorFlow(kind) {
     if (!isAuthenticated()) {
       toast.error("ログインが必要です。");
       return;
@@ -264,15 +356,42 @@ export function initUserShell(app) {
       return;
     }
 
-    try {
-      const payload = await app.api.post("/api/auth/2fa/setup/start");
-      shellState.twoFactorSetupTicket = payload.data.verify_ticket;
-      refs.twoFactorSetupMessage.textContent = `${payload.data.masked_email} に確認コードを送信しました。`;
-      refs.twoFactorCodeInput.value = "";
-      app.modal.open("twofactor-setup");
-    } catch (error) {
-      toast.error(error.message || "2段階認証の開始に失敗しました。");
+    const sendingMessage = kind === "setup"
+      ? "2段階認証の有効化確認コードを送信します。よろしいですか。"
+      : "2段階認証の無効化確認コードを送信します。よろしいですか。";
+    const approved = await openActionConfirm(sendingMessage, "確認コードを送信");
+    if (!approved) {
+      return;
     }
+
+    try {
+      const endpoint = kind === "setup" ? "/api/auth/2fa/setup/start" : "/api/auth/2fa/disable/start";
+      const payload = await app.api.post(endpoint);
+      const verifyTicket = payload?.data?.verify_ticket || null;
+      const maskedEmail = payload?.data?.masked_email || "";
+
+      if (kind === "setup") {
+        shellState.twoFactorSetupTicket = verifyTicket;
+        refs.twoFactorSetupMessage.textContent = maskedEmail ? `${maskedEmail} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+        refs.twoFactorCodeInput.value = "";
+        setCooldownFromSeconds("setup", payload?.data?.resend_cooldown_sec);
+        app.modal.open("twofactor-setup");
+      } else {
+        shellState.twoFactorDisableTicket = verifyTicket;
+        refs.twoFactorDisableMessage.textContent = maskedEmail ? `${maskedEmail} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+        refs.twoFactorDisableCodeInput.value = "";
+        setCooldownFromSeconds("disable", payload?.data?.resend_cooldown_sec);
+        app.modal.open("twofactor-disable");
+      }
+
+      toast.success(payload?.message || "確認コードを送信しました。");
+    } catch (error) {
+      toast.error(error.message || "確認コードの送信に失敗しました。");
+    }
+  }
+
+  async function handleTwoFactorEnable() {
+    await beginTwoFactorFlow("setup");
   }
 
   async function handleTwoFactorSetupConfirm() {
@@ -287,7 +406,11 @@ export function initUserShell(app) {
         code: refs.twoFactorCodeInput.value
       });
       shellState.twoFactorSetupTicket = null;
+      shellState.twoFactorSetupResendAvailableAt = 0;
+      refreshResendButtons();
+      shellState.bypassVerificationCloseGuard = true;
       app.modal.close("twofactor-setup");
+      shellState.bypassVerificationCloseGuard = false;
       await refreshSession();
       renderAccountModal();
       renderUserCard();
@@ -297,26 +420,36 @@ export function initUserShell(app) {
     }
   }
 
-  async function handleTwoFactorDisableStart() {
-    if (!isAuthenticated()) {
-      toast.error("ログインが必要です。");
+  async function handleTwoFactorSetupResend() {
+    if (!shellState.twoFactorSetupTicket) {
+      toast.error("確認トークンがありません。");
       return;
     }
-
-    if (!currentEmail()) {
-      toast.error("メールアドレスを入力してください。");
+    if (getCooldownRemainingSec("setup") > 0) {
+      toast.error("しばらく待ってから再送してください。");
       return;
     }
 
     try {
-      const payload = await app.api.post("/api/auth/2fa/disable/start");
-      shellState.twoFactorDisableTicket = payload.data.verify_ticket;
-      refs.twoFactorDisableMessage.textContent = `${payload.data.masked_email} に確認コードを送信しました。`;
-      refs.twoFactorDisableCodeInput.value = "";
-      app.modal.open("twofactor-disable");
+      const payload = await app.api.post("/api/auth/verify/email/send", {
+        verify_ticket: shellState.twoFactorSetupTicket
+      });
+      shellState.twoFactorSetupTicket = payload.data.verify_ticket;
+      refs.twoFactorSetupMessage.textContent = payload.data.masked_email ? `${payload.data.masked_email} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+      refs.twoFactorCodeInput.value = "";
+      setCooldownFromSeconds("setup", payload?.data?.resend_cooldown_sec);
+      toast.success(payload.message || "確認コードを再送しました。");
     } catch (error) {
-      toast.error(error.message || "2段階認証の無効化開始に失敗しました。");
+      const retryAfterSec = Number(error?.payload?.error?.retry_after_sec);
+      if (Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
+        setCooldownFromSeconds("setup", retryAfterSec);
+      }
+      toast.error(error.message || "確認コードの再送に失敗しました。");
     }
+  }
+
+  async function handleTwoFactorDisableStart() {
+    await beginTwoFactorFlow("disable");
   }
 
   async function handleTwoFactorDisableConfirm() {
@@ -331,7 +464,11 @@ export function initUserShell(app) {
         code: refs.twoFactorDisableCodeInput.value
       });
       shellState.twoFactorDisableTicket = null;
+      shellState.twoFactorDisableResendAvailableAt = 0;
+      refreshResendButtons();
+      shellState.bypassVerificationCloseGuard = true;
       app.modal.close("twofactor-disable");
+      shellState.bypassVerificationCloseGuard = false;
       await refreshSession();
       renderAccountModal();
       renderUserCard();
@@ -341,6 +478,62 @@ export function initUserShell(app) {
     }
   }
 
+  async function handleTwoFactorDisableResend() {
+    if (!shellState.twoFactorDisableTicket) {
+      toast.error("確認トークンがありません。");
+      return;
+    }
+    if (getCooldownRemainingSec("disable") > 0) {
+      toast.error("しばらく待ってから再送してください。");
+      return;
+    }
+
+    try {
+      const payload = await app.api.post("/api/auth/verify/email/send", {
+        verify_ticket: shellState.twoFactorDisableTicket
+      });
+      shellState.twoFactorDisableTicket = payload.data.verify_ticket;
+      refs.twoFactorDisableMessage.textContent = payload.data.masked_email ? `${payload.data.masked_email} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+      refs.twoFactorDisableCodeInput.value = "";
+      setCooldownFromSeconds("disable", payload?.data?.resend_cooldown_sec);
+      toast.success(payload.message || "確認コードを再送しました。");
+    } catch (error) {
+      const retryAfterSec = Number(error?.payload?.error?.retry_after_sec);
+      if (Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
+        setCooldownFromSeconds("disable", retryAfterSec);
+      }
+      toast.error(error.message || "確認コードの再送に失敗しました。");
+    }
+  }
+
+  async function requestDiscardVerificationFlow(kind) {
+    const message = kind === "setup"
+      ? "2段階認証の有効化確認を中断しますか？"
+      : "2段階認証の無効化確認を中断しますか？";
+    const approved = await openActionConfirm(message, "中断する", true);
+    if (!approved) {
+      return;
+    }
+
+    if (kind === "setup") {
+      shellState.twoFactorSetupTicket = null;
+      shellState.twoFactorSetupResendAvailableAt = 0;
+      refs.twoFactorCodeInput.value = "";
+      shellState.bypassVerificationCloseGuard = true;
+      app.modal.close("twofactor-setup");
+      shellState.bypassVerificationCloseGuard = false;
+    } else {
+      shellState.twoFactorDisableTicket = null;
+      shellState.twoFactorDisableResendAvailableAt = 0;
+      refs.twoFactorDisableCodeInput.value = "";
+      shellState.bypassVerificationCloseGuard = true;
+      app.modal.close("twofactor-disable");
+      shellState.bypassVerificationCloseGuard = false;
+    }
+
+    refreshResendButtons();
+  }
+
   function handleEmailSave() {
     const email = refs.emailInput.value.trim();
     if (!email) {
@@ -348,6 +541,14 @@ export function initUserShell(app) {
       return;
     }
     toast.info("メールアドレス登録・変更は未実装です。");
+  }
+
+  function handleBeforeUnload(event) {
+    if (!hasPendingVerificationFlow() || shellState.allowBrowserLeave) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = "";
   }
 
   function bindEvents() {
@@ -364,8 +565,14 @@ export function initUserShell(app) {
     refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
     refs.twoFactorEnableButton.addEventListener("click", handleTwoFactorEnable);
     refs.twoFactorSetupConfirmButton.addEventListener("click", handleTwoFactorSetupConfirm);
+    refs.twoFactorSetupResendButton.addEventListener("click", handleTwoFactorSetupResend);
+    refs.twoFactorSetupCancelButton.addEventListener("click", () => requestDiscardVerificationFlow("setup"));
     refs.twoFactorDisableOpenButton.addEventListener("click", handleTwoFactorDisableStart);
     refs.twoFactorDisableConfirmButton.addEventListener("click", handleTwoFactorDisableConfirm);
+    refs.twoFactorDisableResendButton.addEventListener("click", handleTwoFactorDisableResend);
+    refs.twoFactorDisableCancelButton.addEventListener("click", () => requestDiscardVerificationFlow("disable"));
+    refs.actionConfirmApproveButton.addEventListener("click", () => closeActionConfirm(true));
+    refs.actionConfirmCancelButton.addEventListener("click", () => closeActionConfirm(false));
     refs.emailSaveButton.addEventListener("click", handleEmailSave);
 
     refs.settingLanguage.addEventListener("change", () => {
@@ -396,13 +603,32 @@ export function initUserShell(app) {
       }
     });
 
+    document.getElementById("appModalRoot").addEventListener("app:modal-close", (event) => {
+      if (shellState.bypassVerificationCloseGuard) {
+        return;
+      }
+      const id = event.detail.id;
+      if (id === "twofactor-setup" && shellState.twoFactorSetupTicket) {
+        app.modal.open("twofactor-setup");
+        requestDiscardVerificationFlow("setup");
+      }
+      if (id === "twofactor-disable" && shellState.twoFactorDisableTicket) {
+        app.modal.open("twofactor-disable");
+        requestDiscardVerificationFlow("disable");
+      }
+    });
+
     session.subscribe(() => {
       renderUserCard();
     });
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
   }
 
   renderCredits();
   renderSettings();
   renderUserCard();
+  refreshResendButtons();
+  startCountdownTimer();
   bindEvents();
 }

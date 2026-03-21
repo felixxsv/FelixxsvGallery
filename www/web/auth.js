@@ -1,3 +1,4 @@
+
 const el = (id) => document.getElementById(id)
 
 const tabLogin = el("tabLogin")
@@ -31,17 +32,33 @@ const completeUserKey = el("completeUserKey")
 const completeDisplayName = el("completeDisplayName")
 const completePassword = el("completePassword")
 const completeRegisterBtn = el("completeRegisterBtn")
+const authHeaderBackButton = el("authHeaderBackButton")
+
+const authConfirmLayer = el("authConfirmLayer")
+const authConfirmTitle = el("authConfirmTitle")
+const authConfirmMessage = el("authConfirmMessage")
+const authConfirmApproveBtn = el("authConfirmApproveBtn")
+const authConfirmCancelBtn = el("authConfirmCancelBtn")
 
 let toastWrap = null
 let toastBox = null
 let toastTimer = null
+let confirmResolver = null
+let countdownTimer = null
+let leaveGuardPrimed = false
+let allowBrowserLeave = false
+let popstateBypass = false
+
+const STORAGE_KEY = "felixxsv-gallery-auth-flow"
 
 const state = {
   verifyTicket: "",
   registrationToken: "",
   signupEmail: "",
   challengeToken: "",
-  challengeMaskedEmail: ""
+  challengeMaskedEmail: "",
+  signupResendAvailableAt: 0,
+  loginResendAvailableAt: 0
 }
 
 function ensureToast() {
@@ -79,6 +96,82 @@ function showToastOk(text, ms) {
   showToast(text, ms || 2600, "ok")
 }
 
+function getErrorMessage(data, fallback) {
+  return String(data?.error?.message || data?.message || data?.detail || fallback)
+}
+
+function nowMs() {
+  return Date.now()
+}
+
+function setCooldownFromSeconds(kind, seconds) {
+  const safe = Math.max(0, Number(seconds) || 0)
+  const until = nowMs() + safe * 1000
+  if (kind === "signup") state.signupResendAvailableAt = until
+  if (kind === "login") state.loginResendAvailableAt = until
+  persistState()
+  refreshResendButtons()
+}
+
+function getCooldownRemainingSec(kind) {
+  const until = kind === "signup" ? state.signupResendAvailableAt : state.loginResendAvailableAt
+  return Math.max(0, Math.ceil((Number(until || 0) - nowMs()) / 1000))
+}
+
+function refreshResendButtons() {
+  const signupRemain = getCooldownRemainingSec("signup")
+  if (signupResendBtn) {
+    signupResendBtn.disabled = signupRemain > 0
+    signupResendBtn.textContent = signupRemain > 0 ? `再送 (${signupRemain}秒)` : "再送"
+  }
+
+  const loginRemain = getCooldownRemainingSec("login")
+  if (loginTwoFactorResendBtn) {
+    loginTwoFactorResendBtn.disabled = loginRemain > 0
+    loginTwoFactorResendBtn.textContent = loginRemain > 0 ? `再送 (${loginRemain}秒)` : "再送"
+  }
+}
+
+function startCountdownTicker() {
+  if (countdownTimer) clearInterval(countdownTimer)
+  countdownTimer = setInterval(() => {
+    refreshResendButtons()
+  }, 1000)
+}
+
+function persistState() {
+  const payload = {
+    verifyTicket: state.verifyTicket,
+    registrationToken: state.registrationToken,
+    signupEmail: state.signupEmail,
+    challengeToken: state.challengeToken,
+    challengeMaskedEmail: state.challengeMaskedEmail,
+    signupResendAvailableAt: state.signupResendAvailableAt,
+    loginResendAvailableAt: state.loginResendAvailableAt
+  }
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+}
+
+function restorePersistedState() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+    const saved = JSON.parse(raw)
+    state.verifyTicket = String(saved?.verifyTicket || "")
+    state.registrationToken = String(saved?.registrationToken || "")
+    state.signupEmail = String(saved?.signupEmail || "")
+    state.challengeToken = String(saved?.challengeToken || "")
+    state.challengeMaskedEmail = String(saved?.challengeMaskedEmail || "")
+    state.signupResendAvailableAt = Number(saved?.signupResendAvailableAt || 0)
+    state.loginResendAvailableAt = Number(saved?.loginResendAvailableAt || 0)
+  } catch (_error) {
+  }
+}
+
+function clearPersistedState() {
+  sessionStorage.removeItem(STORAGE_KEY)
+}
+
 function postJson(url, payload) {
   return fetch(url, {
     method: "POST",
@@ -93,26 +186,45 @@ function postJson(url, payload) {
   })
 }
 
-function getErrorMessage(data, fallback) {
-  return String(data?.error?.message || data?.message || data?.detail || fallback)
+function getJson(url) {
+  return fetch(url, {
+    method: "GET",
+    credentials: "same-origin",
+    headers: {
+      "Accept": "application/json"
+    }
+  }).then(async (res) => {
+    const data = await res.json().catch(() => ({}))
+    return { res, data }
+  })
+}
+
+function safeRelativePath(path) {
+  const raw = String(path || "").trim()
+  if (!raw) return "/gallery/"
+  if (!raw.startsWith("/")) return "/gallery/"
+  if (raw.startsWith("//")) return "/gallery/"
+  return raw
 }
 
 function nextUrl() {
   const u = new URL(location.href)
-  const n = u.searchParams.get("next")
-  if (n) return n
-  return "/gallery/"
+  return safeRelativePath(u.searchParams.get("next"))
 }
 
 function setQuery(params) {
   const url = new URL(location.href)
+  const next = url.searchParams.get("next")
   url.search = ""
+  if (next) {
+    url.searchParams.set("next", safeRelativePath(next))
+  }
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
       url.searchParams.set(key, value)
     }
   })
-  history.replaceState(null, "", url.toString())
+  history.replaceState(history.state, "", url.toString())
 }
 
 function setTab(which) {
@@ -126,21 +238,186 @@ function setTab(which) {
 function setLoginStage(which) {
   loginStageCredentials.hidden = which !== "credentials"
   loginStageTwoFactor.hidden = which !== "twofactor"
+  persistState()
+  refreshLeaveGuard()
 }
 
 function setSignupStage(which) {
   signupStageStart.hidden = which !== "start"
   signupStageVerify.hidden = which !== "verify"
   signupStageComplete.hidden = which !== "complete"
+  persistState()
+  refreshLeaveGuard()
 }
 
 function resetSignupState() {
   state.verifyTicket = ""
   state.registrationToken = ""
+  state.signupResendAvailableAt = 0
   signupVerifyCode.value = ""
   completeUserKey.value = ""
   completeDisplayName.value = ""
   completePassword.value = ""
+  persistState()
+  refreshResendButtons()
+}
+
+function resetLoginTwoFactorState() {
+  state.challengeToken = ""
+  state.challengeMaskedEmail = ""
+  state.loginResendAvailableAt = 0
+  loginTwoFactorCode.value = ""
+  loginTwoFactorMessage.textContent = "認証コードを入力してください。"
+  persistState()
+  refreshResendButtons()
+}
+
+function isSignupVerificationActive() {
+  return paneSignup.classList.contains("is-on") && !signupStageVerify.hidden && !!state.verifyTicket
+}
+
+function isSignupCompleteActive() {
+  return paneSignup.classList.contains("is-on") && !signupStageComplete.hidden && !!state.registrationToken
+}
+
+function isLoginTwoFactorActive() {
+  return paneLogin.classList.contains("is-on") && !loginStageTwoFactor.hidden && !!state.challengeToken
+}
+
+function hasPendingFlow() {
+  return isSignupVerificationActive() || isSignupCompleteActive() || isLoginTwoFactorActive()
+}
+
+function describePendingFlow() {
+  if (isSignupCompleteActive()) {
+    return "アカウント作成を中断して画面を離れますか？"
+  }
+  if (isSignupVerificationActive()) {
+    return "認証コード入力を中断して画面を離れますか？"
+  }
+  if (isLoginTwoFactorActive()) {
+    return "2段階認証を中断して画面を離れますか？"
+  }
+  return "この操作を中断して画面を離れますか？"
+}
+
+function openConfirmModal(options) {
+  if (!authConfirmLayer || !authConfirmTitle || !authConfirmMessage || !authConfirmApproveBtn || !authConfirmCancelBtn) {
+    return Promise.resolve(window.confirm(String(options?.message || "本当に実行しますか？")))
+  }
+
+  if (confirmResolver) {
+    confirmResolver(false)
+    confirmResolver = null
+  }
+
+  authConfirmTitle.textContent = String(options?.title || "確認")
+  authConfirmMessage.textContent = String(options?.message || "本当に実行しますか？")
+  authConfirmApproveBtn.textContent = String(options?.approveText || "実行する")
+  authConfirmCancelBtn.textContent = String(options?.cancelText || "キャンセル")
+  authConfirmApproveBtn.classList.remove("btn-danger")
+  if (options?.danger) authConfirmApproveBtn.classList.add("btn-danger")
+  authConfirmLayer.style.display = "flex"
+
+  return new Promise((resolve) => {
+    confirmResolver = resolve
+  })
+}
+
+function closeConfirmModal(result) {
+  if (authConfirmLayer) authConfirmLayer.style.display = "none"
+  if (confirmResolver) {
+    const resolve = confirmResolver
+    confirmResolver = null
+    resolve(Boolean(result))
+  }
+}
+
+async function confirmSendCode(message) {
+  return openConfirmModal({
+    title: "認証コード送信の確認",
+    message,
+    approveText: "送信する",
+    cancelText: "キャンセル"
+  })
+}
+
+async function confirmLeaveFlow(message) {
+  return openConfirmModal({
+    title: "確認",
+    message,
+    approveText: "中断する",
+    cancelText: "続ける",
+    danger: true
+  })
+}
+
+async function getVerifyStatus(mode, token) {
+  if (!token) return null
+  const key = mode === "2fa" ? "challenge" : "ticket"
+  const { res, data } = await getJson(`/gallery/api/auth/verify/status?mode=${encodeURIComponent(mode)}&${key}=${encodeURIComponent(token)}`)
+  if (!res.ok) return null
+  return data?.data || null
+}
+
+async function hydrateSignupVerifyStatus() {
+  if (!state.verifyTicket) return
+  const status = await getVerifyStatus("email", state.verifyTicket)
+  if (!status) return
+  signupVerifyMessage.textContent = status.masked_email ? `${status.masked_email} に届いた認証コードを入力してください。` : "メールに届いた認証コードを入力してください。"
+  setCooldownFromSeconds("signup", status.resend_cooldown_sec)
+}
+
+async function hydrateLoginTwoFactorStatus() {
+  if (!state.challengeToken) return
+  const status = await getVerifyStatus("2fa", state.challengeToken)
+  if (!status) return
+  state.challengeMaskedEmail = String(status.masked_email || state.challengeMaskedEmail || "")
+  loginTwoFactorMessage.textContent = state.challengeMaskedEmail ? `${state.challengeMaskedEmail} に送信した認証コードを入力してください。` : "認証コードを入力してください。"
+  setCooldownFromSeconds("login", status.resend_cooldown_sec)
+}
+
+function discardSignupVerifyFlow() {
+  resetSignupState()
+  setSignupStage("start")
+  setQuery({})
+}
+
+function discardLoginTwoFactorFlow() {
+  resetLoginTwoFactorState()
+  setLoginStage("credentials")
+  setQuery({})
+}
+
+async function handleLeaveCurrentFlow(afterDiscard) {
+  if (!hasPendingFlow()) {
+    afterDiscard()
+    return
+  }
+
+  const ok = await confirmLeaveFlow(describePendingFlow())
+  if (!ok) return
+
+  if (isSignupVerificationActive() || isSignupCompleteActive()) {
+    discardSignupVerifyFlow()
+  }
+  if (isLoginTwoFactorActive()) {
+    discardLoginTwoFactorFlow()
+  }
+  afterDiscard()
+}
+
+function refreshLeaveGuard() {
+  const active = hasPendingFlow()
+  if (active && !leaveGuardPrimed) {
+    history.pushState({ authLeaveGuard: true }, "", location.href)
+    leaveGuardPrimed = true
+  }
+  if (!active) {
+    leaveGuardPrimed = false
+    allowBrowserLeave = false
+    popstateBypass = false
+  }
 }
 
 async function doLogin() {
@@ -167,11 +444,13 @@ async function doLogin() {
     setTab("login")
     setLoginStage("twofactor")
     setQuery({ step: "verify-2fa", challenge: state.challengeToken })
-    showToastOk(String(data?.message || "認証コードを送信しました。"), 1800)
+    setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec)
+    showToastOk(String(data?.message || "認証コードを確認してください。"), 1800)
     return
   }
 
   showToastOk(String(data?.message || "ログインしました。"), 1600)
+  clearPersistedState()
   setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 450)
 }
 
@@ -181,17 +460,22 @@ async function doLoginTwoFactorVerify() {
     showToastErr("認証コードを入力してください。", 4200)
     return
   }
+
   const { res, data } = await postJson("/gallery/api/auth/2fa/challenge/verify", {
     challenge_token: state.challengeToken,
     code,
     remember_for_30_days: false
   })
+
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `2fa verify failed (${res.status})`), 5200)
     return
   }
-  showToastOk(String(data?.message || "ログインしました。"), 1600)
+
+  resetLoginTwoFactorState()
   setQuery({})
+  clearPersistedState()
+  showToastOk(String(data?.message || "ログインしました。"), 1600)
   setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 450)
 }
 
@@ -200,15 +484,26 @@ async function doLoginTwoFactorResend() {
     showToastErr("認証トークンがありません。", 4200)
     return
   }
+  if (getCooldownRemainingSec("login") > 0) {
+    showToastErr("しばらく待ってから再送してください。", 3000)
+    return
+  }
+
   const { res, data } = await postJson("/gallery/api/auth/2fa/challenge/send", { challenge_token: state.challengeToken })
+
   if (!res.ok) {
+    if (res.status === 429) {
+      setCooldownFromSeconds("login", data?.error?.retry_after_sec)
+    }
     showToastErr(getErrorMessage(data, `2fa resend failed (${res.status})`), 5200)
     return
   }
+
   state.challengeToken = String(data?.data?.challenge_token || state.challengeToken)
   state.challengeMaskedEmail = String(data?.data?.masked_email || state.challengeMaskedEmail)
   loginTwoFactorMessage.textContent = state.challengeMaskedEmail ? `${state.challengeMaskedEmail} に送信した認証コードを入力してください。` : "認証コードを入力してください。"
   setQuery({ step: "verify-2fa", challenge: state.challengeToken })
+  setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec)
   showToastOk(String(data?.message || "認証コードを再送しました。"), 1800)
 }
 
@@ -218,11 +513,17 @@ async function startRegistration() {
     showToastErr("メールアドレスを入力してください。", 4200)
     return
   }
+
+  const ok = await confirmSendCode("入力したメールアドレス宛に認証コードを送信します。よろしいですか？")
+  if (!ok) return
+
   const { res, data } = await postJson("/gallery/api/auth/register/start", { email })
+
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `register start failed (${res.status})`), 5200)
     return
   }
+
   state.signupEmail = email
   state.verifyTicket = String(data?.data?.verify_ticket || "")
   signupVerifyCode.value = ""
@@ -230,6 +531,7 @@ async function startRegistration() {
   setTab("signup")
   setSignupStage("verify")
   setQuery({ step: "verify-email", ticket: state.verifyTicket })
+  setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec)
   showToastOk(String(data?.message || "確認コードを送信しました。"), 1800)
 }
 
@@ -238,14 +540,25 @@ async function resendRegistrationCode() {
     showToastErr("verify_ticket がありません。", 4200)
     return
   }
+  if (getCooldownRemainingSec("signup") > 0) {
+    showToastErr("しばらく待ってから再送してください。", 3000)
+    return
+  }
+
   const { res, data } = await postJson("/gallery/api/auth/verify/email/send", { verify_ticket: state.verifyTicket })
+
   if (!res.ok) {
+    if (res.status === 429) {
+      setCooldownFromSeconds("signup", data?.error?.retry_after_sec)
+    }
     showToastErr(getErrorMessage(data, `verify resend failed (${res.status})`), 5200)
     return
   }
+
   state.verifyTicket = String(data?.data?.verify_ticket || state.verifyTicket)
   signupVerifyMessage.textContent = data?.data?.masked_email ? `${data.data.masked_email} に届いた認証コードを入力してください。` : "メールに届いた認証コードを入力してください。"
   setQuery({ step: "verify-email", ticket: state.verifyTicket })
+  setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec)
   showToastOk(String(data?.message || "確認コードを再送しました。"), 1800)
 }
 
@@ -255,14 +568,17 @@ async function confirmRegistrationCode() {
     showToastErr("認証コードを入力してください。", 4200)
     return
   }
+
   const { res, data } = await postJson("/gallery/api/auth/verify/email/confirm", {
     verify_ticket: state.verifyTicket,
     code
   })
+
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `verify failed (${res.status})`), 5200)
     return
   }
+
   state.registrationToken = String(data?.data?.registration_token || "")
   if (data?.data?.email) state.signupEmail = String(data.data.email)
   signupCompleteMessage.textContent = state.signupEmail ? `${state.signupEmail} のアカウント情報を入力してください。` : "アカウント情報を入力してください。"
@@ -276,10 +592,12 @@ async function completeRegistration() {
   const userKey = String(completeUserKey.value || "").trim()
   const displayName = String(completeDisplayName.value || "").trim()
   const password = String(completePassword.value || "")
+
   if (!state.registrationToken || !userKey || !displayName || !password) {
     showToastErr("user_key / display_name / password を入力してください。", 5200)
     return
   }
+
   const { res, data } = await postJson("/gallery/api/auth/register/complete", {
     registration_token: state.registrationToken,
     user_key: userKey,
@@ -287,10 +605,12 @@ async function completeRegistration() {
     password,
     terms_agreed: true
   })
+
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `register complete failed (${res.status})`), 5200)
     return
   }
+
   showToastOk(String(data?.message || "アカウントを作成しました。"), 2200)
   resetSignupState()
   setTab("login")
@@ -299,50 +619,144 @@ async function completeRegistration() {
   loginEmail.value = state.signupEmail || ""
   loginPass.value = ""
   setQuery({})
+  clearPersistedState()
 }
 
-function restoreFromLocation() {
+async function restoreFromLocation() {
+  restorePersistedState()
+  if (state.signupEmail && signupEmail) signupEmail.value = state.signupEmail
+
   const url = new URL(location.href)
-  const step = url.searchParams.get("step") || ""
+  const step = String(url.searchParams.get("step") || "")
   if (step === "verify-email") {
-    state.verifyTicket = String(url.searchParams.get("ticket") || "")
+    state.verifyTicket = String(url.searchParams.get("ticket") || state.verifyTicket || "")
     setTab("signup")
     setSignupStage("verify")
     setLoginStage("credentials")
+    await hydrateSignupVerifyStatus()
+    persistState()
     return
   }
   if (step === "complete-registration") {
-    state.registrationToken = String(url.searchParams.get("registration") || "")
+    state.registrationToken = String(url.searchParams.get("registration") || state.registrationToken || "")
     setTab("signup")
     setSignupStage("complete")
     setLoginStage("credentials")
+    persistState()
+    refreshLeaveGuard()
     return
   }
   if (step === "verify-2fa") {
-    state.challengeToken = String(url.searchParams.get("challenge") || "")
+    state.challengeToken = String(url.searchParams.get("challenge") || state.challengeToken || "")
     setTab("login")
     setLoginStage("twofactor")
+    await hydrateLoginTwoFactorStatus()
+    persistState()
     return
   }
   setTab("login")
   setLoginStage("credentials")
   setSignupStage("start")
+  persistState()
+}
+
+function handleBeforeUnload(event) {
+  if (!hasPendingFlow() || allowBrowserLeave) return
+  event.preventDefault()
+  event.returnValue = ""
+}
+
+function handlePopState() {
+  if (popstateBypass) {
+    popstateBypass = false
+    return
+  }
+  if (!hasPendingFlow()) return
+  history.pushState({ authLeaveGuard: true }, "", location.href)
+  confirmLeaveFlow(describePendingFlow()).then((ok) => {
+    if (!ok) return
+    allowBrowserLeave = true
+    popstateBypass = true
+    window.history.back()
+  })
+}
+
+function initConfirmModal() {
+  if (authConfirmApproveBtn) authConfirmApproveBtn.addEventListener("click", () => closeConfirmModal(true))
+  if (authConfirmCancelBtn) authConfirmCancelBtn.addEventListener("click", () => closeConfirmModal(false))
+  if (authConfirmLayer) {
+    authConfirmLayer.addEventListener("click", (event) => {
+      if (event.target === authConfirmLayer) closeConfirmModal(false)
+    })
+  }
 }
 
 function init() {
-  if (tabLogin) tabLogin.addEventListener("click", () => { setTab("login"); setLoginStage("credentials"); setQuery({}) })
-  if (tabSignup) tabSignup.addEventListener("click", () => { setTab("signup"); setSignupStage("start"); setQuery({}) })
+  initConfirmModal()
+  startCountdownTicker()
+
+  if (tabLogin) {
+    tabLogin.addEventListener("click", () => {
+      handleLeaveCurrentFlow(() => {
+        resetLoginTwoFactorState()
+        setTab("login")
+        setLoginStage("credentials")
+        setQuery({})
+      })
+    })
+  }
+
+  if (tabSignup) {
+    tabSignup.addEventListener("click", () => {
+      handleLeaveCurrentFlow(() => {
+        resetSignupState()
+        setTab("signup")
+        setSignupStage("start")
+        setQuery({})
+      })
+    })
+  }
+
+  if (authHeaderBackButton) {
+    authHeaderBackButton.addEventListener("click", () => {
+      handleLeaveCurrentFlow(() => {
+        allowBrowserLeave = true
+        location.href = "/gallery/"
+      })
+    })
+  }
+
   if (loginBtn) loginBtn.addEventListener("click", doLogin)
   if (loginTwoFactorVerifyBtn) loginTwoFactorVerifyBtn.addEventListener("click", doLoginTwoFactorVerify)
   if (loginTwoFactorResendBtn) loginTwoFactorResendBtn.addEventListener("click", doLoginTwoFactorResend)
-  if (loginBackBtn) loginBackBtn.addEventListener("click", () => { state.challengeToken = ""; loginTwoFactorCode.value = ""; setLoginStage("credentials"); setQuery({}) })
+  if (loginBackBtn) {
+    loginBackBtn.addEventListener("click", () => {
+      handleLeaveCurrentFlow(() => {
+        discardLoginTwoFactorFlow()
+      })
+    })
+  }
+
   if (signupStartBtn) signupStartBtn.addEventListener("click", startRegistration)
   if (signupVerifyBtn) signupVerifyBtn.addEventListener("click", confirmRegistrationCode)
   if (signupResendBtn) signupResendBtn.addEventListener("click", resendRegistrationCode)
-  if (signupRestartBtn) signupRestartBtn.addEventListener("click", () => { resetSignupState(); setSignupStage("start"); setQuery({}) })
+  if (signupRestartBtn) {
+    signupRestartBtn.addEventListener("click", () => {
+      handleLeaveCurrentFlow(() => {
+        discardSignupVerifyFlow()
+      })
+    })
+  }
   if (completeRegisterBtn) completeRegisterBtn.addEventListener("click", completeRegistration)
 
+  window.addEventListener("beforeunload", handleBeforeUnload)
+  window.addEventListener("popstate", handlePopState)
+
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && confirmResolver) {
+      closeConfirmModal(false)
+      return
+    }
     if (e.key !== "Enter") return
     if (paneLogin.classList.contains("is-on")) {
       if (!loginStageCredentials.hidden) return void doLogin()
@@ -356,6 +770,7 @@ function init() {
   })
 
   restoreFromLocation()
+  refreshResendButtons()
 }
 
 init()

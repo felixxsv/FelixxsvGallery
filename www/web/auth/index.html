@@ -19,7 +19,7 @@
         <div class="hdr__crumb">Auth</div>
       </div>
       <div class="hdr__right">
-        <a class="hdrbtn" href="/gallery/" aria-label="Back">←</a>
+        <button id="authHeaderBackButton" class="hdrbtn" type="button" aria-label="Back">←</button>
       </div>
     </div>
   </header>
@@ -94,6 +94,17 @@
       </div>
     </div>
   </main>
+
+  <div id="authConfirmLayer" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1200;padding:20px;background:rgba(0,0,0,0.45)">
+    <div class="authcard glass-strong" style="width:min(520px,100%);margin:0">
+      <div id="authConfirmTitle" class="label" style="font-size:18px;font-weight:700">確認</div>
+      <div id="authConfirmMessage" class="label" style="margin-top:12px;line-height:1.7">本当に実行しますか？</div>
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+        <button id="authConfirmApproveBtn" class="btn btn-primary authbtn" type="button">実行する</button>
+        <button id="authConfirmCancelBtn" class="btn btn-ghost authbtn" type="button">キャンセル</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/gallery/auth.js"></script>
 </body>
