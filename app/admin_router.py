@@ -10,9 +10,12 @@ import string
 import uuid
 from datetime import datetime, timezone
 import re
+import ipaddress
+import csv
+import io
 
 from fastapi import APIRouter, Body, Cookie, Path, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_options
 from auth_service import get_current_user_profile
@@ -2182,6 +2185,372 @@ def admin_content_delete(
             except Exception:
                 pass
         return _json_error(500, request_id, "server_error", "コンテンツの削除に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def _normalize_ip_value(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        try:
+            return str(ipaddress.ip_address(value))
+        except Exception:
+            try:
+                return value.decode("utf-8", errors="ignore")
+            except Exception:
+                return None
+    text = str(value).strip()
+    return text or None
+
+
+def _normalize_meta_json(value):
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, (str, bytes)):
+        try:
+            text = value.decode("utf-8") if isinstance(value, bytes) else value
+            return json.loads(text)
+        except Exception:
+            return value.decode("utf-8", errors="ignore") if isinstance(value, bytes) else value
+    return value
+
+
+def _load_audit_logs_page(
+    conn,
+    page: int,
+    per_page: int,
+    date_from: str | None,
+    date_to: str | None,
+    actor_user_id: int | None,
+    action_type: str | None,
+    result_value: str | None,
+    q: str | None,
+) -> dict:
+    table = _detect_table(conn, "audit_logs")
+    if table is None:
+        return {"page": 1, "per_page": per_page, "pages": 1, "total": 0, "items": []}
+
+    page = max(1, int(page or 1))
+    per_page = max(1, min(100, int(per_page or 20)))
+    offset = (page - 1) * per_page
+
+    q_value = str(q or "").strip()
+    action_value = str(action_type or "").strip()
+    result_filter = str(result_value or "").strip()
+    date_from_value = str(date_from or "").strip()
+    date_to_value = str(date_to or "").strip()
+
+    columns = _table_columns(conn, table)
+    where = ["1=1"]
+    params: list = []
+
+    if date_from_value:
+        where.append("a.created_at >= %s")
+        params.append(f"{date_from_value} 00:00:00")
+    if date_to_value:
+        where.append("a.created_at < DATE_ADD(%s, INTERVAL 1 DAY)")
+        params.append(date_to_value)
+    if actor_user_id:
+        where.append("a.actor_user_id = %s")
+        params.append(int(actor_user_id))
+    if action_value:
+        where.append("a.action_type = %s")
+        params.append(action_value)
+    if result_filter:
+        where.append("a.result = %s")
+        params.append(result_filter)
+    if q_value:
+        like = f"%{q_value}%"
+        q_parts = [
+            "a.action_type LIKE %s",
+            "a.target_type LIKE %s",
+            "COALESCE(a.summary, '') LIKE %s",
+            "COALESCE(u.display_name, '') LIKE %s",
+            "COALESCE(u.user_key, '') LIKE %s",
+        ]
+        q_params = [like, like, like, like, like]
+        if "target_id" in columns:
+            q_parts.append("COALESCE(a.target_id, '') LIKE %s")
+            q_params.append(like)
+        if "ip_address" in columns:
+            q_parts.append("CAST(COALESCE(a.ip_address, '') AS CHAR) LIKE %s")
+            q_params.append(like)
+        where.append("(" + " OR ".join(q_parts) + ")")
+        params.extend(q_params)
+
+    where_sql = " AND ".join(where)
+
+    select_cols = [
+        "a.id",
+        "a.created_at",
+        "a.action_type",
+        "a.target_type",
+        "a.result",
+        "COALESCE(a.summary, '') AS summary",
+        "u.id AS actor_user_id",
+        "u.display_name AS actor_display_name",
+        "u.user_key AS actor_user_key",
+    ]
+    if "target_id" in columns:
+        select_cols.append("a.target_id")
+    else:
+        select_cols.append("NULL AS target_id")
+    if "ip_address" in columns:
+        select_cols.append("a.ip_address")
+    else:
+        select_cols.append("NULL AS ip_address")
+    if "meta_json" in columns:
+        select_cols.append("a.meta_json")
+    else:
+        select_cols.append("NULL AS meta_json")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT COUNT(*) AS c
+FROM `{table}` a
+LEFT JOIN users u ON u.id = a.actor_user_id
+WHERE {where_sql}
+""",
+            params,
+        )
+        total_row = cur.fetchone() or {}
+        total = int(total_row.get("c") or 0)
+
+        cur.execute(
+            f"""
+SELECT {", ".join(select_cols)}
+FROM `{table}` a
+LEFT JOIN users u ON u.id = a.actor_user_id
+WHERE {where_sql}
+ORDER BY a.created_at DESC, a.id DESC
+LIMIT %s OFFSET %s
+""",
+            [*params, per_page, offset],
+        )
+        rows = cur.fetchall()
+
+    items = []
+    for row in rows:
+        target_id = row.get("target_id")
+        target_label = row.get("target_type") or "-"
+        if target_id not in (None, ""):
+            target_label = f"{target_label}:{target_id}"
+        items.append(
+            {
+                "id": int(row.get("id")),
+                "created_at": _coerce_utc_text(row.get("created_at")),
+                "action_type": row.get("action_type"),
+                "target_type": row.get("target_type"),
+                "target_id": target_id,
+                "target_label": target_label,
+                "result": row.get("result"),
+                "summary": row.get("summary") or "",
+                "ip_address": _normalize_ip_value(row.get("ip_address")),
+                "actor": {
+                    "user_id": row.get("actor_user_id"),
+                    "display_name": row.get("actor_display_name"),
+                    "user_key": row.get("actor_user_key"),
+                },
+                "meta_json": _normalize_meta_json(row.get("meta_json")),
+            }
+        )
+
+    pages = max(1, (total + per_page - 1) // per_page)
+    return {
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+        "total": total,
+        "items": items,
+    }
+
+
+def _load_audit_log_detail(conn, log_id: int) -> dict | None:
+    table = _detect_table(conn, "audit_logs")
+    if table is None:
+        return None
+    columns = _table_columns(conn, table)
+
+    select_cols = [
+        "a.id",
+        "a.created_at",
+        "a.action_type",
+        "a.target_type",
+        "a.result",
+        "COALESCE(a.summary, '') AS summary",
+        "u.id AS actor_user_id",
+        "u.display_name AS actor_display_name",
+        "u.user_key AS actor_user_key",
+    ]
+    if "target_id" in columns:
+        select_cols.append("a.target_id")
+    else:
+        select_cols.append("NULL AS target_id")
+    if "ip_address" in columns:
+        select_cols.append("a.ip_address")
+    else:
+        select_cols.append("NULL AS ip_address")
+    if "user_agent" in columns:
+        select_cols.append("a.user_agent")
+    else:
+        select_cols.append("NULL AS user_agent")
+    if "meta_json" in columns:
+        select_cols.append("a.meta_json")
+    else:
+        select_cols.append("NULL AS meta_json")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT {", ".join(select_cols)}
+FROM `{table}` a
+LEFT JOIN users u ON u.id = a.actor_user_id
+WHERE a.id=%s
+LIMIT 1
+""",
+            (log_id,),
+        )
+        row = cur.fetchone()
+
+    if not row:
+        return None
+
+    target_id = row.get("target_id")
+    target_label = row.get("target_type") or "-"
+    if target_id not in (None, ""):
+        target_label = f"{target_label}:{target_id}"
+
+    return {
+        "id": int(row.get("id")),
+        "created_at": _coerce_utc_text(row.get("created_at")),
+        "action_type": row.get("action_type"),
+        "target_type": row.get("target_type"),
+        "target_id": target_id,
+        "target_label": target_label,
+        "result": row.get("result"),
+        "summary": row.get("summary") or "",
+        "ip_address": _normalize_ip_value(row.get("ip_address")),
+        "user_agent": row.get("user_agent"),
+        "meta_json": _normalize_meta_json(row.get("meta_json")),
+        "actor": {
+            "user_id": row.get("actor_user_id"),
+            "display_name": row.get("actor_display_name"),
+            "user_key": row.get("actor_user_key"),
+        },
+    }
+
+
+def _build_audit_logs_csv(items: list[dict]) -> str:
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["id", "created_at", "actor_display_name", "actor_user_key", "action_type", "target_type", "target_id", "result", "summary", "ip_address"])
+    for item in items:
+        actor = item.get("actor") or {}
+        writer.writerow(
+            [
+                item.get("id"),
+                item.get("created_at"),
+                actor.get("display_name"),
+                actor.get("user_key"),
+                item.get("action_type"),
+                item.get("target_type"),
+                item.get("target_id"),
+                item.get("result"),
+                item.get("summary"),
+                item.get("ip_address"),
+            ]
+        )
+    return buf.getvalue()
+
+
+@router.get("/audit-logs")
+def admin_audit_logs(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    actor_user_id: int | None = Query(default=None, ge=1),
+    action_type: str | None = Query(default=None),
+    result: str | None = Query(default=None),
+    q: str | None = Query(default=None),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_audit_logs_page(conn, page, per_page, date_from, date_to, actor_user_id, action_type, result, q)
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "監査ログ一覧の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/audit-logs/{log_id}")
+def admin_audit_log_detail(
+    log_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection()
+        item = _load_audit_log_detail(conn, log_id)
+        if item is None:
+            return _json_error(404, request_id, "not_found", "監査ログが見つかりません。")
+        return _json_success(request_id=request_id, data={"item": item}, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "監査ログ詳細の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/audit-logs/export")
+def admin_audit_logs_export(
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    actor_user_id: int | None = Query(default=None, ge=1),
+    action_type: str | None = Query(default=None),
+    result: str | None = Query(default=None),
+    q: str | None = Query(default=None),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_audit_logs_page(conn, 1, 1000, date_from, date_to, actor_user_id, action_type, result, q)
+        csv_text = _build_audit_logs_csv(payload.get("items") or [])
+        filename = f"audit-logs-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.csv"
+        return Response(
+            content=csv_text,
+            media_type="text/csv; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )
+    except Exception:
+        return _json_error(500, request_id, "server_error", "監査ログCSVの出力に失敗しました。")
     finally:
         if conn is not None:
             conn.close()
