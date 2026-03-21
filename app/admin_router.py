@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse, Response
 
 from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_options
 from auth_service import get_current_user_profile
+from auth_mail import AuthMailError, build_text_message, send_message
 from db import db_conn, load_conf
 
 
@@ -2603,6 +2604,605 @@ def admin_audit_logs_export(
         )
     except Exception:
         return _json_error(500, request_id, "server_error", "監査ログCSVの出力に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+
+def _ensure_admin_notifications_tables(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS admin_notifications (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    sender_user_id BIGINT UNSIGNED NULL,
+    sender_email VARCHAR(255) NULL,
+    sender_name VARCHAR(255) NULL,
+    channel VARCHAR(50) NOT NULL DEFAULT 'email',
+    recipient_scope VARCHAR(50) NOT NULL,
+    recipient_summary VARCHAR(255) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    body MEDIUMTEXT NOT NULL,
+    success_count INT UNSIGNED NOT NULL DEFAULT 0,
+    failure_count INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    sent_at DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    KEY idx_admin_notifications_sender_user_id (sender_user_id),
+    KEY idx_admin_notifications_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS admin_notification_recipients (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    notification_id BIGINT UNSIGNED NOT NULL,
+    recipient_user_id BIGINT UNSIGNED NULL,
+    recipient_email VARCHAR(255) NULL,
+    recipient_label VARCHAR(255) NOT NULL,
+    delivery_status VARCHAR(20) NOT NULL,
+    error_message TEXT NULL,
+    delivered_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY idx_admin_notification_recipients_notification_id (notification_id),
+    KEY idx_admin_notification_recipients_recipient_user_id (recipient_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+
+
+def _mail_sender_settings() -> dict:
+    conf = _get_conf()
+    smtp = conf.get("smtp") or {}
+    app = conf.get("app") or {}
+    base_url = str(
+        app.get("base_url")
+        or app.get("public_base_url")
+        or app.get("site_url")
+        or "https://felixxsv.net/gallery"
+    ).strip()
+    return {
+        "host": smtp.get("host") or "127.0.0.1",
+        "port": int(smtp.get("port") or 25),
+        "use_starttls": bool(smtp.get("use_starttls", False)),
+        "from_email": str(smtp.get("from_email") or "noreply@felixxsv.net").strip(),
+        "from_name": str(smtp.get("from_name") or "Felixxsv Gallery").strip(),
+        "username": smtp.get("username"),
+        "password": smtp.get("password"),
+        "use_auth": smtp.get("use_auth"),
+        "base_url": base_url,
+    }
+
+
+def _mail_sender_payload() -> dict:
+    settings = _mail_sender_settings()
+    return {
+        "from_email": settings.get("from_email") or "noreply@felixxsv.net",
+        "from_name": settings.get("from_name") or "Felixxsv Gallery",
+    }
+
+
+def _build_mail_templates_payload(conn) -> list[dict]:
+    table = _detect_table(conn, "mail_templates")
+    if table is None:
+        return []
+    cols = _table_columns(conn, table)
+    select_cols = ["id"]
+    if "template_key" in cols:
+        select_cols.append("template_key")
+    else:
+        select_cols.append("NULL AS template_key")
+    if "subject_template" in cols:
+        select_cols.append("subject_template")
+    else:
+        select_cols.append("NULL AS subject_template")
+    if "body_template" in cols:
+        select_cols.append("body_template")
+    else:
+        select_cols.append("NULL AS body_template")
+    if "is_enabled" in cols:
+        select_cols.append("is_enabled")
+    else:
+        select_cols.append("1 AS is_enabled")
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT {', '.join(select_cols)} FROM `{table}` ORDER BY id ASC")
+        rows = cur.fetchall()
+    items = []
+    for row in rows:
+        items.append({
+            "id": int(row.get("id")),
+            "template_key": row.get("template_key"),
+            "subject_template": row.get("subject_template") or "",
+            "body_template": row.get("body_template") or "",
+            "is_enabled": bool(row.get("is_enabled")),
+        })
+    return items
+
+
+def _build_mail_recipient_item(row: dict) -> dict:
+    normalized = _normalize_user_row_runtime(row)
+    email = str(normalized.get("primary_email") or "").strip()
+    status = str(normalized.get("status") or "active")
+    is_disabled = bool(normalized.get("is_disabled")) if normalized.get("is_disabled") is not None else False
+    can_receive_mail = bool(email) and status != "deleted" and not is_disabled
+    return {
+        "user_id": int(normalized.get("id")),
+        "display_name": normalized.get("display_name") or "",
+        "user_key": normalized.get("user_key") or "",
+        "primary_email": email or None,
+        "role": normalized.get("role") or "user",
+        "status": status,
+        "can_receive_mail": can_receive_mail,
+    }
+
+
+def _load_mail_recipients_page(conn, page: int, per_page: int, q: str | None, role: str | None, status: str | None) -> dict:
+    page = max(1, int(page or 1))
+    per_page = max(1, min(100, int(per_page or 20)))
+    offset = (page - 1) * per_page
+    email_col = _users_email_column(conn)
+    avatar_col = _users_avatar_column(conn)
+    upload_col = _users_upload_column(conn)
+    where = ["1=1"]
+    params: list = []
+    q_value = str(q or "").strip()
+    if q_value:
+        like = f"%{q_value}%"
+        if email_col:
+            where.append(f"(display_name LIKE %s OR user_key LIKE %s OR COALESCE({email_col}, '') LIKE %s)")
+            params.extend([like, like, like])
+        else:
+            where.append("(display_name LIKE %s OR user_key LIKE %s)")
+            params.extend([like, like])
+    role_value = str(role or "").strip().lower()
+    if role_value in _ALLOWED_ROLES:
+        where.append("role=%s")
+        params.append(role_value)
+    status_value = str(status or "").strip().lower()
+    if status_value in _ALLOWED_STATUSES:
+        where.append("status=%s")
+        params.append(status_value)
+    where_sql = " AND ".join(where)
+    select_cols = ["id", "user_key", "display_name", "role", "status", "created_at", "updated_at"]
+    if email_col:
+        select_cols.append(f"{email_col} AS primary_email")
+    else:
+        select_cols.append("NULL AS primary_email")
+    if avatar_col:
+        select_cols.append(f"{avatar_col} AS avatar_path")
+    else:
+        select_cols.append("NULL AS avatar_path")
+    if upload_col:
+        select_cols.append(f"{upload_col} AS upload_enabled")
+    else:
+        select_cols.append("1 AS upload_enabled")
+    if _users_has_column(conn, "can_upload"):
+        select_cols.append("can_upload")
+    else:
+        select_cols.append("NULL AS can_upload")
+    if _users_has_column(conn, "is_disabled"):
+        select_cols.append("is_disabled")
+    else:
+        select_cols.append("NULL AS is_disabled")
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT COUNT(*) AS c FROM users WHERE {where_sql}", params)
+        total = int((cur.fetchone() or {}).get("c") or 0)
+        cur.execute(
+            f"SELECT {', '.join(select_cols)} FROM users WHERE {where_sql} ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s",
+            [*params, per_page, offset],
+        )
+        rows = cur.fetchall()
+    items = [_build_mail_recipient_item(row) for row in rows]
+    pages = max(1, (total + per_page - 1) // per_page)
+    return {"page": page, "per_page": per_page, "pages": pages, "total": total, "items": items}
+
+
+def _load_mail_history_page(conn, page: int, per_page: int) -> dict:
+    _ensure_admin_notifications_tables(conn)
+    page = max(1, int(page or 1))
+    per_page = max(1, min(100, int(per_page or 10)))
+    offset = (page - 1) * per_page
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) AS c FROM admin_notifications")
+        total = int((cur.fetchone() or {}).get("c") or 0)
+        cur.execute(
+            """
+SELECT
+    n.id,
+    n.sender_user_id,
+    n.sender_email,
+    n.sender_name,
+    n.recipient_scope,
+    n.recipient_summary,
+    n.subject,
+    n.body,
+    n.success_count,
+    n.failure_count,
+    n.created_at,
+    n.sent_at,
+    u.display_name AS sender_display_name,
+    u.user_key AS sender_user_key
+FROM admin_notifications n
+LEFT JOIN users u ON u.id = n.sender_user_id
+ORDER BY COALESCE(n.sent_at, n.created_at) DESC, n.id DESC
+LIMIT %s OFFSET %s
+""",
+            (per_page, offset),
+        )
+        rows = cur.fetchall()
+    items = []
+    for row in rows:
+        items.append({
+            "id": int(row.get("id")),
+            "subject": row.get("subject") or "",
+            "body": row.get("body") or "",
+            "recipient_scope": row.get("recipient_scope") or "selected",
+            "recipient_summary": row.get("recipient_summary") or "-",
+            "success_count": int(row.get("success_count") or 0),
+            "failure_count": int(row.get("failure_count") or 0),
+            "created_at": _coerce_utc_text(row.get("created_at")),
+            "sent_at": _coerce_utc_text(row.get("sent_at")),
+            "sender": {
+                "user_id": row.get("sender_user_id"),
+                "display_name": row.get("sender_display_name") or row.get("sender_name") or "-",
+                "user_key": row.get("sender_user_key") or "",
+                "from_email": row.get("sender_email") or "",
+                "from_name": row.get("sender_name") or "",
+            },
+        })
+    pages = max(1, (total + per_page - 1) // per_page)
+    return {"page": page, "per_page": per_page, "pages": pages, "total": total, "items": items}
+
+
+def _build_mail_send_payload(payload: dict | None) -> tuple[dict, dict]:
+    field_errors: dict = {}
+    data = payload or {}
+    scope = str(data.get("recipient_scope") or "selected").strip().lower()
+    if scope not in {"selected", "everyone"}:
+        field_errors["recipient_scope"] = {"code": "invalid", "message": "宛先種別が正しくありません。"}
+    raw_ids = data.get("recipient_user_ids") or []
+    ids: list[int] = []
+    if isinstance(raw_ids, list):
+        for value in raw_ids:
+            try:
+                iv = int(value)
+            except Exception:
+                continue
+            if iv > 0 and iv not in ids:
+                ids.append(iv)
+    subject = str(data.get("subject") or "").strip()
+    body = str(data.get("body") or "")
+    if subject == "":
+        field_errors["subject"] = {"code": "required", "message": "件名を入力してください。"}
+    elif len(subject) > 255:
+        field_errors["subject"] = {"code": "too_long", "message": "件名が長すぎます。"}
+    if body.strip() == "":
+        field_errors["body"] = {"code": "required", "message": "本文を入力してください。"}
+    if scope == "selected" and not ids:
+        field_errors["recipient_user_ids"] = {"code": "required", "message": "送信先を選択してください。"}
+    return {"recipient_scope": scope, "recipient_user_ids": ids, "subject": subject, "body": body}, field_errors
+
+
+def _load_mail_recipients_by_scope(conn, recipient_scope: str, recipient_user_ids: list[int]) -> list[dict]:
+    email_col = _users_email_column(conn)
+    avatar_col = _users_avatar_column(conn)
+    upload_col = _users_upload_column(conn)
+    select_cols = ["id", "user_key", "display_name", "role", "status", "created_at", "updated_at"]
+    if email_col:
+        select_cols.append(f"{email_col} AS primary_email")
+    else:
+        select_cols.append("NULL AS primary_email")
+    if avatar_col:
+        select_cols.append(f"{avatar_col} AS avatar_path")
+    else:
+        select_cols.append("NULL AS avatar_path")
+    if upload_col:
+        select_cols.append(f"{upload_col} AS upload_enabled")
+    else:
+        select_cols.append("1 AS upload_enabled")
+    if _users_has_column(conn, "can_upload"):
+        select_cols.append("can_upload")
+    else:
+        select_cols.append("NULL AS can_upload")
+    if _users_has_column(conn, "is_disabled"):
+        select_cols.append("is_disabled")
+    else:
+        select_cols.append("NULL AS is_disabled")
+    where = ["status <> 'deleted'"]
+    params: list = []
+    if recipient_scope == "selected":
+        if not recipient_user_ids:
+            return []
+        placeholders = ",".join(["%s"] * len(recipient_user_ids))
+        where.append(f"id IN ({placeholders})")
+        params.extend(recipient_user_ids)
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT {', '.join(select_cols)} FROM users WHERE {' AND '.join(where)} ORDER BY display_name ASC, id ASC",
+            params,
+        )
+        rows = cur.fetchall()
+    return [_build_mail_recipient_item(row) for row in rows]
+
+
+def _recipient_label(item: dict) -> str:
+    display_name = str(item.get("display_name") or "").strip()
+    user_key = str(item.get("user_key") or "").strip()
+    if display_name and user_key:
+        return f"{display_name} ({user_key})"
+    return display_name or user_key or f"user:{item.get('user_id')}"
+
+
+def _recipient_summary(scope: str, recipients: list[dict]) -> str:
+    if scope == "everyone":
+        return "@everyone"
+    if not recipients:
+        return "-"
+    if len(recipients) == 1:
+        return _recipient_label(recipients[0])
+    return f"{_recipient_label(recipients[0])} ほか{len(recipients) - 1}名"
+
+
+def _send_admin_notification(conn, actor_user: dict, payload: dict) -> tuple[dict, dict]:
+    _ensure_admin_notifications_tables(conn)
+    recipients = _load_mail_recipients_by_scope(conn, payload["recipient_scope"], payload["recipient_user_ids"])
+    if payload["recipient_scope"] == "selected" and not recipients:
+        raise ValueError("selected_recipients_not_found")
+
+    emailable = [item for item in recipients if item.get("can_receive_mail")]
+    if not emailable:
+        raise ValueError("no_emailable_recipients")
+
+    sender = _mail_sender_payload()
+    actor_id = int(actor_user.get("id") or 0) or None
+    summary = _recipient_summary(payload["recipient_scope"], recipients)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+INSERT INTO admin_notifications (
+    sender_user_id,
+    sender_email,
+    sender_name,
+    channel,
+    recipient_scope,
+    recipient_summary,
+    subject,
+    body,
+    success_count,
+    failure_count,
+    created_at,
+    sent_at
+)
+VALUES (%s, %s, %s, 'email', %s, %s, %s, %s, 0, 0, CURRENT_TIMESTAMP(6), NULL)
+""",
+            (
+                actor_id,
+                sender["from_email"],
+                sender.get("from_name") or "",
+                payload["recipient_scope"],
+                summary,
+                payload["subject"],
+                payload["body"],
+            ),
+        )
+        notification_id = int(cur.lastrowid)
+
+    smtp_settings = _mail_sender_settings()
+    success_count = 0
+    failure_count = 0
+
+    for item in recipients:
+        label = _recipient_label(item)
+        recipient_email = item.get("primary_email")
+        delivery_status = "failed"
+        error_message = None
+        delivered_at = None
+        if item.get("can_receive_mail") and recipient_email:
+            try:
+                message = build_text_message(
+                    smtp_settings=smtp_settings,
+                    to_email=recipient_email,
+                    subject=payload["subject"],
+                    body_text=payload["body"],
+                )
+                send_message(smtp_settings, message)
+                delivery_status = "sent"
+                delivered_at = _utc_now()
+                success_count += 1
+            except AuthMailError as exc:
+                error_message = f"{exc.code}: {exc.message}"
+                failure_count += 1
+            except Exception as exc:
+                error_message = str(exc)
+                failure_count += 1
+        else:
+            error_message = "recipient_email_not_available"
+            failure_count += 1
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+INSERT INTO admin_notification_recipients (
+    notification_id,
+    recipient_user_id,
+    recipient_email,
+    recipient_label,
+    delivery_status,
+    error_message,
+    delivered_at,
+    created_at
+)
+VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP(6))
+""",
+                (
+                    notification_id,
+                    item.get("user_id"),
+                    recipient_email,
+                    label,
+                    delivery_status,
+                    error_message,
+                    delivered_at,
+                ),
+            )
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+UPDATE admin_notifications
+SET success_count=%s,
+    failure_count=%s,
+    sent_at=CURRENT_TIMESTAMP(6)
+WHERE id=%s
+""",
+            (success_count, failure_count, notification_id),
+        )
+
+    _log_audit_event(
+        conn,
+        actor_id,
+        "admin.mail.send",
+        "notification",
+        str(notification_id),
+        "success" if success_count > 0 else "failure",
+        f"mail sent to {summary}",
+        {
+            "notification_id": notification_id,
+            "recipient_scope": payload["recipient_scope"],
+            "recipient_summary": summary,
+            "subject": payload["subject"],
+            "body": payload["body"],
+            "success_count": success_count,
+            "failure_count": failure_count,
+        },
+    )
+
+    history = _load_mail_history_page(conn, 1, 1)
+    item = (history.get("items") or [{}])[0]
+    return item, {"success_count": success_count, "failure_count": failure_count, "recipient_summary": summary}
+
+
+@router.get("/mail/templates")
+def admin_mail_templates(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        items = _build_mail_templates_payload(conn)
+        return _json_success(
+            request_id=request_id,
+            data={
+                "items": items,
+                "sender": _mail_sender_payload(),
+            },
+            message=None,
+        )
+    except Exception:
+        return _json_error(500, request_id, "server_error", "メール設定の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/mail/recipients")
+def admin_mail_recipients(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    q: str | None = Query(default=None),
+    role: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_mail_recipients_page(conn, page, per_page, q, role, status)
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "宛先一覧の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/mail/history")
+def admin_mail_history(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_mail_history_page(conn, page, per_page)
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "送信履歴の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.post("/mail/send")
+def admin_mail_send(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    normalized, field_errors = _build_mail_send_payload(payload)
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力値に誤りがあります。", field_errors=field_errors)
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        try:
+            history_item, stats = _send_admin_notification(conn, actor, normalized)
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == "selected_recipients_not_found":
+                return _json_error(400, request_id, "validation_error", "選択された送信先が見つかりません。")
+            if msg == "no_emailable_recipients":
+                return _json_error(400, request_id, "validation_error", "送信可能な宛先がありません。")
+            raise
+        conn.commit()
+        return _json_success(
+            request_id=request_id,
+            data={
+                "item": history_item,
+                "sender": _mail_sender_payload(),
+                "success_count": stats["success_count"],
+                "failure_count": stats["failure_count"],
+                "recipient_summary": stats["recipient_summary"],
+            },
+            message="メールを送信しました。",
+        )
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "メール送信に失敗しました。")
     finally:
         if conn is not None:
             conn.close()
