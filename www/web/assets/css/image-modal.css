@@ -188,8 +188,9 @@ body.is-image-modal-open {
 }
 
 .image-modal__slider {
-  writing-mode: bt-lr;
-  -webkit-appearance: slider-vertical;
+  appearance: auto;
+  writing-mode: vertical-lr;
+  direction: rtl;
   width: 8px;
   height: 180px;
   accent-color: #88a9ff;

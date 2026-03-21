@@ -107,7 +107,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
         <img class="image-modal__image" alt="">
       </div>
       <div class="image-modal__slider-wrap" hidden>
-        <input class="image-modal__slider" type="range" min="100" max="300" step="10" value="100" orient="vertical" aria-label="拡大率">
+        <input class="image-modal__slider" type="range" min="100" max="300" step="10" value="100" aria-label="拡大率">
       </div>
       <div class="image-modal__footer">
         <div class="image-modal__meta">
@@ -159,16 +159,22 @@ export function createImageModalController({ app, body = document.body } = {}) {
     detailOpen: false,
   };
 
+  function syncDetailStateClass() {
+    root.classList.toggle("is-detail-open", state.detailOpen);
+  }
+
   const detailModal = createImageDetailModal({
     host: viewport,
     app,
     onOpen() {
       state.detailOpen = true;
+      syncDetailStateClass();
       clearHideTimer();
       updateControlsVisibility(true);
     },
     onClose() {
       state.detailOpen = false;
+      syncDetailStateClass();
       updateControlsVisibility(true);
       scheduleAutoHide();
     },
@@ -290,6 +296,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.current = normalizePayload(payload, options);
     state.detailCache = options.detail || null;
     state.detailOpen = false;
+    syncDetailStateClass();
     image.src = state.current.preview_url;
     image.alt = state.current.alt || state.current.title || "";
     populateFooter();
@@ -305,6 +312,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     clearHideTimer();
     detailModal.close();
     state.detailOpen = false;
+    syncDetailStateClass();
     root.hidden = true;
     bodyLock(false);
     state.current = null;
@@ -333,10 +341,23 @@ export function createImageModalController({ app, body = document.body } = {}) {
     scheduleAutoHide();
   }
 
+  function shouldCloseByBackdropClick(event) {
+    if (state.detailOpen) return false;
+    if (!app.settings.getImageBackdropClose()) return false;
+    const target = event.target;
+    return target === viewport || target === stage;
+  }
+
   root.querySelector(".image-modal__backdrop").addEventListener("click", () => {
     if (state.detailOpen) return;
     if (!app.settings.getImageBackdropClose()) return;
     close();
+  });
+
+  viewport.addEventListener("click", (event) => {
+    if (shouldCloseByBackdropClick(event)) {
+      close();
+    }
   });
 
   closeButton.addEventListener("click", () => {
