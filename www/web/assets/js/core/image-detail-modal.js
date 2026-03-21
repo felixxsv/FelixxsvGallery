@@ -52,7 +52,7 @@ function normalizeColorTag(item) {
   return { label: String(label), swatch: String(swatch) };
 }
 
-export function createImageDetailModal({ host, app }) {
+export function createImageDetailModal({ host, app, onOpen = null, onClose = null }) {
   const overlay = document.createElement("section");
   overlay.className = "image-detail-modal";
   overlay.hidden = true;
@@ -72,7 +72,11 @@ export function createImageDetailModal({ host, app }) {
   const closeButton = overlay.querySelector(".image-detail-modal__close");
 
   function close() {
+    if (overlay.hidden) return;
     overlay.hidden = true;
+    if (typeof onClose === "function") {
+      onClose();
+    }
   }
 
   function renderRow(label, value) {
@@ -163,6 +167,9 @@ export function createImageDetailModal({ host, app }) {
 
     body.innerHTML = `${userBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
     overlay.hidden = false;
+    if (typeof onOpen === "function") {
+      onOpen();
+    }
     overlay.querySelector(".image-detail-modal__dialog")?.focus();
   }
 

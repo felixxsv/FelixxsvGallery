@@ -134,7 +134,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
   const stage = root.querySelector(".image-modal__stage");
   const image = root.querySelector(".image-modal__image");
   const closeButton = root.querySelector(".image-modal__close");
-  const footer = root.querySelector(".image-modal__footer");
   const sliderWrap = root.querySelector(".image-modal__slider-wrap");
   const slider = root.querySelector(".image-modal__slider");
   const titleNode = root.querySelector(".image-modal__title");
@@ -142,8 +141,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
   const userAvatarNode = root.querySelector(".image-modal__user-avatar");
   const userTextNode = root.querySelector(".image-modal__user-text");
   const likeCountNode = root.querySelector(".image-modal__like-count");
-
-  const detailModal = createImageDetailModal({ host: viewport, app });
 
   const state = {
     current: null,
@@ -159,7 +156,23 @@ export function createImageModalController({ app, body = document.body } = {}) {
     hideTimer: null,
     controlsVisible: true,
     cursorVisible: true,
+    detailOpen: false,
   };
+
+  const detailModal = createImageDetailModal({
+    host: viewport,
+    app,
+    onOpen() {
+      state.detailOpen = true;
+      clearHideTimer();
+      updateControlsVisibility(true);
+    },
+    onClose() {
+      state.detailOpen = false;
+      updateControlsVisibility(true);
+      scheduleAutoHide();
+    },
+  });
 
   function applyTransform() {
     image.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom / 100})`;
@@ -176,6 +189,14 @@ export function createImageModalController({ app, body = document.body } = {}) {
   }
 
   function updateControlsVisibility(forceVisible = false, pointer = null) {
+    if (state.detailOpen) {
+      root.classList.add("is-controls-visible");
+      root.classList.add("is-cursor-visible");
+      state.controlsVisible = true;
+      state.cursorVisible = true;
+      return;
+    }
+
     const metaPinned = app.settings.getImageMetaPinned();
     if (forceVisible) {
       root.classList.add("is-controls-visible");
@@ -221,9 +242,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   function scheduleAutoHide() {
     clearHideTimer();
+    if (state.detailOpen) return;
     const metaPinned = app.settings.getImageMetaPinned();
     if (metaPinned && state.zoom <= 100) return;
     state.hideTimer = window.setTimeout(() => {
+      if (state.detailOpen) return;
       updateControlsVisibility(false, null);
     }, 2200);
   }
@@ -251,9 +274,13 @@ export function createImageModalController({ app, body = document.body } = {}) {
     if (!state.current) return;
     if (!state.detailCache && typeof state.current.detailLoader === "function") {
       try {
-        state.detailCache = normalizePayload(await state.current.detailLoader(state.current), { detailLoader: state.current.detailLoader });
+        state.detailCache = normalizePayload(await state.current.detailLoader(state.current), {
+          detailLoader: state.current.detailLoader,
+        });
       } catch {
-        state.detailCache = normalizePayload(state.current, { detailLoader: state.current.detailLoader });
+        state.detailCache = normalizePayload(state.current, {
+          detailLoader: state.current.detailLoader,
+        });
       }
     }
     detailModal.open(state.detailCache || normalizePayload(state.current));
@@ -262,6 +289,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
   function open(payload, options = {}) {
     state.current = normalizePayload(payload, options);
     state.detailCache = options.detail || null;
+    state.detailOpen = false;
     image.src = state.current.preview_url;
     image.alt = state.current.alt || state.current.title || "";
     populateFooter();
@@ -276,6 +304,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
   function close() {
     clearHideTimer();
     detailModal.close();
+    state.detailOpen = false;
     root.hidden = true;
     bodyLock(false);
     state.current = null;
@@ -305,11 +334,18 @@ export function createImageModalController({ app, body = document.body } = {}) {
   }
 
   root.querySelector(".image-modal__backdrop").addEventListener("click", () => {
+    if (state.detailOpen) return;
     if (!app.settings.getImageBackdropClose()) return;
     close();
   });
 
-  closeButton.addEventListener("click", close);
+  closeButton.addEventListener("click", () => {
+    if (state.detailOpen) {
+      detailModal.close();
+      return;
+    }
+    close();
+  });
 
   root.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -323,6 +359,10 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   viewport.addEventListener("mousemove", (event) => {
     if (root.hidden) return;
+    if (state.detailOpen) {
+      updateControlsVisibility(true);
+      return;
+    }
     if (state.zoom > 100) {
       updateControlsVisibility(false, event);
     } else {
@@ -332,6 +372,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
   });
 
   viewport.addEventListener("mouseleave", () => {
+    if (state.detailOpen) return;
     if (state.zoom > 100) {
       clearHideTimer();
       updateControlsVisibility(false, null);
@@ -342,15 +383,18 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   stage.addEventListener("wheel", (event) => {
     event.preventDefault();
+    if (state.detailOpen) return;
     const delta = event.deltaY > 0 ? -10 : 10;
     zoomTo(state.zoom + delta, event.clientX, event.clientY);
   }, { passive: false });
 
   slider.addEventListener("input", (event) => {
+    if (state.detailOpen) return;
     zoomTo(Number(event.target.value || 100));
   });
 
   stage.addEventListener("mousedown", (event) => {
+    if (state.detailOpen) return;
     if (state.zoom <= 100) return;
     state.dragging = true;
     state.dragStartX = event.clientX;
