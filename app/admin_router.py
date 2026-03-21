@@ -165,6 +165,58 @@ def _table_columns(conn, table_name: str) -> set[str]:
         return {str(row["Field"]) for row in cur.fetchall()}
 
 
+
+
+def _users_columns(conn) -> set[str]:
+    return _table_columns(conn, "users")
+
+
+def _users_has_column(conn, column_name: str) -> bool:
+    return column_name in _users_columns(conn)
+
+
+def _users_email_column(conn) -> str | None:
+    cols = _users_columns(conn)
+    if "primary_email" in cols:
+        return "primary_email"
+    if "email" in cols:
+        return "email"
+    return None
+
+
+def _users_upload_column(conn) -> str | None:
+    cols = _users_columns(conn)
+    if "upload_enabled" in cols:
+        return "upload_enabled"
+    if "can_upload" in cols:
+        return "can_upload"
+    return None
+
+
+def _users_avatar_column(conn) -> str | None:
+    cols = _users_columns(conn)
+    if "avatar_path" in cols:
+        return "avatar_path"
+    return None
+
+
+def _users_password_hash_column(conn) -> str | None:
+    cols = _users_columns(conn)
+    if "password_hash" in cols:
+        return "password_hash"
+    return None
+
+
+def _normalize_user_row_runtime(row: dict) -> dict:
+    out = dict(row or {})
+    if "primary_email" not in out:
+        out["primary_email"] = out.get("email")
+    if "upload_enabled" not in out:
+        out["upload_enabled"] = out.get("can_upload") if out.get("can_upload") is not None else True
+    if "avatar_path" not in out:
+        out["avatar_path"] = None
+    return out
+
 def _ensure_admin_user_preferences_table(conn) -> None:
     with conn.cursor() as cur:
         cur.execute(
@@ -270,18 +322,25 @@ def _load_active_users(conn) -> list[dict]:
 
     session_cols = _table_columns(conn, session_table)
     now_dt = _utc_now()
+    email_col = _users_email_column(conn)
+    avatar_col = _users_avatar_column(conn)
 
     select_parts = [
         "u.id AS user_id",
         "u.user_key",
         "u.display_name",
-        "u.primary_email",
-        "u.avatar_path",
+        f"u.{email_col} AS primary_email" if email_col else "NULL AS primary_email",
+        f"u.{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path",
         "MAX(s.last_seen_at) AS last_seen_at",
         "MIN(s.created_at) AS session_started_at",
     ]
 
     revoked_where = "AND s.revoked_at IS NULL" if "revoked_at" in session_cols else ""
+    group_parts = ["u.id", "u.user_key", "u.display_name"]
+    if email_col:
+        group_parts.append(f"u.{email_col}")
+    if avatar_col:
+        group_parts.append(f"u.{avatar_col}")
 
     sql = f"""
 SELECT {", ".join(select_parts)}
@@ -291,7 +350,7 @@ WHERE s.expires_at > %s
   {revoked_where}
   AND s.last_seen_at >= DATE_SUB(%s, INTERVAL 10 MINUTE)
   AND u.status='active'
-GROUP BY u.id, u.user_key, u.display_name, u.primary_email, u.avatar_path
+GROUP BY {", ".join(group_parts)}
 ORDER BY MAX(s.last_seen_at) DESC
 LIMIT 8
 """
@@ -301,6 +360,7 @@ LIMIT 8
 
     items = []
     for row in rows:
+        row = _normalize_user_row_runtime(row)
         session_started_at = _coerce_utc_datetime(row.get("session_started_at"))
         elapsed = 0
         if session_started_at is not None:
@@ -318,7 +378,6 @@ LIMIT 8
             }
         )
     return items
-
 
 def _load_recent_audit_logs(conn) -> list[dict]:
     table = _detect_table(conn, "audit_logs")
@@ -379,6 +438,15 @@ def _load_latest_image(conn) -> dict | None:
 
     public_expr = "i.is_public" if "is_public" in image_cols else "1"
     user_join = f"LEFT JOIN users u ON u.id=i.{uploader_key}" if uploader_key else ""
+    user_avatar_col = _users_avatar_column(conn)
+
+    user_select = ""
+    if user_join:
+        user_select = ", u.display_name AS user_display_name, u.user_key AS user_user_key"
+        if user_avatar_col:
+            user_select += f", u.{user_avatar_col} AS user_avatar_path"
+        else:
+            user_select += ", NULL AS user_avatar_path"
 
     sql = f"""
 SELECT
@@ -393,7 +461,7 @@ SELECT
     COALESCE(st.like_count, 0) AS like_count,
     COALESCE(st.view_count, 0) AS view_count,
     {public_expr} AS is_public
-    {", u.display_name AS user_display_name, u.user_key AS user_user_key, u.avatar_path AS user_avatar_path" if user_join else ""}
+    {user_select}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
 {user_join}
@@ -418,22 +486,19 @@ LIMIT 1
         "title": row.get("title"),
         "alt": row.get("alt"),
         "preview_url": preview_url,
+        "like_count": int(row.get("like_count") or 0),
+        "view_count": int(row.get("view_count") or 0),
+        "like_count_text": _format_count_short(row.get("like_count")),
+        "view_count_text": _format_count_short(row.get("view_count")),
         "posted_at": _coerce_utc_text(row.get("posted_at")),
         "shot_at": _coerce_utc_text(row.get("shot_at")),
-        "like_count": int(row.get("like_count") or 0),
-        "like_count_short": _format_count_short(int(row.get("like_count") or 0)),
-        "view_count": int(row.get("view_count") or 0),
-        "view_count_short": _format_count_short(int(row.get("view_count") or 0)),
+        "is_public": bool(row.get("is_public")),
         "user": {
             "display_name": row.get("user_display_name"),
             "user_key": row.get("user_user_key"),
             "avatar_url": _build_preview_url(row.get("user_avatar_path")),
-        } if "user_display_name" in row else None,
-        "admin_meta": {
-            "is_public": bool(row.get("is_public")) if row.get("is_public") is not None else True,
         },
     }
-
 
 def _load_dashboard_stats(conn) -> dict:
     image_cols = _table_columns(conn, "images")
@@ -621,6 +686,7 @@ GROUP BY user_id
 
 
 def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict], last_seen_map: dict[int, str | None]) -> dict:
+    row = _normalize_user_row_runtime(row)
     user_id = int(row.get("id"))
     return {
         "user_id": user_id,
@@ -656,20 +722,29 @@ def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | 
     provider_value = str(provider or "").strip().lower() or None
     sort_value = str(sort or "created_desc").strip().lower()
 
+    email_col = _users_email_column(conn)
+    upload_col = _users_upload_column(conn)
+    avatar_col = _users_avatar_column(conn)
+
     where = ["1=1"]
     params: list = []
 
     if query:
         like = f"%{query}%"
-        where.append("(u.display_name LIKE %s OR u.user_key LIKE %s OR COALESCE(u.primary_email, '') LIKE %s)")
-        params.extend([like, like, like])
+        if email_col:
+            where.append(f"(u.display_name LIKE %s OR u.user_key LIKE %s OR COALESCE(u.{email_col}, '') LIKE %s)")
+            params.extend([like, like, like])
+        else:
+            where.append("(u.display_name LIKE %s OR u.user_key LIKE %s)")
+            params.extend([like, like])
+
     if role_value in _ALLOWED_ROLES:
         where.append("u.role=%s")
         params.append(role_value)
     if status_value in _ALLOWED_STATUSES:
         where.append("u.status=%s")
         params.append(status_value)
-    if provider_value:
+    if provider_value and _detect_table(conn, "auth_identities") is not None:
         where.append("EXISTS (SELECT 1 FROM auth_identities ai WHERE ai.user_id=u.id AND ai.provider=%s)")
         params.append(provider_value)
 
@@ -704,6 +779,9 @@ LEFT JOIN (
         last_seen_join = "LEFT JOIN (SELECT NULL AS user_id, NULL AS last_seen_at) session_last_seen ON 1=0"
 
     where_sql = " AND ".join(where)
+    email_select = f"u.{email_col} AS primary_email" if email_col else "NULL AS primary_email"
+    upload_select = f"u.{upload_col} AS upload_enabled" if upload_col else "1 AS upload_enabled"
+    avatar_select = f"u.{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path"
 
     with conn.cursor() as cur:
         cur.execute(f"SELECT COUNT(*) AS c FROM users u WHERE {where_sql}", params)
@@ -715,12 +793,12 @@ SELECT
     u.id,
     u.display_name,
     u.user_key,
-    u.primary_email,
+    {email_select},
     u.role,
     u.status,
-    u.upload_enabled,
+    {upload_select},
     u.is_email_verified,
-    u.avatar_path,
+    {avatar_select},
     u.created_at,
     u.updated_at,
     session_last_seen.last_seen_at
@@ -749,22 +827,28 @@ LIMIT %s OFFSET %s
         "items": items,
     }
 
-
 def _load_user_detail(conn, user_id: int) -> dict | None:
+    email_col = _users_email_column(conn)
+    upload_col = _users_upload_column(conn)
+    avatar_col = _users_avatar_column(conn)
+    email_select = f"{email_col} AS primary_email" if email_col else "NULL AS primary_email"
+    upload_select = f"{upload_col} AS upload_enabled" if upload_col else "1 AS upload_enabled"
+    avatar_select = f"{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path"
+
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
 SELECT
     id,
     display_name,
     user_key,
-    primary_email,
+    {email_select},
     role,
     status,
-    upload_enabled,
+    {upload_select},
     is_email_verified,
     must_reset_password,
-    avatar_path,
+    {avatar_select},
     created_at,
     updated_at,
     deleted_at,
@@ -786,7 +870,6 @@ LIMIT 1
     item["deleted_at"] = _coerce_utc_text(row.get("deleted_at"))
     item["force_logout_after"] = _coerce_utc_text(row.get("force_logout_after"))
     return item
-
 
 def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
     field_errors: dict = {}
@@ -1103,16 +1186,27 @@ def admin_user_update(
         if not changes:
             return _json_success(request_id=request_id, data={"changed": False, "user": current}, message="変更はありません。")
 
+        upload_col = _users_upload_column(conn)
+        users_cols = _users_columns(conn)
+
         set_clauses = []
         params = []
         for key, value in changes.items():
-            set_clauses.append(f"{key}=%s")
+            db_key = upload_col if key == "upload_enabled" else key
+            if db_key is None:
+                continue
+            set_clauses.append(f"{db_key}=%s")
             params.append(value)
+
+        if "status" in changes and "is_disabled" in users_cols:
+            set_clauses.append("is_disabled=%s")
+            params.append(1 if str(changes["status"]) in {"disabled", "deleted"} else 0)
+
         set_clauses.append("updated_at=CURRENT_TIMESTAMP(6)")
         params.append(user_id)
         with conn.cursor() as cur:
             cur.execute(f"UPDATE users SET {', '.join(set_clauses)} WHERE id=%s", params)
-            if "display_name" in changes or "user_key" in changes:
+            if _detect_table(conn, "auth_identities") is not None and ("display_name" in changes or "user_key" in changes):
                 provider_updates = []
                 provider_params = []
                 if "display_name" in changes:
@@ -1168,64 +1262,88 @@ def admin_user_create(
         temp_password = _generate_temp_password()
         password_hash = _hash_password(temp_password)
 
+        users_cols = _users_columns(conn)
+        email_col = _users_email_column(conn)
+        upload_col = _users_upload_column(conn)
+        password_col = _users_password_hash_column(conn)
+
+        insert_cols: list[str] = []
+        insert_vals: list = []
+
+        def add_user_col(name: str, value):
+            if name in users_cols:
+                insert_cols.append(name)
+                insert_vals.append(value)
+
+        add_user_col("gallery", _get_conf().get("app", {}).get("gallery"))
+        add_user_col("user_key", temp_user_key)
+        add_user_col("display_name", normalized["display_name"])
+        if email_col:
+            add_user_col(email_col, None)
+        add_user_col("avatar_path", None)
+        add_user_col("role", normalized["role"])
+        add_user_col("status", "active")
+        if upload_col:
+            add_user_col(upload_col, 1 if normalized["upload_enabled"] else 0)
+        add_user_col("is_email_verified", 0)
+        add_user_col("must_reset_password", 1)
+        add_user_col("force_logout_after", None)
+        add_user_col("deleted_at", None)
+        add_user_col("is_disabled", 0)
+        if password_col:
+            add_user_col(password_col, password_hash)
+
         with conn.cursor() as cur:
+            placeholders = ", ".join(["%s"] * len(insert_cols))
             cur.execute(
-                """
-INSERT INTO users (
-    user_key,
-    display_name,
-    primary_email,
-    avatar_path,
-    role,
-    status,
-    upload_enabled,
-    is_email_verified,
-    must_reset_password,
-    force_logout_after,
-    deleted_at,
-    created_at,
-    updated_at
-) VALUES (%s, %s, NULL, NULL, %s, 'active', %s, 0, 1, NULL, NULL, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
-""",
-                (
-                    temp_user_key,
-                    normalized["display_name"],
-                    normalized["role"],
-                    1 if normalized["upload_enabled"] else 0,
-                ),
+                f"INSERT INTO users ({', '.join(insert_cols)}) VALUES ({placeholders})",
+                insert_vals,
             )
             cur.execute("SELECT LAST_INSERT_ID() AS id")
             user_id = int((cur.fetchone() or {}).get("id") or 0)
-            cur.execute(
-                """
-INSERT INTO auth_identities (
-    user_id,
-    provider,
-    provider_user_id,
-    provider_email,
-    provider_display_name,
-    is_enabled,
-    linked_at,
-    created_at,
-    updated_at
-) VALUES (%s, 'email_password', %s, NULL, %s, 1, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
-""",
-                (user_id, temp_user_key, normalized["display_name"]),
-            )
-            cur.execute(
-                """
-INSERT INTO password_credentials (
-    user_id,
-    password_hash,
-    password_updated_at,
-    failed_attempts,
-    locked_until,
-    created_at,
-    updated_at
-) VALUES (%s, %s, CURRENT_TIMESTAMP(6), 0, NULL, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
-""",
-                (user_id, password_hash),
-            )
+
+            if _detect_table(conn, "auth_identities") is not None:
+                ai_cols_def = _table_columns(conn, "auth_identities")
+                ai_cols: list[str] = []
+                ai_vals: list = []
+
+                def add_ai_col(name: str, value):
+                    if name in ai_cols_def:
+                        ai_cols.append(name)
+                        ai_vals.append(value)
+
+                add_ai_col("user_id", user_id)
+                add_ai_col("provider", "email_password")
+                add_ai_col("provider_user_id", temp_user_key)
+                add_ai_col("provider_email", None)
+                add_ai_col("provider_display_name", normalized["display_name"])
+                add_ai_col("is_enabled", 1)
+                placeholders_ai = ", ".join(["%s"] * len(ai_cols))
+                cur.execute(
+                    f"INSERT INTO auth_identities ({', '.join(ai_cols)}) VALUES ({placeholders_ai})",
+                    ai_vals,
+                )
+
+            if _detect_table(conn, "password_credentials") is not None:
+                pc_cols_def = _table_columns(conn, "password_credentials")
+                pc_cols: list[str] = []
+                pc_vals: list = []
+
+                def add_pc_col(name: str, value):
+                    if name in pc_cols_def:
+                        pc_cols.append(name)
+                        pc_vals.append(value)
+
+                add_pc_col("user_id", user_id)
+                add_pc_col("password_hash", password_hash)
+                add_pc_col("failed_attempts", 0)
+                add_pc_col("locked_until", None)
+                placeholders_pc = ", ".join(["%s"] * len(pc_cols))
+                cur.execute(
+                    f"INSERT INTO password_credentials ({', '.join(pc_cols)}) VALUES ({placeholders_pc})",
+                    pc_vals,
+                )
+
             if _detect_table(conn, "two_factor_settings") is not None:
                 cur.execute(
                     """

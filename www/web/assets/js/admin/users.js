@@ -187,11 +187,16 @@ async function loadUsers() {
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
     renderTable();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "ユーザー一覧の取得に失敗しました。");
+    const message = error?.message || "ユーザー一覧の取得に失敗しました。";
+    window.AdminApp?.toast?.error?.(message);
     state.items = [];
     state.total = 0;
     state.pages = 1;
     renderTable();
+    const tbody = byId("adminUsersTableBody");
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="8" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
+    }
   }
 }
 
