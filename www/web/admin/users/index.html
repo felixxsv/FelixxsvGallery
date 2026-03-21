@@ -7,12 +7,13 @@
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
   <link rel="stylesheet" href="/gallery/assets/css/components.css">
   <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/admin-users.css">
 </head>
 <body
   class="admin-page"
   data-app-base="/gallery"
   data-admin-page="users"
-  data-admin-description="一覧、編集、仮ユーザー作成は後続フェーズで実装します。"
+  data-admin-description="ユーザー一覧、編集、仮ユーザー作成を行います。"
 >
   <section id="adminLoadingState" class="admin-state-screen">
     <div class="admin-state-card">
@@ -26,9 +27,7 @@
   <section id="adminNotFoundState" class="admin-state-screen" hidden>
     <div class="admin-state-card">
       <h1 class="admin-state-card__title">404</h1>
-      <p class="admin-state-card__description">
-        お探しのページは見つかりませんでした。
-      </p>
+      <p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
       <div class="admin-state-card__actions">
         <a href="/gallery/" class="app-button app-button--primary">ホームへ戻る</a>
       </div>
@@ -52,58 +51,29 @@
           <div class="admin-sidebar__title">Felixxsv Gallery</div>
           <div class="admin-sidebar__subtitle">Admin Console</div>
         </div>
-        <button
-          id="adminSidebarToggle"
-          class="app-icon-button admin-sidebar__toggle"
-          type="button"
-          aria-label="サイドバーを折りたたむ"
-          aria-expanded="true"
-        >
+        <button id="adminSidebarToggle" class="app-icon-button admin-sidebar__toggle" type="button" aria-label="サイドバーを折りたたむ" aria-expanded="true">
           <span aria-hidden="true">⇔</span>
         </button>
       </div>
-
       <div class="admin-sidebar__scroll">
         <nav id="adminSidebarNav" class="admin-sidebar__nav" aria-label="管理画面ナビゲーション">
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/">
-                <span class="admin-sidebar__icon" aria-hidden="true">⌂</span>
-                <span class="admin-sidebar__label">ダッシュボード</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/">
-                <span class="admin-sidebar__icon" aria-hidden="true">▣</span>
-                <span class="admin-sidebar__label">コンテンツ管理</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/">
-                <span class="admin-sidebar__icon" aria-hidden="true">👥</span>
-                <span class="admin-sidebar__label">ユーザー管理</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
-                <span class="admin-sidebar__icon" aria-hidden="true">✉</span>
-                <span class="admin-sidebar__label">メール配信</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
-                <span class="admin-sidebar__icon" aria-hidden="true">⚙</span>
-                <span class="admin-sidebar__label">サイト設定</span>
-              </a>
-              <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
-                <span class="admin-sidebar__icon" aria-hidden="true">☰</span>
-                <span class="admin-sidebar__label">監査ログ</span>
-              </a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/"><span class="admin-sidebar__icon" aria-hidden="true">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/"><span class="admin-sidebar__icon" aria-hidden="true">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/"><span class="admin-sidebar__icon" aria-hidden="true">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/"><span class="admin-sidebar__icon" aria-hidden="true">✉</span><span class="admin-sidebar__label">メール配信</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/"><span class="admin-sidebar__icon" aria-hidden="true">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
+          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/"><span class="admin-sidebar__icon" aria-hidden="true">☰</span><span class="admin-sidebar__label">監査ログ</span></a>
         </nav>
       </div>
-
-      <div class="admin-sidebar__footer">
-        管理画面は権限確認後にのみ表示します。
-      </div>
+      <div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
     </aside>
 
     <div class="admin-shell__main">
       <header class="admin-topbar">
         <div class="admin-topbar__heading">
           <h1 id="adminPageTitle" class="admin-topbar__title">ユーザー管理</h1>
-          <p id="adminPageDescription" class="admin-topbar__description">一覧、編集、仮ユーザー作成は後続フェーズで実装します。</p>
+          <p id="adminPageDescription" class="admin-topbar__description">ユーザー一覧、編集、仮ユーザー作成を行います。</p>
         </div>
-
         <div class="admin-topbar__meta">
           <div class="admin-topbar__meta-label">ログイン中の管理者</div>
           <div id="adminHeaderUserName" class="admin-topbar__meta-value">-</div>
@@ -112,15 +82,83 @@
       </header>
 
       <main class="admin-main-scroll">
+        <section class="admin-page-grid admin-users-grid">
+          <article class="admin-panel admin-users-panel admin-users-panel--toolbar">
+            <div class="admin-users-toolbar">
+              <div class="admin-users-toolbar__left">
+                <div class="admin-users-search-wrap">
+                  <label class="admin-form-label" for="adminUsersSearch">検索</label>
+                  <input id="adminUsersSearch" class="app-input" type="text" placeholder="表示名 / ID / メールアドレスで検索">
+                </div>
+                <div class="admin-users-filter-wrap">
+                  <label class="admin-form-label" for="adminUsersRoleFilter">ロール</label>
+                  <select id="adminUsersRoleFilter" class="app-select">
+                    <option value="">すべて</option>
+                    <option value="admin">admin</option>
+                    <option value="user">user</option>
+                  </select>
+                </div>
+                <div class="admin-users-filter-wrap">
+                  <label class="admin-form-label" for="adminUsersStatusFilter">状態</label>
+                  <select id="adminUsersStatusFilter" class="app-select">
+                    <option value="">すべて</option>
+                    <option value="active">active</option>
+                    <option value="locked">locked</option>
+                    <option value="disabled">disabled</option>
+                    <option value="deleted">deleted</option>
+                  </select>
+                </div>
+                <div class="admin-users-filter-wrap">
+                  <label class="admin-form-label" for="adminUsersSort">並び順</label>
+                  <select id="adminUsersSort" class="app-select">
+                    <option value="created_desc">新しい順</option>
+                    <option value="created_asc">古い順</option>
+                    <option value="name_asc">名前昇順</option>
+                    <option value="name_desc">名前降順</option>
+                    <option value="last_seen_desc">最終アクセス順</option>
+                  </select>
+                </div>
+              </div>
+              <div class="admin-users-toolbar__right">
+                <button id="adminUsersReloadButton" type="button" class="app-button app-button--ghost">再読込</button>
+                <button id="adminUsersCreateButton" type="button" class="app-button app-button--primary">仮ユーザー作成</button>
+              </div>
+            </div>
+          </article>
 
-          <section class="admin-page-grid">
-            <article class="admin-panel">
-              <h2 class="admin-panel__title">ユーザー管理</h2>
-              <p class="admin-panel__meta">一覧、編集、仮ユーザー作成は後続フェーズで実装します。</p>
-              <div class="admin-panel__placeholder">このページの本実装は次のフェーズで追加します。</div>
-            </article>
-          </section>
-        
+          <article class="admin-panel admin-users-panel admin-users-panel--list">
+            <div class="admin-users-list-head">
+              <div class="admin-panel__title">ユーザー一覧</div>
+              <div id="adminUsersSummary" class="admin-panel__meta">-</div>
+            </div>
+            <div class="admin-users-table-wrap">
+              <table class="admin-users-table">
+                <thead>
+                  <tr>
+                    <th>ユーザー</th>
+                    <th>メール</th>
+                    <th>ロール</th>
+                    <th>状態</th>
+                    <th>2FA</th>
+                    <th>投稿</th>
+                    <th>最終アクセス</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adminUsersTableBody">
+                  <tr>
+                    <td colspan="8" class="admin-users-table__empty">読み込み中です。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="admin-users-pagination">
+              <button id="adminUsersPrevPage" type="button" class="app-button app-button--ghost">前へ</button>
+              <div id="adminUsersPageInfo" class="admin-users-pagination__info">-</div>
+              <button id="adminUsersNextPage" type="button" class="app-button app-button--ghost">次へ</button>
+            </div>
+          </article>
+        </section>
       </main>
     </div>
   </section>
@@ -143,10 +181,123 @@
         </div>
       </div>
     </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-users-edit" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="admin-users-edit"></div>
+      <div class="app-modal-dialog admin-users-modal" role="dialog" aria-modal="true" aria-labelledby="adminUsersEditTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminUsersEditTitle" class="app-modal-title">ユーザー編集</h2>
+        </div>
+        <div class="app-modal-body admin-users-modal__body">
+          <div class="admin-users-modal__grid">
+            <div class="admin-users-modal__field">
+              <label class="admin-form-label" for="adminUsersEditDisplayName">表示名</label>
+              <input id="adminUsersEditDisplayName" class="app-input" type="text" maxlength="100">
+            </div>
+            <div class="admin-users-modal__field">
+              <label class="admin-form-label" for="adminUsersEditUserKey">ID</label>
+              <input id="adminUsersEditUserKey" class="app-input" type="text" maxlength="20">
+            </div>
+            <div class="admin-users-modal__field">
+              <label class="admin-form-label" for="adminUsersEditRole">ロール</label>
+              <select id="adminUsersEditRole" class="app-select">
+                <option value="admin">admin</option>
+                <option value="user">user</option>
+              </select>
+            </div>
+            <div class="admin-users-modal__field">
+              <label class="admin-form-label" for="adminUsersEditStatus">状態</label>
+              <select id="adminUsersEditStatus" class="app-select">
+                <option value="active">active</option>
+                <option value="locked">locked</option>
+                <option value="disabled">disabled</option>
+                <option value="deleted">deleted</option>
+              </select>
+            </div>
+            <div class="admin-users-modal__field admin-users-modal__field--check">
+              <label class="admin-check">
+                <input id="adminUsersEditUploadEnabled" type="checkbox">
+                <span>投稿を許可する</span>
+              </label>
+            </div>
+            <div class="admin-users-modal__meta">
+              <div><span>メール</span><strong id="adminUsersEditEmail">-</strong></div>
+              <div><span>作成日時</span><strong id="adminUsersEditCreatedAt">-</strong></div>
+              <div><span>最終アクセス</span><strong id="adminUsersEditLastSeenAt">-</strong></div>
+              <div><span>2FA</span><strong id="adminUsersEditTwoFactor">-</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="app-modal-footer admin-modal-footer--split">
+          <button id="adminUsersDeleteButton" type="button" class="app-button app-button--danger">削除</button>
+          <div class="admin-modal-footer__right">
+            <button id="adminUsersEditCloseButton" type="button" class="app-button app-button--ghost">閉じる</button>
+            <button id="adminUsersEditSaveButton" type="button" class="app-button app-button--primary">更新</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-users-create" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="admin-users-create"></div>
+      <div class="app-modal-dialog admin-users-modal" role="dialog" aria-modal="true" aria-labelledby="adminUsersCreateTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminUsersCreateTitle" class="app-modal-title">仮ユーザー作成</h2>
+        </div>
+        <div class="app-modal-body admin-users-modal__body">
+          <div class="admin-users-modal__grid">
+            <div class="admin-users-modal__field">
+              <label class="admin-form-label" for="adminUsersCreateDisplayName">初期表示名</label>
+              <input id="adminUsersCreateDisplayName" class="app-input" type="text" maxlength="100" placeholder="未設定ユーザー">
+            </div>
+            <div class="admin-users-modal__field">
+              <label class="admin-form-label" for="adminUsersCreateRole">ロール</label>
+              <select id="adminUsersCreateRole" class="app-select">
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+              </select>
+            </div>
+            <div class="admin-users-modal__field admin-users-modal__field--check">
+              <label class="admin-check">
+                <input id="adminUsersCreateUploadEnabled" type="checkbox" checked>
+                <span>投稿を許可する</span>
+              </label>
+            </div>
+          </div>
+          <section id="adminUsersCreateResult" class="admin-users-create-result" hidden>
+            <div class="admin-users-create-result__title">生成された仮ログイン情報</div>
+            <div class="admin-users-create-result__row"><span>仮ユーザーID</span><strong id="adminUsersCreateResultUserKey">-</strong></div>
+            <div class="admin-users-create-result__row"><span>仮パスワード</span><strong id="adminUsersCreateResultPassword">-</strong></div>
+            <p class="admin-users-create-result__meta">初回セットアップ画面実装後、この情報を利用して初回設定を進める想定です。</p>
+          </section>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="adminUsersCreateCloseButton" type="button" class="app-button app-button--ghost">閉じる</button>
+          <button id="adminUsersCreateSubmitButton" type="button" class="app-button app-button--primary">作成</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-users-action-confirm" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="admin-users-action-confirm"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminUsersActionConfirmTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="adminUsersActionConfirmTitle" class="app-modal-title">確認</h2>
+        </div>
+        <div class="app-modal-body">
+          <p id="adminUsersActionConfirmMessage">この操作を実行しますか？</p>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="adminUsersActionConfirmApprove" type="button" class="app-button app-button--primary">実行</button>
+          <button id="adminUsersActionConfirmCancel" type="button" class="app-button app-button--ghost">キャンセル</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div id="appToastRoot" class="app-toast-root" aria-live="polite"></div>
 
   <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
+  <script type="module" src="/gallery/assets/js/admin/users.js"></script>
 </body>
 </html>

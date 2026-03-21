@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import os
+import secrets
 import shutil
+import string
 import uuid
 from datetime import datetime, timezone
+import re
 
-from fastapi import APIRouter, Body, Cookie, Query
+from fastapi import APIRouter, Body, Cookie, Path, Query
 from fastapi.responses import JSONResponse
 
 from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_options
@@ -36,13 +41,18 @@ _NAV_ITEMS = [
 
 _DASHBOARD_PREFERENCE_KEY = "admin_dashboard.clock_mode"
 _ALLOWED_CLOCK_MODES = {"digital", "analog"}
+_ALLOWED_ROLES = {"admin", "user"}
+_ALLOWED_STATUSES = {"active", "locked", "disabled", "deleted"}
+_USERKEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{3,19}$")
+_TEMP_USERKEY_CHARS = string.ascii_lowercase + string.digits
+_TEMP_PASSWORD_CHARS = string.ascii_letters + string.digits
 
 
 def _request_id() -> str:
     return str(uuid.uuid4())
 
 
-def _json_error(status_code: int, request_id: str, code: str, message: str, clear_session_cookie: bool = False) -> JSONResponse:
+def _json_error(status_code: int, request_id: str, code: str, message: str, clear_session_cookie: bool = False, field_errors: dict | None = None) -> JSONResponse:
     response = JSONResponse(
         status_code=status_code,
         content={
@@ -52,7 +62,7 @@ def _json_error(status_code: int, request_id: str, code: str, message: str, clea
                 "code": code,
                 "message": message,
             },
-            "field_errors": {},
+            "field_errors": field_errors or {},
         },
     )
     if clear_session_cookie:
@@ -271,10 +281,7 @@ def _load_active_users(conn) -> list[dict]:
         "MIN(s.created_at) AS session_started_at",
     ]
 
-    if "revoked_at" in session_cols:
-        revoked_where = "AND s.revoked_at IS NULL"
-    else:
-        revoked_where = ""
+    revoked_where = "AND s.revoked_at IS NULL" if "revoked_at" in session_cols else ""
 
     sql = f"""
 SELECT {", ".join(select_parts)}
@@ -295,10 +302,9 @@ LIMIT 8
     items = []
     for row in rows:
         session_started_at = _coerce_utc_datetime(row.get("session_started_at"))
-        last_seen_at = _coerce_utc_datetime(row.get("last_seen_at"))
         elapsed = 0
         if session_started_at is not None:
-            elapsed = max(0, int((now_dt - session_started_at).total_seconds()))
+            elapsed = max(0, int((_utc_now() - session_started_at).total_seconds()))
         items.append(
             {
                 "user_id": row.get("user_id"),
@@ -334,7 +340,7 @@ SELECT
     u.user_key AS actor_user_key
 FROM audit_logs a
 LEFT JOIN users u ON u.id=a.actor_user_id
-ORDER BY a.created_at DESC
+ORDER BY a.created_at DESC, a.id DESC
 LIMIT 8
 """
     with conn.cursor() as cur:
@@ -372,10 +378,7 @@ def _load_latest_image(conn) -> dict | None:
         uploader_key = "owner_user_id"
 
     public_expr = "i.is_public" if "is_public" in image_cols else "1"
-
-    user_join = ""
-    if uploader_key:
-        user_join = f"LEFT JOIN users u ON u.id=i.{uploader_key}"
+    user_join = f"LEFT JOIN users u ON u.id=i.{uploader_key}" if uploader_key else ""
 
     sql = f"""
 SELECT
@@ -485,6 +488,359 @@ WHERE COALESCE(created_at, shot_at) >= CURRENT_DATE()
         "storage_used_bytes": storage_used_bytes,
         "storage_total_bytes": storage_total_bytes,
     }
+
+
+def _b64u(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
+
+
+def _hash_password(password: str) -> str:
+    pw = password.encode("utf-8")
+    salt = os.urandom(16)
+    iters = 200_000
+    dk = hashlib.pbkdf2_hmac("sha256", pw, salt, iters, dklen=32)
+    return f"pbkdf2_sha256${iters}${_b64u(salt)}${_b64u(dk)}"
+
+
+def _generate_temp_user_key(conn) -> str:
+    for _ in range(50):
+        candidate = "tmp" + "".join(secrets.choice(_TEMP_USERKEY_CHARS) for _ in range(7))
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE user_key=%s LIMIT 1", (candidate,))
+            if cur.fetchone() is None:
+                return candidate
+    raise RuntimeError("temporary_user_key_generation_failed")
+
+
+def _generate_temp_password() -> str:
+    while True:
+        password = "".join(secrets.choice(_TEMP_PASSWORD_CHARS) for _ in range(12))
+        if any(c.islower() for c in password) and any(c.isupper() for c in password) and any(c.isdigit() for c in password):
+            return password
+
+
+def _validate_user_key(value: str) -> str:
+    normalized = str(value or "").strip()
+    if not _USERKEY_RE.match(normalized):
+        raise ValueError("user_key")
+    return normalized
+
+
+def _log_audit_event(conn, actor_user_id: int | None, action_type: str, target_type: str, target_id: str | None, result: str, summary: str, meta_json: dict | None = None) -> None:
+    table = _detect_table(conn, "audit_logs")
+    if table is None:
+        return
+    columns = _table_columns(conn, table)
+    cols = ["actor_user_id", "action_type", "target_type", "result", "summary"]
+    vals = [actor_user_id, action_type, target_type, result, summary]
+    if "target_id" in columns:
+        cols.append("target_id")
+        vals.append(target_id)
+    if "meta_json" in columns:
+        cols.append("meta_json")
+        vals.append(json.dumps(meta_json or {}, ensure_ascii=False))
+    placeholders = ", ".join(["%s"] * len(cols))
+    with conn.cursor() as cur:
+        cur.execute(
+            f"INSERT INTO `{table}` ({', '.join(cols)}) VALUES ({placeholders})",
+            vals,
+        )
+
+
+def _count_admin_users(conn) -> int:
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) AS c FROM users WHERE role='admin' AND status<>'deleted'")
+        row = cur.fetchone() or {}
+    return int(row.get("c") or 0)
+
+
+def _load_user_providers_map(conn, user_ids: list[int]) -> dict[int, list[str]]:
+    if not user_ids:
+        return {}
+    placeholders = ",".join(["%s"] * len(user_ids))
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT user_id, provider FROM auth_identities WHERE user_id IN ({placeholders}) ORDER BY provider ASC",
+            user_ids,
+        )
+        rows = cur.fetchall()
+    out: dict[int, list[str]] = {int(user_id): [] for user_id in user_ids}
+    for row in rows:
+        user_id = int(row.get("user_id"))
+        provider = str(row.get("provider") or "")
+        if provider:
+            out.setdefault(user_id, []).append(provider)
+    return out
+
+
+def _load_user_two_factor_map(conn, user_ids: list[int]) -> dict[int, dict]:
+    if not user_ids:
+        return {}
+    if _detect_table(conn, "two_factor_settings") is None:
+        return {}
+    placeholders = ",".join(["%s"] * len(user_ids))
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT user_id, method, is_enabled, is_required, enabled_at, updated_at FROM two_factor_settings WHERE user_id IN ({placeholders})",
+            user_ids,
+        )
+        rows = cur.fetchall()
+    out = {}
+    for row in rows:
+        out[int(row.get("user_id"))] = {
+            "method": row.get("method") or "email",
+            "is_enabled": bool(row.get("is_enabled")),
+            "is_required": bool(row.get("is_required")),
+            "enabled_at": _coerce_utc_text(row.get("enabled_at")),
+            "updated_at": _coerce_utc_text(row.get("updated_at")),
+        }
+    return out
+
+
+def _load_user_last_seen_map(conn, user_ids: list[int]) -> dict[int, str | None]:
+    session_table = _detect_table(conn, "sessions", "user_sessions")
+    if session_table is None or not user_ids:
+        return {}
+    cols = _table_columns(conn, session_table)
+    revoked_where = "AND revoked_at IS NULL" if "revoked_at" in cols else ""
+    placeholders = ",".join(["%s"] * len(user_ids))
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT user_id, MAX(last_seen_at) AS last_seen_at
+FROM `{session_table}`
+WHERE user_id IN ({placeholders})
+  AND expires_at > %s
+  {revoked_where}
+GROUP BY user_id
+""",
+            [*user_ids, _utc_now()],
+        )
+        rows = cur.fetchall()
+    return {int(row.get("user_id")): _coerce_utc_text(row.get("last_seen_at")) for row in rows}
+
+
+def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict], last_seen_map: dict[int, str | None]) -> dict:
+    user_id = int(row.get("id"))
+    return {
+        "user_id": user_id,
+        "display_name": row.get("display_name"),
+        "user_key": row.get("user_key"),
+        "primary_email": row.get("primary_email"),
+        "role": row.get("role"),
+        "status": row.get("status"),
+        "upload_enabled": bool(row.get("upload_enabled")) if row.get("upload_enabled") is not None else True,
+        "is_email_verified": bool(row.get("is_email_verified")) if row.get("is_email_verified") is not None else False,
+        "avatar_url": _build_preview_url(row.get("avatar_path")),
+        "auth_providers": providers_map.get(user_id, []),
+        "two_factor": two_factor_map.get(user_id) or {
+            "method": "email",
+            "is_enabled": False,
+            "is_required": False,
+            "enabled_at": None,
+            "updated_at": None,
+        },
+        "created_at": _coerce_utc_text(row.get("created_at")),
+        "updated_at": _coerce_utc_text(row.get("updated_at")),
+        "last_seen_at": last_seen_map.get(user_id),
+    }
+
+
+def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | None, status: str | None, provider: str | None, sort: str | None) -> dict:
+    page = max(1, int(page or 1))
+    per_page = max(1, min(100, int(per_page or 20)))
+    offset = (page - 1) * per_page
+    query = str(q or "").strip()
+    role_value = str(role or "").strip().lower() or None
+    status_value = str(status or "").strip().lower() or None
+    provider_value = str(provider or "").strip().lower() or None
+    sort_value = str(sort or "created_desc").strip().lower()
+
+    where = ["1=1"]
+    params: list = []
+
+    if query:
+        like = f"%{query}%"
+        where.append("(u.display_name LIKE %s OR u.user_key LIKE %s OR COALESCE(u.primary_email, '') LIKE %s)")
+        params.extend([like, like, like])
+    if role_value in _ALLOWED_ROLES:
+        where.append("u.role=%s")
+        params.append(role_value)
+    if status_value in _ALLOWED_STATUSES:
+        where.append("u.status=%s")
+        params.append(status_value)
+    if provider_value:
+        where.append("EXISTS (SELECT 1 FROM auth_identities ai WHERE ai.user_id=u.id AND ai.provider=%s)")
+        params.append(provider_value)
+
+    if sort_value == "name_asc":
+        order_sql = "u.display_name ASC, u.id ASC"
+    elif sort_value == "name_desc":
+        order_sql = "u.display_name DESC, u.id DESC"
+    elif sort_value == "last_seen_desc":
+        order_sql = "last_seen_at DESC, u.id DESC"
+    elif sort_value == "created_asc":
+        order_sql = "u.created_at ASC, u.id ASC"
+    else:
+        order_sql = "u.created_at DESC, u.id DESC"
+
+    session_table = _detect_table(conn, "sessions", "user_sessions")
+    last_seen_join = ""
+    session_params: list = []
+    if session_table is not None:
+        session_cols = _table_columns(conn, session_table)
+        revoked_where = "AND s.revoked_at IS NULL" if "revoked_at" in session_cols else ""
+        last_seen_join = f"""
+LEFT JOIN (
+    SELECT s.user_id, MAX(s.last_seen_at) AS last_seen_at
+    FROM `{session_table}` s
+    WHERE s.expires_at > %s
+      {revoked_where}
+    GROUP BY s.user_id
+) session_last_seen ON session_last_seen.user_id=u.id
+"""
+        session_params = [_utc_now()]
+    else:
+        last_seen_join = "LEFT JOIN (SELECT NULL AS user_id, NULL AS last_seen_at) session_last_seen ON 1=0"
+
+    where_sql = " AND ".join(where)
+
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT COUNT(*) AS c FROM users u WHERE {where_sql}", params)
+        total = int((cur.fetchone() or {}).get("c") or 0)
+
+        cur.execute(
+            f"""
+SELECT
+    u.id,
+    u.display_name,
+    u.user_key,
+    u.primary_email,
+    u.role,
+    u.status,
+    u.upload_enabled,
+    u.is_email_verified,
+    u.avatar_path,
+    u.created_at,
+    u.updated_at,
+    session_last_seen.last_seen_at
+FROM users u
+{last_seen_join}
+WHERE {where_sql}
+ORDER BY {order_sql}
+LIMIT %s OFFSET %s
+""",
+            [*session_params, *params, per_page, offset],
+        )
+        rows = cur.fetchall()
+
+    user_ids = [int(row.get("id")) for row in rows]
+    providers_map = _load_user_providers_map(conn, user_ids)
+    two_factor_map = _load_user_two_factor_map(conn, user_ids)
+    last_seen_map = {int(row.get("id")): _coerce_utc_text(row.get("last_seen_at")) for row in rows}
+
+    items = [_serialize_user_list_item(row, providers_map, two_factor_map, last_seen_map) for row in rows]
+    pages = (total + per_page - 1) // per_page if total > 0 else 1
+    return {
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+        "total": total,
+        "items": items,
+    }
+
+
+def _load_user_detail(conn, user_id: int) -> dict | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT
+    id,
+    display_name,
+    user_key,
+    primary_email,
+    role,
+    status,
+    upload_enabled,
+    is_email_verified,
+    must_reset_password,
+    avatar_path,
+    created_at,
+    updated_at,
+    deleted_at,
+    force_logout_after
+FROM users
+WHERE id=%s
+LIMIT 1
+""",
+            (user_id,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    providers_map = _load_user_providers_map(conn, [user_id])
+    two_factor_map = _load_user_two_factor_map(conn, [user_id])
+    last_seen_map = _load_user_last_seen_map(conn, [user_id])
+    item = _serialize_user_list_item(row, providers_map, two_factor_map, last_seen_map)
+    item["must_reset_password"] = bool(row.get("must_reset_password")) if row.get("must_reset_password") is not None else False
+    item["deleted_at"] = _coerce_utc_text(row.get("deleted_at"))
+    item["force_logout_after"] = _coerce_utc_text(row.get("force_logout_after"))
+    return item
+
+
+def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
+    field_errors: dict = {}
+    normalized: dict = {}
+
+    if "display_name" in payload:
+        display_name = str(payload.get("display_name") or "").strip()
+        if display_name == "":
+            field_errors["display_name"] = {"code": "required", "message": "表示名を入力してください。"}
+        elif len(display_name) > 100:
+            field_errors["display_name"] = {"code": "too_long", "message": "表示名が長すぎます。"}
+        else:
+            normalized["display_name"] = display_name
+
+    if "user_key" in payload:
+        try:
+            normalized["user_key"] = _validate_user_key(payload.get("user_key"))
+        except Exception:
+            field_errors["user_key"] = {"code": "invalid", "message": "ID の形式が正しくありません。"}
+
+    if "role" in payload:
+        role_value = str(payload.get("role") or "").strip().lower()
+        if role_value not in _ALLOWED_ROLES:
+            field_errors["role"] = {"code": "invalid", "message": "ロールの値が正しくありません。"}
+        else:
+            normalized["role"] = role_value
+
+    if "status" in payload:
+        status_value = str(payload.get("status") or "").strip().lower()
+        if status_value not in _ALLOWED_STATUSES:
+            field_errors["status"] = {"code": "invalid", "message": "状態の値が正しくありません。"}
+        else:
+            normalized["status"] = status_value
+
+    if "upload_enabled" in payload:
+        normalized["upload_enabled"] = bool(payload.get("upload_enabled"))
+
+    return normalized, field_errors
+
+
+def _build_user_create_payload(payload: dict) -> tuple[dict, dict]:
+    field_errors: dict = {}
+    role_value = str((payload or {}).get("role") or "user").strip().lower()
+    if role_value not in _ALLOWED_ROLES:
+        field_errors["role"] = {"code": "invalid", "message": "ロールの値が正しくありません。"}
+    display_name = str((payload or {}).get("display_name") or "").strip() or "未設定ユーザー"
+    if len(display_name) > 100:
+        field_errors["display_name"] = {"code": "too_long", "message": "表示名が長すぎます。"}
+    upload_enabled = bool((payload or {}).get("upload_enabled", True))
+    return {
+        "role": role_value,
+        "display_name": display_name,
+        "upload_enabled": upload_enabled,
+    }, field_errors
 
 
 @router.get("/ping")
@@ -645,6 +1001,334 @@ def update_dashboard_preferences(
             code="server_error",
             message="ダッシュボード設定の更新に失敗しました。",
         )
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/users")
+def admin_users_list(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    q: str | None = Query(default=None),
+    role: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    provider: str | None = Query(default=None),
+    sort: str | None = Query(default="created_desc"),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        data = _load_users_page(conn, page=page, per_page=per_page, q=q, role=role, status=status, provider=provider, sort=sort)
+        return _json_success(request_id=request_id, data=data, message="ユーザー一覧を取得しました。")
+    except Exception:
+        return _json_error(500, request_id, "server_error", "ユーザー一覧の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/users/{user_id}")
+def admin_user_detail(
+    user_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        data = _load_user_detail(conn, user_id)
+        if data is None:
+            return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        return _json_success(request_id=request_id, data={"user": data}, message="ユーザー詳細を取得しました。")
+    except Exception:
+        return _json_error(500, request_id, "server_error", "ユーザー詳細の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/users/{user_id}")
+def admin_user_update(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    normalized, field_errors = _build_user_update_payload(payload or {})
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力内容を確認してください。", field_errors=field_errors)
+    if not normalized:
+        return _json_success(request_id=request_id, data={"changed": False}, message="変更はありません。")
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        current = _load_user_detail(conn, user_id)
+        if current is None:
+            return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+
+        if "role" in normalized and normalized["role"] != current.get("role"):
+            if int(actor.get("id") or 0) == user_id and normalized["role"] != "admin":
+                return _json_error(409, request_id, "cannot_demote_self", "自分自身の管理者権限は解除できません。")
+            if current.get("role") == "admin" and normalized["role"] != "admin" and _count_admin_users(conn) <= 1:
+                return _json_error(409, request_id, "last_admin_protected", "最後の管理者は変更できません。")
+
+        if "user_key" in normalized and normalized["user_key"] != current.get("user_key"):
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM users WHERE user_key=%s AND id<>%s LIMIT 1", (normalized["user_key"], user_id))
+                if cur.fetchone() is not None:
+                    return _json_error(409, request_id, "user_key_already_used", "この ID はすでに使用されています。", field_errors={"user_key": {"code": "duplicate", "message": "この ID はすでに使用されています。"}})
+
+        changes = {}
+        for key, value in normalized.items():
+            if current.get(key) != value:
+                changes[key] = value
+
+        if not changes:
+            return _json_success(request_id=request_id, data={"changed": False, "user": current}, message="変更はありません。")
+
+        set_clauses = []
+        params = []
+        for key, value in changes.items():
+            set_clauses.append(f"{key}=%s")
+            params.append(value)
+        set_clauses.append("updated_at=CURRENT_TIMESTAMP(6)")
+        params.append(user_id)
+        with conn.cursor() as cur:
+            cur.execute(f"UPDATE users SET {', '.join(set_clauses)} WHERE id=%s", params)
+            if "display_name" in changes or "user_key" in changes:
+                provider_updates = []
+                provider_params = []
+                if "display_name" in changes:
+                    provider_updates.append("provider_display_name=%s")
+                    provider_params.append(changes["display_name"])
+                if provider_updates:
+                    provider_params.append(user_id)
+                    cur.execute(f"UPDATE auth_identities SET {', '.join(provider_updates)}, updated_at=CURRENT_TIMESTAMP(6) WHERE user_id=%s", provider_params)
+        _log_audit_event(
+            conn,
+            actor_user_id=int(actor.get("id") or 0) or None,
+            action_type="admin.users.update",
+            target_type="user",
+            target_id=str(user_id),
+            result="success",
+            summary="ユーザー情報を更新しました。",
+            meta_json={"changes": changes},
+        )
+        conn.commit()
+        updated = _load_user_detail(conn, user_id)
+        return _json_success(request_id=request_id, data={"changed": True, "user": updated}, message="ユーザー情報を更新しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "ユーザー情報の更新に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.post("/users/create")
+def admin_user_create(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    normalized, field_errors = _build_user_create_payload(payload or {})
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力内容を確認してください。", field_errors=field_errors)
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        temp_user_key = _generate_temp_user_key(conn)
+        temp_password = _generate_temp_password()
+        password_hash = _hash_password(temp_password)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+INSERT INTO users (
+    user_key,
+    display_name,
+    primary_email,
+    avatar_path,
+    role,
+    status,
+    upload_enabled,
+    is_email_verified,
+    must_reset_password,
+    force_logout_after,
+    deleted_at,
+    created_at,
+    updated_at
+) VALUES (%s, %s, NULL, NULL, %s, 'active', %s, 0, 1, NULL, NULL, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
+""",
+                (
+                    temp_user_key,
+                    normalized["display_name"],
+                    normalized["role"],
+                    1 if normalized["upload_enabled"] else 0,
+                ),
+            )
+            cur.execute("SELECT LAST_INSERT_ID() AS id")
+            user_id = int((cur.fetchone() or {}).get("id") or 0)
+            cur.execute(
+                """
+INSERT INTO auth_identities (
+    user_id,
+    provider,
+    provider_user_id,
+    provider_email,
+    provider_display_name,
+    is_enabled,
+    linked_at,
+    created_at,
+    updated_at
+) VALUES (%s, 'email_password', %s, NULL, %s, 1, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
+""",
+                (user_id, temp_user_key, normalized["display_name"]),
+            )
+            cur.execute(
+                """
+INSERT INTO password_credentials (
+    user_id,
+    password_hash,
+    password_updated_at,
+    failed_attempts,
+    locked_until,
+    created_at,
+    updated_at
+) VALUES (%s, %s, CURRENT_TIMESTAMP(6), 0, NULL, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
+""",
+                (user_id, password_hash),
+            )
+            if _detect_table(conn, "two_factor_settings") is not None:
+                cur.execute(
+                    """
+INSERT INTO two_factor_settings (
+    user_id,
+    method,
+    is_enabled,
+    is_required,
+    enabled_at,
+    updated_at
+) VALUES (%s, 'email', 0, 0, NULL, CURRENT_TIMESTAMP(6))
+""",
+                    (user_id,),
+                )
+        _log_audit_event(
+            conn,
+            actor_user_id=int(actor.get("id") or 0) or None,
+            action_type="admin.users.create",
+            target_type="user",
+            target_id=str(user_id),
+            result="success",
+            summary="仮ユーザーを作成しました。",
+            meta_json={"role": normalized["role"], "upload_enabled": normalized["upload_enabled"]},
+        )
+        conn.commit()
+        created = _load_user_detail(conn, user_id)
+        return _json_success(
+            request_id=request_id,
+            data={
+                "user": created,
+                "temporary_credentials": {
+                    "user_key": temp_user_key,
+                    "password": temp_password,
+                    "setup_required": True,
+                },
+            },
+            message="仮ユーザーを作成しました。",
+        )
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "仮ユーザーの作成に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.post("/users/{user_id}/delete")
+def admin_user_delete(
+    user_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    if int(actor.get("id") or 0) == user_id:
+        return _json_error(409, request_id, "cannot_delete_self", "自分自身は削除できません。")
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        current = _load_user_detail(conn, user_id)
+        if current is None:
+            return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        if current.get("role") == "admin" and _count_admin_users(conn) <= 1:
+            return _json_error(409, request_id, "last_admin_protected", "最後の管理者は削除できません。")
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+UPDATE users
+SET status='deleted',
+    deleted_at=CURRENT_TIMESTAMP(6),
+    force_logout_after=CURRENT_TIMESTAMP(6),
+    updated_at=CURRENT_TIMESTAMP(6)
+WHERE id=%s
+""",
+                (user_id,),
+            )
+        _log_audit_event(
+            conn,
+            actor_user_id=int(actor.get("id") or 0) or None,
+            action_type="admin.users.delete",
+            target_type="user",
+            target_id=str(user_id),
+            result="success",
+            summary="ユーザーを論理削除しました。",
+        )
+        conn.commit()
+        return _json_success(request_id=request_id, data={"deleted": True, "user_id": user_id}, message="ユーザーを削除しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "ユーザー削除に失敗しました。")
     finally:
         if conn is not None:
             conn.close()

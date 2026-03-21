@@ -1,0 +1,325 @@
+:root {
+  --admin-users-gap: 18px;
+}
+
+.admin-users-grid {
+  gap: 20px;
+}
+
+.admin-users-panel--toolbar {
+  padding-bottom: 18px;
+}
+
+.admin-users-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.admin-users-toolbar__left {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.2fr) repeat(3, minmax(140px, 180px));
+  gap: 14px;
+}
+
+.admin-users-toolbar__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-users-search-wrap,
+.admin-users-filter-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-form-label {
+  font-size: 0.82rem;
+  color: rgba(226, 232, 240, 0.68);
+}
+
+.admin-users-list-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-users-table-wrap {
+  min-width: 0;
+  overflow: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.admin-users-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.96);
+  color: rgba(226, 232, 240, 0.74);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-users-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+}
+
+.admin-users-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-users-table__empty {
+  text-align: center;
+  color: rgba(226, 232, 240, 0.64);
+  padding: 24px 16px !important;
+}
+
+.admin-user-cell {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-user-cell__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.84);
+}
+
+.admin-user-cell__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-user-cell__name {
+  font-weight: 700;
+}
+
+.admin-user-cell__sub {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: rgba(226, 232, 240, 0.64);
+}
+
+.admin-users-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-users-pill--admin {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(96, 165, 250, 0.24);
+}
+
+.admin-users-pill--user {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-users-pill--active {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(74, 222, 128, 0.22);
+}
+
+.admin-users-pill--locked,
+.admin-users-pill--disabled {
+  background: rgba(251, 191, 36, 0.16);
+  border-color: rgba(251, 191, 36, 0.22);
+}
+
+.admin-users-pill--deleted {
+  background: rgba(248, 113, 113, 0.16);
+  border-color: rgba(248, 113, 113, 0.22);
+}
+
+.admin-users-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-users-mini-button {
+  min-width: 76px;
+}
+
+.admin-users-pagination {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.admin-users-pagination__info {
+  min-width: 160px;
+  text-align: center;
+  color: rgba(226, 232, 240, 0.74);
+}
+
+.admin-users-modal {
+  width: min(100%, 860px);
+}
+
+.admin-users-modal__body {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-users-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-users-modal__field {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-users-modal__field--check {
+  align-items: end;
+}
+
+.admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(248, 250, 252, 0.92);
+}
+
+.admin-users-modal__meta {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-users-modal__meta div {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-users-modal__meta span {
+  color: rgba(226, 232, 240, 0.64);
+  font-size: 0.78rem;
+}
+
+.admin-users-modal__meta strong {
+  font-weight: 700;
+}
+
+.admin-modal-footer--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-modal-footer__right {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-users-create-result {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(96, 165, 250, 0.26);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.admin-users-create-result__title {
+  font-weight: 700;
+}
+
+.admin-users-create-result__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-users-create-result__row span {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.admin-users-create-result__meta {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 1280px) {
+  .admin-users-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-users-toolbar__left {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 880px) {
+  .admin-users-toolbar__left {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-users-modal__grid,
+  .admin-users-modal__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-users-modal__meta {
+    grid-column: span 1;
+  }
+
+  .admin-modal-footer--split {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-modal-footer__right {
+    justify-content: flex-end;
+  }
+}
