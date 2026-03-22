@@ -183,6 +183,10 @@
   color: var(--color-text);
 }
 
+.app-field--switch {
+  width: 100%;
+}
+
 .app-switch {
   position: relative;
   display: inline-flex;
@@ -245,6 +249,11 @@
 .app-switch__input:disabled + .app-switch__track {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.app-switch__label {
+  line-height: 1.5;
+  color: var(--color-text);
 }
 
 .app-modal-root {

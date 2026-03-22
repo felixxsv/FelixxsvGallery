@@ -215,10 +215,10 @@ export function initUserShell(app) {
       refs.settingImageOpenBehavior.value = app.settings.getImageOpenBehavior();
     }
     if (refs.settingImageBackdropClose) {
-      refs.settingImageBackdropClose.value = String(app.settings.getImageBackdropClose());
+      refs.settingImageBackdropClose.checked = Boolean(app.settings.getImageBackdropClose());
     }
     if (refs.settingImageMetaPinned) {
-      refs.settingImageMetaPinned.value = String(app.settings.getImageMetaPinned());
+      refs.settingImageMetaPinned.checked = Boolean(app.settings.getImageMetaPinned());
     }
   }
 
@@ -606,14 +606,14 @@ export function initUserShell(app) {
 
     if (refs.settingImageBackdropClose) {
       refs.settingImageBackdropClose.addEventListener("change", () => {
-        app.settings.setImageBackdropClose(refs.settingImageBackdropClose.value === "true");
+        app.settings.setImageBackdropClose(refs.settingImageBackdropClose.checked);
         toast.success("画像モーダルの背景クリック設定を保存しました。");
       });
     }
 
     if (refs.settingImageMetaPinned) {
       refs.settingImageMetaPinned.addEventListener("change", () => {
-        app.settings.setImageMetaPinned(refs.settingImageMetaPinned.value === "true");
+        app.settings.setImageMetaPinned(refs.settingImageMetaPinned.checked);
         toast.success("画像モーダルのメタ情報バー設定を保存しました。");
       });
     }
