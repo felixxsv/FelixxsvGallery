@@ -44,7 +44,6 @@ body.is-modal-open {
 
 .admin-settings-tabs {
   display: flex;
-  flex-wrap: nowrap;
   align-items: flex-end;
   gap: 10px;
   overflow-x: auto;
@@ -64,10 +63,7 @@ body.is-modal-open {
 
 .admin-settings-tab {
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: max-content;
+  min-width: 140px;
   min-height: 48px;
   padding: 0 18px;
   border-radius: 16px 16px 0 0;
@@ -76,12 +72,6 @@ body.is-modal-open {
   background: rgba(255, 255, 255, 0.04);
   color: rgba(226, 232, 240, 0.82);
   font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
-  word-break: keep-all;
-  overflow-wrap: normal;
-  writing-mode: horizontal-tb;
-  text-align: center;
   cursor: pointer;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
@@ -195,7 +185,7 @@ body.is-modal-open {
 
 @media (max-width: 960px) {
   .admin-settings-tab {
-    min-width: max-content;
+    min-width: 128px;
     padding: 0 16px;
   }
 }
@@ -304,12 +294,16 @@ body.is-modal-open {
   font-size: 1rem;
   font-weight: 700;
   color: #f8fafc;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .admin-integrity-hero__description {
   color: rgba(226, 232, 240, 0.74);
   font-size: 0.84rem;
   line-height: 1.7;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .admin-integrity-hero__toggle {
@@ -317,6 +311,18 @@ body.is-modal-open {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  width: auto;
+  min-width: max-content;
+  justify-content: flex-end;
+}
+
+.admin-integrity-hero__toggle.app-switch {
+  width: auto;
+  justify-content: flex-end;
+}
+
+.admin-integrity-hero__toggle .app-switch__control {
+  flex: 0 0 auto;
 }
 
 .admin-integrity-hero__toggle-text {
@@ -435,12 +441,4 @@ body.is-modal-open {
   .admin-integrity-weekday-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-.admin-sidebar__label {
-  white-space: nowrap;
-  word-break: keep-all;
-  overflow-wrap: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
