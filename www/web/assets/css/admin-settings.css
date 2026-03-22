@@ -963,3 +963,234 @@ body.is-modal-open {
     grid-template-columns: 1fr;
   }
 }
+
+
+.admin-main-scroll--settings {
+  overflow: hidden;
+  padding: 20px 24px 24px;
+}
+
+.admin-page-grid--settings {
+  height: calc(100dvh - var(--admin-header-height) - 44px);
+  min-height: 0;
+  align-content: stretch;
+}
+
+.admin-settings-panel {
+  min-height: 0;
+}
+
+.admin-settings-panel__head > div:first-child {
+  min-width: 0;
+}
+
+.admin-settings-panel__body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+}
+
+.admin-settings-form {
+  min-width: 0;
+}
+
+.admin-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-settings-field,
+.admin-settings-field > span,
+.admin-settings-field__help,
+.admin-storage-summary-card__path,
+.admin-storage-card__path,
+.admin-storage-card__note,
+.admin-storage-progress__meta,
+.admin-storage-summary-card__metric strong,
+.admin-storage-card__metric strong,
+.admin-integrity-section__meta,
+.admin-integrity-hero__description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-settings-field input,
+.admin-settings-field select,
+.admin-settings-field textarea {
+  min-width: 0;
+}
+
+.admin-settings-tab {
+  flex: 0 0 auto;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.admin-storage-overview {
+  gap: 18px;
+}
+
+.admin-storage-overview__head {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.admin-storage-overview__heading {
+  min-width: min(100%, 520px);
+}
+
+.admin-storage-overview__actions {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-storage-overview__actions > * {
+  min-width: 0;
+}
+
+.admin-storage-overview__timestamp {
+  white-space: nowrap;
+}
+
+.admin-storage-refresh-interval {
+  max-width: 100%;
+}
+
+.admin-storage-refresh-interval select {
+  min-width: 96px;
+  width: auto;
+  max-width: 100%;
+}
+
+.admin-storage-overview__content {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-storage-summary-card {
+  grid-template-columns: minmax(120px, 144px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.admin-storage-summary-card__chart {
+  align-self: center;
+}
+
+.admin-storage-ring {
+  width: min(132px, 100%);
+}
+
+.admin-storage-summary-card__body {
+  min-width: 0;
+}
+
+.admin-storage-summary-card__metrics {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.admin-storage-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  align-items: stretch;
+}
+
+.admin-storage-card,
+.admin-storage-summary-card {
+  min-width: 0;
+}
+
+.admin-storage-card__heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.admin-storage-card__stats {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.admin-storage-progress__head,
+.admin-storage-progress__meta {
+  flex-wrap: wrap;
+}
+
+.admin-integrity-stack {
+  min-width: 0;
+}
+
+.admin-integrity-section {
+  min-width: 0;
+}
+
+.admin-integrity-hero {
+  align-items: flex-start;
+}
+
+.admin-integrity-hero__content {
+  min-width: 0;
+}
+
+@media (max-width: 1500px) {
+  .admin-storage-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .admin-main-scroll--settings {
+    overflow: auto;
+    padding: 18px;
+  }
+
+  .admin-page-grid--settings {
+    height: auto;
+  }
+
+  .admin-settings-panel {
+    height: auto;
+  }
+
+  .admin-settings-panel__body {
+    overflow: visible;
+  }
+
+  .admin-storage-summary-card {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-storage-ring {
+    margin-inline: auto;
+  }
+
+  .admin-storage-summary-card__metrics,
+  .admin-storage-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .admin-settings-grid,
+  .admin-integrity-weekday-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-settings-panel__head,
+  .admin-settings-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-storage-overview__actions,
+  .admin-storage-overview__head {
+    align-items: stretch;
+  }
+
+  .admin-storage-refresh-interval,
+  .admin-storage-refresh-interval select,
+  .admin-settings-field select {
+    width: 100%;
+  }
+}
