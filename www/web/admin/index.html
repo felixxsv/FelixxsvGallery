@@ -127,14 +127,34 @@
             </div>
           </article>
 
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--latest">
+            <div class="admin-dashboard-card__header">
+              <div>
+                <h2 class="admin-panel__title">新着画像</h2>
+                <p class="admin-panel__meta">最新の 1 枚を表示します。</p>
+              </div>
+            </div>
+            <div class="admin-dashboard-latest">
+              <div id="adminDashboardLatestImagePlaceholder" class="admin-dashboard-empty">表示できる画像がありません。</div>
+              <a id="adminDashboardLatestImageCard" class="admin-dashboard-latest__image-wrap" href="#" hidden>
+                <img id="adminDashboardLatestImage" class="admin-dashboard-latest__image" alt="">
+              </a>
+              <div class="admin-dashboard-latest__body">
+                <div id="adminDashboardLatestImageTitle" class="admin-dashboard-latest__title">-</div>
+                <div id="adminDashboardLatestImageMeta" class="admin-dashboard-latest__meta">-</div>
+                <div id="adminDashboardLatestImageStats" class="admin-dashboard-latest__stats">-</div>
+              </div>
+            </div>
+          </article>
+
           <article class="admin-panel admin-dashboard-card admin-dashboard-card--stats">
             <div class="admin-dashboard-card__header">
               <div>
                 <h2 class="admin-panel__title">現在の状況</h2>
-                <p class="admin-panel__meta">ギャラリー全体の件数と使用量を表示します。</p>
+                <p class="admin-panel__meta">ギャラリー全体の件数と容量の概要を表示します。</p>
               </div>
             </div>
-            <div class="admin-dashboard-stats">
+            <div class="admin-dashboard-stats admin-dashboard-stats--summary">
               <section class="admin-stat">
                 <div class="admin-stat__label">オンラインユーザー</div>
                 <div id="adminStatOnlineUsers" class="admin-stat__value">0</div>
@@ -164,61 +184,62 @@
                 </div>
               </section>
             </div>
-            <section class="admin-dashboard-storage" aria-labelledby="adminDashboardStorageTitle">
-              <div class="admin-dashboard-storage__header">
-                <div>
-                  <h3 id="adminDashboardStorageTitle" class="admin-dashboard-storage__title">ストレージ監視</h3>
-                  <p class="admin-dashboard-storage__meta">storage_root の使用率を自動取得します。設定画面と同じ更新間隔を共有します。</p>
-                </div>
-                <div class="admin-dashboard-storage__actions">
-                  <span class="admin-dashboard-storage__timestamp">最終取得: <strong id="adminDashboardStorageGeneratedAt">-</strong></span>
-                  <label class="admin-dashboard-refresh-interval" for="adminDashboardStorageRefreshInterval">
-                    <span>自動更新</span>
-                    <select id="adminDashboardStorageRefreshInterval" aria-label="ダッシュボードのストレージ監視自動更新間隔">
-                      <option value="0">手動のみ</option>
-                      <option value="60000">1分</option>
-                      <option value="180000">3分</option>
-                      <option value="300000">5分</option>
-                      <option value="600000">10分</option>
-                      <option value="900000">15分</option>
-                      <option value="1800000">30分</option>
-                    </select>
-                  </label>
-                  <button id="adminDashboardStorageRefreshButton" type="button" class="app-button app-button--secondary">再取得</button>
-                </div>
+          </article>
+
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--storage">
+            <div class="admin-dashboard-card__header admin-dashboard-card__header--wrap">
+              <div>
+                <h2 class="admin-panel__title">ストレージ監視</h2>
+                <p class="admin-panel__meta">storage_root の使用率を自動取得します。設定画面と同じ更新間隔を共有します。</p>
               </div>
-              <div id="adminDashboardStorageMessage" class="admin-page-message" hidden></div>
-              <div id="adminDashboardStorageLoading" class="admin-dashboard-storage__loading">使用状況を読み込みます…</div>
-              <div id="adminDashboardStorageContent" class="admin-dashboard-storage__content" hidden>
-                <div class="admin-dashboard-storage__summary">
-                  <div id="adminDashboardStorageRing" class="admin-dashboard-storage__ring" aria-hidden="true">
-                    <span id="adminDashboardStorageUsagePercent" class="admin-dashboard-storage__ring-value">-%</span>
-                  </div>
-                  <div class="admin-dashboard-storage__body">
-                    <div id="adminDashboardStoragePrimaryLabel" class="admin-dashboard-storage__eyebrow">storage_root</div>
-                    <div id="adminDashboardStoragePrimaryPath" class="admin-dashboard-storage__path">使用状況を取得するとここに表示します。</div>
-                    <div class="admin-dashboard-storage__metrics">
-                      <div class="admin-dashboard-storage__metric">
-                        <span>ディレクトリサイズ</span>
-                        <strong id="adminDashboardStorageDirectorySize">-</strong>
-                      </div>
-                      <div class="admin-dashboard-storage__metric">
-                        <span>使用中 / 総容量</span>
-                        <strong id="adminDashboardStorageFilesystemUsage">-</strong>
-                      </div>
-                      <div class="admin-dashboard-storage__metric">
-                        <span>空き容量</span>
-                        <strong id="adminDashboardStorageFilesystemFree">-</strong>
-                      </div>
+              <div class="admin-dashboard-storage__actions">
+                <span class="admin-dashboard-storage__timestamp">最終取得: <strong id="adminDashboardStorageGeneratedAt">-</strong></span>
+                <label class="admin-dashboard-refresh-interval" for="adminDashboardStorageRefreshInterval">
+                  <span>自動更新</span>
+                  <select id="adminDashboardStorageRefreshInterval" aria-label="ダッシュボードのストレージ監視自動更新間隔">
+                    <option value="0">手動のみ</option>
+                    <option value="60000">1分</option>
+                    <option value="180000">3分</option>
+                    <option value="300000">5分</option>
+                    <option value="600000">10分</option>
+                    <option value="900000">15分</option>
+                    <option value="1800000">30分</option>
+                  </select>
+                </label>
+                <button id="adminDashboardStorageRefreshButton" type="button" class="app-button app-button--secondary">再取得</button>
+              </div>
+            </div>
+            <div id="adminDashboardStorageMessage" class="admin-page-message" hidden></div>
+            <div id="adminDashboardStorageLoading" class="admin-dashboard-storage__loading">使用状況を読み込みます…</div>
+            <div id="adminDashboardStorageContent" class="admin-dashboard-storage__content" hidden>
+              <div class="admin-dashboard-storage__summary">
+                <div id="adminDashboardStorageRing" class="admin-dashboard-storage__ring" aria-hidden="true">
+                  <span id="adminDashboardStorageUsagePercent" class="admin-dashboard-storage__ring-value">-%</span>
+                </div>
+                <div class="admin-dashboard-storage__body">
+                  <div id="adminDashboardStoragePrimaryLabel" class="admin-dashboard-storage__eyebrow">storage_root</div>
+                  <div id="adminDashboardStoragePrimaryPath" class="admin-dashboard-storage__path">使用状況を取得するとここに表示します。</div>
+                  <div class="admin-dashboard-storage__metrics">
+                    <div class="admin-dashboard-storage__metric">
+                      <span>ディレクトリサイズ</span>
+                      <strong id="adminDashboardStorageDirectorySize">-</strong>
+                    </div>
+                    <div class="admin-dashboard-storage__metric">
+                      <span>使用中 / 総容量</span>
+                      <strong id="adminDashboardStorageFilesystemUsage">-</strong>
+                    </div>
+                    <div class="admin-dashboard-storage__metric">
+                      <span>空き容量</span>
+                      <strong id="adminDashboardStorageFilesystemFree">-</strong>
                     </div>
                   </div>
                 </div>
               </div>
-            </section>
+            </div>
           </article>
 
           <article class="admin-panel admin-dashboard-card admin-dashboard-card--integrity">
-            <div class="admin-dashboard-card__header">
+            <div class="admin-dashboard-card__header admin-dashboard-card__header--wrap">
               <div>
                 <h2 class="admin-panel__title">整合性チェック</h2>
                 <p class="admin-panel__meta">最新状態、直近の問題、手動実行予約を表示します。</p>
@@ -227,46 +248,26 @@
                 <button id="adminDashboardIntegrityRunButton" type="button" class="app-button app-button--secondary">手動実行を予約</button>
               </div>
             </div>
-            <div class="admin-dashboard-stats">
+            <div class="admin-dashboard-stats admin-dashboard-stats--integrity">
               <section class="admin-stat">
                 <div class="admin-stat__label">最新状態</div>
                 <div id="adminDashboardIntegrityStatus" class="admin-stat__value">-</div>
               </section>
               <section class="admin-stat admin-stat--wide">
                 <div class="admin-stat__label">最終実行</div>
-                <div id="adminDashboardIntegrityLastRun" class="admin-stat__value">-</div>
+                <div id="adminDashboardIntegrityLastRun" class="admin-stat__value admin-stat__value--compact">-</div>
               </section>
               <section class="admin-stat">
                 <div class="admin-stat__label">最終正常完了</div>
-                <div id="adminDashboardIntegrityLastSuccess" class="admin-stat__value">-</div>
+                <div id="adminDashboardIntegrityLastSuccess" class="admin-stat__value admin-stat__value--compact">-</div>
               </section>
-              <section class="admin-stat admin-stat--wide">
+              <section class="admin-stat">
                 <div class="admin-stat__label">保留ジョブ</div>
-                <div id="adminDashboardIntegrityPending" class="admin-stat__value">-</div>
+                <div id="adminDashboardIntegrityPending" class="admin-stat__value admin-stat__value--compact">-</div>
               </section>
             </div>
             <div id="adminDashboardIntegrityIssues" class="admin-log-list">
               <div class="admin-list-empty">読み込み中です。</div>
-            </div>
-          </article>
-
-          <article class="admin-panel admin-dashboard-card admin-dashboard-card--latest">
-            <div class="admin-dashboard-card__header">
-              <div>
-                <h2 class="admin-panel__title">新着画像</h2>
-                <p class="admin-panel__meta">最新の 1 枚を表示します。</p>
-              </div>
-            </div>
-            <div class="admin-dashboard-latest">
-              <div id="adminDashboardLatestImagePlaceholder" class="admin-dashboard-empty">表示できる画像がありません。</div>
-              <a id="adminDashboardLatestImageCard" class="admin-dashboard-latest__image-wrap" href="#" hidden>
-                <img id="adminDashboardLatestImage" class="admin-dashboard-latest__image" alt="">
-              </a>
-              <div class="admin-dashboard-latest__body">
-                <div id="adminDashboardLatestImageTitle" class="admin-dashboard-latest__title">-</div>
-                <div id="adminDashboardLatestImageMeta" class="admin-dashboard-latest__meta">-</div>
-                <div id="adminDashboardLatestImageStats" class="admin-dashboard-latest__stats">-</div>
-              </div>
             </div>
           </article>
 

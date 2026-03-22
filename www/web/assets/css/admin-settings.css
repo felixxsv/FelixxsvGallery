@@ -780,3 +780,186 @@ body.is-modal-open {
 .admin-storage-refresh-interval select:disabled {
   opacity: 0.65;
 }
+
+.admin-main-scroll--settings {
+  overflow: hidden;
+  padding: 22px 24px 24px;
+}
+
+.admin-page-grid--settings {
+  height: calc(100vh - var(--admin-header-height) - 46px);
+  min-height: 0;
+}
+
+.admin-settings-panel {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-settings-tabs,
+.admin-settings-panel__head,
+.admin-settings-footer {
+  flex-shrink: 0;
+}
+
+.admin-settings-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+  scrollbar-width: thin;
+}
+
+.admin-settings-form {
+  min-height: 0;
+}
+
+.admin-settings-field select,
+.admin-storage-refresh-interval select,
+.admin-dashboard-refresh-interval select {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 44px;
+  padding: 0 40px 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.56)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%23E2E8F0' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center / 14px 14px;
+  color: #f8fafc;
+  font: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-settings-field select:hover,
+.admin-storage-refresh-interval select:hover,
+.admin-dashboard-refresh-interval select:hover {
+  border-color: rgba(125, 211, 252, 0.32);
+}
+
+.admin-settings-field select:focus-visible,
+.admin-storage-refresh-interval select:focus-visible,
+.admin-dashboard-refresh-interval select:focus-visible {
+  outline: none;
+  border-color: rgba(125, 211, 252, 0.4);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+}
+
+.admin-settings-tab {
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.admin-settings-panel__head {
+  align-items: flex-start;
+}
+
+.admin-storage-overview,
+.admin-integrity-stack {
+  min-height: 0;
+}
+
+.admin-storage-overview {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-storage-overview__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-storage-overview__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-storage-refresh-interval {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.82rem;
+}
+
+.admin-storage-summary-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.admin-storage-summary-card__path {
+  overflow-wrap: anywhere;
+}
+
+.admin-storage-summary-card__metrics,
+.admin-storage-card-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-storage-summary-card__metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-storage-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-storage-card__path,
+.admin-storage-progress__meta,
+.admin-storage-card__metric strong,
+.admin-storage-summary-card__metric strong {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1280px) {
+  .admin-main-scroll--settings {
+    overflow-y: auto;
+  }
+
+  .admin-page-grid--settings {
+    height: auto;
+  }
+
+  .admin-settings-panel {
+    height: auto;
+  }
+
+  .admin-settings-panel__body {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-main-scroll--settings {
+    padding: 18px;
+  }
+
+  .admin-storage-overview__actions,
+  .admin-storage-overview__head,
+  .admin-storage-summary-card {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .admin-storage-summary-card__metrics,
+  .admin-storage-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
