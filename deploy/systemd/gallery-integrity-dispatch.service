@@ -1,0 +1,12 @@
+[Unit]
+Description=Felixxsv Gallery integrity dispatcher
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/data/felixxsv-gallery/app
+Environment=GALLERY_CONF=/etc/felixxsv-gallery/gallery.conf
+ExecStart=/usr/bin/env python3 -m galleryctl integrity-dispatch --config /etc/felixxsv-gallery/gallery.conf --max-runs 1
+User=www-data
+Group=www-data

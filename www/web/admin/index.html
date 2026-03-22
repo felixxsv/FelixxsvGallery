@@ -166,6 +166,39 @@
             </div>
           </article>
 
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--integrity">
+            <div class="admin-dashboard-card__header">
+              <div>
+                <h2 class="admin-panel__title">整合性チェック</h2>
+                <p class="admin-panel__meta">最新状態、直近の問題、手動実行予約を表示します。</p>
+              </div>
+              <div>
+                <button id="adminDashboardIntegrityRunButton" type="button" class="app-button app-button--secondary">手動実行を予約</button>
+              </div>
+            </div>
+            <div class="admin-dashboard-stats">
+              <section class="admin-stat">
+                <div class="admin-stat__label">最新状態</div>
+                <div id="adminDashboardIntegrityStatus" class="admin-stat__value">-</div>
+              </section>
+              <section class="admin-stat admin-stat--wide">
+                <div class="admin-stat__label">最終実行</div>
+                <div id="adminDashboardIntegrityLastRun" class="admin-stat__value">-</div>
+              </section>
+              <section class="admin-stat">
+                <div class="admin-stat__label">最終正常完了</div>
+                <div id="adminDashboardIntegrityLastSuccess" class="admin-stat__value">-</div>
+              </section>
+              <section class="admin-stat admin-stat--wide">
+                <div class="admin-stat__label">保留ジョブ</div>
+                <div id="adminDashboardIntegrityPending" class="admin-stat__value">-</div>
+              </section>
+            </div>
+            <div id="adminDashboardIntegrityIssues" class="admin-log-list">
+              <div class="admin-list-empty">読み込み中です。</div>
+            </div>
+          </article>
+
           <article class="admin-panel admin-dashboard-card admin-dashboard-card--latest">
             <div class="admin-dashboard-card__header">
               <div>

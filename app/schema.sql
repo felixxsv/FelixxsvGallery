@@ -87,3 +87,49 @@ CREATE TABLE IF NOT EXISTS image_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS integrity_runs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  run_uuid CHAR(36) NOT NULL,
+  trigger_source ENUM('schedule', 'manual') NOT NULL DEFAULT 'schedule',
+  status ENUM('queued', 'running', 'ok', 'warning', 'error', 'failed') NOT NULL DEFAULT 'queued',
+  requested_by_user_id BIGINT UNSIGNED NULL,
+  requested_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  scheduled_for DATETIME(6) NULL,
+  started_at DATETIME(6) NULL,
+  finished_at DATETIME(6) NULL,
+  exit_code TINYINT UNSIGNED NULL,
+  summary_json JSON NULL,
+  report_path VARCHAR(2048) NULL,
+  message TEXT NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_integrity_runs_uuid (run_uuid),
+  KEY idx_integrity_runs_status (status),
+  KEY idx_integrity_runs_trigger_source (trigger_source),
+  KEY idx_integrity_runs_scheduled_for (scheduled_for),
+  KEY idx_integrity_runs_requested_at (requested_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS integrity_issues (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  run_id BIGINT UNSIGNED NOT NULL,
+  severity ENUM('warning', 'error') NOT NULL,
+  issue_code VARCHAR(64) NOT NULL,
+  gallery VARCHAR(64) NULL,
+  image_id BIGINT UNSIGNED NULL,
+  source_id BIGINT UNSIGNED NULL,
+  file_path VARCHAR(2048) NULL,
+  derivative_kind VARCHAR(32) NULL,
+  detail_json JSON NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  KEY idx_integrity_issues_run_id (run_id),
+  KEY idx_integrity_issues_issue_code (issue_code),
+  KEY idx_integrity_issues_image_id (image_id),
+  CONSTRAINT fk_integrity_issues_run_id
+    FOREIGN KEY (run_id) REFERENCES integrity_runs(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;

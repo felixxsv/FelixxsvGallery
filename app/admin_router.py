@@ -8,7 +8,7 @@ import secrets
 import shutil
 import string
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import re
 import ipaddress
 import csv
@@ -1054,6 +1054,7 @@ def admin_dashboard(session_token: str | None = Cookie(default=None, alias=DEFAU
         recent_audit_logs = _load_recent_audit_logs(conn)
         latest_image = _load_latest_image(conn)
         stats = _load_dashboard_stats(conn)
+        integrity_summary = _load_integrity_summary(conn)
 
         return _json_success(
             request_id=request_id,
@@ -1064,6 +1065,7 @@ def admin_dashboard(session_token: str | None = Cookie(default=None, alias=DEFAU
                 "recent_audit_logs": recent_audit_logs,
                 "latest_image": latest_image,
                 "stats": stats,
+                "integrity_summary": integrity_summary,
             },
             message="ダッシュボードデータを取得しました。",
         )
@@ -3595,11 +3597,23 @@ def _settings_storage_defaults() -> dict:
     }
 
 
+def _settings_integrity_defaults() -> dict:
+    return {
+        "enabled": True,
+        "schedule_type": "daily",
+        "run_at_hhmm": "05:00",
+        "interval_days": 1,
+        "weekly_days": ["mon"],
+        "report_retention_days": 30,
+    }
+
+
 _SETTINGS_GROUP_DEFAULT_FACTORIES = {
     "general": _settings_general_defaults,
     "security": _settings_security_defaults,
     "smtp": _settings_smtp_defaults_from_conf,
     "storage": _settings_storage_defaults,
+    "integrity": _settings_integrity_defaults,
 }
 
 
@@ -3708,6 +3722,44 @@ def _normalize_settings_group_payload(group: str, payload: dict) -> tuple[dict, 
             field_errors["storage_root"] = "required"
         return normalized, field_errors
 
+
+    if group == "integrity":
+        schedule_type = str(data.get("schedule_type") or "daily").strip().lower()
+        if schedule_type not in {"daily", "every_n_days", "weekly"}:
+            field_errors["schedule_type"] = "invalid"
+            schedule_type = "daily"
+        run_at_hhmm = _coerce_text_setting(data.get("run_at_hhmm"), "05:00", 5)
+        if len(run_at_hhmm) != 5 or run_at_hhmm[2] != ":":
+            field_errors["run_at_hhmm"] = "invalid"
+            run_at_hhmm = "05:00"
+        else:
+            try:
+                hour = int(run_at_hhmm[:2])
+                minute = int(run_at_hhmm[3:])
+                if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+                    raise ValueError("invalid")
+            except Exception:
+                field_errors["run_at_hhmm"] = "invalid"
+                run_at_hhmm = "05:00"
+        raw_weekly_days = data.get("weekly_days")
+        if isinstance(raw_weekly_days, str):
+            weekly_days = [part.strip().lower() for part in raw_weekly_days.split(",") if part.strip()]
+        elif isinstance(raw_weekly_days, (list, tuple, set)):
+            weekly_days = [str(part).strip().lower() for part in raw_weekly_days if str(part).strip()]
+        else:
+            weekly_days = []
+        valid_weekdays = [day for day in ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] if day in weekly_days]
+        normalized = {
+            "enabled": _coerce_bool_setting(data.get("enabled"), True),
+            "schedule_type": schedule_type,
+            "run_at_hhmm": run_at_hhmm,
+            "interval_days": _coerce_int_setting(data.get("interval_days"), 1, 1, 365),
+            "weekly_days": valid_weekdays or ["mon"],
+            "report_retention_days": _coerce_int_setting(data.get("report_retention_days"), 30, 1, 3650),
+        }
+        return normalized, field_errors
+
+
     return {}, {"group": "unsupported"}
 
 
@@ -3764,6 +3816,267 @@ VALUES (%s, CAST(%s AS JSON), CAST(%s AS JSON), %s)
     return after_payload
 
 
+
+
+def _ensure_integrity_tables(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS integrity_runs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    run_uuid CHAR(36) NOT NULL,
+    trigger_source ENUM('schedule', 'manual') NOT NULL DEFAULT 'schedule',
+    status ENUM('queued', 'running', 'ok', 'warning', 'error', 'failed') NOT NULL DEFAULT 'queued',
+    requested_by_user_id BIGINT UNSIGNED NULL,
+    requested_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    scheduled_for DATETIME(6) NULL,
+    started_at DATETIME(6) NULL,
+    finished_at DATETIME(6) NULL,
+    exit_code TINYINT UNSIGNED NULL,
+    summary_json JSON NULL,
+    report_path VARCHAR(2048) NULL,
+    message TEXT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_integrity_runs_uuid (run_uuid),
+    KEY idx_integrity_runs_status (status),
+    KEY idx_integrity_runs_trigger_source (trigger_source),
+    KEY idx_integrity_runs_scheduled_for (scheduled_for),
+    KEY idx_integrity_runs_requested_at (requested_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS integrity_issues (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    run_id BIGINT UNSIGNED NOT NULL,
+    severity ENUM('warning', 'error') NOT NULL,
+    issue_code VARCHAR(64) NOT NULL,
+    gallery VARCHAR(64) NULL,
+    image_id BIGINT UNSIGNED NULL,
+    source_id BIGINT UNSIGNED NULL,
+    file_path VARCHAR(2048) NULL,
+    derivative_kind VARCHAR(32) NULL,
+    detail_json JSON NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY idx_integrity_issues_run_id (run_id),
+    KEY idx_integrity_issues_issue_code (issue_code),
+    KEY idx_integrity_issues_image_id (image_id),
+    CONSTRAINT fk_integrity_issues_run_id
+      FOREIGN KEY (run_id) REFERENCES integrity_runs(id)
+      ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+
+
+def _decode_json_field(value, fallback=None):
+    if value is None:
+        return fallback
+    if isinstance(value, (dict, list, bool, int, float)):
+        return value
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="ignore")
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except Exception:
+            return fallback if fallback is not None else value
+    return fallback if fallback is not None else value
+
+
+def _serialize_integrity_run(row: dict | None) -> dict | None:
+    if not row:
+        return None
+    summary = _decode_json_field(row.get("summary_json"), {}) or {}
+    return {
+        "run_id": int(row.get("id")),
+        "run_uuid": row.get("run_uuid"),
+        "trigger_source": row.get("trigger_source") or "schedule",
+        "status": row.get("status") or "queued",
+        "requested_by_user_id": int(row.get("requested_by_user_id")) if row.get("requested_by_user_id") else None,
+        "requested_at": _coerce_utc_text(row.get("requested_at")),
+        "scheduled_for": _coerce_utc_text(row.get("scheduled_for")),
+        "started_at": _coerce_utc_text(row.get("started_at")),
+        "finished_at": _coerce_utc_text(row.get("finished_at")),
+        "exit_code": int(row.get("exit_code")) if row.get("exit_code") is not None else None,
+        "message": row.get("message"),
+        "report_path": row.get("report_path"),
+        "summary": summary,
+    }
+
+
+def _serialize_integrity_issue(row: dict) -> dict:
+    detail = _decode_json_field(row.get("detail_json"), {}) or {}
+    return {
+        "issue_id": int(row.get("id")),
+        "run_id": int(row.get("run_id")),
+        "severity": row.get("severity") or "warning",
+        "issue_code": row.get("issue_code") or "unknown",
+        "gallery": row.get("gallery"),
+        "image_id": int(row.get("image_id")) if row.get("image_id") is not None else None,
+        "source_id": int(row.get("source_id")) if row.get("source_id") is not None else None,
+        "file_path": row.get("file_path"),
+        "derivative_kind": row.get("derivative_kind"),
+        "detail": detail,
+        "created_at": _coerce_utc_text(row.get("created_at")),
+    }
+
+
+def _load_integrity_run(conn, run_id: int) -> dict | None:
+    _ensure_integrity_tables(conn)
+    with conn.cursor() as cur:
+        cur.execute("SELECT * FROM integrity_runs WHERE id=%s LIMIT 1", (run_id,))
+        row = cur.fetchone()
+    return _serialize_integrity_run(row)
+
+
+def _load_integrity_issues(conn, run_id: int, limit: int | None = None) -> list[dict]:
+    _ensure_integrity_tables(conn)
+    sql = """
+SELECT *
+FROM integrity_issues
+WHERE run_id=%s
+ORDER BY FIELD(severity, 'error', 'warning'), id ASC
+"""
+    params: list = [run_id]
+    if limit is not None:
+        sql += " LIMIT %s"
+        params.append(int(limit))
+    with conn.cursor() as cur:
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+    return [_serialize_integrity_issue(row) for row in rows]
+
+
+def _find_pending_integrity_run(conn) -> dict | None:
+    _ensure_integrity_tables(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT *
+FROM integrity_runs
+WHERE status IN ('queued', 'running')
+ORDER BY requested_at ASC, id ASC
+LIMIT 1
+"""
+        )
+        row = cur.fetchone()
+    return _serialize_integrity_run(row)
+
+
+def _create_integrity_run(conn, trigger_source: str, requested_by_user_id: int | None = None) -> dict:
+    _ensure_integrity_tables(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+INSERT INTO integrity_runs (
+    run_uuid,
+    trigger_source,
+    status,
+    requested_by_user_id,
+    requested_at
+)
+VALUES (%s, %s, 'queued', %s, %s)
+""",
+            (str(uuid.uuid4()), trigger_source, requested_by_user_id, _utc_now().replace(tzinfo=None)),
+        )
+        run_id = int(cur.lastrowid)
+    return _load_integrity_run(conn, run_id) or {"run_id": run_id}
+
+
+def _load_integrity_runs_page(conn, page: int, per_page: int) -> dict:
+    _ensure_integrity_tables(conn)
+    page = max(1, int(page or 1))
+    per_page = max(1, min(100, int(per_page or 20)))
+    offset = (page - 1) * per_page
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) AS c FROM integrity_runs")
+        total = int((cur.fetchone() or {}).get("c") or 0)
+        cur.execute(
+            """
+SELECT *
+FROM integrity_runs
+ORDER BY COALESCE(finished_at, started_at, requested_at) DESC, id DESC
+LIMIT %s OFFSET %s
+""",
+            (per_page, offset),
+        )
+        rows = cur.fetchall()
+    items = [_serialize_integrity_run(row) for row in rows]
+    pages = (total + per_page - 1) // per_page if total > 0 else 1
+    return {
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+        "total": total,
+        "items": items,
+    }
+
+
+def _load_integrity_summary(conn) -> dict:
+    _ensure_integrity_tables(conn)
+    last_run = None
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT *
+FROM integrity_runs
+ORDER BY COALESCE(finished_at, started_at, requested_at) DESC, id DESC
+LIMIT 1
+"""
+        )
+        row = cur.fetchone()
+        if row:
+            last_run = _serialize_integrity_run(row)
+
+        cur.execute(
+            """
+SELECT finished_at
+FROM integrity_runs
+WHERE status IN ('ok', 'warning') AND finished_at IS NOT NULL
+ORDER BY finished_at DESC, id DESC
+LIMIT 1
+"""
+        )
+        success_row = cur.fetchone() or {}
+
+        cur.execute(
+            """
+SELECT finished_at
+FROM integrity_runs
+WHERE status IN ('error', 'failed') AND finished_at IS NOT NULL
+ORDER BY finished_at DESC, id DESC
+LIMIT 1
+"""
+        )
+        error_row = cur.fetchone() or {}
+
+    pending_run = _find_pending_integrity_run(conn)
+    issue_items = _load_integrity_issues(conn, int(last_run["run_id"]), limit=5) if last_run else []
+    latest_status = (last_run or {}).get("status") or "never"
+    latest_summary = (last_run or {}).get("summary") or {}
+    severity_counts = latest_summary.get("severity_counts") or {}
+    issue_counts = latest_summary.get("issue_counts") or {}
+    return {
+        "latest_status": latest_status,
+        "last_run": last_run,
+        "last_success_at": _coerce_utc_text(success_row.get("finished_at")),
+        "last_error_at": _coerce_utc_text(error_row.get("finished_at")),
+        "pending_run": pending_run,
+        "has_pending": pending_run is not None,
+        "severity_counts": {
+            "warning": int(severity_counts.get("warning") or 0),
+            "error": int(severity_counts.get("error") or 0),
+        },
+        "issue_counts": issue_counts,
+        "issue_items": issue_items,
+    }
+
+
 def _mail_sender_settings(conn=None) -> dict:
     conf = _get_conf()
     smtp_conf = conf.get("smtp") or {}
@@ -3808,6 +4121,199 @@ def _mail_sender_settings(conn=None) -> dict:
         "use_auth": smtp_conf.get("use_auth"),
         "base_url": base_url,
     }
+
+
+
+@router.get("/settings/integrity")
+def admin_settings_integrity(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_site_settings_group(conn, "integrity")
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "整合性チェック設定の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/settings/integrity")
+def admin_settings_integrity_update(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    normalized, field_errors = _normalize_settings_group_payload("integrity", payload)
+    if field_errors:
+        return _json_error(400, request_id, "validation_error", "入力値に誤りがあります。", field_errors=field_errors)
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        result = _save_site_settings_group(conn, "integrity", normalized, int(actor.get("id") or 0))
+        conn.commit()
+        return _json_success(request_id=request_id, data=result, message="整合性チェック設定を更新しました。")
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "整合性チェック設定の更新に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/integrity/summary")
+def admin_integrity_summary(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        data = _load_integrity_summary(conn)
+        return _json_success(request_id=request_id, data=data, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "整合性チェック結果の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.post("/integrity/run")
+def admin_integrity_run(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result_auth.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        pending = _find_pending_integrity_run(conn)
+        if pending is not None:
+            conn.rollback()
+            return _json_success(
+                request_id=request_id,
+                data={
+                    "run": pending,
+                    "already_pending": True,
+                },
+                message="既に実行待ちまたは実行中の整合性チェックがあります。",
+            )
+        run = _create_integrity_run(conn, trigger_source="manual", requested_by_user_id=int(actor.get("id") or 0))
+        _log_audit_event(
+            conn,
+            int(actor.get("id") or 0),
+            "admin.integrity.run.request",
+            "integrity_run",
+            str(run.get("run_id") or ""),
+            "success",
+            "整合性チェックを手動実行キューへ追加しました。",
+            meta_json={"run": run},
+        )
+        conn.commit()
+        return _json_success(
+            request_id=request_id,
+            data={"run": run, "already_pending": False},
+            message="整合性チェックを実行キューへ追加しました。",
+        )
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "整合性チェックの手動実行予約に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/integrity/runs")
+def admin_integrity_runs(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        data = _load_integrity_runs_page(conn, page, per_page)
+        return _json_success(request_id=request_id, data=data, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "整合性チェック履歴の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/integrity/runs/{run_id}")
+def admin_integrity_run_detail(
+    run_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        run = _load_integrity_run(conn, run_id)
+        if run is None:
+            return _json_error(404, request_id, "not_found", "指定された整合性チェック実行が見つかりません。")
+        return _json_success(request_id=request_id, data={"run": run}, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "整合性チェック実行の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/integrity/runs/{run_id}/issues")
+def admin_integrity_run_issues(
+    run_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        run = _load_integrity_run(conn, run_id)
+        if run is None:
+            return _json_error(404, request_id, "not_found", "指定された整合性チェック実行が見つかりません。")
+        issues = _load_integrity_issues(conn, run_id)
+        return _json_success(request_id=request_id, data={"run": run, "issues": issues}, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "整合性チェック問題一覧の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @router.get("/settings/general")

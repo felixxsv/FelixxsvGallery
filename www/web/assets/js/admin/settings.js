@@ -59,16 +59,30 @@ const GROUP_META = {
       max_upload_size_mb: "adminSettingsStorageMaxUploadSizeMb",
     },
   },
+  integrity: {
+    title: "整合性チェック",
+    description: "日次整合性チェックの有効化、周期、実行時刻、保持期間を管理します。",
+    loadPath: "/api/admin/settings/integrity",
+    savePath: "/api/admin/settings/integrity",
+    fields: {
+      enabled: "adminSettingsIntegrityEnabled",
+      schedule_type: "adminSettingsIntegrityScheduleType",
+      run_at_hhmm: "adminSettingsIntegrityRunAt",
+      interval_days: "adminSettingsIntegrityIntervalDays",
+      weekly_days: {
+        type: "checkbox-group",
+        selector: 'input[name="adminSettingsIntegrityWeeklyDays"]',
+      },
+      report_retention_days: "adminSettingsIntegrityReportRetentionDays",
+    },
+  },
 };
+
+const INITIAL_GROUP_STATE = () => ({ initial: null, current: null, updated_at: null, updated_by_user_id: null });
 
 const state = {
   activeTab: "general",
-  groups: {
-    general: { initial: null, current: null, updated_at: null, updated_by_user_id: null },
-    security: { initial: null, current: null, updated_at: null, updated_by_user_id: null },
-    smtp: { initial: null, current: null, updated_at: null, updated_by_user_id: null },
-    storage: { initial: null, current: null, updated_at: null, updated_by_user_id: null },
-  },
+  groups: Object.fromEntries(Object.keys(GROUP_META).map((group) => [group, INITIAL_GROUP_STATE()])),
   saving: false,
   pendingApplyResolver: null,
 };
@@ -119,6 +133,56 @@ function activeGroupState() {
   return state.groups[state.activeTab];
 }
 
+function fieldConfig(field) {
+  if (typeof field === "string") {
+    return { type: "element", id: field };
+  }
+  return field || { type: "element", id: "" };
+}
+
+function fieldElements(field) {
+  const config = fieldConfig(field);
+  if (config.type === "checkbox-group") {
+    return Array.from(document.querySelectorAll(config.selector || ""));
+  }
+  const el = document.getElementById(config.id);
+  return el ? [el] : [];
+}
+
+function readField(field) {
+  const config = fieldConfig(field);
+  const elements = fieldElements(field);
+  if (config.type === "checkbox-group") {
+    return elements.filter((el) => el.checked).map((el) => el.value);
+  }
+  const el = elements[0];
+  if (!el) return null;
+  if (el.type === "checkbox") return !!el.checked;
+  if (el.type === "number") return el.value === "" ? null : Number(el.value);
+  return el.value;
+}
+
+function writeField(field, value) {
+  const config = fieldConfig(field);
+  const elements = fieldElements(field);
+  if (config.type === "checkbox-group") {
+    const values = Array.isArray(value) ? value.map((item) => String(item)) : [];
+    elements.forEach((el) => {
+      el.checked = values.includes(el.value);
+    });
+    return;
+  }
+  const el = elements[0];
+  if (!el) return;
+  if (el.type === "checkbox") {
+    el.checked = Boolean(value);
+  } else if (el.type === "number") {
+    el.value = value == null ? "" : String(value);
+  } else {
+    el.value = value == null ? "" : String(value);
+  }
+}
+
 function isGroupDirty(group) {
   const entry = state.groups[group];
   if (!entry || !entry.initial || !entry.current) return false;
@@ -131,6 +195,18 @@ function isAnyDirty() {
 
 function syncDirtyGuard() {
   window.AdminApp?.dirtyGuard?.setDirty("admin-settings-page", isAnyDirty());
+}
+
+function syncIntegrityFieldState() {
+  const scheduleType = document.getElementById("adminSettingsIntegrityScheduleType")?.value || "daily";
+  const interval = document.getElementById("adminSettingsIntegrityIntervalDays");
+  const weekly = document.querySelectorAll('input[name="adminSettingsIntegrityWeeklyDays"]');
+  if (interval) {
+    interval.disabled = scheduleType !== "every_n_days";
+  }
+  weekly.forEach((el) => {
+    el.disabled = scheduleType !== "weekly";
+  });
 }
 
 function updateHeader() {
@@ -153,16 +229,8 @@ function updateHeader() {
 function readGroupValuesFromDom(group) {
   const fields = GROUP_META[group].fields;
   const out = {};
-  for (const [key, id] of Object.entries(fields)) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    if (el.type === "checkbox") {
-      out[key] = !!el.checked;
-    } else if (el.type === "number") {
-      out[key] = el.value === "" ? null : Number(el.value);
-    } else {
-      out[key] = el.value;
-    }
+  for (const [key, field] of Object.entries(fields)) {
+    out[key] = readField(field);
   }
   return out;
 }
@@ -170,23 +238,17 @@ function readGroupValuesFromDom(group) {
 function writeGroupValuesToDom(group) {
   const values = state.groups[group].current || {};
   const fields = GROUP_META[group].fields;
-  for (const [key, id] of Object.entries(fields)) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    const value = values[key];
-    if (el.type === "checkbox") {
-      el.checked = Boolean(value);
-    } else if (el.type === "number") {
-      el.value = value == null ? "" : String(value);
-    } else {
-      el.value = value == null ? "" : String(value);
-    }
+  for (const [key, field] of Object.entries(fields)) {
+    writeField(field, values[key]);
   }
+  syncIntegrityFieldState();
 }
 
 function renderActiveTab() {
   document.querySelectorAll("[data-settings-tab]").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.settingsTab === state.activeTab);
+    const isActive = button.dataset.settingsTab === state.activeTab;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
   });
   document.querySelectorAll("[data-settings-form]").forEach((form) => {
     form.hidden = form.dataset.settingsForm !== state.activeTab;
@@ -243,18 +305,19 @@ function bindTabEvents() {
 
 function bindFieldEvents() {
   Object.keys(GROUP_META).forEach((group) => {
-    Object.values(GROUP_META[group].fields).forEach((id) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const handler = () => {
-        state.groups[group].current = readGroupValuesFromDom(group);
-        if (group === state.activeTab) {
-          updateHeader();
-        }
-        syncDirtyGuard();
-      };
-      el.addEventListener("input", handler);
-      el.addEventListener("change", handler);
+    Object.values(GROUP_META[group].fields).forEach((field) => {
+      fieldElements(field).forEach((el) => {
+        const handler = () => {
+          state.groups[group].current = readGroupValuesFromDom(group);
+          if (group === state.activeTab) {
+            syncIntegrityFieldState();
+            updateHeader();
+          }
+          syncDirtyGuard();
+        };
+        el.addEventListener("input", handler);
+        el.addEventListener("change", handler);
+      });
     });
   });
 }

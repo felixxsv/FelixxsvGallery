@@ -149,6 +149,59 @@ function renderAuditLogs(items) {
   }
 }
 
+function renderIntegritySummary(summary) {
+  const latestStatus = byId("adminDashboardIntegrityStatus");
+  const latestRun = byId("adminDashboardIntegrityLastRun");
+  const lastSuccess = byId("adminDashboardIntegrityLastSuccess");
+  const pending = byId("adminDashboardIntegrityPending");
+  const container = byId("adminDashboardIntegrityIssues");
+  const action = byId("adminDashboardIntegrityRunButton");
+  if (latestStatus) latestStatus.textContent = summary?.latest_status || "never";
+  if (latestRun) {
+    const run = summary?.last_run;
+    if (!run) {
+      latestRun.textContent = "まだ実行履歴がありません。";
+    } else {
+      const severity = summary?.severity_counts || {};
+      latestRun.textContent = `${formatDateTime(run.finished_at || run.started_at || run.requested_at)} / warning ${severity.warning || 0} / error ${severity.error || 0}`;
+    }
+  }
+  if (lastSuccess) lastSuccess.textContent = formatDateTime(summary?.last_success_at);
+  if (pending) {
+    pending.textContent = summary?.has_pending
+      ? `${summary.pending_run?.status || "queued"} / ${formatDateTime(summary.pending_run?.requested_at || summary.pending_run?.started_at)}`
+      : "なし";
+  }
+  if (action) {
+    action.disabled = Boolean(summary?.has_pending);
+    action.textContent = summary?.has_pending ? "実行待ちがあります" : "手動実行を予約";
+  }
+  if (!container) return;
+  container.innerHTML = "";
+  const items = summary?.issue_items || [];
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "admin-list-empty";
+    empty.textContent = "直近の問題はありません。";
+    container.appendChild(empty);
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement("article");
+    row.className = "admin-log-item";
+    const detail = [];
+    if (item.file_path) detail.push(item.file_path);
+    if (item.image_id) detail.push(`image:${item.image_id}`);
+    if (item.derivative_kind) detail.push(item.derivative_kind);
+    row.innerHTML = `
+      <div class="admin-log-item__meta">${item.severity || "warning"} ・ ${item.issue_code || "-"}</div>
+      <div class="admin-log-item__summary">${detail.join(" / ") || "詳細情報なし"}</div>
+      <div class="admin-log-item__actor">${formatDateTime(item.created_at)}</div>
+    `;
+    container.appendChild(row);
+  }
+}
+
 let latestImageItem = null;
 
 function buildDashboardDetail(item) {
@@ -221,6 +274,11 @@ async function saveClockMode(mode) {
   return payload;
 }
 
+async function queueIntegrityRun() {
+  const app = window.AdminApp;
+  return app.api.post("/api/admin/integrity/run", {});
+}
+
 async function loadDashboard() {
   const app = window.AdminApp;
   const payload = await app.api.get("/api/admin/dashboard");
@@ -232,6 +290,7 @@ async function loadDashboard() {
   renderActiveUsers(data.active_users || []);
   renderAuditLogs(data.recent_audit_logs || []);
   renderLatestImage(data.latest_image || null);
+  renderIntegritySummary(data.integrity_summary || {});
 
   const mode = data.clock_mode === "analog" ? "analog" : "digital";
   const digitalBtn = byId("adminClockModeDigital");
@@ -294,10 +353,28 @@ function bindLatestImage() {
   });
 }
 
+function bindIntegrityButton() {
+  const button = byId("adminDashboardIntegrityRunButton");
+  if (!button) return;
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      const result = await queueIntegrityRun();
+      window.AdminApp?.toast?.success?.(result?.message || "整合性チェックを実行キューへ追加しました。");
+      await loadDashboard();
+    } catch (error) {
+      button.disabled = false;
+      window.AdminApp?.toast?.error?.(error?.message || "整合性チェックの実行予約に失敗しました。");
+    }
+  });
+}
+
 async function initDashboard() {
   if (!window.AdminApp || !window.AdminApp.ready) return;
   bindClockButtons();
   bindLatestImage();
+  bindIntegrityButton();
   startClockLoop();
   try {
     await loadDashboard();

@@ -107,7 +107,7 @@
               </div>
               <ul class="admin-settings-intro__notes">
                 <li>SMTP パスワードは後続フェーズで反映します。</li>
-                <li>時間指定反映は後続フェーズで反映します。</li>
+                <li>整合性チェックの時刻と周期はここで変更できます。</li>
                 <li>値を変更していない場合、確認モーダルは表示しません。</li>
               </ul>
             </div>
@@ -121,6 +121,7 @@
               <button type="button" class="admin-settings-tab" data-settings-tab="security" role="tab" aria-selected="false">セキュリティ</button>
               <button type="button" class="admin-settings-tab" data-settings-tab="smtp" role="tab" aria-selected="false">メール (SMTP)</button>
               <button type="button" class="admin-settings-tab" data-settings-tab="storage" role="tab" aria-selected="false">ストレージ</button>
+              <button type="button" class="admin-settings-tab" data-settings-tab="integrity" role="tab" aria-selected="false">整合性チェック</button>
             </div>
 
             <div class="admin-settings-panel__head">
@@ -251,6 +252,79 @@
                     <span>最大アップロードサイズ (MB)</span>
                     <input id="adminSettingsStorageMaxUploadSizeMb" type="number" min="1" max="10240">
                   </label>
+                </div>
+              </form>
+
+              <form id="adminSettingsFormIntegrity" class="admin-settings-form" data-settings-form="integrity" hidden novalidate>
+                <div class="admin-settings-grid">
+                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+                    <input id="adminSettingsIntegrityEnabled" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">整合性チェックを有効にする</span>
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>実行周期</span>
+                    <select id="adminSettingsIntegrityScheduleType">
+                      <option value="daily">毎日</option>
+                      <option value="every_n_days">n日ごと</option>
+                      <option value="weekly">曜日指定</option>
+                    </select>
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>実行時刻</span>
+                    <input id="adminSettingsIntegrityRunAt" type="time" step="60">
+                  </label>
+                  <label class="admin-settings-field">
+                    <span>n日ごとの日数</span>
+                    <input id="adminSettingsIntegrityIntervalDays" type="number" min="1" max="365">
+                  </label>
+                  <div class="admin-settings-field admin-settings-field--full">
+                    <span>曜日指定</span>
+                    <div class="admin-settings-grid">
+                      <label class="admin-settings-field admin-settings-field--switch app-switch">
+                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="mon">
+                        <span class="app-switch__control" aria-hidden="true"></span>
+                        <span class="app-switch__label">月</span>
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--switch app-switch">
+                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="tue">
+                        <span class="app-switch__control" aria-hidden="true"></span>
+                        <span class="app-switch__label">火</span>
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--switch app-switch">
+                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="wed">
+                        <span class="app-switch__control" aria-hidden="true"></span>
+                        <span class="app-switch__label">水</span>
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--switch app-switch">
+                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="thu">
+                        <span class="app-switch__control" aria-hidden="true"></span>
+                        <span class="app-switch__label">木</span>
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--switch app-switch">
+                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="fri">
+                        <span class="app-switch__control" aria-hidden="true"></span>
+                        <span class="app-switch__label">金</span>
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--switch app-switch">
+                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sat">
+                        <span class="app-switch__control" aria-hidden="true"></span>
+                        <span class="app-switch__label">土</span>
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--switch app-switch">
+                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sun">
+                        <span class="app-switch__control" aria-hidden="true"></span>
+                        <span class="app-switch__label">日</span>
+                      </label>
+                    </div>
+                  </div>
+                  <label class="admin-settings-field">
+                    <span>レポート保持日数</span>
+                    <input id="adminSettingsIntegrityReportRetentionDays" type="number" min="1" max="3650">
+                  </label>
+                  <div class="admin-settings-field admin-settings-field--full">
+                    <p class="admin-panel__meta">手動実行はダッシュボードから予約します。実際の定期起動は dispatcher を systemd timer などで定期実行する想定です。</p>
+                  </div>
                 </div>
               </form>
             </div>
