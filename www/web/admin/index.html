@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>メール配信 - Felixxsv Gallery</title>
+  <title>ダッシュボード - Felixxsv Gallery</title>
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
   <link rel="stylesheet" href="/gallery/assets/css/components.css">
   <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
-  <link rel="stylesheet" href="/gallery/assets/css/admin-mail.css">
+  <link rel="stylesheet" href="/gallery/assets/css/admin-dashboard.css">
 </head>
 <body
   class="admin-page"
   data-app-base="/gallery"
-  data-admin-page="mail"
-  data-admin-description="ユーザー向けお知らせメールを配信します。"
+  data-admin-page="dashboard"
+  data-admin-description="アクセス状況、操作ログ、新着画像を 1 画面で確認できます。"
 >
   <section id="adminLoadingState" class="admin-state-screen">
     <div class="admin-state-card">
@@ -87,8 +87,8 @@
     <div class="admin-shell__main">
       <header class="admin-topbar">
         <div class="admin-topbar__heading">
-          <h1 id="adminPageTitle" class="admin-topbar__title">メール配信</h1>
-          <p id="adminPageDescription" class="admin-topbar__description">ユーザー向けお知らせメールを配信します。</p>
+          <h1 id="adminPageTitle" class="admin-topbar__title">ダッシュボード</h1>
+          <p id="adminPageDescription" class="admin-topbar__description">アクセス状況、操作ログ、新着画像を 1 画面で確認できます。</p>
         </div>
         <div class="admin-topbar__meta">
           <div class="admin-topbar__meta-label">ログイン中の管理者</div>
@@ -97,124 +97,116 @@
         </div>
       </header>
 
-      <main class="admin-main-scroll">
-        <section class="admin-page-grid admin-page-grid--mail">
-          <article class="admin-panel admin-mail-panel">
-            <div class="admin-mail-panel__header">
+      <main class="admin-main-scroll admin-main-scroll--dashboard">
+        <section class="admin-dashboard-grid">
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--clock">
+            <div class="admin-dashboard-card__header">
               <div>
-                <h2 class="admin-panel__title">宛先選択</h2>
-                <p class="admin-panel__meta">送信先ユーザーを選択します。全ユーザー送信時は実ログに @everyone として記録します。</p>
+                <h2 class="admin-panel__title">時計</h2>
+                <p class="admin-panel__meta">表示モードは管理者ごとに保持されます。</p>
               </div>
-              <div class="admin-mail-panel__scope">
-                <label class="admin-mail-chip">
-                  <input type="radio" name="adminMailRecipientScope" value="selected" checked>
-                  <span>選択ユーザー</span>
-                </label>
-                <label class="admin-mail-chip">
-                  <input type="radio" name="adminMailRecipientScope" value="everyone">
-                  <span>全ユーザー</span>
-                </label>
+              <div class="admin-segmented-control" role="group" aria-label="時計表示切替">
+                <button id="adminClockModeDigital" type="button" class="admin-segmented-control__button is-active">デジタル</button>
+                <button id="adminClockModeAnalog" type="button" class="admin-segmented-control__button">アナログ</button>
               </div>
             </div>
 
-            <div class="admin-mail-filters">
-              <label class="admin-mail-field">
-                <span>検索</span>
-                <input id="adminMailRecipientSearch" class="app-input" type="text" placeholder="表示名 / ID / メール">
-              </label>
-              <label class="admin-mail-field">
-                <span>ロール</span>
-                <select id="adminMailRecipientRole" class="app-select">
-                  <option value="">すべて</option>
-                  <option value="admin">admin</option>
-                  <option value="user">user</option>
-                </select>
-              </label>
-              <label class="admin-mail-field">
-                <span>状態</span>
-                <select id="adminMailRecipientStatus" class="app-select">
-                  <option value="">すべて</option>
-                  <option value="active">active</option>
-                  <option value="locked">locked</option>
-                  <option value="disabled">disabled</option>
-                  <option value="deleted">deleted</option>
-                </select>
-              </label>
-              <div class="admin-mail-actions">
-                <button id="adminMailRecipientSearchButton" type="button" class="app-button app-button--ghost">検索</button>
-              </div>
+            <div id="adminDashboardClockDigital" class="admin-dashboard-clock admin-dashboard-clock--digital">
+              <div class="admin-dashboard-clock__time" data-clock-time>--:--:--</div>
+              <div class="admin-dashboard-clock__date" data-clock-date>----</div>
             </div>
 
-            <div id="adminMailMessage" class="admin-mail-message" hidden></div>
-
-            <div class="admin-mail-recipient-table-wrap">
-              <table class="admin-mail-recipient-table">
-                <thead>
-                  <tr>
-                    <th class="admin-mail-recipient-table__checkbox"><input id="adminMailRecipientSelectAll" type="checkbox" aria-label="すべて選択"></th>
-                    <th>ユーザー</th>
-                    <th>メール</th>
-                    <th>ロール</th>
-                    <th>状態</th>
-                    <th>送信可否</th>
-                  </tr>
-                </thead>
-                <tbody id="adminMailRecipientTableBody">
-                  <tr><td colspan="6" class="admin-mail-empty">読み込み中です。</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="admin-mail-recipient-footer">
-              <div class="admin-mail-recipient-count">総件数: <strong id="adminMailRecipientTotal">0</strong></div>
-              <div class="admin-mail-recipient-pager">
-                <button id="adminMailRecipientPrevPage" type="button" class="app-button app-button--ghost">前へ</button>
-                <span id="adminMailRecipientPage">1</span>
-                <button id="adminMailRecipientNextPage" type="button" class="app-button app-button--ghost">次へ</button>
+            <div id="adminDashboardClockAnalog" class="admin-dashboard-clock" hidden>
+              <div class="admin-analog-clock" aria-label="アナログ時計">
+                <div class="admin-analog-clock__dial"></div>
+                <div class="admin-analog-clock__hand admin-analog-clock__hand--hour" data-clock-hand="hour"></div>
+                <div class="admin-analog-clock__hand admin-analog-clock__hand--minute" data-clock-hand="minute"></div>
+                <div class="admin-analog-clock__hand admin-analog-clock__hand--second" data-clock-hand="second"></div>
+                <div class="admin-analog-clock__center"></div>
               </div>
             </div>
           </article>
 
-          <article class="admin-panel admin-mail-panel admin-mail-panel--compose">
-            <div class="admin-mail-compose">
-              <div class="admin-mail-compose__header">
-                <h2 class="admin-panel__title">メール作成</h2>
-                <p id="adminMailSenderMeta" class="admin-panel__meta">送信元: -</p>
-                <p id="adminMailDraftStatus" class="admin-panel__meta" aria-live="polite">下書きはありません。</p>
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--stats">
+            <div class="admin-dashboard-card__header">
+              <div>
+                <h2 class="admin-panel__title">現在の状況</h2>
+                <p class="admin-panel__meta">ギャラリー全体の件数と使用量を表示します。</p>
               </div>
-
-              <label class="admin-mail-field">
-                <span>件名</span>
-                <input id="adminMailSubject" class="app-input" type="text" maxlength="255" placeholder="件名を入力してください">
-              </label>
-
-              <label class="admin-mail-field admin-mail-field--body">
-                <span>本文</span>
-                <textarea id="adminMailBody" class="app-textarea admin-mail-textarea" placeholder="本文を入力してください"></textarea>
-              </label>
-
-              <section class="admin-mail-summary">
-                <div class="admin-mail-summary__row"><span>送信先</span><strong id="adminMailSummaryRecipients">選択なし</strong></div>
-                <div class="admin-mail-summary__row"><span>選択件数</span><strong id="adminMailSummaryCount">0</strong></div>
+            </div>
+            <div class="admin-dashboard-stats">
+              <section class="admin-stat">
+                <div class="admin-stat__label">オンラインユーザー</div>
+                <div id="adminStatOnlineUsers" class="admin-stat__value">0</div>
               </section>
+              <section class="admin-stat">
+                <div class="admin-stat__label">本日の投稿数</div>
+                <div id="adminStatTodayUploads" class="admin-stat__value">0</div>
+              </section>
+              <section class="admin-stat">
+                <div class="admin-stat__label">公開画像</div>
+                <div id="adminStatPublicCount" class="admin-stat__value">0</div>
+              </section>
+              <section class="admin-stat">
+                <div class="admin-stat__label">非公開画像</div>
+                <div id="adminStatPrivateCount" class="admin-stat__value">0</div>
+              </section>
+              <section class="admin-stat">
+                <div class="admin-stat__label">隔離件数</div>
+                <div id="adminStatQuarantineCount" class="admin-stat__value">0</div>
+              </section>
+              <section class="admin-stat admin-stat--wide">
+                <div class="admin-stat__label">ストレージ使用量</div>
+                <div class="admin-stat__value-wrap">
+                  <div id="adminStatStorageUsed" class="admin-stat__value">-</div>
+                  <span class="admin-stat__divider">/</span>
+                  <div id="adminStatStorageTotal" class="admin-stat__subvalue">-</div>
+                </div>
+              </section>
+            </div>
+          </article>
 
-              <div class="admin-mail-compose__footer">
-                <button id="adminMailSendButton" type="button" class="app-button app-button--primary">送信</button>
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--latest">
+            <div class="admin-dashboard-card__header">
+              <div>
+                <h2 class="admin-panel__title">新着画像</h2>
+                <p class="admin-panel__meta">最新の 1 枚を表示します。</p>
+              </div>
+            </div>
+            <div class="admin-dashboard-latest">
+              <div id="adminDashboardLatestImagePlaceholder" class="admin-dashboard-empty">表示できる画像がありません。</div>
+              <a id="adminDashboardLatestImageCard" class="admin-dashboard-latest__image-wrap" href="#" hidden>
+                <img id="adminDashboardLatestImage" class="admin-dashboard-latest__image" alt="">
+              </a>
+              <div class="admin-dashboard-latest__body">
+                <div id="adminDashboardLatestImageTitle" class="admin-dashboard-latest__title">-</div>
+                <div id="adminDashboardLatestImageMeta" class="admin-dashboard-latest__meta">-</div>
+                <div id="adminDashboardLatestImageStats" class="admin-dashboard-latest__stats">-</div>
               </div>
             </div>
           </article>
 
-          <article class="admin-panel admin-mail-panel admin-mail-panel--history">
-            <div class="admin-mail-panel__header">
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--users">
+            <div class="admin-dashboard-card__header">
               <div>
-                <h2 class="admin-panel__title">送信履歴</h2>
-                <p class="admin-panel__meta">将来のお知らせ表示へ流用できる前提で保持します。</p>
+                <h2 class="admin-panel__title">オンラインユーザー</h2>
+                <p class="admin-panel__meta">現在アクセスしているユーザーとセッション時間を表示します。</p>
               </div>
-              <button id="adminMailHistoryReloadButton" type="button" class="app-button app-button--ghost">再読込</button>
             </div>
+            <div id="adminDashboardActiveUsers" class="admin-active-user-list">
+              <div class="admin-list-empty">読み込み中です。</div>
+            </div>
+          </article>
 
-            <div class="admin-mail-history-list" id="adminMailHistoryList">
-              <div class="admin-mail-empty">読み込み中です。</div>
+          <article class="admin-panel admin-dashboard-card admin-dashboard-card--logs">
+            <div class="admin-dashboard-card__header">
+              <div>
+                <h2 class="admin-panel__title">直近の操作ログ</h2>
+                <p class="admin-panel__meta">最近の監査ログを表示します。</p>
+              </div>
+            </div>
+            <div id="adminDashboardRecentLogs" class="admin-log-list">
+              <div class="admin-list-empty">読み込み中です。</div>
             </div>
           </article>
         </section>
@@ -240,35 +232,11 @@
         </div>
       </div>
     </section>
-
-    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-mail-send-confirm" hidden>
-      <div class="app-modal-backdrop" data-modal-backdrop="admin-mail-send-confirm"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminMailSendConfirmTitle" tabindex="-1">
-        <div class="app-modal-header">
-          <h2 id="adminMailSendConfirmTitle" class="app-modal-title">送信確認</h2>
-        </div>
-        <div class="app-modal-body">
-          <div class="admin-mail-confirm">
-            <div class="admin-mail-confirm__row"><span>送信元</span><strong id="adminMailConfirmSender">-</strong></div>
-            <div class="admin-mail-confirm__row"><span>送信先</span><strong id="adminMailConfirmRecipients">-</strong></div>
-            <div class="admin-mail-confirm__row"><span>件名</span><strong id="adminMailConfirmSubject">-</strong></div>
-            <div class="admin-mail-confirm__body">
-              <div class="admin-mail-confirm__label">本文</div>
-              <pre id="adminMailConfirmBody" class="admin-mail-confirm__pre">-</pre>
-            </div>
-          </div>
-        </div>
-        <div class="app-modal-footer app-modal-footer--end">
-          <button id="adminMailSendConfirmApprove" type="button" class="app-button app-button--primary">送信する</button>
-          <button id="adminMailSendConfirmCancel" type="button" class="app-button app-button--ghost">キャンセル</button>
-        </div>
-      </div>
-    </section>
   </div>
 
   <div id="appToastRoot" class="app-toast-root" aria-live="polite"></div>
 
   <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
-  <script type="module" src="/gallery/assets/js/admin/mail.js"></script>
+  <script type="module" src="/gallery/assets/js/admin/dashboard.js"></script>
 </body>
 </html>
