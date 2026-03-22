@@ -239,6 +239,18 @@
                     </div>
                     <div class="admin-storage-overview__actions">
                       <span class="admin-storage-overview__timestamp">最終取得: <strong id="adminStorageUsageGeneratedAt">-</strong></span>
+                      <label class="admin-storage-refresh-interval" for="adminStorageUsageRefreshInterval">
+                        <span>自動更新</span>
+                        <select id="adminStorageUsageRefreshInterval" aria-label="ストレージ使用状況の自動更新間隔">
+                          <option value="0">手動のみ</option>
+                          <option value="60000">1分</option>
+                          <option value="180000">3分</option>
+                          <option value="300000">5分</option>
+                          <option value="600000">10分</option>
+                          <option value="900000">15分</option>
+                          <option value="1800000">30分</option>
+                        </select>
+                      </label>
                       <button id="adminStorageUsageRefreshButton" type="button" class="app-button app-button--secondary">使用状況を再取得</button>
                     </div>
                   </div>
