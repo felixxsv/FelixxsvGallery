@@ -78,7 +78,22 @@ const GROUP_META = {
   },
 };
 
-const INITIAL_GROUP_STATE = () => ({ initial: null, current: null, updated_at: null, updated_by_user_id: null });
+const WEEKDAY_LABELS = {
+  mon: "月",
+  tue: "火",
+  wed: "水",
+  thu: "木",
+  fri: "金",
+  sat: "土",
+  sun: "日",
+};
+
+const INITIAL_GROUP_STATE = () => ({
+  initial: null,
+  current: null,
+  updated_at: null,
+  updated_by_user_id: null,
+});
 
 const state = {
   activeTab: "general",
@@ -102,7 +117,7 @@ function setMessage(message, isError = false) {
   if (!el) return;
   el.textContent = message || "";
   el.hidden = !message;
-  el.classList.toggle("is-error", !!isError);
+  el.classList.toggle("is-error", Boolean(isError));
 }
 
 function setSaveState(text, kind = "idle") {
@@ -152,12 +167,14 @@ function fieldElements(field) {
 function readField(field) {
   const config = fieldConfig(field);
   const elements = fieldElements(field);
+
   if (config.type === "checkbox-group") {
     return elements.filter((el) => el.checked).map((el) => el.value);
   }
+
   const el = elements[0];
   if (!el) return null;
-  if (el.type === "checkbox") return !!el.checked;
+  if (el.type === "checkbox") return Boolean(el.checked);
   if (el.type === "number") return el.value === "" ? null : Number(el.value);
   return el.value;
 }
@@ -165,6 +182,7 @@ function readField(field) {
 function writeField(field, value) {
   const config = fieldConfig(field);
   const elements = fieldElements(field);
+
   if (config.type === "checkbox-group") {
     const values = Array.isArray(value) ? value.map((item) => String(item)) : [];
     elements.forEach((el) => {
@@ -172,8 +190,10 @@ function writeField(field, value) {
     });
     return;
   }
+
   const el = elements[0];
   if (!el) return;
+
   if (el.type === "checkbox") {
     el.checked = Boolean(value);
   } else if (el.type === "number") {
@@ -197,29 +217,114 @@ function syncDirtyGuard() {
   window.AdminApp?.dirtyGuard?.setDirty("admin-settings-page", isAnyDirty());
 }
 
+function selectedIntegrityWeekdayLabels() {
+  return Array.from(document.querySelectorAll('input[name="adminSettingsIntegrityWeeklyDays"]:checked'))
+    .map((el) => WEEKDAY_LABELS[el.value] || el.value);
+}
+
+function formatIntegrityRunTime() {
+  const runAt = document.getElementById("adminSettingsIntegrityRunAt")?.value?.trim() || "";
+  return runAt || "未設定";
+}
+
+function buildIntegritySummary({ enabled, scheduleType, intervalDays, weeklyLabels, runAt }) {
+  if (!enabled) {
+    return `現在は無効です。保存後も定期実行は行われません。設定内容はこのまま保持されます。`;
+  }
+
+  if (!runAt || runAt === "未設定") {
+    return `実行時刻を設定すると、ここに次回以降の実行ルールを表示します。`;
+  }
+
+  if (scheduleType === "every_n_days") {
+    const days = Number(intervalDays) || 1;
+    return `${days}日ごとに ${runAt} に実行します。`;
+  }
+
+  if (scheduleType === "weekly") {
+    if (!weeklyLabels.length) {
+      return `曜日指定が未選択です。少なくとも 1 つ曜日を選択してください。`;
+    }
+    return `毎週 ${weeklyLabels.join("・")} の ${runAt} に実行します。`;
+  }
+
+  return `毎日 ${runAt} に実行します。`;
+}
+
 function syncIntegrityFieldState() {
+  const form = document.getElementById("adminSettingsFormIntegrity");
+  if (!form) return;
+
+  const enabled = document.getElementById("adminSettingsIntegrityEnabled")?.checked ?? false;
   const scheduleType = document.getElementById("adminSettingsIntegrityScheduleType")?.value || "daily";
   const interval = document.getElementById("adminSettingsIntegrityIntervalDays");
+  const intervalField = document.getElementById("adminIntegrityIntervalField");
+  const weeklyField = document.getElementById("adminIntegrityWeeklyField");
+  const scheduleHelp = document.getElementById("adminIntegrityScheduleHelp");
+  const weeklyHelp = document.getElementById("adminIntegrityWeeklyHelp");
+  const summary = document.getElementById("adminIntegrityScheduleSummary");
   const weekly = document.querySelectorAll('input[name="adminSettingsIntegrityWeeklyDays"]');
+  const weeklyLabels = selectedIntegrityWeekdayLabels();
+  const runAt = formatIntegrityRunTime();
+
   if (interval) {
     interval.disabled = scheduleType !== "every_n_days";
   }
+  if (intervalField) {
+    intervalField.hidden = scheduleType !== "every_n_days";
+  }
+
   weekly.forEach((el) => {
     el.disabled = scheduleType !== "weekly";
   });
+  if (weeklyField) {
+    weeklyField.hidden = scheduleType !== "weekly";
+  }
+
+  if (scheduleHelp) {
+    if (scheduleType === "every_n_days") {
+      scheduleHelp.textContent = "指定した日数ごとに、同じ時刻で実行します。";
+    } else if (scheduleType === "weekly") {
+      scheduleHelp.textContent = "選んだ曜日だけ、指定した時刻で実行します。";
+    } else {
+      scheduleHelp.textContent = "毎日、指定した時刻に 1 回実行します。";
+    }
+  }
+
+  if (weeklyHelp) {
+    weeklyHelp.textContent = weeklyLabels.length
+      ? `選択中: ${weeklyLabels.join("・")}`
+      : "少なくとも 1 つ曜日を選択してください。";
+  }
+
+  form.dataset.scheduleType = scheduleType;
+  form.dataset.enabled = enabled ? "true" : "false";
+
+  if (summary) {
+    summary.textContent = buildIntegritySummary({
+      enabled,
+      scheduleType,
+      intervalDays: interval?.value,
+      weeklyLabels,
+      runAt,
+    });
+  }
 }
 
 function updateHeader() {
   const meta = activeGroupMeta();
   const entry = activeGroupState();
+
   $("#adminSettingsPanelTitle").textContent = meta.title;
   $("#adminSettingsPanelDescription").textContent = meta.description;
+
   const updatedMeta = $("#adminSettingsUpdatedMeta");
   if (updatedMeta) {
     updatedMeta.textContent = entry?.updated_at
       ? `最終更新: ${formatDateTime(entry.updated_at)}`
       : "まだ保存されていません。";
   }
+
   const applyButton = $("#adminSettingsApplyButton");
   if (applyButton) {
     applyButton.disabled = !isGroupDirty(state.activeTab) || state.saving;
@@ -250,9 +355,11 @@ function renderActiveTab() {
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-selected", isActive ? "true" : "false");
   });
+
   document.querySelectorAll("[data-settings-form]").forEach((form) => {
     form.hidden = form.dataset.settingsForm !== state.activeTab;
   });
+
   writeGroupValuesToDom(state.activeTab);
   updateHeader();
   syncDirtyGuard();
@@ -284,12 +391,14 @@ async function loadAll() {
 
 async function switchTab(nextTab) {
   if (!GROUP_META[nextTab] || nextTab === state.activeTab) return;
+
   if (isGroupDirty(state.activeTab)) {
     const ok = await window.AdminApp?.dirtyGuard?.confirmIfNeeded?.("未保存の変更があります。破棄して移動しますか？");
     if (!ok) return;
     const entry = state.groups[state.activeTab];
     entry.current = deepClone(entry.initial || {});
   }
+
   state.activeTab = nextTab;
   window.history.replaceState({}, "", `#${nextTab}`);
   renderActiveTab();
@@ -360,12 +469,14 @@ async function applyActiveTab() {
     const payload = state.groups[group].current || {};
     const result = await api.patch(GROUP_META[group].savePath, payload);
     const data = result.data || {};
+
     state.groups[group] = {
       initial: deepClone(data.settings || {}),
       current: deepClone(data.settings || {}),
       updated_at: data.updated_at || null,
       updated_by_user_id: data.updated_by_user_id || null,
     };
+
     renderActiveTab();
     setSaveState(`保存済み (${formatDateTime(data.updated_at)})`);
     setMessage(result.message || "設定を更新しました。");

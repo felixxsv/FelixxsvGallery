@@ -206,3 +206,223 @@ body.is-modal-open {
     text-align: left;
   }
 }
+
+
+.admin-settings-field__help {
+  color: rgba(226, 232, 240, 0.58);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.admin-settings-field__help--block {
+  margin: 0;
+}
+
+.admin-settings-grid--integrity-primary,
+.admin-settings-grid--integrity-secondary {
+  align-items: start;
+}
+
+.admin-integrity-form {
+  gap: 18px;
+}
+
+.admin-integrity-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-integrity-section {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-integrity-section--hero {
+  gap: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 32%),
+    linear-gradient(180deg, rgba(59, 130, 246, 0.09), rgba(255, 255, 255, 0.03));
+}
+
+.admin-integrity-section__head {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-integrity-section__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.admin-integrity-section__meta {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.admin-integrity-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.admin-integrity-hero__content {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-integrity-hero__eyebrow {
+  color: rgba(191, 219, 254, 0.84);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-integrity-hero__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.admin-integrity-hero__description {
+  color: rgba(226, 232, 240, 0.74);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.admin-integrity-hero__toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-integrity-hero__toggle-text {
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-integrity-summary {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  background: rgba(15, 23, 42, 0.32);
+  color: #dbeafe;
+  line-height: 1.7;
+  font-size: 0.86rem;
+}
+
+.admin-integrity-dependent-field {
+  gap: 10px;
+}
+
+.admin-integrity-weekday-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-integrity-weekday-chip {
+  position: relative;
+  display: block;
+}
+
+.admin-integrity-weekday-chip input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.admin-integrity-weekday-chip span {
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.84);
+  font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-integrity-weekday-chip input:hover + span {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.admin-integrity-weekday-chip input:checked + span {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.26), rgba(59, 130, 246, 0.14));
+  border-color: rgba(96, 165, 250, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.16);
+  color: #f8fafc;
+}
+
+.admin-integrity-weekday-chip input:focus-visible + span {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.28);
+}
+
+.admin-integrity-weekday-chip input:disabled + span {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-integrity-note-card {
+  display: grid;
+  gap: 8px;
+  min-height: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-integrity-note-card__title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+@media (max-width: 960px) {
+  .admin-integrity-weekday-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-integrity-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-integrity-weekday-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-integrity-section {
+    padding: 16px;
+  }
+
+  .admin-integrity-weekday-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

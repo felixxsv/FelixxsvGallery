@@ -255,76 +255,106 @@
                 </div>
               </form>
 
-              <form id="adminSettingsFormIntegrity" class="admin-settings-form" data-settings-form="integrity" hidden novalidate>
-                <div class="admin-settings-grid">
-                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
-                    <input id="adminSettingsIntegrityEnabled" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">整合性チェックを有効にする</span>
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>実行周期</span>
-                    <select id="adminSettingsIntegrityScheduleType">
-                      <option value="daily">毎日</option>
-                      <option value="every_n_days">n日ごと</option>
-                      <option value="weekly">曜日指定</option>
-                    </select>
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>実行時刻</span>
-                    <input id="adminSettingsIntegrityRunAt" type="time" step="60">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>n日ごとの日数</span>
-                    <input id="adminSettingsIntegrityIntervalDays" type="number" min="1" max="365">
-                  </label>
-                  <div class="admin-settings-field admin-settings-field--full">
-                    <span>曜日指定</span>
-                    <div class="admin-settings-grid">
-                      <label class="admin-settings-field admin-settings-field--switch app-switch">
-                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="mon">
+              <form id="adminSettingsFormIntegrity" class="admin-settings-form admin-integrity-form" data-settings-form="integrity" hidden novalidate>
+                <div class="admin-integrity-stack">
+                  <section class="admin-integrity-section admin-integrity-section--hero">
+                    <label class="admin-integrity-hero" for="adminSettingsIntegrityEnabled">
+                      <div class="admin-integrity-hero__content">
+                        <span class="admin-integrity-hero__eyebrow">定期実行</span>
+                        <span class="admin-integrity-hero__title">整合性チェックを有効にする</span>
+                        <span class="admin-integrity-hero__description">source / DB / 派生物 / 色情報の整合を定期確認します。無効の間は定期実行されませんが、設定値は保存できます。</span>
+                      </div>
+                      <span class="admin-integrity-hero__toggle app-switch">
+                        <input id="adminSettingsIntegrityEnabled" class="app-switch__input" type="checkbox">
                         <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="app-switch__label">月</span>
+                        <span class="admin-integrity-hero__toggle-text">有効</span>
+                      </span>
+                    </label>
+                    <div id="adminIntegrityScheduleSummary" class="admin-integrity-summary" aria-live="polite"></div>
+                  </section>
+
+                  <section class="admin-integrity-section">
+                    <div class="admin-integrity-section__head">
+                      <h3 class="admin-integrity-section__title">実行ルール</h3>
+                      <p class="admin-integrity-section__meta">実行方法を選ぶと、必要な入力欄だけ表示します。</p>
+                    </div>
+
+                    <div class="admin-settings-grid admin-settings-grid--integrity-primary">
+                      <label class="admin-settings-field">
+                        <span>実行周期</span>
+                        <select id="adminSettingsIntegrityScheduleType">
+                          <option value="daily">毎日</option>
+                          <option value="every_n_days">n日ごと</option>
+                          <option value="weekly">曜日指定</option>
+                        </select>
+                        <small id="adminIntegrityScheduleHelp" class="admin-settings-field__help">毎日、指定した時刻に 1 回実行します。</small>
                       </label>
-                      <label class="admin-settings-field admin-settings-field--switch app-switch">
-                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="tue">
-                        <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="app-switch__label">火</span>
-                      </label>
-                      <label class="admin-settings-field admin-settings-field--switch app-switch">
-                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="wed">
-                        <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="app-switch__label">水</span>
-                      </label>
-                      <label class="admin-settings-field admin-settings-field--switch app-switch">
-                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="thu">
-                        <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="app-switch__label">木</span>
-                      </label>
-                      <label class="admin-settings-field admin-settings-field--switch app-switch">
-                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="fri">
-                        <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="app-switch__label">金</span>
-                      </label>
-                      <label class="admin-settings-field admin-settings-field--switch app-switch">
-                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sat">
-                        <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="app-switch__label">土</span>
-                      </label>
-                      <label class="admin-settings-field admin-settings-field--switch app-switch">
-                        <input class="app-switch__input" type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sun">
-                        <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="app-switch__label">日</span>
+                      <label class="admin-settings-field">
+                        <span>実行時刻</span>
+                        <input id="adminSettingsIntegrityRunAt" type="time" step="60">
+                        <small class="admin-settings-field__help">24時間表記で設定します。</small>
                       </label>
                     </div>
-                  </div>
-                  <label class="admin-settings-field">
-                    <span>レポート保持日数</span>
-                    <input id="adminSettingsIntegrityReportRetentionDays" type="number" min="1" max="3650">
-                  </label>
-                  <div class="admin-settings-field admin-settings-field--full">
-                    <p class="admin-panel__meta">手動実行はダッシュボードから予約します。実際の定期起動は dispatcher を systemd timer などで定期実行する想定です。</p>
-                  </div>
+
+                    <label id="adminIntegrityIntervalField" class="admin-settings-field admin-integrity-dependent-field" hidden>
+                      <span>n日ごとの日数</span>
+                      <input id="adminSettingsIntegrityIntervalDays" type="number" min="1" max="365">
+                      <small class="admin-settings-field__help">例: 3 を指定すると 3 日ごとに実行します。</small>
+                    </label>
+
+                    <div id="adminIntegrityWeeklyField" class="admin-settings-field admin-settings-field--full admin-integrity-dependent-field" hidden>
+                      <span>曜日指定</span>
+                      <p id="adminIntegrityWeeklyHelp" class="admin-settings-field__help admin-settings-field__help--block">曜日指定を選んだときだけ使用します。</p>
+                      <div class="admin-integrity-weekday-grid" role="group" aria-label="整合性チェックの曜日指定">
+                        <label class="admin-integrity-weekday-chip">
+                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="mon">
+                          <span>月</span>
+                        </label>
+                        <label class="admin-integrity-weekday-chip">
+                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="tue">
+                          <span>火</span>
+                        </label>
+                        <label class="admin-integrity-weekday-chip">
+                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="wed">
+                          <span>水</span>
+                        </label>
+                        <label class="admin-integrity-weekday-chip">
+                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="thu">
+                          <span>木</span>
+                        </label>
+                        <label class="admin-integrity-weekday-chip">
+                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="fri">
+                          <span>金</span>
+                        </label>
+                        <label class="admin-integrity-weekday-chip">
+                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sat">
+                          <span>土</span>
+                        </label>
+                        <label class="admin-integrity-weekday-chip">
+                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sun">
+                          <span>日</span>
+                        </label>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="admin-integrity-section admin-integrity-section--secondary">
+                    <div class="admin-integrity-section__head">
+                      <h3 class="admin-integrity-section__title">レポート保持</h3>
+                      <p class="admin-integrity-section__meta">レポート保存期間と運用メモです。</p>
+                    </div>
+                    <div class="admin-settings-grid admin-settings-grid--integrity-secondary">
+                      <label class="admin-settings-field">
+                        <span>レポート保持日数</span>
+                        <input id="adminSettingsIntegrityReportRetentionDays" type="number" min="1" max="3650">
+                        <small class="admin-settings-field__help">古い JSON レポートを整理する際の目安です。</small>
+                      </label>
+                      <div class="admin-integrity-note-card">
+                        <div class="admin-integrity-note-card__title">運用メモ</div>
+                        <p class="admin-panel__meta">手動実行はダッシュボードから予約します。実際の定期起動は dispatcher を systemd timer などで定期実行する想定です。</p>
+                      </div>
+                    </div>
+                  </section>
                 </div>
               </form>
             </div>
