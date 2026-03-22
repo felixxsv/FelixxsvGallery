@@ -95,6 +95,10 @@ const INITIAL_GROUP_STATE = () => ({
   updated_by_user_id: null,
 });
 
+const STORAGE_USAGE_REFRESH_INTERVAL_KEY = "admin.storageUsage.refreshIntervalMs";
+const STORAGE_USAGE_DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
+const STORAGE_USAGE_ALLOWED_INTERVALS = [0, 60 * 1000, 3 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000, 15 * 60 * 1000, 30 * 60 * 1000];
+
 const state = {
   activeTab: "general",
   groups: Object.fromEntries(Object.keys(GROUP_META).map((group) => [group, INITIAL_GROUP_STATE()])),
@@ -105,6 +109,7 @@ const state = {
     loaded: false,
     error: "",
     data: null,
+    timerId: null,
   },
 };
 
@@ -169,6 +174,55 @@ function clampRatio(value) {
   if (ratio < 0) return 0;
   if (ratio > 1) return 1;
   return ratio;
+}
+function normalizeStorageUsageRefreshInterval(value) {
+  const ms = Number(value);
+  return STORAGE_USAGE_ALLOWED_INTERVALS.includes(ms) ? ms : STORAGE_USAGE_DEFAULT_INTERVAL_MS;
+}
+
+function getStorageUsageRefreshInterval() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_USAGE_REFRESH_INTERVAL_KEY);
+    return normalizeStorageUsageRefreshInterval(raw == null ? STORAGE_USAGE_DEFAULT_INTERVAL_MS : Number(raw));
+  } catch {
+    return STORAGE_USAGE_DEFAULT_INTERVAL_MS;
+  }
+}
+
+function setStorageUsageRefreshInterval(value) {
+  const normalized = normalizeStorageUsageRefreshInterval(value);
+  try {
+    window.localStorage.setItem(STORAGE_USAGE_REFRESH_INTERVAL_KEY, String(normalized));
+  } catch {
+    return normalized;
+  }
+  return normalized;
+}
+
+function syncStorageUsageIntervalControl() {
+  const select = document.getElementById("adminStorageUsageRefreshInterval");
+  if (select) {
+    select.value = String(getStorageUsageRefreshInterval());
+  }
+}
+
+function clearStorageUsageTimer() {
+  if (state.storageUsage.timerId) {
+    window.clearTimeout(state.storageUsage.timerId);
+    state.storageUsage.timerId = null;
+  }
+}
+
+function scheduleStorageUsageAutoRefresh() {
+  clearStorageUsageTimer();
+  if (document.visibilityState === "hidden") return;
+  if (state.activeTab !== "storage") return;
+  const intervalMs = getStorageUsageRefreshInterval();
+  if (!intervalMs) return;
+  state.storageUsage.timerId = window.setTimeout(async () => {
+    await loadStorageUsage({ force: true, silent: true });
+    scheduleStorageUsageAutoRefresh();
+  }, intervalMs);
 }
 
 function buildStoragePathStatus(item) {
@@ -292,6 +346,7 @@ function renderStorageUsage() {
   const contentEl = document.getElementById("adminStorageUsageContent");
   const cardsEl = document.getElementById("adminStorageUsageCards");
   const refreshButton = document.getElementById("adminStorageUsageRefreshButton");
+  const intervalSelect = document.getElementById("adminStorageUsageRefreshInterval");
   const generatedAtEl = document.getElementById("adminStorageUsageGeneratedAt");
   const primaryLabelEl = document.getElementById("adminStoragePrimaryLabel");
   const primaryPathEl = document.getElementById("adminStoragePrimaryPath");
@@ -306,6 +361,10 @@ function renderStorageUsage() {
   const { loading, loaded, error, data } = state.storageUsage;
   if (refreshButton) {
     refreshButton.disabled = loading;
+  }
+  if (intervalSelect) {
+    intervalSelect.disabled = loading;
+    intervalSelect.value = String(getStorageUsageRefreshInterval());
   }
   loadingEl.hidden = !loading && loaded;
   loadingEl.textContent = loading ? "使用状況を読み込み中です…" : "使用状況はまだ読み込まれていません。";
@@ -347,12 +406,13 @@ function renderStorageUsage() {
   cardsEl.replaceChildren(...items.map((item) => createStorageUsageCard(item)));
 }
 
-async function loadStorageUsage({ force = false } = {}) {
+async function loadStorageUsage({ force = false, silent = false } = {}) {
   const storageTabVisible = state.activeTab === "storage";
   if (!storageTabVisible && !force) return;
   if (state.storageUsage.loading) return;
   if (state.storageUsage.loaded && !force) {
     renderStorageUsage();
+    scheduleStorageUsageAutoRefresh();
     return;
   }
 
@@ -367,15 +427,36 @@ async function loadStorageUsage({ force = false } = {}) {
     state.storageUsage.error = error.message || "使用状況の取得に失敗しました。";
     state.storageUsage.data = null;
     state.storageUsage.loaded = false;
+    if (!silent) {
+      window.AdminApp?.toast?.error?.(state.storageUsage.error);
+    }
   } finally {
     state.storageUsage.loading = false;
     renderStorageUsage();
+    scheduleStorageUsageAutoRefresh();
   }
 }
 
 function bindStorageUsageEvents() {
   document.getElementById("adminStorageUsageRefreshButton")?.addEventListener("click", () => {
     loadStorageUsage({ force: true });
+  });
+  document.getElementById("adminStorageUsageRefreshInterval")?.addEventListener("change", (event) => {
+    const value = setStorageUsageRefreshInterval(event.currentTarget?.value);
+    event.currentTarget.value = String(value);
+    scheduleStorageUsageAutoRefresh();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && state.activeTab === "storage") {
+      loadStorageUsage({ force: true, silent: true });
+      return;
+    }
+    clearStorageUsageTimer();
+  });
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_USAGE_REFRESH_INTERVAL_KEY) return;
+    syncStorageUsageIntervalControl();
+    scheduleStorageUsageAutoRefresh();
   });
 }
 
@@ -602,6 +683,12 @@ function renderActiveTab() {
   writeGroupValuesToDom(state.activeTab);
   updateHeader();
   syncDirtyGuard();
+  if (state.activeTab === "storage") {
+    syncStorageUsageIntervalControl();
+    loadStorageUsage({ force: true, silent: true });
+  } else {
+    clearStorageUsageTimer();
+  }
 }
 
 async function loadGroup(group) {
@@ -717,6 +804,10 @@ async function applyActiveTab() {
     };
 
     renderActiveTab();
+    if (group === "storage") {
+      state.storageUsage.loaded = false;
+      await loadStorageUsage({ force: true, silent: true });
+    }
     setSaveState(`保存済み (${formatDateTime(data.updated_at)})`);
     setMessage(result.message || "設定を更新しました。");
   } catch (error) {
@@ -740,6 +831,7 @@ export async function initAdminSettingsPage() {
   bindFieldEvents();
   bindApplyEvents();
   bindStorageUsageEvents();
+  syncStorageUsageIntervalControl();
 
   const hashTab = (window.location.hash || "").replace(/^#/, "").trim();
   if (GROUP_META[hashTab]) {

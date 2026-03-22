@@ -36,6 +36,66 @@ function formatDateTime(value) {
   return d.toLocaleString("ja-JP");
 }
 
+function formatPercent(value, digits = 1) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "-";
+  return `${n.toFixed(digits)}%`;
+}
+
+function clampRatio(value) {
+  const ratio = Number(value);
+  if (!Number.isFinite(ratio) || ratio < 0) return 0;
+  if (ratio > 1) return 1;
+  return ratio;
+}
+
+const STORAGE_USAGE_REFRESH_INTERVAL_KEY = "admin.storageUsage.refreshIntervalMs";
+const STORAGE_USAGE_DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
+const STORAGE_USAGE_ALLOWED_INTERVALS = [0, 60 * 1000, 3 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000, 15 * 60 * 1000, 30 * 60 * 1000];
+const storageUsageState = {
+  loading: false,
+  loaded: false,
+  error: "",
+  data: null,
+  timerId: null,
+};
+
+function normalizeStorageUsageRefreshInterval(value) {
+  const ms = Number(value);
+  return STORAGE_USAGE_ALLOWED_INTERVALS.includes(ms) ? ms : STORAGE_USAGE_DEFAULT_INTERVAL_MS;
+}
+
+function getStorageUsageRefreshInterval() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_USAGE_REFRESH_INTERVAL_KEY);
+    return normalizeStorageUsageRefreshInterval(raw == null ? STORAGE_USAGE_DEFAULT_INTERVAL_MS : Number(raw));
+  } catch {
+    return STORAGE_USAGE_DEFAULT_INTERVAL_MS;
+  }
+}
+
+function setStorageUsageRefreshInterval(value) {
+  const normalized = normalizeStorageUsageRefreshInterval(value);
+  try {
+    window.localStorage.setItem(STORAGE_USAGE_REFRESH_INTERVAL_KEY, String(normalized));
+  } catch {
+    return normalized;
+  }
+  return normalized;
+}
+
+function clearDashboardStorageTimer() {
+  if (storageUsageState.timerId) {
+    window.clearTimeout(storageUsageState.timerId);
+    storageUsageState.timerId = null;
+  }
+}
+
+function setDashboardStorageRingUsage(element, ratio) {
+  if (!element) return;
+  element.style.setProperty("--usage-ratio", String(clampRatio(ratio)));
+}
+
 function updateDigitalClock() {
   const el = byId("adminDashboardClockDigital");
   if (!el || el.hidden) return;
@@ -147,6 +207,130 @@ function renderAuditLogs(items) {
     `;
     container.appendChild(row);
   }
+}
+
+function syncDashboardStorageIntervalControl() {
+  const select = byId("adminDashboardStorageRefreshInterval");
+  if (select) {
+    select.value = String(getStorageUsageRefreshInterval());
+  }
+}
+
+function renderDashboardStorageUsage() {
+  const loadingEl = byId("adminDashboardStorageLoading");
+  const messageEl = byId("adminDashboardStorageMessage");
+  const contentEl = byId("adminDashboardStorageContent");
+  const refreshButton = byId("adminDashboardStorageRefreshButton");
+  const intervalSelect = byId("adminDashboardStorageRefreshInterval");
+  const generatedAtEl = byId("adminDashboardStorageGeneratedAt");
+  const labelEl = byId("adminDashboardStoragePrimaryLabel");
+  const pathEl = byId("adminDashboardStoragePrimaryPath");
+  const directorySizeEl = byId("adminDashboardStorageDirectorySize");
+  const filesystemUsageEl = byId("adminDashboardStorageFilesystemUsage");
+  const filesystemFreeEl = byId("adminDashboardStorageFilesystemFree");
+  const percentEl = byId("adminDashboardStorageUsagePercent");
+  const ringEl = byId("adminDashboardStorageRing");
+  if (!loadingEl || !messageEl || !contentEl) return;
+
+  if (refreshButton) refreshButton.disabled = storageUsageState.loading;
+  if (intervalSelect) {
+    intervalSelect.disabled = storageUsageState.loading;
+    intervalSelect.value = String(getStorageUsageRefreshInterval());
+  }
+  loadingEl.hidden = !storageUsageState.loading && storageUsageState.loaded;
+  loadingEl.textContent = storageUsageState.loading ? "使用状況を読み込み中です…" : "使用状況はまだ読み込まれていません。";
+  messageEl.hidden = !storageUsageState.error;
+  messageEl.textContent = storageUsageState.error || "";
+  messageEl.classList.toggle("is-error", Boolean(storageUsageState.error));
+  contentEl.hidden = !storageUsageState.loaded || !storageUsageState.data;
+
+  if (!storageUsageState.loaded || !storageUsageState.data) {
+    if (generatedAtEl) generatedAtEl.textContent = "-";
+    if (labelEl) labelEl.textContent = "storage_root";
+    if (pathEl) pathEl.textContent = "使用状況を取得するとここに表示します。";
+    if (directorySizeEl) directorySizeEl.textContent = "-";
+    if (filesystemUsageEl) filesystemUsageEl.textContent = "-";
+    if (filesystemFreeEl) filesystemFreeEl.textContent = "-";
+    if (percentEl) percentEl.textContent = "-%";
+    setDashboardStorageRingUsage(ringEl, 0);
+    return;
+  }
+
+  const data = storageUsageState.data || {};
+  const items = Array.isArray(data.items) ? data.items : [];
+  const primary = data.primary || items.find((item) => item.key === data.primary_key) || items[0] || null;
+  if (generatedAtEl) generatedAtEl.textContent = formatDateTime(data.generated_at);
+  if (!primary) return;
+  if (labelEl) labelEl.textContent = primary.label || primary.key || "storage_root";
+  if (pathEl) pathEl.textContent = primary.path || "未設定";
+  if (directorySizeEl) directorySizeEl.textContent = formatStorage(primary.directory_size_bytes);
+  if (filesystemUsageEl) filesystemUsageEl.textContent = `${formatStorage(primary.filesystem_used_bytes)} / ${formatStorage(primary.filesystem_total_bytes)}`;
+  if (filesystemFreeEl) filesystemFreeEl.textContent = formatStorage(primary.filesystem_free_bytes);
+  if (percentEl) percentEl.textContent = formatPercent(primary.filesystem_usage_percent);
+  setDashboardStorageRingUsage(ringEl, primary.filesystem_usage_ratio);
+}
+
+async function loadDashboardStorageUsage({ force = false, silent = false } = {}) {
+  if (storageUsageState.loading) return;
+  if (storageUsageState.loaded && !force) {
+    renderDashboardStorageUsage();
+    scheduleDashboardStorageRefresh();
+    return;
+  }
+  const app = window.AdminApp;
+  storageUsageState.loading = true;
+  storageUsageState.error = "";
+  renderDashboardStorageUsage();
+  try {
+    const payload = await app.api.get("/api/admin/settings/storage/usage");
+    storageUsageState.data = payload.data || null;
+    storageUsageState.loaded = true;
+  } catch (error) {
+    storageUsageState.error = error.message || "ストレージ使用状況の取得に失敗しました。";
+    storageUsageState.data = null;
+    storageUsageState.loaded = false;
+    if (!silent) {
+      window.AdminApp?.toast?.error?.(storageUsageState.error);
+    }
+  } finally {
+    storageUsageState.loading = false;
+    renderDashboardStorageUsage();
+    scheduleDashboardStorageRefresh();
+  }
+}
+
+function scheduleDashboardStorageRefresh() {
+  clearDashboardStorageTimer();
+  if (document.visibilityState === "hidden") return;
+  const intervalMs = getStorageUsageRefreshInterval();
+  if (!intervalMs) return;
+  storageUsageState.timerId = window.setTimeout(async () => {
+    await loadDashboardStorageUsage({ force: true, silent: true });
+    scheduleDashboardStorageRefresh();
+  }, intervalMs);
+}
+
+function bindDashboardStorageUsage() {
+  byId("adminDashboardStorageRefreshButton")?.addEventListener("click", () => {
+    loadDashboardStorageUsage({ force: true });
+  });
+  byId("adminDashboardStorageRefreshInterval")?.addEventListener("change", (event) => {
+    const value = setStorageUsageRefreshInterval(event.currentTarget?.value);
+    event.currentTarget.value = String(value);
+    scheduleDashboardStorageRefresh();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      loadDashboardStorageUsage({ force: true, silent: true });
+      return;
+    }
+    clearDashboardStorageTimer();
+  });
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_USAGE_REFRESH_INTERVAL_KEY) return;
+    syncDashboardStorageIntervalControl();
+    scheduleDashboardStorageRefresh();
+  });
 }
 
 function renderIntegritySummary(summary) {
@@ -375,9 +559,14 @@ async function initDashboard() {
   bindClockButtons();
   bindLatestImage();
   bindIntegrityButton();
+  bindDashboardStorageUsage();
+  syncDashboardStorageIntervalControl();
   startClockLoop();
   try {
-    await loadDashboard();
+    await Promise.all([
+      loadDashboard(),
+      loadDashboardStorageUsage({ force: true, silent: true }),
+    ]);
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ダッシュボードの取得に失敗しました。");
   }
