@@ -100,6 +100,12 @@ const state = {
   groups: Object.fromEntries(Object.keys(GROUP_META).map((group) => [group, INITIAL_GROUP_STATE()])),
   saving: false,
   pendingApplyResolver: null,
+  storageUsage: {
+    loading: false,
+    loaded: false,
+    error: "",
+    data: null,
+  },
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -138,6 +144,239 @@ function formatDateTime(value) {
   } catch {
     return String(value);
   }
+}
+
+function formatBytes(value) {
+  const bytes = Number(value);
+  if (!Number.isFinite(bytes) || bytes < 0) return "-";
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const scaled = bytes / (1024 ** exponent);
+  const digits = exponent === 0 ? 0 : scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+  return `${scaled.toFixed(digits)} ${units[exponent]}`;
+}
+
+function formatPercent(value, digits = 1) {
+  const percent = Number(value);
+  if (!Number.isFinite(percent)) return "-";
+  return `${percent.toFixed(digits)}%`;
+}
+
+function clampRatio(value) {
+  const ratio = Number(value);
+  if (!Number.isFinite(ratio)) return 0;
+  if (ratio < 0) return 0;
+  if (ratio > 1) return 1;
+  return ratio;
+}
+
+function buildStoragePathStatus(item) {
+  if (!item?.path) return "未設定";
+  if (item.exists) return item.is_directory ? "存在" : item.is_file ? "ファイル" : "存在";
+  return "未作成";
+}
+
+function buildStoragePathNote(item) {
+  if (!item?.path) {
+    return "このパスは未設定です。保存済みの設定にパスを入れると使用状況を表示します。";
+  }
+  if (!item.exists) {
+    return item.usage_base_path
+      ? `パス自体はまだ存在しません。使用率は親ディレクトリ ${item.usage_base_path} を基準に表示しています。`
+      : "パスが存在せず、使用率を算出できませんでした。";
+  }
+  if (!item.is_directory && !item.is_file) {
+    return "特殊ファイルのため、ディレクトリ容量の集計対象外です。";
+  }
+  return item.is_directory
+    ? "ディレクトリ配下の実ファイル合計と、配置先ファイルシステムの使用率を表示しています。"
+    : "単一ファイルのサイズと、配置先ファイルシステムの使用率を表示しています。";
+}
+
+function setStorageRingUsage(element, ratio) {
+  if (!element) return;
+  element.style.setProperty("--usage-ratio", String(clampRatio(ratio)));
+}
+
+function createStorageUsageCard(item) {
+  const article = document.createElement("article");
+  article.className = "admin-storage-card";
+
+  const header = document.createElement("div");
+  header.className = "admin-storage-card__header";
+
+  const heading = document.createElement("div");
+  heading.className = "admin-storage-card__heading";
+
+  const title = document.createElement("h4");
+  title.className = "admin-storage-card__title";
+  title.textContent = item.label || item.key || "ディレクトリ";
+
+  const status = document.createElement("span");
+  status.className = "admin-storage-card__status";
+  if (!item.path) {
+    status.dataset.state = "idle";
+  } else if (item.exists) {
+    status.dataset.state = "ok";
+  } else {
+    status.dataset.state = "warning";
+  }
+  status.textContent = buildStoragePathStatus(item);
+
+  heading.append(title, status);
+
+  const path = document.createElement("p");
+  path.className = "admin-storage-card__path";
+  path.textContent = item.path || "未設定";
+
+  header.append(heading, path);
+
+  const stats = document.createElement("div");
+  stats.className = "admin-storage-card__stats";
+
+  const directoryMetric = document.createElement("div");
+  directoryMetric.className = "admin-storage-card__metric";
+  directoryMetric.innerHTML = `<span>ディレクトリサイズ</span><strong>${formatBytes(item.directory_size_bytes)}</strong>`;
+
+  const filesystemMetric = document.createElement("div");
+  filesystemMetric.className = "admin-storage-card__metric";
+  filesystemMetric.innerHTML = `<span>使用中 / 総容量</span><strong>${formatBytes(item.filesystem_used_bytes)} / ${formatBytes(item.filesystem_total_bytes)}</strong>`;
+
+  stats.append(directoryMetric, filesystemMetric);
+
+  const progressList = document.createElement("div");
+  progressList.className = "admin-storage-card__progress-list";
+
+  const filesystemProgress = document.createElement("div");
+  filesystemProgress.className = "admin-storage-progress";
+  filesystemProgress.innerHTML = `
+    <div class="admin-storage-progress__head">
+      <span>配置先ファイルシステム使用率</span>
+      <strong>${formatPercent(item.filesystem_usage_percent)}</strong>
+    </div>
+    <div class="admin-storage-progress__track"><span style="width:${formatPercent(item.filesystem_usage_percent, 3)}"></span></div>
+    <div class="admin-storage-progress__meta">
+      <span>空き容量 ${formatBytes(item.filesystem_free_bytes)}</span>
+      <span>基準: ${item.usage_base_path || "-"}</span>
+    </div>
+  `;
+
+  const directoryShare = document.createElement("div");
+  directoryShare.className = "admin-storage-progress";
+  directoryShare.innerHTML = `
+    <div class="admin-storage-progress__head">
+      <span>ディレクトリが総容量に占める割合</span>
+      <strong>${formatPercent(item.directory_share_of_filesystem_percent, 2)}</strong>
+    </div>
+    <div class="admin-storage-progress__track admin-storage-progress__track--subtle"><span style="width:${formatPercent(item.directory_share_of_filesystem_percent, 3)}"></span></div>
+    <div class="admin-storage-progress__meta">
+      <span>対象サイズ ${formatBytes(item.directory_size_bytes)}</span>
+      <span>総容量 ${formatBytes(item.filesystem_total_bytes)}</span>
+    </div>
+  `;
+
+  progressList.append(filesystemProgress, directoryShare);
+
+  const note = document.createElement("p");
+  note.className = "admin-storage-card__note";
+  note.textContent = buildStoragePathNote(item);
+
+  article.append(header, stats, progressList, note);
+  return article;
+}
+
+function renderStorageUsage() {
+  const loadingEl = document.getElementById("adminStorageUsageLoading");
+  const messageEl = document.getElementById("adminStorageUsageMessage");
+  const contentEl = document.getElementById("adminStorageUsageContent");
+  const cardsEl = document.getElementById("adminStorageUsageCards");
+  const refreshButton = document.getElementById("adminStorageUsageRefreshButton");
+  const generatedAtEl = document.getElementById("adminStorageUsageGeneratedAt");
+  const primaryLabelEl = document.getElementById("adminStoragePrimaryLabel");
+  const primaryPathEl = document.getElementById("adminStoragePrimaryPath");
+  const primaryDirectorySizeEl = document.getElementById("adminStoragePrimaryDirectorySize");
+  const primaryUsageEl = document.getElementById("adminStoragePrimaryFilesystemUsage");
+  const primaryFreeEl = document.getElementById("adminStoragePrimaryFilesystemFree");
+  const primaryPercentEl = document.getElementById("adminStoragePrimaryUsagePercent");
+  const primaryRingEl = document.getElementById("adminStoragePrimaryRing");
+
+  if (!loadingEl || !messageEl || !contentEl || !cardsEl) return;
+
+  const { loading, loaded, error, data } = state.storageUsage;
+  if (refreshButton) {
+    refreshButton.disabled = loading;
+  }
+  loadingEl.hidden = !loading && loaded;
+  loadingEl.textContent = loading ? "使用状況を読み込み中です…" : "使用状況はまだ読み込まれていません。";
+  messageEl.hidden = !error;
+  messageEl.textContent = error || "";
+  messageEl.classList.toggle("is-error", Boolean(error));
+  contentEl.hidden = !loaded || !data;
+
+  if (!loaded || !data) {
+    if (cardsEl) cardsEl.replaceChildren();
+    if (generatedAtEl) generatedAtEl.textContent = "-";
+    if (primaryLabelEl) primaryLabelEl.textContent = "storage_root";
+    if (primaryPathEl) primaryPathEl.textContent = "使用状況を取得するとここに表示します。";
+    if (primaryDirectorySizeEl) primaryDirectorySizeEl.textContent = "-";
+    if (primaryUsageEl) primaryUsageEl.textContent = "-";
+    if (primaryFreeEl) primaryFreeEl.textContent = "-";
+    if (primaryPercentEl) primaryPercentEl.textContent = "-%";
+    setStorageRingUsage(primaryRingEl, 0);
+    return;
+  }
+
+  const items = Array.isArray(data.items) ? data.items : [];
+  const primary = data.primary || items.find((item) => item.key === data.primary_key) || items[0] || null;
+  if (generatedAtEl) {
+    generatedAtEl.textContent = data.generated_at ? formatDateTime(data.generated_at) : "-";
+  }
+  if (primary) {
+    if (primaryLabelEl) primaryLabelEl.textContent = primary.label || primary.key || "storage_root";
+    if (primaryPathEl) primaryPathEl.textContent = primary.path || "未設定";
+    if (primaryDirectorySizeEl) primaryDirectorySizeEl.textContent = formatBytes(primary.directory_size_bytes);
+    if (primaryUsageEl) {
+      primaryUsageEl.textContent = `${formatBytes(primary.filesystem_used_bytes)} / ${formatBytes(primary.filesystem_total_bytes)}`;
+    }
+    if (primaryFreeEl) primaryFreeEl.textContent = formatBytes(primary.filesystem_free_bytes);
+    if (primaryPercentEl) primaryPercentEl.textContent = formatPercent(primary.filesystem_usage_percent);
+    setStorageRingUsage(primaryRingEl, primary.filesystem_usage_ratio);
+  }
+
+  cardsEl.replaceChildren(...items.map((item) => createStorageUsageCard(item)));
+}
+
+async function loadStorageUsage({ force = false } = {}) {
+  const storageTabVisible = state.activeTab === "storage";
+  if (!storageTabVisible && !force) return;
+  if (state.storageUsage.loading) return;
+  if (state.storageUsage.loaded && !force) {
+    renderStorageUsage();
+    return;
+  }
+
+  state.storageUsage.loading = true;
+  state.storageUsage.error = "";
+  renderStorageUsage();
+  try {
+    const result = await api.get("/api/admin/settings/storage/usage");
+    state.storageUsage.data = result.data || null;
+    state.storageUsage.loaded = true;
+  } catch (error) {
+    state.storageUsage.error = error.message || "使用状況の取得に失敗しました。";
+    state.storageUsage.data = null;
+    state.storageUsage.loaded = false;
+  } finally {
+    state.storageUsage.loading = false;
+    renderStorageUsage();
+  }
+}
+
+function bindStorageUsageEvents() {
+  document.getElementById("adminStorageUsageRefreshButton")?.addEventListener("click", () => {
+    loadStorageUsage({ force: true });
+  });
 }
 
 function activeGroupMeta() {
@@ -500,6 +739,7 @@ export async function initAdminSettingsPage() {
   bindTabEvents();
   bindFieldEvents();
   bindApplyEvents();
+  bindStorageUsageEvents();
 
   const hashTab = (window.location.hash || "").replace(/^#/, "").trim();
   if (GROUP_META[hashTab]) {

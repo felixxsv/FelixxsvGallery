@@ -442,3 +442,314 @@ body.is-modal-open {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+.admin-storage-overview {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
+}
+
+.admin-storage-overview__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-storage-overview__heading {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-storage-overview__title {
+  margin: 0;
+  font-size: 0.98rem;
+  color: #f8fafc;
+}
+
+.admin-storage-overview__meta {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.admin-storage-overview__actions {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.admin-storage-overview__timestamp {
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.78rem;
+}
+
+.admin-storage-overview__timestamp strong {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.admin-storage-loading {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.admin-storage-overview__content {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-storage-summary-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.admin-storage-summary-card__chart {
+  display: grid;
+  place-items: center;
+}
+
+.admin-storage-ring {
+  --usage-ratio: 0;
+  width: 132px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at center, rgba(15, 23, 42, 0.9) 0 54%, transparent 55%),
+    conic-gradient(rgba(96, 165, 250, 0.94) calc(var(--usage-ratio) * 1turn), rgba(148, 163, 184, 0.18) 0);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+}
+
+.admin-storage-ring__value {
+  color: #f8fafc;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.admin-storage-summary-card__body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-storage-summary-card__eyebrow {
+  color: rgba(191, 219, 254, 0.84);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-storage-summary-card__title {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.admin-storage-summary-card__path {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.74);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  word-break: break-all;
+}
+
+.admin-storage-summary-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-storage-summary-card__metric {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-storage-summary-card__metric span,
+.admin-storage-card__metric span,
+.admin-storage-progress__head span,
+.admin-storage-progress__meta span {
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.78rem;
+}
+
+.admin-storage-summary-card__metric strong,
+.admin-storage-card__metric strong,
+.admin-storage-progress__head strong {
+  color: #f8fafc;
+  font-size: 0.96rem;
+}
+
+.admin-storage-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-storage-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-storage-card__header,
+.admin-storage-card__heading,
+.admin-storage-card__stats,
+.admin-storage-card__progress-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-storage-card__heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.admin-storage-card__title {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.admin-storage-card__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.admin-storage-card__status[data-state="ok"] {
+  border-color: rgba(74, 222, 128, 0.26);
+  background: rgba(74, 222, 128, 0.12);
+  color: #dcfce7;
+}
+
+.admin-storage-card__status[data-state="warning"] {
+  border-color: rgba(250, 204, 21, 0.26);
+  background: rgba(250, 204, 21, 0.12);
+  color: #fef3c7;
+}
+
+.admin-storage-card__status[data-state="idle"] {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.admin-storage-card__path,
+.admin-storage-card__note,
+.admin-storage-progress__meta {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  word-break: break-all;
+}
+
+.admin-storage-card__stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-storage-card__metric {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-storage-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-storage-progress__head,
+.admin-storage-progress__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-storage-progress__track {
+  position: relative;
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.admin-storage-progress__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.92), rgba(125, 211, 252, 0.92));
+}
+
+.admin-storage-progress__track--subtle span {
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.82), rgba(244, 114, 182, 0.82));
+}
+
+@media (max-width: 1180px) {
+  .admin-storage-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .admin-storage-overview__head,
+  .admin-storage-progress__head,
+  .admin-storage-progress__meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-storage-overview__actions {
+    justify-items: start;
+  }
+
+  .admin-storage-summary-card {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-storage-summary-card__metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-storage-card__stats {
+    grid-template-columns: 1fr;
+  }
+}

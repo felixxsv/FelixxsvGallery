@@ -231,6 +231,49 @@
               </form>
 
               <form id="adminSettingsFormStorage" class="admin-settings-form" data-settings-form="storage" hidden novalidate>
+                <section class="admin-storage-overview" aria-labelledby="adminStorageUsageTitle">
+                  <div class="admin-storage-overview__head">
+                    <div class="admin-storage-overview__heading">
+                      <h3 id="adminStorageUsageTitle" class="admin-storage-overview__title">ディレクトリ使用状況</h3>
+                      <p class="admin-storage-overview__meta">保存済みの source_root / storage_root / original_cache_root を基準に、ディレクトリサイズと配置先ファイルシステムの使用率を表示します。</p>
+                    </div>
+                    <div class="admin-storage-overview__actions">
+                      <span class="admin-storage-overview__timestamp">最終取得: <strong id="adminStorageUsageGeneratedAt">-</strong></span>
+                      <button id="adminStorageUsageRefreshButton" type="button" class="app-button app-button--secondary">使用状況を再取得</button>
+                    </div>
+                  </div>
+                  <div id="adminStorageUsageMessage" class="admin-page-message" hidden></div>
+                  <div id="adminStorageUsageLoading" class="admin-storage-loading">使用状況を読み込みます…</div>
+                  <div id="adminStorageUsageContent" class="admin-storage-overview__content" hidden>
+                    <article class="admin-storage-summary-card">
+                      <div class="admin-storage-summary-card__chart">
+                        <div id="adminStoragePrimaryRing" class="admin-storage-ring" aria-hidden="true">
+                          <span id="adminStoragePrimaryUsagePercent" class="admin-storage-ring__value">-%</span>
+                        </div>
+                      </div>
+                      <div class="admin-storage-summary-card__body">
+                        <span class="admin-storage-summary-card__eyebrow">メイン表示</span>
+                        <h4 id="adminStoragePrimaryLabel" class="admin-storage-summary-card__title">storage_root</h4>
+                        <p id="adminStoragePrimaryPath" class="admin-storage-summary-card__path">使用状況を取得するとここに表示します。</p>
+                        <div class="admin-storage-summary-card__metrics">
+                          <div class="admin-storage-summary-card__metric">
+                            <span>ディレクトリサイズ</span>
+                            <strong id="adminStoragePrimaryDirectorySize">-</strong>
+                          </div>
+                          <div class="admin-storage-summary-card__metric">
+                            <span>使用中 / 総容量</span>
+                            <strong id="adminStoragePrimaryFilesystemUsage">-</strong>
+                          </div>
+                          <div class="admin-storage-summary-card__metric">
+                            <span>空き容量</span>
+                            <strong id="adminStoragePrimaryFilesystemFree">-</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                    <div id="adminStorageUsageCards" class="admin-storage-card-grid"></div>
+                  </div>
+                </section>
                 <div class="admin-settings-grid">
                   <label class="admin-settings-field admin-settings-field--full">
                     <span>source_root</span>

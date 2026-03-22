@@ -594,6 +594,114 @@ WHERE moderation_status='quarantined'
     }
 
 
+def _find_existing_usage_base(path: str) -> str | None:
+    normalized = str(path or "").strip()
+    if not normalized:
+        return None
+    candidate = os.path.abspath(normalized)
+    while True:
+        if os.path.exists(candidate):
+            return candidate
+        parent = os.path.dirname(candidate)
+        if parent == candidate:
+            return None
+        candidate = parent
+
+
+def _measure_path_size_bytes(path: str, cache: dict[str, int | None] | None = None) -> int | None:
+    normalized = str(path or "").strip()
+    if not normalized:
+        return None
+    abs_path = os.path.abspath(normalized)
+    if cache is not None and abs_path in cache:
+        return cache[abs_path]
+    if not os.path.exists(abs_path):
+        if cache is not None:
+            cache[abs_path] = None
+        return None
+    total = 0
+    try:
+        if os.path.isfile(abs_path):
+            total = int(os.path.getsize(abs_path))
+        elif os.path.isdir(abs_path):
+            for root, _, files in os.walk(abs_path, followlinks=False):
+                for filename in files:
+                    full_path = os.path.join(root, filename)
+                    try:
+                        if os.path.islink(full_path):
+                            continue
+                        total += int(os.path.getsize(full_path))
+                    except OSError:
+                        continue
+        else:
+            total = None
+    except OSError:
+        total = None
+    if cache is not None:
+        cache[abs_path] = total
+    return total
+
+
+def _build_storage_usage_item(key: str, label: str, path: str, size_cache: dict[str, int | None] | None = None) -> dict:
+    normalized = str(path or "").strip()
+    usage_base = _find_existing_usage_base(normalized) if normalized else None
+    filesystem_total_bytes = None
+    filesystem_used_bytes = None
+    filesystem_free_bytes = None
+    filesystem_usage_ratio = None
+    if usage_base:
+        try:
+            usage = shutil.disk_usage(usage_base)
+            filesystem_total_bytes = int(usage.total)
+            filesystem_used_bytes = int(usage.used)
+            filesystem_free_bytes = int(usage.free)
+            filesystem_usage_ratio = (filesystem_used_bytes / filesystem_total_bytes) if filesystem_total_bytes else None
+        except OSError:
+            pass
+
+    exists = bool(normalized) and os.path.exists(normalized)
+    directory_size_bytes = _measure_path_size_bytes(normalized, size_cache) if normalized else None
+    directory_share_ratio = None
+    if directory_size_bytes is not None and filesystem_total_bytes:
+        directory_share_ratio = directory_size_bytes / filesystem_total_bytes
+
+    return {
+        "key": key,
+        "label": label,
+        "path": normalized,
+        "exists": exists,
+        "is_directory": bool(normalized) and os.path.isdir(normalized),
+        "is_file": bool(normalized) and os.path.isfile(normalized),
+        "usage_base_path": usage_base,
+        "directory_size_bytes": directory_size_bytes,
+        "filesystem_total_bytes": filesystem_total_bytes,
+        "filesystem_used_bytes": filesystem_used_bytes,
+        "filesystem_free_bytes": filesystem_free_bytes,
+        "filesystem_usage_ratio": filesystem_usage_ratio,
+        "filesystem_usage_percent": round(filesystem_usage_ratio * 100, 2) if filesystem_usage_ratio is not None else None,
+        "directory_share_of_filesystem_ratio": directory_share_ratio,
+        "directory_share_of_filesystem_percent": round(directory_share_ratio * 100, 4) if directory_share_ratio is not None else None,
+    }
+
+
+def _load_storage_usage_payload(conn) -> dict:
+    payload = _load_site_settings_group(conn, "storage")
+    settings = payload.get("settings") or {}
+    size_cache: dict[str, int | None] = {}
+    items = [
+        _build_storage_usage_item("source_root", "source_root", settings.get("source_root") or "", size_cache),
+        _build_storage_usage_item("storage_root", "storage_root", settings.get("storage_root") or "", size_cache),
+        _build_storage_usage_item("original_cache_root", "original_cache_root", settings.get("original_cache_root") or "", size_cache),
+    ]
+    primary = next((item for item in items if item.get("key") == "storage_root"), None) or (items[0] if items else None)
+    return {
+        "generated_at": _coerce_utc_text(datetime.now(timezone.utc)),
+        "primary_key": primary.get("key") if primary else None,
+        "primary": primary,
+        "items": items,
+    }
+
+
 def _b64u(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
 
@@ -4484,6 +4592,26 @@ def admin_settings_storage(
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
         return _json_error(500, request_id, "server_error", "ストレージ設定の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/settings/storage/usage")
+def admin_settings_storage_usage(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection()
+        payload = _load_storage_usage_payload(conn)
+        return _json_success(request_id=request_id, data=payload, message=None)
+    except Exception:
+        return _json_error(500, request_id, "server_error", "ストレージ使用状況の取得に失敗しました。")
     finally:
         if conn is not None:
             conn.close()
