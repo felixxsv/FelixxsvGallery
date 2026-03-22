@@ -250,20 +250,16 @@
               </select>
             </label>
 
-            <label class="app-field">
-              <span class="app-field__label">画像モーダルの背景クリック</span>
-              <select id="shellSettingImageBackdropClose" class="app-select">
-                <option value="true">閉じる</option>
-                <option value="false">閉じない</option>
-              </select>
+            <label class="app-field app-field--switch app-switch">
+              <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
+              <span class="app-switch__control" aria-hidden="true"></span>
+              <span class="app-switch__label">画像モーダルの背景クリックで閉じる</span>
             </label>
 
-            <label class="app-field">
-              <span class="app-field__label">画像モーダルのメタ情報バー</span>
-              <select id="shellSettingImageMetaPinned" class="app-select">
-                <option value="false">自動表示</option>
-                <option value="true">常時表示</option>
-              </select>
+            <label class="app-field app-field--switch app-switch">
+              <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
+              <span class="app-switch__control" aria-hidden="true"></span>
+              <span class="app-switch__label">画像モーダルのメタ情報バーを常時表示する</span>
             </label>
           </form>
         </div>

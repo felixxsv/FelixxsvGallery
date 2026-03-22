@@ -149,23 +149,23 @@ body.is-modal-open {
   grid-column: 1 / -1;
 }
 
-.admin-settings-field--checkbox {
+.admin-settings-field--switch {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
+  gap: 12px;
+  min-height: 56px;
   padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
 
-.admin-settings-field--checkbox input {
-  flex: 0 0 auto;
-  width: auto;
+.admin-settings-field--switch.app-switch {
+  width: 100%;
+  justify-content: flex-start;
 }
 
-.admin-settings-field--checkbox span {
+.admin-settings-field--switch .app-switch__label {
   font-size: 0.92rem;
   color: #e2e8f0;
 }

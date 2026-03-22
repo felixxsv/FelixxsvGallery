@@ -153,13 +153,15 @@
                       <option value="new_tab">別タブ表示</option>
                     </select>
                   </label>
-                  <label class="admin-settings-field admin-settings-field--checkbox">
-                    <input id="adminSettingsGeneralBackdropClose" type="checkbox">
-                    <span>画像モーダルで背景クリックを既定で許可する</span>
+                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+                    <input id="adminSettingsGeneralBackdropClose" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">画像モーダルで背景クリックを既定で許可する</span>
                   </label>
-                  <label class="admin-settings-field admin-settings-field--checkbox admin-settings-field--full">
-                    <input id="adminSettingsGeneralMetaBarPinned" type="checkbox">
-                    <span>画像モーダルのメタ情報バーを既定で常時表示する</span>
+                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+                    <input id="adminSettingsGeneralMetaBarPinned" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">画像モーダルのメタ情報バーを既定で常時表示する</span>
                   </label>
                 </div>
               </form>
@@ -178,21 +180,25 @@
                     <span>セッションアイドルタイムアウト (分)</span>
                     <input id="adminSettingsSecuritySessionIdleTimeout" type="number" min="5" max="10080">
                   </label>
-                  <label class="admin-settings-field admin-settings-field--checkbox">
-                    <input id="adminSettingsSecurityRequireUppercase" type="checkbox">
-                    <span>大文字を必須にする</span>
+                  <label class="admin-settings-field admin-settings-field--switch app-switch">
+                    <input id="adminSettingsSecurityRequireUppercase" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">大文字を必須にする</span>
                   </label>
-                  <label class="admin-settings-field admin-settings-field--checkbox">
-                    <input id="adminSettingsSecurityRequireLowercase" type="checkbox">
-                    <span>小文字を必須にする</span>
+                  <label class="admin-settings-field admin-settings-field--switch app-switch">
+                    <input id="adminSettingsSecurityRequireLowercase" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">小文字を必須にする</span>
                   </label>
-                  <label class="admin-settings-field admin-settings-field--checkbox">
-                    <input id="adminSettingsSecurityRequireNumber" type="checkbox">
-                    <span>数字を必須にする</span>
+                  <label class="admin-settings-field admin-settings-field--switch app-switch">
+                    <input id="adminSettingsSecurityRequireNumber" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">数字を必須にする</span>
                   </label>
-                  <label class="admin-settings-field admin-settings-field--checkbox admin-settings-field--full">
-                    <input id="adminSettingsSecurityAdmin2faRecommended" type="checkbox">
-                    <span>管理者に 2FA 有効化を推奨する</span>
+                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+                    <input id="adminSettingsSecurityAdmin2faRecommended" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">管理者に 2FA 有効化を推奨する</span>
                   </label>
                 </div>
               </form>
@@ -215,9 +221,10 @@
                     <span>送信元表示名</span>
                     <input id="adminSettingsSmtpFromName" type="text" maxlength="255">
                   </label>
-                  <label class="admin-settings-field admin-settings-field--checkbox admin-settings-field--full">
-                    <input id="adminSettingsSmtpUseStarttls" type="checkbox">
-                    <span>STARTTLS を使用する</span>
+                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+                    <input id="adminSettingsSmtpUseStarttls" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__control" aria-hidden="true"></span>
+                    <span class="app-switch__label">STARTTLS を使用する</span>
                   </label>
                 </div>
               </form>
