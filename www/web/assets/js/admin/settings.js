@@ -293,11 +293,11 @@ function createStorageUsageCard(item) {
   directoryMetric.className = "admin-storage-card__metric";
   directoryMetric.innerHTML = `<span>ディレクトリサイズ</span><strong>${formatBytes(item.directory_size_bytes)}</strong>`;
 
-  const filesystemMetric = document.createElement("div");
-  filesystemMetric.className = "admin-storage-card__metric";
-  filesystemMetric.innerHTML = `<span>使用中 / 総容量</span><strong>${formatBytes(item.filesystem_used_bytes)} / ${formatBytes(item.filesystem_total_bytes)}</strong>`;
+  const shareMetric = document.createElement("div");
+  shareMetric.className = "admin-storage-card__metric";
+  shareMetric.innerHTML = `<span>総容量に対する割合</span><strong>${formatPercent(item.directory_share_of_filesystem_percent, 2)}</strong>`;
 
-  stats.append(directoryMetric, filesystemMetric);
+  stats.append(directoryMetric, shareMetric);
 
   const progressList = document.createElement("div");
   progressList.className = "admin-storage-card__progress-list";
@@ -316,21 +316,7 @@ function createStorageUsageCard(item) {
     </div>
   `;
 
-  const directoryShare = document.createElement("div");
-  directoryShare.className = "admin-storage-progress";
-  directoryShare.innerHTML = `
-    <div class="admin-storage-progress__head">
-      <span>ディレクトリが総容量に占める割合</span>
-      <strong>${formatPercent(item.directory_share_of_filesystem_percent, 2)}</strong>
-    </div>
-    <div class="admin-storage-progress__track admin-storage-progress__track--subtle"><span style="width:${formatPercent(item.directory_share_of_filesystem_percent, 3)}"></span></div>
-    <div class="admin-storage-progress__meta">
-      <span>対象サイズ ${formatBytes(item.directory_size_bytes)}</span>
-      <span>総容量 ${formatBytes(item.filesystem_total_bytes)}</span>
-    </div>
-  `;
-
-  progressList.append(filesystemProgress, directoryShare);
+  progressList.append(filesystemProgress);
 
   const note = document.createElement("p");
   note.className = "admin-storage-card__note";

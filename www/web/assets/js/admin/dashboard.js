@@ -200,10 +200,18 @@ function renderAuditLogs(items) {
   for (const item of items) {
     const row = document.createElement("article");
     row.className = "admin-log-item";
+    const normalizedResult = String(item.result || "").trim().toLowerCase();
+    if (normalizedResult) {
+      row.dataset.result = normalizedResult;
+    }
     row.innerHTML = `
-      <div class="admin-log-item__meta">${item.action_type || "-"} ・ ${formatDateTime(item.created_at)}</div>
+      <div class="admin-log-item__meta">
+        <span>${item.action_type || "-"}</span>
+        <span>${formatDateTime(item.created_at)}</span>
+        <span class="admin-log-item__badge">${item.result || "-"}</span>
+      </div>
       <div class="admin-log-item__summary">${item.summary || "-"}</div>
-      <div class="admin-log-item__actor">${item.actor?.display_name || "system"} / ${item.result || "-"}</div>
+      <div class="admin-log-item__actor">${item.actor?.display_name || "system"}</div>
     `;
     container.appendChild(row);
   }
@@ -373,14 +381,20 @@ function renderIntegritySummary(summary) {
   for (const item of items) {
     const row = document.createElement("article");
     row.className = "admin-log-item";
+    const severity = String(item.severity || "warning").toLowerCase();
+    row.dataset.severity = severity;
     const detail = [];
     if (item.file_path) detail.push(item.file_path);
     if (item.image_id) detail.push(`image:${item.image_id}`);
     if (item.derivative_kind) detail.push(item.derivative_kind);
     row.innerHTML = `
-      <div class="admin-log-item__meta">${item.severity || "warning"} ・ ${item.issue_code || "-"}</div>
+      <div class="admin-log-item__meta">
+        <span>${item.issue_code || "-"}</span>
+        <span>${formatDateTime(item.created_at)}</span>
+        <span class="admin-log-item__badge">${severity}</span>
+      </div>
       <div class="admin-log-item__summary">${detail.join(" / ") || "詳細情報なし"}</div>
-      <div class="admin-log-item__actor">${formatDateTime(item.created_at)}</div>
+      <div class="admin-log-item__actor">${item.gallery || "integrity"}</div>
     `;
     container.appendChild(row);
   }

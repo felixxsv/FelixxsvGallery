@@ -135,7 +135,7 @@
                   </label>
                   <label class="admin-settings-field">
                     <span>画像クリック時の既定挙動</span>
-                    <select id="adminSettingsGeneralImageOpenBehavior">
+                    <select class="app-select" id="adminSettingsGeneralImageOpenBehavior">
                       <option value="modal">モーダル表示</option>
                       <option value="new_tab">別タブ表示</option>
                     </select>
@@ -227,7 +227,7 @@
                       <span class="admin-storage-overview__timestamp">最終取得: <strong id="adminStorageUsageGeneratedAt">-</strong></span>
                       <label class="admin-storage-refresh-interval" for="adminStorageUsageRefreshInterval">
                         <span>自動更新</span>
-                        <select id="adminStorageUsageRefreshInterval" aria-label="ストレージ使用状況の自動更新間隔">
+                        <select class="app-select app-select--compact" id="adminStorageUsageRefreshInterval" aria-label="ストレージ使用状況の自動更新間隔">
                           <option value="0">手動のみ</option>
                           <option value="60000">1分</option>
                           <option value="180000">3分</option>
@@ -323,7 +323,7 @@
                     <div class="admin-settings-grid admin-settings-grid--integrity-primary">
                       <label class="admin-settings-field">
                         <span>実行周期</span>
-                        <select id="adminSettingsIntegrityScheduleType">
+                        <select class="app-select" id="adminSettingsIntegrityScheduleType">
                           <option value="daily">毎日</option>
                           <option value="every_n_days">n日ごと</option>
                           <option value="weekly">曜日指定</option>

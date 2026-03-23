@@ -135,6 +135,29 @@ resize: vertical;
 background: var(--color-bg-elevated);
 color: var(--color-text);
 }
+
+.app-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 42px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.56)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%23E2E8F0' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center / 14px 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+.app-select:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
+}
+.app-select:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 22%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.app-select--compact {
+  min-height: 36px;
+  padding-left: 12px;
+  padding-right: 36px;
+  font-size: .84rem;
+}
 .app-field--switch {
 width: 100%;
 }
