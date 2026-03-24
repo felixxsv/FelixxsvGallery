@@ -1694,3 +1694,183 @@ body.is-modal-open {
     justify-self: start;
   }
 }
+
+
+/* storage pane split fix */
+#adminSettingsFormStorage.admin-settings-form--storage {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.92fr) minmax(460px, 1.08fr);
+  gap: 16px;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage > .admin-storage-pane {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.10), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__head--config {
+  justify-content: flex-start;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__meta {
+  margin: 6px 0 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: 14px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.38);
+  border-radius: 999px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body--config .admin-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 14px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body--config .admin-settings-field,
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body--config .admin-settings-field--full,
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body--config .admin-settings-grid > .admin-settings-field:nth-last-child(2),
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane__body--config .admin-settings-grid > .admin-settings-field:last-child {
+  grid-column: auto;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-overview__heading {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-overview__actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-overview__timestamp {
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage #adminStorageUsageMessage,
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage #adminStorageUsageLoading {
+  margin-bottom: 12px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage #adminStorageUsageContent {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-summary-card {
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-ring {
+  width: 88px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-summary-card__metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage #adminStorageUsageCards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-card {
+  padding: 12px;
+  gap: 10px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-card__stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-card__heading,
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-progress__head,
+#adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-progress__meta {
+  gap: 8px;
+}
+
+@media (max-width: 1480px) {
+  #adminSettingsFormStorage.admin-settings-form--storage {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  #adminSettingsFormStorage.admin-settings-form--storage > .admin-storage-pane {
+    height: min(50dvh, 640px);
+  }
+}
+
+@media (max-width: 900px) {
+  #adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-summary-card,
+  #adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-summary-card__metrics,
+  #adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-card__stats {
+    grid-template-columns: 1fr;
+  }
+
+  #adminSettingsFormStorage.admin-settings-form--storage .admin-storage-pane--usage .admin-storage-overview__actions {
+    justify-content: flex-start;
+  }
+}
