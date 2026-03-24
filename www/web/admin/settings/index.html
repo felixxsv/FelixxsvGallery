@@ -217,6 +217,37 @@
               </form>
 
               <form id="adminSettingsFormStorage" class="admin-settings-form" data-settings-form="storage" hidden novalidate>
+                <section class="admin-storage-settings-card" aria-labelledby="adminStorageConfigTitle">
+                  <div class="admin-storage-settings-card__head">
+                    <h3 id="adminStorageConfigTitle" class="admin-storage-settings-card__title">参照パスとアップロード制限</h3>
+                    <p class="admin-storage-settings-card__meta">source_root / storage_root / original_cache_root と、アップロード上限をここで管理します。</p>
+                  </div>
+                  <div class="admin-storage-settings-card__body">
+                    <div class="admin-settings-grid">
+                      <label class="admin-settings-field admin-settings-field--full">
+                        <span>source_root</span>
+                        <input id="adminSettingsStorageSourceRoot" type="text" maxlength="500">
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--full">
+                        <span>storage_root</span>
+                        <input id="adminSettingsStorageStorageRoot" type="text" maxlength="500">
+                      </label>
+                      <label class="admin-settings-field admin-settings-field--full">
+                        <span>original_cache_root</span>
+                        <input id="adminSettingsStorageOriginalCacheRoot" type="text" maxlength="500">
+                      </label>
+                      <label class="admin-settings-field">
+                        <span>アップロード可能ファイル数</span>
+                        <input id="adminSettingsStorageMaxUploadFiles" type="number" min="1" max="1000">
+                      </label>
+                      <label class="admin-settings-field">
+                        <span>最大アップロードサイズ (MB)</span>
+                        <input id="adminSettingsStorageMaxUploadSizeMb" type="number" min="1" max="10240">
+                      </label>
+                    </div>
+                  </div>
+                </section>
+
                 <section class="admin-storage-overview" aria-labelledby="adminStorageUsageTitle">
                   <div class="admin-storage-overview__head">
                     <div class="admin-storage-overview__heading">
@@ -272,28 +303,6 @@
                     <div id="adminStorageUsageCards" class="admin-storage-card-grid"></div>
                   </div>
                 </section>
-                <div class="admin-settings-grid">
-                  <label class="admin-settings-field admin-settings-field--full">
-                    <span>source_root</span>
-                    <input id="adminSettingsStorageSourceRoot" type="text" maxlength="500">
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--full">
-                    <span>storage_root</span>
-                    <input id="adminSettingsStorageStorageRoot" type="text" maxlength="500">
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--full">
-                    <span>original_cache_root</span>
-                    <input id="adminSettingsStorageOriginalCacheRoot" type="text" maxlength="500">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>アップロード可能ファイル数</span>
-                    <input id="adminSettingsStorageMaxUploadFiles" type="number" min="1" max="1000">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>最大アップロードサイズ (MB)</span>
-                    <input id="adminSettingsStorageMaxUploadSizeMb" type="number" min="1" max="10240">
-                  </label>
-                </div>
               </form>
 
               <form id="adminSettingsFormIntegrity" class="admin-settings-form admin-integrity-form" data-settings-form="integrity" hidden novalidate>
