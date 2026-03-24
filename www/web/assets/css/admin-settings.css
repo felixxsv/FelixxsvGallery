@@ -1489,3 +1489,295 @@ body.is-modal-open {
     justify-self: start;
   }
 }
+
+
+/* final storage settings split-scroll corrections */
+#adminSettingsFormStorage {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.82fr) minmax(420px, 1.18fr);
+  grid-template-areas: "fields overview";
+  gap: 16px;
+  align-items: stretch;
+  min-height: min(740px, calc(100dvh - var(--admin-header-height) - 240px));
+  height: min(740px, calc(100dvh - var(--admin-header-height) - 240px));
+}
+
+#adminSettingsFormStorage .admin-settings-grid {
+  grid-area: fields;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 14px;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+#adminSettingsFormStorage .admin-settings-grid::-webkit-scrollbar,
+.admin-storage-overview::-webkit-scrollbar {
+  width: 10px;
+}
+
+#adminSettingsFormStorage .admin-settings-grid::-webkit-scrollbar-thumb,
+.admin-storage-overview::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
+
+#adminSettingsFormStorage .admin-settings-grid > .admin-settings-field {
+  align-content: start;
+}
+
+.admin-storage-overview {
+  grid-area: overview;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 14px;
+  gap: 12px;
+}
+
+.admin-storage-overview__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 10px;
+  background: linear-gradient(180deg, rgba(9, 15, 31, 0.98), rgba(9, 15, 31, 0.88));
+  backdrop-filter: blur(6px);
+}
+
+.admin-storage-overview__heading {
+  min-width: 0;
+}
+
+.admin-storage-overview__title {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.admin-storage-overview__meta {
+  font-size: 0.76rem;
+  line-height: 1.28;
+}
+
+.admin-storage-overview__actions {
+  gap: 6px 8px;
+}
+
+.admin-storage-overview__timestamp {
+  font-size: 0.74rem;
+}
+
+.admin-storage-refresh-interval {
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+}
+
+.admin-storage-refresh-interval .app-select {
+  min-width: 88px;
+}
+
+.admin-storage-overview__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.admin-storage-summary-card {
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+}
+
+.admin-storage-summary-card__chart {
+  align-self: start;
+}
+
+.admin-storage-ring {
+  width: 82px;
+}
+
+.admin-storage-ring__value {
+  font-size: 0.84rem;
+}
+
+.admin-storage-summary-card__body {
+  gap: 6px;
+}
+
+.admin-storage-summary-card__title {
+  font-size: 0.96rem;
+  line-height: 1.24;
+}
+
+.admin-storage-summary-card__path {
+  font-size: 0.76rem;
+  line-height: 1.28;
+}
+
+.admin-storage-summary-card__metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-storage-summary-card__metric,
+.admin-storage-card__metric {
+  padding: 8px 10px;
+}
+
+.admin-storage-summary-card__metric span,
+.admin-storage-card__metric span,
+.admin-storage-progress__head span,
+.admin-storage-progress__meta span {
+  font-size: 0.7rem;
+  line-height: 1.18;
+}
+
+.admin-storage-summary-card__metric strong,
+.admin-storage-card__metric strong,
+.admin-storage-progress__head strong {
+  font-size: 0.8rem;
+  line-height: 1.22;
+}
+
+#adminStorageUsageCards.admin-storage-card-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+.admin-storage-card {
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.admin-storage-card__header,
+.admin-storage-card__heading,
+.admin-storage-card__stats,
+.admin-storage-card__progress-list {
+  gap: 6px;
+}
+
+.admin-storage-card__heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.admin-storage-card__title {
+  font-size: 0.9rem;
+  line-height: 1.24;
+}
+
+.admin-storage-card__status {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 0.7rem;
+}
+
+.admin-storage-card__path,
+.admin-storage-card__note,
+.admin-storage-progress__meta {
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.admin-storage-card__stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-storage-progress__head,
+.admin-storage-progress__meta {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.admin-storage-progress__track {
+  height: 8px;
+}
+
+@media (max-width: 1480px) {
+  #adminSettingsFormStorage {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "fields"
+      "overview";
+    min-height: auto;
+    height: auto;
+  }
+
+  #adminSettingsFormStorage .admin-settings-grid,
+  .admin-storage-overview {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .admin-storage-overview__head {
+    position: static;
+    background: transparent;
+    backdrop-filter: none;
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 980px) {
+  .admin-storage-overview__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-storage-overview__actions {
+    justify-content: flex-start;
+  }
+
+  .admin-storage-summary-card {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-storage-summary-card__chart {
+    justify-self: center;
+  }
+
+  .admin-storage-summary-card__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .admin-storage-summary-card__metrics,
+  .admin-storage-card__stats,
+  #adminSettingsFormStorage .admin-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-storage-overview__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-storage-refresh-interval,
+  .admin-storage-refresh-interval .app-select {
+    width: 100%;
+  }
+
+  .admin-storage-card__heading,
+  .admin-storage-progress__head,
+  .admin-storage-progress__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-storage-card__status {
+    justify-self: start;
+  }
+}
