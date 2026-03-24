@@ -165,6 +165,18 @@ function renderActiveUsers(items) {
     container.appendChild(empty);
     return;
   }
+
+  const head = document.createElement("div");
+  head.className = "admin-list-table-head admin-list-table-head--users";
+  head.innerHTML = `
+    <span>アイコン</span>
+    <span>表示名</span>
+    <span>ユーザーID</span>
+    <span>状態</span>
+    <span>セッション時間</span>
+  `;
+  container.appendChild(head);
+
   for (const item of items) {
     const row = document.createElement("article");
     row.className = "admin-active-user";
@@ -173,14 +185,10 @@ function renderActiveUsers(items) {
       : `${(item.display_name || "?").slice(0, 1)}`;
     row.innerHTML = `
       <div class="admin-active-user__avatar">${avatar}</div>
-      <div class="admin-active-user__meta">
-        <strong>${item.display_name || "-"}</strong>
-        <div>@${item.user_key || "-"}</div>
-      </div>
-      <div class="admin-active-user__elapsed">
-        <div>セッション時間</div>
-        <strong>${formatElapsed(item.session_elapsed_sec)}</strong>
-      </div>
+      <div class="admin-active-user__display">${item.display_name || "-"}</div>
+      <div class="admin-active-user__id">@${item.user_key || "-"}</div>
+      <div class="admin-active-user__status"><span class="admin-status-badge admin-status-badge--online">オンライン</span></div>
+      <div class="admin-active-user__elapsed">${formatElapsed(item.session_elapsed_sec)}</div>
     `;
     container.appendChild(row);
   }
@@ -197,6 +205,18 @@ function renderAuditLogs(items) {
     container.appendChild(empty);
     return;
   }
+
+  const head = document.createElement("div");
+  head.className = "admin-list-table-head admin-list-table-head--logs";
+  head.innerHTML = `
+    <span>日時</span>
+    <span>操作種別</span>
+    <span>概要</span>
+    <span>結果</span>
+    <span>実行者</span>
+  `;
+  container.appendChild(head);
+
   for (const item of items) {
     const row = document.createElement("article");
     row.className = "admin-log-item";
@@ -205,12 +225,10 @@ function renderAuditLogs(items) {
       row.dataset.result = normalizedResult;
     }
     row.innerHTML = `
-      <div class="admin-log-item__meta">
-        <span>${item.action_type || "-"}</span>
-        <span>${formatDateTime(item.created_at)}</span>
-        <span class="admin-log-item__badge">${item.result || "-"}</span>
-      </div>
+      <div class="admin-log-item__created">${formatDateTime(item.created_at)}</div>
+      <div class="admin-log-item__action">${item.action_type || "-"}</div>
       <div class="admin-log-item__summary">${item.summary || "-"}</div>
+      <div class="admin-log-item__result"><span class="admin-log-item__badge">${item.result || "-"}</span></div>
       <div class="admin-log-item__actor">${item.actor?.display_name || "system"}</div>
     `;
     container.appendChild(row);
