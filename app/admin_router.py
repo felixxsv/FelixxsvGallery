@@ -356,7 +356,7 @@ WHERE s.expires_at > %s
   AND u.status='active'
 GROUP BY {", ".join(group_parts)}
 ORDER BY MAX(s.last_seen_at) DESC
-LIMIT 8
+LIMIT 200
 """
     with conn.cursor() as cur:
         cur.execute(sql, (now_dt, now_dt))
