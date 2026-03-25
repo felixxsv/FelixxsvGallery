@@ -644,7 +644,7 @@
 }
 
 .admin-analog-clock {
-  width: min(194px, 66%);
+  width: min(194px, 60%);
   max-width: 194px;
 }
 
