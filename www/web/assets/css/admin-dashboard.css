@@ -2527,3 +2527,47 @@
     text-align: left;
   }
 }
+
+/* ===== 2026-03-25 dashboard fine tuning ===== */
+@media (min-width: 1601px) {
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 0.96fr) minmax(0, 1.04fr) minmax(0, 1fr);
+  }
+
+  .admin-dashboard-card--stats { grid-column: 1 / span 5; grid-row: 1; }
+  .admin-dashboard-card--latest { grid-column: 6 / span 4; grid-row: 1; }
+  .admin-dashboard-card--clock { grid-column: 10 / span 3; grid-row: 1; }
+  .admin-dashboard-card--logs { grid-column: 1 / span 6; grid-row: 2; }
+  .admin-dashboard-card--storage { grid-column: 7 / span 6; grid-row: 2; }
+  .admin-dashboard-card--users { grid-column: 1 / span 6; grid-row: 3; }
+  .admin-dashboard-card--integrity { grid-column: 7 / span 6; grid-row: 3; }
+
+  .admin-dashboard-card--clock .admin-dashboard-card__header {
+    gap: 6px 10px;
+  }
+
+  .admin-dashboard-clock__time {
+    font-size: clamp(1.9rem, 2.4vw, 2.9rem);
+    letter-spacing: 0.05em;
+  }
+
+  .admin-dashboard-clock__date {
+    font-size: 0.84rem;
+  }
+
+  .admin-analog-clock {
+    width: min(160px, 62%);
+  }
+
+  .admin-dashboard-card--stats .admin-stat--wide .admin-stat__value-wrap {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .admin-dashboard-card--stats .admin-stat--wide .admin-stat__value,
+  .admin-dashboard-card--stats .admin-stat--wide .admin-stat__subvalue,
+  .admin-dashboard-card--stats .admin-stat--wide .admin-stat__divider {
+    white-space: nowrap;
+  }
+}
