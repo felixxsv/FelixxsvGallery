@@ -433,7 +433,7 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
-.admin-active-user__avatar {
+ .admin-active-user__avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -2188,7 +2188,7 @@
 }
 
 .admin-list-table-head--users {
-  grid-template-columns: 36px minmax(0, 1.1fr) minmax(0, 1fr) 92px 112px;
+  grid-template-columns: 44px minmax(0, 1.1fr) minmax(0, 1fr) 92px 112px;
 }
 
 .admin-list-table-head--logs {
@@ -2202,7 +2202,7 @@
 
 .admin-active-user {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1.1fr) minmax(0, 1fr) 92px 112px;
+  grid-template-columns: 44px minmax(0, 1.1fr) minmax(0, 1fr) 92px 112px;
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
