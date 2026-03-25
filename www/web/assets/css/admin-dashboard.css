@@ -2858,3 +2858,86 @@
     height: 148px;
   }
 }
+
+.admin-dashboard-grid {
+  grid-template-columns: minmax(0, 1.16fr) minmax(0, 1.16fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.84fr) minmax(0, 0.84fr);
+}
+
+.admin-list-table-head--users,
+.admin-active-user {
+  grid-template-columns: 56px minmax(0, 1.08fr) minmax(0, 1fr) 92px 112px;
+}
+
+.admin-list-table-head--users > :first-child {
+  white-space: nowrap;
+}
+
+.admin-dashboard-card--stats .admin-stat--wide {
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px;
+}
+
+.admin-dashboard-card--stats .admin-stat--wide .admin-stat__value-wrap {
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.admin-dashboard-card--stats .admin-stat--wide .admin-stat__value,
+.admin-dashboard-card--stats .admin-stat--wide .admin-stat__subvalue {
+  font-size: 0.96rem;
+}
+
+#adminDashboardClockAnalog.admin-dashboard-clock {
+  place-items: start center;
+  overflow: hidden;
+  padding-top: 2px;
+}
+
+.admin-dashboard-card--clock .admin-analog-clock {
+  width: min(152px, 56%);
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__summary {
+  grid-template-columns: 80px minmax(0, 1fr);
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__body {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 8px;
+  align-content: stretch;
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__eyebrow {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__path {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__path::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__metrics {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: end;
+}
