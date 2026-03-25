@@ -3228,7 +3228,7 @@
 }
 
 .admin-dashboard-card--clock .admin-analog-clock {
-  width: min(116px, 44%);
-  max-width: 116px;
-  transform: translateY(-6px);
+  width: min(114px, 43%);
+  max-width: 114px;
+  transform: translateY(-1px);
 }
