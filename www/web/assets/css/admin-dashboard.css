@@ -3218,3 +3218,17 @@
 .admin-dashboard-storage__usage-fill {
   min-width: 2px;
 }
+
+/* ===== 2026-03-26 final tiny clock fit ===== */
+#adminDashboardClockAnalog.admin-dashboard-clock {
+  place-items: center;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.admin-dashboard-card--clock .admin-analog-clock {
+  width: min(116px, 44%);
+  max-width: 116px;
+  transform: translateY(-6px);
+}
