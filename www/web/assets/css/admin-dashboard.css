@@ -2941,3 +2941,229 @@
   grid-row: 2;
   align-self: end;
 }
+
+
+/* ===== 2026-03-26 dashboard row-balance + storage/integrity refinement ===== */
+.admin-dashboard-grid {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.admin-dashboard-card--stats { grid-column: 1 / span 3; grid-row: 1; }
+.admin-dashboard-card--latest { grid-column: 4 / span 3; grid-row: 1; }
+.admin-dashboard-card--clock { grid-column: 7 / span 2; grid-row: 1; }
+.admin-dashboard-card--logs { grid-column: 1 / span 4; grid-row: 2; }
+.admin-dashboard-card--storage { grid-column: 5 / span 4; grid-row: 2; }
+.admin-dashboard-card--users { grid-column: 1 / span 4; grid-row: 3; }
+.admin-dashboard-card--integrity { grid-column: 5 / span 4; grid-row: 3; }
+
+.admin-list-table-head--users,
+.admin-active-user {
+  grid-template-columns: 72px minmax(0, 1.08fr) minmax(0, 1fr) 92px 112px;
+}
+
+.admin-list-table-head--users > :first-child {
+  min-width: 72px;
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+}
+
+.admin-dashboard-card--clock .admin-dashboard-card__header {
+  align-items: flex-start;
+}
+
+#adminDashboardClockAnalog.admin-dashboard-clock {
+  place-items: center;
+  overflow: hidden;
+  padding-top: 0;
+}
+
+.admin-dashboard-card--clock .admin-analog-clock {
+  width: min(126px, 48%);
+  max-width: 126px;
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__summary {
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: center;
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__body {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__eyebrow {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  white-space: nowrap;
+  padding-top: 4px;
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__path {
+  --usage-ratio: 0;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  row-gap: 7px;
+  align-content: start;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.admin-dashboard-storage__path-text {
+  min-width: 0;
+  color: rgba(226, 232, 240, 0.78);
+  overflow-wrap: anywhere;
+}
+
+.admin-dashboard-storage__usage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-dashboard-storage__usage-label {
+  color: rgba(226, 232, 240, 0.64);
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.admin-dashboard-storage__usage-value {
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-dashboard-storage__usage-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.12) 0,
+      rgba(255, 255, 255, 0.12) calc(10% - 1px),
+      rgba(255, 255, 255, 0.05) calc(10% - 1px),
+      rgba(255, 255, 255, 0.05) 10%
+    ),
+    rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.admin-dashboard-storage__usage-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--usage-ratio, 0) * 100%);
+  max-width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(96, 165, 250, 0.92), rgba(59, 130, 246, 0.98));
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.26);
+}
+
+.admin-dashboard-card--storage .admin-dashboard-storage__metrics {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.admin-dashboard-card--integrity .admin-dashboard-stats--integrity {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-areas:
+    "status run"
+    "pending success";
+  gap: 8px;
+}
+
+.admin-dashboard-card--integrity .admin-dashboard-stats--integrity > section:nth-child(1) { grid-area: status; }
+.admin-dashboard-card--integrity .admin-dashboard-stats--integrity > section:nth-child(2) { grid-area: run; }
+.admin-dashboard-card--integrity .admin-dashboard-stats--integrity > section:nth-child(3) { grid-area: success; }
+.admin-dashboard-card--integrity .admin-dashboard-stats--integrity > section:nth-child(4) { grid-area: pending; }
+
+.admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item {
+  display: grid;
+  grid-template-columns: 132px 118px minmax(0, 1fr) 74px 64px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+}
+
+.admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__created,
+.admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__action,
+.admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__actor {
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__summary {
+  margin-top: 0;
+  font-size: 0.78rem;
+  line-height: 1.28;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__result {
+  display: flex;
+  justify-content: center;
+}
+
+.admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__actor {
+  text-align: right;
+  color: rgba(226, 232, 240, 0.6);
+  white-space: nowrap;
+}
+
+@media (max-width: 1120px) {
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard-card--stats,
+  .admin-dashboard-card--latest,
+  .admin-dashboard-card--clock,
+  .admin-dashboard-card--logs,
+  .admin-dashboard-card--storage,
+  .admin-dashboard-card--users,
+  .admin-dashboard-card--integrity {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__actor,
+  .admin-dashboard-card--integrity #adminDashboardIntegrityIssues .admin-log-item__result {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .admin-dashboard-card--storage .admin-dashboard-storage__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .admin-dashboard-card--storage .admin-dashboard-storage__eyebrow,
+  .admin-dashboard-card--storage .admin-dashboard-storage__path,
+  .admin-dashboard-card--storage .admin-dashboard-storage__metrics {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}

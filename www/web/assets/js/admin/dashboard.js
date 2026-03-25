@@ -96,6 +96,27 @@ function setDashboardStorageRingUsage(element, ratio) {
   element.style.setProperty("--usage-ratio", String(clampRatio(ratio)));
 }
 
+function renderDashboardStoragePath(element, pathText, percentText, ratio) {
+  if (!element) return;
+  const normalizedPercent = percentText || "-%";
+  const normalizedPath = pathText || "未設定";
+  element.style.setProperty("--usage-ratio", String(clampRatio(ratio)));
+  element.innerHTML = `
+    <div class="admin-dashboard-storage__path-text"></div>
+    <div class="admin-dashboard-storage__usage-row">
+      <span class="admin-dashboard-storage__usage-label">使用率</span>
+      <span class="admin-dashboard-storage__usage-value">${normalizedPercent}</span>
+    </div>
+    <div class="admin-dashboard-storage__usage-bar" aria-hidden="true">
+      <span class="admin-dashboard-storage__usage-fill"></span>
+    </div>
+  `;
+  const textEl = element.querySelector(".admin-dashboard-storage__path-text");
+  if (textEl) {
+    textEl.textContent = normalizedPath;
+  }
+}
+
 function updateDigitalClock() {
   const el = byId("adminDashboardClockDigital");
   if (!el || el.hidden) return;
@@ -273,7 +294,7 @@ function renderDashboardStorageUsage() {
   if (!storageUsageState.loaded || !storageUsageState.data) {
     if (generatedAtEl) generatedAtEl.textContent = "-";
     if (labelEl) labelEl.textContent = "storage_root";
-    if (pathEl) pathEl.textContent = "使用状況を取得するとここに表示します。";
+    renderDashboardStoragePath(pathEl, "使用状況を取得するとここに表示します。", "-%", 0);
     if (directorySizeEl) directorySizeEl.textContent = "-";
     if (filesystemUsageEl) filesystemUsageEl.textContent = "-";
     if (filesystemFreeEl) filesystemFreeEl.textContent = "-";
@@ -288,11 +309,12 @@ function renderDashboardStorageUsage() {
   if (generatedAtEl) generatedAtEl.textContent = formatDateTime(data.generated_at);
   if (!primary) return;
   if (labelEl) labelEl.textContent = primary.label || primary.key || "storage_root";
-  if (pathEl) pathEl.textContent = primary.path || "未設定";
+  const usagePercentText = formatPercent(primary.filesystem_usage_percent);
+  renderDashboardStoragePath(pathEl, primary.path || "未設定", usagePercentText, primary.filesystem_usage_ratio);
   if (directorySizeEl) directorySizeEl.textContent = formatStorage(primary.directory_size_bytes);
   if (filesystemUsageEl) filesystemUsageEl.textContent = `${formatStorage(primary.filesystem_used_bytes)} / ${formatStorage(primary.filesystem_total_bytes)}`;
   if (filesystemFreeEl) filesystemFreeEl.textContent = formatStorage(primary.filesystem_free_bytes);
-  if (percentEl) percentEl.textContent = formatPercent(primary.filesystem_usage_percent);
+  if (percentEl) percentEl.textContent = usagePercentText;
   setDashboardStorageRingUsage(ringEl, primary.filesystem_usage_ratio);
 }
 
@@ -406,12 +428,10 @@ function renderIntegritySummary(summary) {
     if (item.image_id) detail.push(`image:${item.image_id}`);
     if (item.derivative_kind) detail.push(item.derivative_kind);
     row.innerHTML = `
-      <div class="admin-log-item__meta">
-        <span>${item.issue_code || "-"}</span>
-        <span>${formatDateTime(item.created_at)}</span>
-        <span class="admin-log-item__badge">${severity}</span>
-      </div>
+      <div class="admin-log-item__created">${formatDateTime(item.created_at)}</div>
+      <div class="admin-log-item__action">${item.issue_code || "-"}</div>
       <div class="admin-log-item__summary">${detail.join(" / ") || "詳細情報なし"}</div>
+      <div class="admin-log-item__result"><span class="admin-log-item__badge">${severity}</span></div>
       <div class="admin-log-item__actor">${item.gallery || "integrity"}</div>
     `;
     container.appendChild(row);
