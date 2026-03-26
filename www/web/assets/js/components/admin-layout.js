@@ -161,7 +161,7 @@ function createAdminContext() {
   const liveWatchers = new Set();
   const live = {
     allowedIntervals: DEFAULT_LIVE_ALLOWED_INTERVALS.slice(),
-    normalizeInterval,
+    normalizeInterval: normalizeRefreshInterval,
     getStoredInterval: (storageKey, allowedIntervals, defaultIntervalMs) =>
       getStoredRefreshInterval(storageKey, allowedIntervals, defaultIntervalMs),
     setStoredInterval: (storageKey, value, allowedIntervals, defaultIntervalMs) =>
