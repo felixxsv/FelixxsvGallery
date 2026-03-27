@@ -70,6 +70,17 @@ const state = {
   createDirty: false,
   pendingConfirm: null,
   filterTimer: null,
+  loading: false,
+  live: {
+    revision: null,
+    timerId: null,
+    inFlight: false,
+    intervalMs: 10000,
+    started: false,
+    pendingRefresh: false,
+  },
+  editModalOpen: false,
+  createModalOpen: false,
 };
 
 function qs() {
@@ -125,6 +136,7 @@ function resetCreateForm() {
 }
 
 function closeEditModal() {
+  state.editModalOpen = false;
   window.AdminApp?.modal?.close?.("admin-users-edit");
   state.editOriginal = null;
   state.editDirty = false;
@@ -132,6 +144,7 @@ function closeEditModal() {
 }
 
 function closeCreateModal() {
+  state.createModalOpen = false;
   window.AdminApp?.modal?.close?.("admin-users-create");
   resetCreateForm();
 }
@@ -152,6 +165,85 @@ function closeActionConfirm(result) {
   state.pendingConfirm = null;
   window.AdminApp?.modal?.close?.("admin-users-action-confirm");
   if (typeof resolver === "function") resolver(Boolean(result));
+}
+
+
+function setUsersRevision(value) {
+  state.live.revision = value ? String(value) : null;
+}
+
+function clearLiveTimer() {
+  if (state.live.timerId) {
+    window.clearTimeout(state.live.timerId);
+    state.live.timerId = null;
+  }
+}
+
+function isUsersRefreshSuspended() {
+  return state.loading || state.editModalOpen || state.createModalOpen || state.editDirty || state.createDirty;
+}
+
+function scheduleLiveCheck(delayMs = state.live.intervalMs) {
+  clearLiveTimer();
+  if (!state.live.started || document.visibilityState !== "visible") return;
+  state.live.timerId = window.setTimeout(() => {
+    void checkUsersRevision();
+  }, Math.max(3000, Number(delayMs) || state.live.intervalMs));
+}
+
+async function checkUsersRevision() {
+  if (!state.live.started || state.live.inFlight) {
+    scheduleLiveCheck();
+    return;
+  }
+  if (document.visibilityState !== "visible") {
+    clearLiveTimer();
+    return;
+  }
+  state.live.inFlight = true;
+  try {
+    const payload = await window.AdminApp.api.get("/api/admin/users/revision");
+    const revision = payload.data?.revision ? String(payload.data.revision) : null;
+    if (revision && !state.live.revision) {
+      setUsersRevision(revision);
+    } else if (revision && state.live.revision && revision !== state.live.revision) {
+      if (isUsersRefreshSuspended()) {
+        state.live.pendingRefresh = true;
+        setUsersRevision(revision);
+      } else {
+        await loadUsers({ silent: true, reason: "live-revision" });
+      }
+    }
+  } catch (error) {
+  } finally {
+    state.live.inFlight = false;
+    scheduleLiveCheck();
+  }
+}
+
+async function flushPendingUsersRefresh() {
+  if (!state.live.pendingRefresh) return;
+  if (isUsersRefreshSuspended()) return;
+  state.live.pendingRefresh = false;
+  await loadUsers({ silent: true, reason: "pending-refresh" });
+}
+
+function bindUsersLiveWatcher() {
+  if (state.live.started) return;
+  state.live.started = true;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void checkUsersRevision();
+      return;
+    }
+    clearLiveTimer();
+  });
+  window.addEventListener("focus", () => {
+    if (document.visibilityState === "visible") {
+      void checkUsersRevision();
+    }
+  });
+  void checkUsersRevision();
 }
 
 function renderTable() {
@@ -208,10 +300,12 @@ function renderTable() {
   if (next) next.disabled = state.page >= state.pages;
 }
 
-async function loadUsers() {
+async function loadUsers(options = {}) {
   const app = window.AdminApp;
   const tbody = byId("adminUsersTableBody");
-  if (tbody) {
+  const silent = Boolean(options?.silent);
+  state.loading = true;
+  if (!silent && tbody) {
     tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">読み込み中です。</td></tr>`;
   }
   try {
@@ -220,6 +314,7 @@ async function loadUsers() {
     state.pages = Number(payload.data?.pages || 1);
     state.page = Number(payload.data?.page || state.page);
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
+    setUsersRevision(payload.data?.revision);
     renderTable();
   } catch (error) {
     const message = error?.message || "ユーザー一覧の取得に失敗しました。";
@@ -232,6 +327,8 @@ async function loadUsers() {
     if (tbody) {
       tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
     }
+  } finally {
+    state.loading = false;
   }
 }
 
@@ -259,6 +356,7 @@ async function openEditModal(userId) {
     byId("adminUsersEditTwoFactor").textContent = user.two_factor?.is_enabled ? `${user.two_factor?.method || "email"} / ON` : "OFF";
     state.editDirty = false;
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
+    state.editModalOpen = true;
     window.AdminApp.modal.open("admin-users-edit");
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ユーザー詳細の取得に失敗しました。");
@@ -414,6 +512,7 @@ function bindFilters() {
 function bindModals() {
   byId("adminUsersCreateButton")?.addEventListener("click", () => {
     resetCreateForm();
+    state.createModalOpen = true;
     window.AdminApp.modal.open("admin-users-create");
   });
 
@@ -421,6 +520,7 @@ function bindModals() {
     const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded("未保存の入力があります。閉じますか？");
     if (!ok) return;
     closeCreateModal();
+    await flushPendingUsersRefresh();
   });
 
   byId("adminUsersCreateSubmitButton")?.addEventListener("click", createTempUser);
@@ -428,6 +528,7 @@ function bindModals() {
     const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded("未保存の変更があります。閉じますか？");
     if (!ok) return;
     closeEditModal();
+    await flushPendingUsersRefresh();
   });
   byId("adminUsersEditSaveButton")?.addEventListener("click", saveEdit);
   byId("adminUsersDeleteButton")?.addEventListener("click", deleteCurrentUser);
@@ -462,6 +563,7 @@ async function initPage() {
   bindTableEvents();
   bindModals();
   await loadUsers();
+  bindUsersLiveWatcher();
 }
 
 document.addEventListener("admin:ready", () => {

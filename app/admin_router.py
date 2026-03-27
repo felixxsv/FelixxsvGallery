@@ -867,6 +867,97 @@ GROUP BY user_id
     return defaults
 
 
+
+def _summarize_table_revision(conn, table_name: str | None, timestamp_candidates: list[str] | None = None, extra_candidates: list[str] | None = None) -> dict:
+    if not table_name:
+        return {"table": None, "count": 0, "max_timestamp": None, "max_extra": None}
+
+    cols = _table_columns(conn, table_name)
+    timestamp_col = None
+    for candidate in (timestamp_candidates or ["updated_at", "created_at"]):
+        if candidate in cols:
+            timestamp_col = candidate
+            break
+    extra_col = None
+    for candidate in (extra_candidates or ["id"]):
+        if candidate in cols:
+            extra_col = candidate
+            break
+
+    select_parts = ["COUNT(*) AS row_count"]
+    select_parts.append(f"MAX({timestamp_col}) AS max_timestamp" if timestamp_col else "NULL AS max_timestamp")
+    select_parts.append(f"MAX({extra_col}) AS max_extra" if extra_col else "NULL AS max_extra")
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT {', '.join(select_parts)} FROM `{table_name}`")
+        row = cur.fetchone() or {}
+
+    return {
+        "table": table_name,
+        "count": int(row.get("row_count") or 0),
+        "max_timestamp": _coerce_utc_text(row.get("max_timestamp")),
+        "max_extra": str(row.get("max_extra")) if row.get("max_extra") is not None else None,
+    }
+
+
+def _build_users_live_revision(conn) -> dict:
+    now_dt = _utc_now()
+    session_table = _detect_table(conn, "sessions", "user_sessions")
+    payload = {
+        "generated_at": _coerce_utc_text(now_dt),
+        "users": _summarize_table_revision(conn, "users", ["updated_at", "created_at"], ["id"]),
+        "providers": _summarize_table_revision(conn, _detect_table(conn, "auth_identities"), ["updated_at", "created_at"], ["id", "user_id"]),
+        "two_factor": _summarize_table_revision(conn, _detect_table(conn, "two_factor_settings"), ["updated_at", "enabled_at", "created_at"], ["id", "user_id"]),
+        "sessions": {
+            "table": session_table,
+            "count": 0,
+            "rows": [],
+        },
+    }
+    if session_table is not None:
+        cols = _table_columns(conn, session_table)
+        revoked_where = "AND revoked_at IS NULL" if "revoked_at" in cols else ""
+        presence_conf = get_presence_runtime_conf()
+        online_cutoff = now_dt - timedelta(seconds=int(presence_conf.get("online_threshold_sec") or 90))
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+SELECT user_id, COUNT(*) AS active_session_count, MAX(last_seen_at) AS last_seen_at
+FROM `{session_table}`
+WHERE expires_at > %s
+  {revoked_where}
+GROUP BY user_id
+ORDER BY user_id ASC
+""",
+                (now_dt,),
+            )
+            rows = cur.fetchall()
+        session_rows = []
+        for row in rows:
+            last_seen_dt = _coerce_utc_datetime(row.get("last_seen_at"))
+            is_logged_in = int(row.get("active_session_count") or 0) > 0
+            is_screen_open = bool(last_seen_dt is not None and last_seen_dt >= online_cutoff)
+            session_rows.append(
+                {
+                    "user_id": int(row.get("user_id") or 0),
+                    "active_session_count": int(row.get("active_session_count") or 0),
+                    "last_seen_at": _coerce_utc_text(row.get("last_seen_at")),
+                    "login_status": "logged_in" if is_logged_in else "logged_out",
+                    "screen_status": "open" if is_screen_open else "closed",
+                }
+            )
+        payload["sessions"] = {
+            "table": session_table,
+            "count": len(session_rows),
+            "rows": session_rows,
+        }
+
+    revision = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    return {
+        "revision": revision,
+        "checked_at": payload["generated_at"],
+        "online_threshold_sec": int(get_presence_runtime_conf().get("online_threshold_sec") or 90),
+    }
+
 def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict], session_state_map: dict[int, dict]) -> dict:
     row = _normalize_user_row_runtime(row)
     user_id = int(row.get("id"))
@@ -1014,12 +1105,15 @@ LIMIT %s OFFSET %s
 
     items = [_serialize_user_list_item(row, providers_map, two_factor_map, session_state_map) for row in rows]
     pages = (total + per_page - 1) // per_page if total > 0 else 1
+    live_revision = _build_users_live_revision(conn)
     return {
         "page": page,
         "per_page": per_page,
         "pages": pages,
         "total": total,
         "items": items,
+        "revision": live_revision.get("revision"),
+        "revision_checked_at": live_revision.get("checked_at"),
     }
 
 def _load_user_detail(conn, user_id: int) -> dict | None:
@@ -1309,6 +1403,27 @@ def admin_users_list(
         return _json_success(request_id=request_id, data=data, message="ユーザー一覧を取得しました。")
     except Exception:
         return _json_error(500, request_id, "server_error", "ユーザー一覧の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.get("/users/revision")
+def admin_users_revision(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        data = _build_users_live_revision(conn)
+        return _json_success(request_id=request_id, data=data, message="ユーザー一覧の更新状態を取得しました。")
+    except Exception:
+        return _json_error(500, request_id, "server_error", "ユーザー一覧の更新状態の取得に失敗しました。")
     finally:
         if conn is not None:
             conn.close()
