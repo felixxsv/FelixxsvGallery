@@ -320,7 +320,12 @@ def _build_preview_url(path_value: str | None) -> str | None:
 
 
 def _presence_online_cutoff(now=None) -> datetime:
-    return _utc_now(now) - timedelta(seconds=90)
+    base = now if isinstance(now, datetime) else _utc_now()
+    if base.tzinfo is None:
+        base = base.replace(tzinfo=timezone.utc)
+    else:
+        base = base.astimezone(timezone.utc)
+    return base - timedelta(seconds=90)
 
 
 def _load_active_users(conn) -> list[dict]:

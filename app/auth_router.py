@@ -331,14 +331,14 @@ async def logout_all(
 
 @router.post("/presence")
 async def presence(
-    payload: PresenceRequest,
+    payload: PresenceRequest | None = None,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
     try:
         result = update_current_session_presence(
             session_token=gallery_session,
-            visible=bool(payload.visible),
+            visible=bool(payload.visible) if payload is not None else True,
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:
