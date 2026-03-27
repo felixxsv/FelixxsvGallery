@@ -328,6 +328,16 @@ def _presence_online_cutoff(now=None) -> datetime:
     return base - timedelta(seconds=90)
 
 
+def _sanitize_session_timestamp_sql(expr: str, grace_minutes: int = 5) -> str:
+    grace = max(0, int(grace_minutes))
+    return (
+        f"CASE "
+        f"WHEN {expr} IS NULL THEN NULL "
+        f"WHEN {expr} > DATE_ADD(UTC_TIMESTAMP(6), INTERVAL {grace} MINUTE) THEN NULL "
+        f"ELSE {expr} END"
+    )
+
+
 def _load_active_users(conn) -> list[dict]:
     session_table = _detect_table(conn, "sessions", "user_sessions")
     if session_table is None:
@@ -342,8 +352,12 @@ def _load_active_users(conn) -> list[dict]:
     has_access = "last_access_at" in session_cols
     has_presence = "last_presence_at" in session_cols
 
-    access_expr = "COALESCE(s.last_access_at, s.last_seen_at, s.created_at)" if has_access else "COALESCE(s.last_seen_at, s.created_at)"
-    presence_expr = "s.last_presence_at" if has_presence else "s.last_seen_at"
+    access_expr = _sanitize_session_timestamp_sql(
+        "COALESCE(s.last_access_at, s.last_seen_at, s.created_at)" if has_access else "COALESCE(s.last_seen_at, s.created_at)"
+    )
+    presence_expr = _sanitize_session_timestamp_sql(
+        "s.last_presence_at" if has_presence else "s.last_seen_at"
+    )
     active_condition = "s.expires_at > %s"
     if has_revoked:
         active_condition += " AND s.revoked_at IS NULL"
@@ -839,8 +853,13 @@ def _load_user_session_state_map(conn, user_ids: list[int]) -> dict[int, dict]:
     has_revoked = "revoked_at" in cols
     has_access = "last_access_at" in cols
     has_presence = "last_presence_at" in cols
-    access_expr = "COALESCE(last_access_at, last_seen_at, created_at)" if has_access else "COALESCE(last_seen_at, created_at)"
-    presence_expr = "last_presence_at" if has_presence else "last_seen_at"
+    access_expr = _sanitize_session_timestamp_sql(
+        "COALESCE(last_access_at, last_seen_at, created_at)" if has_access else "COALESCE(last_seen_at, created_at)"
+    )
+    presence_expr = _sanitize_session_timestamp_sql(
+        "last_presence_at" if has_presence else "last_seen_at"
+    )
+    last_seen_expr = _sanitize_session_timestamp_sql("last_seen_at")
     active_condition = "expires_at > %s"
     if has_revoked:
         active_condition += " AND revoked_at IS NULL"
@@ -856,7 +875,7 @@ SELECT
     MAX(CASE WHEN {active_condition} THEN 1 ELSE 0 END) AS is_logged_in,
     MAX(CASE WHEN {active_condition} AND {presence_expr} IS NOT NULL AND {presence_expr} >= %s THEN 1 ELSE 0 END) AS is_screen_open,
     MAX({access_expr}) AS last_access_at,
-    MAX(last_seen_at) AS last_seen_at,
+    MAX({last_seen_expr}) AS last_seen_at,
     MAX({presence_expr}) AS last_presence_at
 FROM `{session_table}`
 WHERE user_id IN ({placeholders})
@@ -966,8 +985,13 @@ def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | 
         has_revoked = "revoked_at" in session_cols
         has_access = "last_access_at" in session_cols
         has_presence = "last_presence_at" in session_cols
-        access_expr = "COALESCE(s.last_access_at, s.last_seen_at, s.created_at)" if has_access else "COALESCE(s.last_seen_at, s.created_at)"
-        presence_expr = "s.last_presence_at" if has_presence else "s.last_seen_at"
+        access_expr = _sanitize_session_timestamp_sql(
+            "COALESCE(s.last_access_at, s.last_seen_at, s.created_at)" if has_access else "COALESCE(s.last_seen_at, s.created_at)"
+        )
+        presence_expr = _sanitize_session_timestamp_sql(
+            "s.last_presence_at" if has_presence else "s.last_seen_at"
+        )
+        last_seen_expr = _sanitize_session_timestamp_sql("s.last_seen_at")
         active_condition = "s.expires_at > %s"
         if has_revoked:
             active_condition += " AND s.revoked_at IS NULL"
@@ -978,7 +1002,7 @@ LEFT JOIN (
     SELECT
         s.user_id,
         MAX({access_expr}) AS last_access_at,
-        MAX(s.last_seen_at) AS last_seen_at,
+        MAX({last_seen_expr}) AS last_seen_at,
         MAX(CASE WHEN {active_condition} THEN 1 ELSE 0 END) AS is_logged_in,
         MAX(CASE WHEN {active_condition} AND {presence_expr} IS NOT NULL AND {presence_expr} >= %s THEN 1 ELSE 0 END) AS is_screen_open
     FROM `{session_table}` s
@@ -1112,8 +1136,13 @@ def _build_users_revision(conn) -> str:
             parts["two_factor_settings"] = cur.fetchone() or {}
     if session_table is not None:
         session_cols = _table_columns(conn, session_table)
-        access_expr = "COALESCE(last_access_at, last_seen_at, created_at)" if "last_access_at" in session_cols else "COALESCE(last_seen_at, created_at)"
-        presence_expr = "last_presence_at" if "last_presence_at" in session_cols else "last_seen_at"
+        access_expr = _sanitize_session_timestamp_sql(
+            "COALESCE(last_access_at, last_seen_at, created_at)" if "last_access_at" in session_cols else "COALESCE(last_seen_at, created_at)"
+        )
+        presence_expr = _sanitize_session_timestamp_sql(
+            "last_presence_at" if "last_presence_at" in session_cols else "last_seen_at"
+        )
+        last_seen_expr = _sanitize_session_timestamp_sql("last_seen_at")
         revoked_expr = "MAX(revoked_at) AS max_revoked_at," if "revoked_at" in session_cols else "NULL AS max_revoked_at,"
         with conn.cursor() as cur:
             cur.execute(
@@ -1121,7 +1150,7 @@ def _build_users_revision(conn) -> str:
 SELECT
     COUNT(*) AS total,
     MAX(created_at) AS max_created_at,
-    MAX(last_seen_at) AS max_last_seen_at,
+    MAX({last_seen_expr}) AS max_last_seen_at,
     MAX({access_expr}) AS max_last_access_at,
     MAX({presence_expr}) AS max_last_presence_at,
     {revoked_expr}
