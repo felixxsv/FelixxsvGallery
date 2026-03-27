@@ -818,6 +818,7 @@ def _load_user_session_state_map(conn, user_ids: list[int]) -> dict[int, dict]:
     defaults = {
         int(user_id): {
             "last_seen_at": None,
+            "last_access_at": None,
             "active_session_count": 0,
             "is_logged_in": False,
             "login_status": "logged_out",
@@ -828,6 +829,68 @@ def _load_user_session_state_map(conn, user_ids: list[int]) -> dict[int, dict]:
     }
     if session_table is None:
         return defaults
+
+    cols = _table_columns(conn, session_table)
+    revoked_where = "AND revoked_at IS NULL" if "revoked_at" in cols else ""
+    placeholders = ",".join(["%s"] * len(user_ids))
+    now_dt = _utc_now()
+    presence_conf = get_presence_runtime_conf()
+    online_cutoff = now_dt - timedelta(seconds=int(presence_conf.get("online_threshold_sec") or 90))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+SELECT user_id, COUNT(*) AS active_session_count, MAX(last_seen_at) AS last_seen_at
+FROM `{session_table}`
+WHERE user_id IN ({placeholders})
+  AND expires_at > %s
+  {revoked_where}
+GROUP BY user_id
+""",
+            [*user_ids, now_dt],
+        )
+        active_rows = cur.fetchall()
+
+        cur.execute(
+            f"""
+SELECT user_id, MAX(last_seen_at) AS last_access_at
+FROM `{session_table}`
+WHERE user_id IN ({placeholders})
+GROUP BY user_id
+""",
+            user_ids,
+        )
+        access_rows = cur.fetchall()
+
+    for row in access_rows:
+        user_id = int(row.get("user_id"))
+        state = defaults.get(user_id) or {}
+        state["last_access_at"] = _coerce_utc_text(row.get("last_access_at"))
+        defaults[user_id] = state
+
+    for row in active_rows:
+        user_id = int(row.get("user_id"))
+        last_seen_dt = None
+        if row.get("last_seen_at") is not None:
+            last_seen_dt = _coerce_utc_datetime(row.get("last_seen_at"))
+        is_logged_in = int(row.get("active_session_count") or 0) > 0
+        is_screen_open = bool(last_seen_dt is not None and last_seen_dt >= online_cutoff)
+        state = defaults.get(user_id) or {}
+        state.update(
+            {
+                "last_seen_at": _coerce_utc_text(row.get("last_seen_at")),
+                "active_session_count": int(row.get("active_session_count") or 0),
+                "is_logged_in": is_logged_in,
+                "login_status": "logged_in" if is_logged_in else "logged_out",
+                "is_screen_open": is_screen_open,
+                "screen_status": "open" if is_screen_open else "closed",
+            }
+        )
+        if not state.get("last_access_at"):
+            state["last_access_at"] = state.get("last_seen_at")
+        defaults[user_id] = state
+
+    return defaults
 
     cols = _table_columns(conn, session_table)
     revoked_where = "AND revoked_at IS NULL" if "revoked_at" in cols else ""
@@ -963,6 +1026,7 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
     user_id = int(row.get("id"))
     session_state = session_state_map.get(user_id) or {
         "last_seen_at": None,
+        "last_access_at": None,
         "active_session_count": 0,
         "is_logged_in": False,
         "login_status": "logged_out",
@@ -990,6 +1054,7 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
         "created_at": _coerce_utc_text(row.get("created_at")),
         "updated_at": _coerce_utc_text(row.get("updated_at")),
         "last_seen_at": session_state.get("last_seen_at"),
+        "last_access_at": session_state.get("last_access_at") or session_state.get("last_seen_at"),
         "active_session_count": int(session_state.get("active_session_count") or 0),
         "is_logged_in": bool(session_state.get("is_logged_in")),
         "login_status": session_state.get("login_status") or "logged_out",
@@ -1049,18 +1114,13 @@ def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | 
     last_seen_join = ""
     session_params: list = []
     if session_table is not None:
-        session_cols = _table_columns(conn, session_table)
-        revoked_where = "AND s.revoked_at IS NULL" if "revoked_at" in session_cols else ""
         last_seen_join = f"""
 LEFT JOIN (
     SELECT s.user_id, MAX(s.last_seen_at) AS last_seen_at
     FROM `{session_table}` s
-    WHERE s.expires_at > %s
-      {revoked_where}
     GROUP BY s.user_id
 ) session_last_seen ON session_last_seen.user_id=u.id
 """
-        session_params = [_utc_now()]
     else:
         last_seen_join = "LEFT JOIN (SELECT NULL AS user_id, NULL AS last_seen_at) session_last_seen ON 1=0"
 

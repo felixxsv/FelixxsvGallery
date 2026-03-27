@@ -88,11 +88,21 @@ function createPresenceTracker(app) {
     }
   }
 
+  function sendCloseBeacon() {
+    if (state.stopped) return;
+    try {
+      const blob = new Blob(["{}"], { type: "application/json" });
+      navigator.sendBeacon(`${app.appBase}/api/auth/presence`, blob);
+    } catch (error) {
+    }
+  }
+
   function handleVisibilityChange() {
     if (document.visibilityState === "visible") {
       void ping();
       return;
     }
+    sendCloseBeacon();
     clearTimer();
   }
 
@@ -101,6 +111,7 @@ function createPresenceTracker(app) {
     state.started = true;
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("pagehide", () => {
+      sendCloseBeacon();
       clearTimer();
     });
     handleVisibilityChange();

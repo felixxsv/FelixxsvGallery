@@ -148,11 +148,21 @@
     }
   }
 
+  function sendPresenceBeacon() {
+    if (presenceState.stopped) return;
+    try {
+      const blob = new Blob(['{}'], { type: 'application/json' });
+      navigator.sendBeacon(PRESENCE_ENDPOINT, blob);
+    } catch (error) {
+    }
+  }
+
   function handlePresenceVisibilityChange() {
     if (document.visibilityState === 'visible') {
       void pingPresence();
       return;
     }
+    sendPresenceBeacon();
     clearPresenceTimer();
   }
 
@@ -161,6 +171,7 @@
     presenceState.started = true;
     document.addEventListener('visibilitychange', handlePresenceVisibilityChange);
     window.addEventListener('pagehide', () => {
+      sendPresenceBeacon();
       clearPresenceTimer();
     });
     handlePresenceVisibilityChange();

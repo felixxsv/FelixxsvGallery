@@ -283,7 +283,7 @@ function renderTable() {
         <td>${buildPill(getScreenStatusLabel(screenStatus), screenStatus === "open" ? "admin-users-pill--screen-open" : "admin-users-pill--screen-closed")}</td>
         <td>${escapeHtml(twoFactorText)}</td>
         <td>${item.upload_enabled ? "許可" : "禁止"}</td>
-        <td>${escapeHtml(formatDateTime(item.last_seen_at))}</td>
+        <td>${escapeHtml(formatDateTime(item.last_access_at || item.last_seen_at))}</td>
         <td>
           <div class="admin-users-actions">
             <button type="button" class="app-button app-button--ghost admin-users-mini-button" data-action="edit" data-user-id="${item.user_id}">編集</button>
@@ -352,7 +352,7 @@ async function openEditModal(userId) {
     byId("adminUsersEditUploadEnabled").checked = state.editOriginal.upload_enabled;
     byId("adminUsersEditEmail").textContent = user.primary_email || "未登録";
     byId("adminUsersEditCreatedAt").textContent = formatDateTime(user.created_at);
-    byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_seen_at);
+    byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_access_at || user.last_seen_at);
     byId("adminUsersEditTwoFactor").textContent = user.two_factor?.is_enabled ? `${user.two_factor?.method || "email"} / ON` : "OFF";
     state.editDirty = false;
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
