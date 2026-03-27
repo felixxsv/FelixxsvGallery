@@ -109,6 +109,33 @@
 
   const presenceReporter = createPresenceReporter();
 
+  async function startPresenceIfAuthenticated() {
+    for (const endpoint of AUTH_ME_ENDPOINTS) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "application/json" }
+        });
+
+        if (response.status === 401 || response.status === 403 || response.status === 404) {
+          continue;
+        }
+
+        let payload = null;
+        try {
+          payload = await response.json();
+        } catch (e) {}
+
+        if (response.ok && payload && payload.ok !== false) {
+          presenceReporter.start();
+          return true;
+        }
+      } catch (e) {}
+    }
+    return false;
+  }
+
   const twoFactorEnableBtn = document.getElementById('settings-2fa-enable-btn');
   const twoFactorDisableOpenBtn = document.getElementById('settings-2fa-disable-open-btn');
   const twoFactorSetupBox = document.getElementById('settings-2fa-setup-box');
@@ -266,6 +293,7 @@
     resetTwoFactorSetupBox();
     try {
       const payload = await api('/api/auth/me');
+      presenceReporter.start();
       renderProfile(payload.data);
       setMainLoading(false);
     } catch (error) {
@@ -1380,6 +1408,8 @@ async function init() {
   initFilters()
   initSearch()
   initLightboxAndModals()
+
+  void startPresenceIfAuthenticated()
 
   await loadPalette()
   await loadTags()
