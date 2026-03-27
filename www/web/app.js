@@ -6,6 +6,120 @@
     twoFactorSetupExpiresInSec: null
   };
 
+
+  const AUTH_ME_ENDPOINTS = [
+    '/api/auth/me',
+    '/gallery/api/auth/me',
+    '/gallery/api/me',
+    '/gallery/api/session'
+  ]
+
+  function createPresenceReporter() {
+    const endpoint = '/api/auth/presence'
+    const intervalMs = 30000
+    let timerId = null
+    let started = false
+    let visible = false
+
+    async function post(nextVisible, useBeacon) {
+      const body = JSON.stringify({ visible: !!nextVisible })
+      if (useBeacon && navigator.sendBeacon) {
+        try {
+          const blob = new Blob([body], { type: 'application/json' })
+          navigator.sendBeacon(endpoint, blob)
+          return
+        } catch (e) {}
+      }
+      try {
+        await fetch(endpoint, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+          keepalive: !!useBeacon,
+        })
+      } catch (e) {}
+    }
+
+    function clearTimer() {
+      if (timerId) {
+        clearTimeout(timerId)
+        timerId = null
+      }
+    }
+
+    function schedule() {
+      clearTimer()
+      if (!visible) return
+      timerId = setTimeout(async () => {
+        await post(true, false)
+        schedule()
+      }, intervalMs)
+    }
+
+    async function setVisible(nextVisible, useBeacon) {
+      visible = !!nextVisible
+      if (!visible) {
+        clearTimer()
+        await post(false, useBeacon)
+        return
+      }
+      await post(true, useBeacon)
+      schedule()
+    }
+
+    function bind() {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          void setVisible(false, true)
+          return
+        }
+        void setVisible(true, false)
+      })
+      window.addEventListener('pagehide', () => {
+        void setVisible(false, true)
+      })
+    }
+
+    return {
+      start() {
+        if (started) return
+        started = true
+        bind()
+        void setVisible(document.visibilityState !== 'hidden', false)
+      },
+    }
+  }
+
+  const presenceReporter = createPresenceReporter()
+
+  async function startPresenceIfAuthenticated() {
+    for (const endpoint of AUTH_ME_ENDPOINTS) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        })
+
+        if (response.status === 401 || response.status === 403 || response.status === 404) {
+          continue
+        }
+
+        let payload = null
+        try {
+          payload = await response.json()
+        } catch (e) {}
+
+        if (response.ok && payload && payload.ok !== false) {
+          presenceReporter.start()
+          return true
+        }
+      } catch (e) {}
+    }
+    return false
+  }
+
   const settingsModal = document.getElementById('settings-modal');
   const settingsBody = document.getElementById('settings-modal-body');
   const settingsLoading = document.getElementById('settings-modal-loading');
@@ -28,113 +142,6 @@
   const uploadDisabledEl = document.getElementById('settings-upload-disabled');
   const twoFactorStatusEl = document.getElementById('settings-2fa-status');
   const adminSectionEl = document.getElementById('settings-admin-section');
-
-
-  function createPresenceReporter() {
-    const endpoint = "/gallery/api/auth/presence";
-    const intervalMs = 30000;
-    let timerId = null;
-    let started = false;
-    let visible = false;
-
-    async function post(nextVisible, useBeacon) {
-      const body = JSON.stringify({ visible: Boolean(nextVisible) });
-      if (useBeacon && navigator.sendBeacon) {
-        try {
-          const blob = new Blob([body], { type: "application/json" });
-          navigator.sendBeacon(endpoint, blob);
-          return;
-        } catch (e) {}
-      }
-      try {
-        await fetch(endpoint, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: Boolean(useBeacon)
-        });
-      } catch (e) {}
-    }
-
-    function clearTimer() {
-      if (timerId) {
-        clearTimeout(timerId);
-        timerId = null;
-      }
-    }
-
-    function schedule() {
-      clearTimer();
-      if (!visible) return;
-      timerId = setTimeout(async () => {
-        await post(true, false);
-        schedule();
-      }, intervalMs);
-    }
-
-    async function setVisible(nextVisible, useBeacon) {
-      visible = Boolean(nextVisible);
-      if (!visible) {
-        clearTimer();
-        await post(false, useBeacon);
-        return;
-      }
-      await post(true, useBeacon);
-      schedule();
-    }
-
-    function bind() {
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") {
-          void setVisible(false, true);
-          return;
-        }
-        void setVisible(true, false);
-      });
-      window.addEventListener("pagehide", () => {
-        void setVisible(false, true);
-      });
-    }
-
-    return {
-      start() {
-        if (started) return;
-        started = true;
-        bind();
-        void setVisible(document.visibilityState !== "hidden", false);
-      }
-    };
-  }
-
-  const presenceReporter = createPresenceReporter();
-
-  async function startPresenceIfAuthenticated() {
-    for (const endpoint of AUTH_ME_ENDPOINTS) {
-      try {
-        const response = await fetch(endpoint, {
-          method: "GET",
-          credentials: "include",
-          headers: { Accept: "application/json" }
-        });
-
-        if (response.status === 401 || response.status === 403 || response.status === 404) {
-          continue;
-        }
-
-        let payload = null;
-        try {
-          payload = await response.json();
-        } catch (e) {}
-
-        if (response.ok && payload && payload.ok !== false) {
-          presenceReporter.start();
-          return true;
-        }
-      } catch (e) {}
-    }
-    return false;
-  }
 
   const twoFactorEnableBtn = document.getElementById('settings-2fa-enable-btn');
   const twoFactorDisableOpenBtn = document.getElementById('settings-2fa-disable-open-btn');
@@ -293,7 +300,6 @@
     resetTwoFactorSetupBox();
     try {
       const payload = await api('/api/auth/me');
-      presenceReporter.start();
       renderProfile(payload.data);
       setMainLoading(false);
     } catch (error) {
