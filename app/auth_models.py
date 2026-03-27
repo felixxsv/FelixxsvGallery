@@ -715,6 +715,8 @@ def create_session(
     session_token_hash: str,
     ip_address: bytes | None,
     user_agent: str | None,
+    created_at,
+    last_seen_at,
     expires_at,
     two_factor_verified_at=None,
     two_factor_remember_until=None,
@@ -731,12 +733,14 @@ def create_session(
             two_factor_remember_until,
             user_agent,
             ip_addr
-        ) VALUES (%s, %s, %s, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6), %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (
         session_token_hash,
         _get_gallery_name(),
         user_id,
+        created_at,
+        last_seen_at,
         expires_at,
         two_factor_verified_at,
         two_factor_remember_until,
