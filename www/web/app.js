@@ -51,6 +51,17 @@
       .replaceAll("'", '&#39;');
   }
 
+
+
+  const PRESENCE_ENDPOINT = '/gallery/api/auth/presence';
+  const PRESENCE_FALLBACK_INTERVAL_MS = 30 * 1000;
+  const presenceState = {
+    started: false,
+    stopped: false,
+    inFlight: false,
+    intervalMs: PRESENCE_FALLBACK_INTERVAL_MS,
+    timerId: null
+  };
   async function api(path, options = {}) {
     const response = await fetch(path, {
       method: options.method || 'GET',
@@ -84,6 +95,76 @@
     return payload;
   }
 
+
+
+  function clearPresenceTimer() {
+    if (presenceState.timerId) {
+      clearTimeout(presenceState.timerId);
+      presenceState.timerId = null;
+    }
+  }
+
+  function applyPresenceConfig(data) {
+    const heartbeatSec = Number(data?.heartbeat_interval_sec || 0);
+    if (Number.isFinite(heartbeatSec) && heartbeatSec >= 10) {
+      presenceState.intervalMs = heartbeatSec * 1000;
+    }
+  }
+
+  function schedulePresencePing() {
+    clearPresenceTimer();
+    if (presenceState.stopped || document.visibilityState !== 'visible') return;
+    presenceState.timerId = setTimeout(() => {
+      void pingPresence();
+    }, presenceState.intervalMs);
+  }
+
+  async function pingPresence() {
+    if (presenceState.stopped || presenceState.inFlight) return;
+    presenceState.inFlight = true;
+    try {
+      const response = await fetch(PRESENCE_ENDPOINT, {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.status === 401 || response.status === 403) {
+        presenceState.stopped = true;
+        clearPresenceTimer();
+        return;
+      }
+      const payload = await response.json().catch(() => null);
+      if (response.ok && payload?.ok !== false) {
+        applyPresenceConfig(payload?.data?.presence || payload?.data || null);
+      }
+    } catch (error) {
+    } finally {
+      presenceState.inFlight = false;
+      schedulePresencePing();
+    }
+  }
+
+  function handlePresenceVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+      void pingPresence();
+      return;
+    }
+    clearPresenceTimer();
+  }
+
+  function startPresenceTracking() {
+    if (presenceState.started) return;
+    presenceState.started = true;
+    document.addEventListener('visibilitychange', handlePresenceVisibilityChange);
+    window.addEventListener('pagehide', () => {
+      clearPresenceTimer();
+    });
+    handlePresenceVisibilityChange();
+  }
   function setMainLoading(isLoading) {
     settingsLoading.hidden = !isLoading;
     settingsBody.hidden = isLoading;
@@ -1294,6 +1375,7 @@ function initPerPageSort() {
 }
 
 async function init() {
+  startPresenceTracking()
   initColumns()
   initPerPageSort()
   initSelects()

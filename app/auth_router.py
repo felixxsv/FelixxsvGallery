@@ -24,6 +24,7 @@ from auth_service import (
     start_two_factor_disable_for_current_session,
     confirm_two_factor_disable_for_current_session,
     get_current_user_profile,
+    touch_current_session_presence,
     get_discord_registration_status,
     get_password_reset_status,
     get_verify_status,
@@ -337,6 +338,24 @@ async def me(
             request_id=request_id,
             error_code="server_error",
             message="ユーザー情報の取得に失敗しました。",
+            http_status=500,
+        )
+        return response
+
+
+@router.post("/presence")
+async def presence(
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        result = touch_current_session_presence(session_token=gallery_session)
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="接続状態の更新に失敗しました。",
             http_status=500,
         )
         return response

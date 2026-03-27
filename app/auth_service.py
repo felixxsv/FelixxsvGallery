@@ -66,6 +66,7 @@ from auth_security import (
     needs_session_refresh,
     should_lock_login_attempt,
     verify_password,
+    DEFAULT_SESSION_REFRESH_INTERVAL_SEC,
 )
 from auth_tokens import (
     AuthTokenError,
@@ -109,7 +110,30 @@ DEFAULT_TWO_FACTOR_RESEND_COOLDOWN_SEC = 60
 DEFAULT_VERIFY_MAX_ATTEMPTS = 5
 DEFAULT_TWO_FACTOR_MAX_ATTEMPTS = 5
 DEFAULT_BASE_URL = "https://felixxsv.net"
+DEFAULT_PRESENCE_HEARTBEAT_INTERVAL_SEC = 30
+DEFAULT_PRESENCE_ONLINE_THRESHOLD_SEC = 90
 
+
+
+
+def _build_presence_payload(conf: dict | None = None) -> dict:
+    resolved = conf or _get_auth_conf()
+    return {
+        "heartbeat_interval_sec": int(resolved.get("presence_heartbeat_interval_sec") or DEFAULT_PRESENCE_HEARTBEAT_INTERVAL_SEC),
+        "online_threshold_sec": int(resolved.get("presence_online_threshold_sec") or DEFAULT_PRESENCE_ONLINE_THRESHOLD_SEC),
+    }
+
+
+def _should_refresh_session_expiry(expires_at, now_dt: datetime) -> bool:
+    try:
+        expires_dt = _coerce_utc_datetime(expires_at)
+    except Exception:
+        return True
+    return (expires_dt - now_dt).total_seconds() <= DEFAULT_SESSION_REFRESH_INTERVAL_SEC
+
+
+def get_presence_runtime_conf() -> dict:
+    return _build_presence_payload()
 
 def build_service_success(
     data: dict | None = None,
@@ -1488,8 +1512,6 @@ def confirm_two_factor_challenge(
             session_token_hash=hash_session_token(session_token),
             ip_address=ip_address,
             user_agent=user_agent,
-            created_at=now_dt,
-            last_seen_at=now_dt,
             expires_at=build_session_expiry(now=now_dt),
             two_factor_verified_at=now_dt,
             two_factor_remember_until=remember_until,
@@ -2955,6 +2977,92 @@ def get_current_user_by_session_token(
         _safe_close(conn)
 
 
+
+def touch_current_session_presence(
+    session_token: str | None,
+    now=None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    now_dt = _utc_now(now)
+    auth_conf = _get_auth_conf()
+
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+        if session_row.get("revoked_at") is not None or _is_expired(session_row["expires_at"], now_dt):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        force_logout_after = user.get("force_logout_after")
+        if force_logout_after is not None and _coerce_utc_datetime(session_row["created_at"]) < _coerce_utc_datetime(force_logout_after):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+        if _is_two_factor_required(two_factor_settings) and session_row.get("two_factor_verified_at") is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        refreshed_expires_at = build_refreshed_session_expiry(now=now_dt) if _should_refresh_session_expiry(session_row.get("expires_at"), now_dt) else None
+        update_session_last_seen(
+            conn=conn,
+            session_id=session_row["id"],
+            last_seen_at=now_dt,
+            expires_at=refreshed_expires_at,
+        )
+        conn.commit()
+
+        return build_service_success(
+            data={
+                "presence": _build_presence_payload(auth_conf),
+            },
+            message="presence updated",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="接続状態の更新に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
 def get_current_user_profile(
     session_token: str | None,
     now=None,
@@ -3137,6 +3245,8 @@ def _get_auth_conf() -> dict:
         "two_factor_resend_cooldown_sec": int(auth_section.get("two_factor_resend_cooldown_sec", DEFAULT_TWO_FACTOR_RESEND_COOLDOWN_SEC)),
         "verify_max_attempts": int(auth_section.get("verify_max_attempts", DEFAULT_VERIFY_MAX_ATTEMPTS)),
         "two_factor_max_attempts": int(auth_section.get("two_factor_max_attempts", DEFAULT_TWO_FACTOR_MAX_ATTEMPTS)),
+        "presence_heartbeat_interval_sec": max(10, int(auth_section.get("presence_heartbeat_interval_sec", DEFAULT_PRESENCE_HEARTBEAT_INTERVAL_SEC))),
+        "presence_online_threshold_sec": max(20, int(auth_section.get("presence_online_threshold_sec", DEFAULT_PRESENCE_ONLINE_THRESHOLD_SEC))),
     }
 
 
@@ -3480,8 +3590,6 @@ def _create_authenticated_session_result(conn, user: dict, ip_address: bytes | N
         session_token_hash=hash_session_token(session_token),
         ip_address=ip_address,
         user_agent=user_agent,
-        created_at=now_dt,
-        last_seen_at=now_dt,
         expires_at=build_session_expiry(now=now_dt),
         two_factor_verified_at=now_dt,
         two_factor_remember_until=None,

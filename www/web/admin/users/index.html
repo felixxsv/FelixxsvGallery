@@ -102,10 +102,10 @@
                   <label class="admin-form-label" for="adminUsersStatusFilter">状態</label>
                   <select id="adminUsersStatusFilter" class="app-select">
                     <option value="">すべて</option>
-                    <option value="active">active</option>
-                    <option value="locked">locked</option>
-                    <option value="disabled">disabled</option>
-                    <option value="deleted">deleted</option>
+                    <option value="active">利用可</option>
+                    <option value="locked">ロック</option>
+                    <option value="disabled">停止</option>
+                    <option value="deleted">削除済み</option>
                   </select>
                 </div>
                 <div class="admin-users-filter-wrap">
@@ -135,10 +135,13 @@
               <table class="admin-users-table">
                 <thead>
                   <tr>
-                    <th>ユーザー</th>
+                    <th>アイコン</th>
+                    <th>表示名</th>
                     <th>メール</th>
                     <th>ロール</th>
-                    <th>状態</th>
+                    <th>利用状態</th>
+                    <th>ログイン</th>
+                    <th>画面</th>
                     <th>2FA</th>
                     <th>投稿</th>
                     <th>最終アクセス</th>
@@ -147,7 +150,7 @@
                 </thead>
                 <tbody id="adminUsersTableBody">
                   <tr>
-                    <td colspan="8" class="admin-users-table__empty">読み込み中です。</td>
+                    <td colspan="11" class="admin-users-table__empty">読み込み中です。</td>
                   </tr>
                 </tbody>
               </table>
@@ -206,12 +209,12 @@
               </select>
             </div>
             <div class="admin-users-modal__field">
-              <label class="admin-form-label" for="adminUsersEditStatus">状態</label>
+              <label class="admin-form-label" for="adminUsersEditStatus">利用状態</label>
               <select id="adminUsersEditStatus" class="app-select">
-                <option value="active">active</option>
-                <option value="locked">locked</option>
-                <option value="disabled">disabled</option>
-                <option value="deleted">deleted</option>
+                <option value="active">利用可</option>
+                <option value="locked">ロック</option>
+                <option value="disabled">停止</option>
+                <option value="deleted">削除済み</option>
               </select>
             </div>
             <div class="admin-users-modal__field admin-users-modal__field--check">

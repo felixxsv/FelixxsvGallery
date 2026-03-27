@@ -18,7 +18,7 @@ from fastapi import APIRouter, Body, Cookie, Path, Query
 from fastapi.responses import JSONResponse, Response
 
 from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_options
-from auth_service import get_current_user_profile
+from auth_service import get_current_user_profile, get_presence_runtime_conf
 from auth_mail import AuthMailError, build_text_message, send_message
 from db import db_conn, load_conf
 
@@ -326,6 +326,8 @@ def _load_active_users(conn) -> list[dict]:
 
     session_cols = _table_columns(conn, session_table)
     now_dt = _utc_now()
+    presence_conf = get_presence_runtime_conf()
+    online_cutoff = now_dt - timedelta(seconds=int(presence_conf.get("online_threshold_sec") or 90))
     email_col = _users_email_column(conn)
     avatar_col = _users_avatar_column(conn)
 
@@ -352,14 +354,14 @@ FROM `{session_table}` s
 JOIN users u ON u.id=s.user_id
 WHERE s.expires_at > %s
   {revoked_where}
-  AND s.last_seen_at >= DATE_SUB(%s, INTERVAL 10 MINUTE)
+  AND s.last_seen_at >= %s
   AND u.status='active'
 GROUP BY {", ".join(group_parts)}
 ORDER BY MAX(s.last_seen_at) DESC
 LIMIT 200
 """
     with conn.cursor() as cur:
-        cur.execute(sql, (now_dt, now_dt))
+        cur.execute(sql, (now_dt, online_cutoff))
         rows = cur.fetchall()
 
     items = []
@@ -809,32 +811,73 @@ def _load_user_two_factor_map(conn, user_ids: list[int]) -> dict[int, dict]:
     return out
 
 
-def _load_user_last_seen_map(conn, user_ids: list[int]) -> dict[int, str | None]:
-    session_table = _detect_table(conn, "sessions", "user_sessions")
-    if session_table is None or not user_ids:
+def _load_user_session_state_map(conn, user_ids: list[int]) -> dict[int, dict]:
+    if not user_ids:
         return {}
+    session_table = _detect_table(conn, "sessions", "user_sessions")
+    defaults = {
+        int(user_id): {
+            "last_seen_at": None,
+            "active_session_count": 0,
+            "is_logged_in": False,
+            "login_status": "logged_out",
+            "is_screen_open": False,
+            "screen_status": "closed",
+        }
+        for user_id in user_ids
+    }
+    if session_table is None:
+        return defaults
+
     cols = _table_columns(conn, session_table)
     revoked_where = "AND revoked_at IS NULL" if "revoked_at" in cols else ""
     placeholders = ",".join(["%s"] * len(user_ids))
+    now_dt = _utc_now()
+    presence_conf = get_presence_runtime_conf()
+    online_cutoff = now_dt - timedelta(seconds=int(presence_conf.get("online_threshold_sec") or 90))
     with conn.cursor() as cur:
         cur.execute(
             f"""
-SELECT user_id, MAX(last_seen_at) AS last_seen_at
+SELECT user_id, COUNT(*) AS active_session_count, MAX(last_seen_at) AS last_seen_at
 FROM `{session_table}`
 WHERE user_id IN ({placeholders})
   AND expires_at > %s
   {revoked_where}
 GROUP BY user_id
 """,
-            [*user_ids, _utc_now()],
+            [*user_ids, now_dt],
         )
         rows = cur.fetchall()
-    return {int(row.get("user_id")): _coerce_utc_text(row.get("last_seen_at")) for row in rows}
+
+    for row in rows:
+        user_id = int(row.get("user_id"))
+        last_seen_dt = None
+        if row.get("last_seen_at") is not None:
+            last_seen_dt = _coerce_utc_datetime(row.get("last_seen_at"))
+        is_logged_in = int(row.get("active_session_count") or 0) > 0
+        is_screen_open = bool(last_seen_dt is not None and last_seen_dt >= online_cutoff)
+        defaults[user_id] = {
+            "last_seen_at": _coerce_utc_text(row.get("last_seen_at")),
+            "active_session_count": int(row.get("active_session_count") or 0),
+            "is_logged_in": is_logged_in,
+            "login_status": "logged_in" if is_logged_in else "logged_out",
+            "is_screen_open": is_screen_open,
+            "screen_status": "open" if is_screen_open else "closed",
+        }
+    return defaults
 
 
-def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict], last_seen_map: dict[int, str | None]) -> dict:
+def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict], session_state_map: dict[int, dict]) -> dict:
     row = _normalize_user_row_runtime(row)
     user_id = int(row.get("id"))
+    session_state = session_state_map.get(user_id) or {
+        "last_seen_at": None,
+        "active_session_count": 0,
+        "is_logged_in": False,
+        "login_status": "logged_out",
+        "is_screen_open": False,
+        "screen_status": "closed",
+    }
     return {
         "user_id": user_id,
         "display_name": row.get("display_name"),
@@ -855,7 +898,12 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
         },
         "created_at": _coerce_utc_text(row.get("created_at")),
         "updated_at": _coerce_utc_text(row.get("updated_at")),
-        "last_seen_at": last_seen_map.get(user_id),
+        "last_seen_at": session_state.get("last_seen_at"),
+        "active_session_count": int(session_state.get("active_session_count") or 0),
+        "is_logged_in": bool(session_state.get("is_logged_in")),
+        "login_status": session_state.get("login_status") or "logged_out",
+        "is_screen_open": bool(session_state.get("is_screen_open")),
+        "screen_status": session_state.get("screen_status") or "closed",
     }
 
 
@@ -962,9 +1010,9 @@ LIMIT %s OFFSET %s
     user_ids = [int(row.get("id")) for row in rows]
     providers_map = _load_user_providers_map(conn, user_ids)
     two_factor_map = _load_user_two_factor_map(conn, user_ids)
-    last_seen_map = {int(row.get("id")): _coerce_utc_text(row.get("last_seen_at")) for row in rows}
+    session_state_map = _load_user_session_state_map(conn, user_ids)
 
-    items = [_serialize_user_list_item(row, providers_map, two_factor_map, last_seen_map) for row in rows]
+    items = [_serialize_user_list_item(row, providers_map, two_factor_map, session_state_map) for row in rows]
     pages = (total + per_page - 1) // per_page if total > 0 else 1
     return {
         "page": page,
@@ -1011,8 +1059,8 @@ LIMIT 1
         return None
     providers_map = _load_user_providers_map(conn, [user_id])
     two_factor_map = _load_user_two_factor_map(conn, [user_id])
-    last_seen_map = _load_user_last_seen_map(conn, [user_id])
-    item = _serialize_user_list_item(row, providers_map, two_factor_map, last_seen_map)
+    session_state_map = _load_user_session_state_map(conn, [user_id])
+    item = _serialize_user_list_item(row, providers_map, two_factor_map, session_state_map)
     item["must_reset_password"] = bool(row.get("must_reset_password")) if row.get("must_reset_password") is not None else False
     item["deleted_at"] = _coerce_utc_text(row.get("deleted_at"))
     item["force_logout_after"] = _coerce_utc_text(row.get("force_logout_after"))

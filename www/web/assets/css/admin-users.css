@@ -61,7 +61,7 @@
 .admin-users-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 1320px;
 }
 
 .admin-users-table thead th {
@@ -127,6 +127,36 @@
   margin-top: 4px;
   font-size: 0.82rem;
   color: rgba(226, 232, 240, 0.64);
+}
+
+.admin-users-table thead th:first-child,
+.admin-users-table tbody td:first-child {
+  width: 72px;
+}
+
+.admin-users-table th:nth-child(2),
+.admin-users-table td:nth-child(2) {
+  min-width: 220px;
+}
+
+.admin-users-cell--avatar {
+  width: 72px;
+}
+
+.admin-users-cell--identity {
+  min-width: 220px;
+}
+
+.admin-users-pill--logged-in,
+.admin-users-pill--screen-open {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(74, 222, 128, 0.22);
+}
+
+.admin-users-pill--logged-out,
+.admin-users-pill--screen-closed {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.22);
 }
 
 .admin-users-pill {
