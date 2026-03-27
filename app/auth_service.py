@@ -66,7 +66,6 @@ from auth_security import (
     needs_session_refresh,
     should_lock_login_attempt,
     verify_password,
-    DEFAULT_SESSION_REFRESH_INTERVAL_SEC,
 )
 from auth_tokens import (
     AuthTokenError,
@@ -110,30 +109,7 @@ DEFAULT_TWO_FACTOR_RESEND_COOLDOWN_SEC = 60
 DEFAULT_VERIFY_MAX_ATTEMPTS = 5
 DEFAULT_TWO_FACTOR_MAX_ATTEMPTS = 5
 DEFAULT_BASE_URL = "https://felixxsv.net"
-DEFAULT_PRESENCE_HEARTBEAT_INTERVAL_SEC = 30
-DEFAULT_PRESENCE_ONLINE_THRESHOLD_SEC = 90
 
-
-
-
-def _build_presence_payload(conf: dict | None = None) -> dict:
-    resolved = conf or _get_auth_conf()
-    return {
-        "heartbeat_interval_sec": int(resolved.get("presence_heartbeat_interval_sec") or DEFAULT_PRESENCE_HEARTBEAT_INTERVAL_SEC),
-        "online_threshold_sec": int(resolved.get("presence_online_threshold_sec") or DEFAULT_PRESENCE_ONLINE_THRESHOLD_SEC),
-    }
-
-
-def _should_refresh_session_expiry(expires_at, now_dt: datetime) -> bool:
-    try:
-        expires_dt = _coerce_utc_datetime(expires_at)
-    except Exception:
-        return True
-    return (expires_dt - now_dt).total_seconds() <= DEFAULT_SESSION_REFRESH_INTERVAL_SEC
-
-
-def get_presence_runtime_conf() -> dict:
-    return _build_presence_payload()
 
 def build_service_success(
     data: dict | None = None,
@@ -443,7 +419,7 @@ def logout_by_session_token(
         session_token_hash = hash_session_token(str(session_token))
         session_row = get_session_by_token_hash(conn, session_token_hash)
         if session_row is not None:
-            revoke_session_by_id(conn, session_row["id"], now_dt)
+            revoke_session_by_id(conn, session_row["id"], now_dt, last_access_at=now_dt)
             log_auth_event(
                 conn=conn,
                 actor_user_id=session_row["user_id"],
@@ -480,7 +456,7 @@ def logout_all_sessions_for_user(
 
     try:
         conn = _get_db_connection(autocommit=False)
-        revoked_count = revoke_sessions_by_user_id(conn, user_id, now_dt)
+        revoked_count = revoke_sessions_by_user_id(conn, user_id, now_dt, last_access_at=now_dt)
         log_auth_event(
             conn=conn,
             actor_user_id=actor_user_id or user_id,
@@ -572,7 +548,7 @@ def logout_all_for_current_session(
                     clear_session_cookie=True,
                 )
 
-        revoked_count = revoke_sessions_by_user_id(conn, user["id"], now_dt)
+        revoked_count = revoke_sessions_by_user_id(conn, user["id"], now_dt, last_access_at=now_dt)
 
         log_auth_event(
             conn=conn,
@@ -1514,6 +1490,8 @@ def confirm_two_factor_challenge(
             user_agent=user_agent,
             created_at=now_dt,
             last_seen_at=now_dt,
+            last_access_at=now_dt,
+            last_presence_at=None,
             expires_at=build_session_expiry(now=now_dt),
             two_factor_verified_at=now_dt,
             two_factor_remember_until=remember_until,
@@ -1866,7 +1844,7 @@ def change_password_for_current_session(
         clear_password_failed_attempts(conn, user["id"])
         set_user_must_reset_password(conn, user["id"], False)
 
-        revoked_count = revoke_sessions_by_user_id(conn, user["id"], now_dt)
+        revoked_count = revoke_sessions_by_user_id(conn, user["id"], now_dt, last_access_at=now_dt)
 
         log_auth_event(
             conn=conn,
@@ -1945,7 +1923,7 @@ def reset_password(
         clear_password_failed_attempts(conn, parsed["user_id"])
         set_user_must_reset_password(conn, parsed["user_id"], False)
         consume_password_reset_token(conn, row["id"], now_dt)
-        revoke_sessions_by_user_id(conn, parsed["user_id"], now_dt)
+        revoke_sessions_by_user_id(conn, parsed["user_id"], now_dt, last_access_at=now_dt)
         log_auth_event(
             conn=conn,
             actor_user_id=parsed["user_id"],
@@ -2979,9 +2957,9 @@ def get_current_user_by_session_token(
         _safe_close(conn)
 
 
-
-def touch_current_session_presence(
+def update_current_session_presence(
     session_token: str | None,
+    visible: bool,
     now=None,
 ) -> dict:
     if session_token is None or str(session_token).strip() == "":
@@ -2993,7 +2971,6 @@ def touch_current_session_presence(
 
     conn = None
     now_dt = _utc_now(now)
-    auth_conf = _get_auth_conf()
 
     try:
         conn = _get_db_connection(autocommit=False)
@@ -3041,29 +3018,45 @@ def touch_current_session_presence(
                 clear_session_cookie=True,
             )
 
-        refreshed_expires_at = build_refreshed_session_expiry(now=now_dt) if _should_refresh_session_expiry(session_row.get("expires_at"), now_dt) else None
-        update_session_last_seen(
-            conn=conn,
-            session_id=session_row["id"],
-            last_seen_at=now_dt,
-            expires_at=refreshed_expires_at,
-        )
-        conn.commit()
+        if visible:
+            should_refresh = needs_session_refresh(session_row["last_seen_at"], now=now_dt)
+            refreshed_expires_at = build_refreshed_session_expiry(now=now_dt) if should_refresh else None
+            update_session_last_seen(
+                conn=conn,
+                session_id=session_row["id"],
+                last_seen_at=now_dt,
+                last_access_at=now_dt,
+                last_presence_at=now_dt,
+                expires_at=refreshed_expires_at,
+            )
+            refreshed_session_token = str(session_token) if should_refresh else None
+        else:
+            update_session_last_seen(
+                conn=conn,
+                session_id=session_row["id"],
+                last_access_at=now_dt,
+                clear_presence=True,
+            )
+            refreshed_session_token = None
 
+        conn.commit()
         return build_service_success(
             data={
-                "presence": _build_presence_payload(auth_conf),
+                "visible": bool(visible),
+                "recorded_at": _to_app_isoformat(now_dt),
             },
-            message="presence updated",
+            message="プレゼンスを更新しました。",
+            session_token=refreshed_session_token,
         )
     except Exception:
         _safe_rollback(conn)
         return build_service_error(
             error_code="server_error",
-            message="接続状態の更新に失敗しました。",
+            message="プレゼンスの更新に失敗しました。",
         )
     finally:
         _safe_close(conn)
+
 
 def get_current_user_profile(
     session_token: str | None,
@@ -3134,6 +3127,7 @@ def get_current_user_profile(
                 conn=conn,
                 session_id=session_row["id"],
                 last_seen_at=now_dt,
+                last_access_at=now_dt,
                 expires_at=refreshed_expires_at,
             )
             conn.commit()
@@ -3247,8 +3241,6 @@ def _get_auth_conf() -> dict:
         "two_factor_resend_cooldown_sec": int(auth_section.get("two_factor_resend_cooldown_sec", DEFAULT_TWO_FACTOR_RESEND_COOLDOWN_SEC)),
         "verify_max_attempts": int(auth_section.get("verify_max_attempts", DEFAULT_VERIFY_MAX_ATTEMPTS)),
         "two_factor_max_attempts": int(auth_section.get("two_factor_max_attempts", DEFAULT_TWO_FACTOR_MAX_ATTEMPTS)),
-        "presence_heartbeat_interval_sec": max(10, int(auth_section.get("presence_heartbeat_interval_sec", DEFAULT_PRESENCE_HEARTBEAT_INTERVAL_SEC))),
-        "presence_online_threshold_sec": max(20, int(auth_section.get("presence_online_threshold_sec", DEFAULT_PRESENCE_ONLINE_THRESHOLD_SEC))),
     }
 
 
@@ -3594,6 +3586,8 @@ def _create_authenticated_session_result(conn, user: dict, ip_address: bytes | N
         user_agent=user_agent,
         created_at=now_dt,
         last_seen_at=now_dt,
+        last_access_at=now_dt,
+        last_presence_at=None,
         expires_at=build_session_expiry(now=now_dt),
         two_factor_verified_at=now_dt,
         two_factor_remember_until=None,

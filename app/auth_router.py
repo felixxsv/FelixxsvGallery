@@ -24,7 +24,6 @@ from auth_service import (
     start_two_factor_disable_for_current_session,
     confirm_two_factor_disable_for_current_session,
     get_current_user_profile,
-    touch_current_session_presence,
     get_discord_registration_status,
     get_password_reset_status,
     get_verify_status,
@@ -36,6 +35,7 @@ from auth_service import (
     complete_registration,
     request_password_reset,
     reset_password,
+    update_current_session_presence,
     send_email_verification_again,
     send_two_factor_challenge_again,
     start_discord_oauth,
@@ -107,6 +107,10 @@ class TwoFactorSetupConfirmRequest(BaseModel):
 class TwoFactorDisableConfirmRequest(BaseModel):
     verify_ticket: str
     code: str
+
+
+class PresenceRequest(BaseModel):
+    visible: bool = True
 
 
 def build_request_id() -> str:
@@ -325,6 +329,28 @@ async def logout_all(
         clear_session_cookie(response)
         return response
 
+@router.post("/presence")
+async def presence(
+    payload: PresenceRequest,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        result = update_current_session_presence(
+            session_token=gallery_session,
+            visible=bool(payload.visible),
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="プレゼンスの更新に失敗しました。",
+            http_status=500,
+        )
+        return response
+
+
 @router.get("/me")
 async def me(
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
@@ -338,24 +364,6 @@ async def me(
             request_id=request_id,
             error_code="server_error",
             message="ユーザー情報の取得に失敗しました。",
-            http_status=500,
-        )
-        return response
-
-
-@router.post("/presence")
-async def presence(
-    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
-):
-    request_id = build_request_id()
-    try:
-        result = touch_current_session_presence(session_token=gallery_session)
-        return _build_response_from_service_result(request_id, result)
-    except Exception:
-        response = build_error_response(
-            request_id=request_id,
-            error_code="server_error",
-            message="接続状態の更新に失敗しました。",
             http_status=500,
         )
         return response

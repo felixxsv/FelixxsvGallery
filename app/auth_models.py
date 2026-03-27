@@ -644,6 +644,8 @@ def get_session_by_token_hash(conn, session_token_hash: str) -> dict | None:
             user_agent,
             created_at,
             last_seen_at,
+            last_access_at,
+            last_presence_at,
             expires_at,
             two_factor_verified_at,
             two_factor_remember_until,
@@ -668,6 +670,8 @@ def get_session_by_id(conn, session_id: str) -> dict | None:
             user_agent,
             created_at,
             last_seen_at,
+            last_access_at,
+            last_presence_at,
             expires_at,
             two_factor_verified_at,
             two_factor_remember_until,
@@ -692,6 +696,8 @@ def list_active_sessions_by_user_id(conn, user_id: int, now) -> list[dict]:
             user_agent,
             created_at,
             last_seen_at,
+            last_access_at,
+            last_presence_at,
             expires_at,
             two_factor_verified_at,
             two_factor_remember_until,
@@ -715,9 +721,11 @@ def create_session(
     session_token_hash: str,
     ip_address: bytes | None,
     user_agent: str | None,
+    expires_at,
     created_at,
     last_seen_at,
-    expires_at,
+    last_access_at,
+    last_presence_at=None,
     two_factor_verified_at=None,
     two_factor_remember_until=None,
 ) -> str:
@@ -728,12 +736,14 @@ def create_session(
             user_id,
             created_at,
             last_seen_at,
+            last_access_at,
+            last_presence_at,
             expires_at,
             two_factor_verified_at,
             two_factor_remember_until,
             user_agent,
             ip_addr
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (
         session_token_hash,
@@ -741,6 +751,8 @@ def create_session(
         user_id,
         created_at,
         last_seen_at,
+        last_access_at,
+        last_presence_at,
         expires_at,
         two_factor_verified_at,
         two_factor_remember_until,
@@ -755,15 +767,32 @@ def create_session(
 def update_session_last_seen(
     conn,
     session_id: str,
-    last_seen_at,
+    last_seen_at=None,
     expires_at=None,
+    last_access_at=None,
+    last_presence_at=None,
+    clear_presence: bool = False,
 ) -> int:
-    fields = ["last_seen_at = %s"]
-    params: list[Any] = [last_seen_at]
+    fields: list[str] = []
+    params: list[Any] = []
 
+    if last_seen_at is not None:
+        fields.append("last_seen_at = %s")
+        params.append(last_seen_at)
+    if last_access_at is not None:
+        fields.append("last_access_at = %s")
+        params.append(last_access_at)
+    if clear_presence:
+        fields.append("last_presence_at = NULL")
+    elif last_presence_at is not None:
+        fields.append("last_presence_at = %s")
+        params.append(last_presence_at)
     if expires_at is not None:
         fields.append("expires_at = %s")
         params.append(expires_at)
+
+    if not fields:
+        return 0
 
     sql = f"""
         UPDATE user_sessions
@@ -798,29 +827,35 @@ def mark_session_two_factor_verified(
         return _rows_affected(cursor)
 
 
-def revoke_session_by_id(conn, session_id: str, revoked_at) -> int:
+def revoke_session_by_id(conn, session_id: str, revoked_at, last_access_at=None) -> int:
+    access_at = last_access_at if last_access_at is not None else revoked_at
     sql = """
         UPDATE user_sessions
-        SET revoked_at = %s
+        SET revoked_at = %s,
+            last_access_at = %s,
+            last_presence_at = NULL
         WHERE sid = %s
           AND gallery = %s
           AND revoked_at IS NULL
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (revoked_at, session_id, _get_gallery_name()))
+        cursor.execute(sql, (revoked_at, access_at, session_id, _get_gallery_name()))
         return _rows_affected(cursor)
 
 
-def revoke_sessions_by_user_id(conn, user_id: int, revoked_at) -> int:
+def revoke_sessions_by_user_id(conn, user_id: int, revoked_at, last_access_at=None) -> int:
+    access_at = last_access_at if last_access_at is not None else revoked_at
     sql = """
         UPDATE user_sessions
-        SET revoked_at = %s
+        SET revoked_at = %s,
+            last_access_at = %s,
+            last_presence_at = NULL
         WHERE gallery = %s
           AND user_id = %s
           AND revoked_at IS NULL
     """
     with conn.cursor() as cursor:
-        cursor.execute(sql, (revoked_at, _get_gallery_name(), user_id))
+        cursor.execute(sql, (revoked_at, access_at, _get_gallery_name(), user_id))
         return _rows_affected(cursor)
 
 

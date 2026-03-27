@@ -14,7 +14,7 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -22,36 +22,31 @@ function buildPill(text, mod) {
   return `<span class="admin-users-pill ${mod}">${escapeHtml(text)}</span>`;
 }
 
-const USER_ACCOUNT_STATUS_LABELS = {
-  active: "利用可",
-  locked: "ロック",
-  disabled: "停止",
-  deleted: "削除済み",
-};
-
-const USER_LOGIN_STATUS_LABELS = {
-  logged_in: "ログイン中",
-  logged_out: "未ログイン",
-};
-
-const USER_SCREEN_STATUS_LABELS = {
-  open: "表示中",
-  closed: "未表示",
-};
-
-function getAccountStatusLabel(value) {
-  const key = String(value || "active").trim().toLowerCase();
-  return USER_ACCOUNT_STATUS_LABELS[key] || key || "-";
+function accountStatusLabel(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "active") return "利用可";
+  if (normalized === "locked") return "ロック";
+  if (normalized === "disabled") return "停止";
+  if (normalized === "deleted") return "削除済み";
+  return normalized || "-";
 }
 
-function getLoginStatusLabel(value) {
-  const key = String(value || "logged_out").trim().toLowerCase();
-  return USER_LOGIN_STATUS_LABELS[key] || key || "-";
+function loginStatusLabel(isLoggedIn) {
+  return isLoggedIn ? "ログイン中" : "未ログイン";
 }
 
-function getScreenStatusLabel(value) {
-  const key = String(value || "closed").trim().toLowerCase();
-  return USER_SCREEN_STATUS_LABELS[key] || key || "-";
+function screenStatusLabel(isScreenOpen) {
+  return isScreenOpen ? "表示中" : "未表示";
+}
+
+function twoFactorLabel(twoFactor) {
+  if (!twoFactor?.is_enabled) return "OFF";
+  return `${twoFactor.method || "email"} / ON`;
+}
+
+function statusPillClass(value) {
+  const normalized = String(value || "active").trim().toLowerCase();
+  return `admin-users-pill--${normalized || "active"}`;
 }
 
 const state = {
@@ -70,17 +65,11 @@ const state = {
   createDirty: false,
   pendingConfirm: null,
   filterTimer: null,
+  revision: "",
+  revisionTimer: null,
+  revisionIntervalMs: 10000,
+  pendingReload: false,
   loading: false,
-  live: {
-    revision: null,
-    timerId: null,
-    inFlight: false,
-    intervalMs: 10000,
-    started: false,
-    pendingRefresh: false,
-  },
-  editModalOpen: false,
-  createModalOpen: false,
 };
 
 function qs() {
@@ -135,18 +124,43 @@ function resetCreateForm() {
   window.AdminApp?.dirtyGuard?.setDirty("admin-users-create", false);
 }
 
+function clearRevisionTimer() {
+  if (state.revisionTimer) {
+    window.clearTimeout(state.revisionTimer);
+    state.revisionTimer = null;
+  }
+}
+
+function isEditModalOpen() {
+  return Boolean(document.querySelector("[data-modal-layer][data-modal-id='admin-users-edit']:not([hidden])"));
+}
+
+function isCreateModalOpen() {
+  return Boolean(document.querySelector("[data-modal-layer][data-modal-id='admin-users-create']:not([hidden])"));
+}
+
+function isAutoRefreshBlocked() {
+  return Boolean(state.editDirty || state.createDirty || isEditModalOpen() || isCreateModalOpen());
+}
+
+async function applyPendingReload() {
+  if (!state.pendingReload || isAutoRefreshBlocked()) return;
+  state.pendingReload = false;
+  await loadUsers({ silent: true });
+}
+
 function closeEditModal() {
-  state.editModalOpen = false;
   window.AdminApp?.modal?.close?.("admin-users-edit");
   state.editOriginal = null;
   state.editDirty = false;
   window.AdminApp?.dirtyGuard?.clear?.("admin-users-edit");
+  void applyPendingReload();
 }
 
 function closeCreateModal() {
-  state.createModalOpen = false;
   window.AdminApp?.modal?.close?.("admin-users-create");
   resetCreateForm();
+  void applyPendingReload();
 }
 
 async function openActionConfirm(message, approveLabel = "実行") {
@@ -167,83 +181,14 @@ function closeActionConfirm(result) {
   if (typeof resolver === "function") resolver(Boolean(result));
 }
 
-
-function setUsersRevision(value) {
-  state.live.revision = value ? String(value) : null;
-}
-
-function clearLiveTimer() {
-  if (state.live.timerId) {
-    window.clearTimeout(state.live.timerId);
-    state.live.timerId = null;
-  }
-}
-
-function isUsersRefreshSuspended() {
-  return state.loading || state.editModalOpen || state.createModalOpen || state.editDirty || state.createDirty;
-}
-
-function scheduleLiveCheck(delayMs = state.live.intervalMs) {
-  clearLiveTimer();
-  if (!state.live.started || document.visibilityState !== "visible") return;
-  state.live.timerId = window.setTimeout(() => {
-    void checkUsersRevision();
-  }, Math.max(3000, Number(delayMs) || state.live.intervalMs));
-}
-
-async function checkUsersRevision() {
-  if (!state.live.started || state.live.inFlight) {
-    scheduleLiveCheck();
+function updateLiveStatusText() {
+  const el = byId("adminUsersLiveStatus");
+  if (!el) return;
+  if (state.pendingReload) {
+    el.textContent = "更新保留中";
     return;
   }
-  if (document.visibilityState !== "visible") {
-    clearLiveTimer();
-    return;
-  }
-  state.live.inFlight = true;
-  try {
-    const payload = await window.AdminApp.api.get("/api/admin/users/revision");
-    const revision = payload.data?.revision ? String(payload.data.revision) : null;
-    if (revision && !state.live.revision) {
-      setUsersRevision(revision);
-    } else if (revision && state.live.revision && revision !== state.live.revision) {
-      if (isUsersRefreshSuspended()) {
-        state.live.pendingRefresh = true;
-        setUsersRevision(revision);
-      } else {
-        await loadUsers({ silent: true, reason: "live-revision" });
-      }
-    }
-  } catch (error) {
-  } finally {
-    state.live.inFlight = false;
-    scheduleLiveCheck();
-  }
-}
-
-async function flushPendingUsersRefresh() {
-  if (!state.live.pendingRefresh) return;
-  if (isUsersRefreshSuspended()) return;
-  state.live.pendingRefresh = false;
-  await loadUsers({ silent: true, reason: "pending-refresh" });
-}
-
-function bindUsersLiveWatcher() {
-  if (state.live.started) return;
-  state.live.started = true;
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      void checkUsersRevision();
-      return;
-    }
-    clearLiveTimer();
-  });
-  window.addEventListener("focus", () => {
-    if (document.visibilityState === "visible") {
-      void checkUsersRevision();
-    }
-  });
-  void checkUsersRevision();
+  el.textContent = document.visibilityState === "hidden" ? "自動確認停止中" : "変更検知中";
 }
 
 function renderTable() {
@@ -256,7 +201,7 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">該当するユーザーがいません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">該当するユーザーがいません。</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
@@ -264,24 +209,22 @@ function renderTable() {
         ? `<img src="${escapeHtml(item.avatar_url)}" alt="${escapeHtml(item.display_name || item.user_key || "user")}">`
         : `<span>${escapeHtml((item.display_name || item.user_key || "?").slice(0, 1).toUpperCase())}</span>`;
       const providers = Array.isArray(item.auth_providers) && item.auth_providers.length > 0 ? item.auth_providers.join(", ") : "-";
-      const twoFactorText = item.two_factor?.is_enabled ? `${item.two_factor.method || "email"} / ON` : "OFF";
-      const accountStatus = String(item.status || "active").trim().toLowerCase();
-      const loginStatus = String(item.login_status || "logged_out").trim().toLowerCase();
-      const screenStatus = String(item.screen_status || "closed").trim().toLowerCase();
       tr.innerHTML = `
-        <td class="admin-users-cell--avatar">
-          <div class="admin-user-cell__avatar">${avatar}</div>
-        </td>
-        <td class="admin-users-cell--identity">
-          <div class="admin-user-cell__name">${escapeHtml(item.display_name || "-")}</div>
-          <div class="admin-user-cell__sub">${escapeHtml(item.user_key || "-")} ・ ${escapeHtml(providers)}</div>
+        <td>
+          <div class="admin-user-cell">
+            <div class="admin-user-cell__avatar">${avatar}</div>
+            <div>
+              <div class="admin-user-cell__name">${escapeHtml(item.display_name || "-")}</div>
+              <div class="admin-user-cell__sub">${escapeHtml(item.user_key || "-")} ・ ${escapeHtml(providers)}</div>
+            </div>
+          </div>
         </td>
         <td>${escapeHtml(item.primary_email || "未登録")}</td>
         <td>${buildPill(item.role || "-", item.role === "admin" ? "admin-users-pill--admin" : "admin-users-pill--user")}</td>
-        <td>${buildPill(getAccountStatusLabel(accountStatus), `admin-users-pill--${escapeHtml(accountStatus || "active")}`)}</td>
-        <td>${buildPill(getLoginStatusLabel(loginStatus), loginStatus === "logged_in" ? "admin-users-pill--logged-in" : "admin-users-pill--logged-out")}</td>
-        <td>${buildPill(getScreenStatusLabel(screenStatus), screenStatus === "open" ? "admin-users-pill--screen-open" : "admin-users-pill--screen-closed")}</td>
-        <td>${escapeHtml(twoFactorText)}</td>
+        <td>${buildPill(accountStatusLabel(item.status), statusPillClass(item.status))}</td>
+        <td>${buildPill(loginStatusLabel(Boolean(item.is_logged_in)), Boolean(item.is_logged_in) ? "admin-users-pill--login-on" : "admin-users-pill--login-off")}</td>
+        <td>${buildPill(screenStatusLabel(Boolean(item.is_screen_open)), Boolean(item.is_screen_open) ? "admin-users-pill--screen-on" : "admin-users-pill--screen-off")}</td>
+        <td>${escapeHtml(twoFactorLabel(item.two_factor))}</td>
         <td>${item.upload_enabled ? "許可" : "禁止"}</td>
         <td>${escapeHtml(formatDateTime(item.last_access_at || item.last_seen_at))}</td>
         <td>
@@ -298,15 +241,16 @@ function renderTable() {
   if (pageInfo) pageInfo.textContent = `${state.page} / ${state.pages}`;
   if (prev) prev.disabled = state.page <= 1;
   if (next) next.disabled = state.page >= state.pages;
+  updateLiveStatusText();
 }
 
 async function loadUsers(options = {}) {
   const app = window.AdminApp;
+  const silent = Boolean(options.silent);
   const tbody = byId("adminUsersTableBody");
-  const silent = Boolean(options?.silent);
   state.loading = true;
   if (!silent && tbody) {
-    tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">読み込み中です。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">読み込み中です。</td></tr>`;
   }
   try {
     const payload = await app.api.get(`/api/admin/users?${qs()}`);
@@ -314,7 +258,7 @@ async function loadUsers(options = {}) {
     state.pages = Number(payload.data?.pages || 1);
     state.page = Number(payload.data?.page || state.page);
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
-    setUsersRevision(payload.data?.revision);
+    state.revision = String(payload.data?.revision || state.revision || "");
     renderTable();
   } catch (error) {
     const message = error?.message || "ユーザー一覧の取得に失敗しました。";
@@ -323,13 +267,52 @@ async function loadUsers(options = {}) {
     state.total = 0;
     state.pages = 1;
     renderTable();
-    const tbody = byId("adminUsersTableBody");
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
     }
   } finally {
     state.loading = false;
+    scheduleRevisionCheck();
   }
+}
+
+async function fetchUsersRevision() {
+  const payload = await window.AdminApp.api.get("/api/admin/users/revision");
+  return String(payload.data?.revision || "");
+}
+
+async function pollUsersRevision() {
+  clearRevisionTimer();
+  if (document.visibilityState === "hidden") {
+    updateLiveStatusText();
+    return;
+  }
+  try {
+    const revision = await fetchUsersRevision();
+    if (state.revision && revision && revision !== state.revision) {
+      if (isAutoRefreshBlocked()) {
+        state.pendingReload = true;
+      } else {
+        await loadUsers({ silent: true });
+        return;
+      }
+    }
+    if (!state.revision && revision) {
+      state.revision = revision;
+    }
+  } catch (error) {
+  } finally {
+    updateLiveStatusText();
+    scheduleRevisionCheck();
+  }
+}
+
+function scheduleRevisionCheck() {
+  clearRevisionTimer();
+  if (document.visibilityState === "hidden") return;
+  state.revisionTimer = window.setTimeout(() => {
+    void pollUsersRevision();
+  }, state.revisionIntervalMs);
 }
 
 async function openEditModal(userId) {
@@ -352,11 +335,12 @@ async function openEditModal(userId) {
     byId("adminUsersEditUploadEnabled").checked = state.editOriginal.upload_enabled;
     byId("adminUsersEditEmail").textContent = user.primary_email || "未登録";
     byId("adminUsersEditCreatedAt").textContent = formatDateTime(user.created_at);
-    byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_access_at || user.last_seen_at);
-    byId("adminUsersEditTwoFactor").textContent = user.two_factor?.is_enabled ? `${user.two_factor?.method || "email"} / ON` : "OFF";
+    byId("adminUsersEditLastAccessAt").textContent = formatDateTime(user.last_access_at || user.last_seen_at);
+    byId("adminUsersEditLoginStatus").textContent = loginStatusLabel(Boolean(user.is_logged_in));
+    byId("adminUsersEditScreenStatus").textContent = screenStatusLabel(Boolean(user.is_screen_open));
+    byId("adminUsersEditTwoFactor").textContent = twoFactorLabel(user.two_factor);
     state.editDirty = false;
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
-    state.editModalOpen = true;
     window.AdminApp.modal.open("admin-users-edit");
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ユーザー詳細の取得に失敗しました。");
@@ -398,7 +382,7 @@ async function saveEdit() {
     }
     window.AdminApp?.toast?.success?.(data?.message || "更新しました。");
     closeEditModal();
-    await loadUsers();
+    await loadUsers({ silent: true });
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ユーザー情報の更新に失敗しました。");
   }
@@ -421,7 +405,7 @@ async function deleteCurrentUser() {
     }
     window.AdminApp?.toast?.success?.(data?.message || "削除しました。");
     closeEditModal();
-    await loadUsers();
+    await loadUsers({ silent: true });
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ユーザー削除に失敗しました。");
   }
@@ -454,7 +438,7 @@ async function createTempUser() {
     window.AdminApp?.toast?.success?.(data?.message || "仮ユーザーを作成しました。");
     state.createDirty = false;
     window.AdminApp?.dirtyGuard?.setDirty?.("admin-users-create", false);
-    await loadUsers();
+    await loadUsers({ silent: true });
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "仮ユーザー作成に失敗しました。");
   }
@@ -507,12 +491,22 @@ function bindFilters() {
     state.page += 1;
     loadUsers();
   });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      if (state.pendingReload) {
+        void applyPendingReload();
+      }
+      scheduleRevisionCheck();
+    } else {
+      clearRevisionTimer();
+      updateLiveStatusText();
+    }
+  });
 }
 
 function bindModals() {
   byId("adminUsersCreateButton")?.addEventListener("click", () => {
     resetCreateForm();
-    state.createModalOpen = true;
     window.AdminApp.modal.open("admin-users-create");
   });
 
@@ -520,7 +514,6 @@ function bindModals() {
     const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded("未保存の入力があります。閉じますか？");
     if (!ok) return;
     closeCreateModal();
-    await flushPendingUsersRefresh();
   });
 
   byId("adminUsersCreateSubmitButton")?.addEventListener("click", createTempUser);
@@ -528,7 +521,6 @@ function bindModals() {
     const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded("未保存の変更があります。閉じますか？");
     if (!ok) return;
     closeEditModal();
-    await flushPendingUsersRefresh();
   });
   byId("adminUsersEditSaveButton")?.addEventListener("click", saveEdit);
   byId("adminUsersDeleteButton")?.addEventListener("click", deleteCurrentUser);
@@ -563,9 +555,8 @@ async function initPage() {
   bindTableEvents();
   bindModals();
   await loadUsers();
-  bindUsersLiveWatcher();
 }
 
 document.addEventListener("admin:ready", () => {
-  initPage();
+  void initPage();
 });

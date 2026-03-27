@@ -60,6 +60,8 @@ CREATE TABLE sessions (
     user_agent VARCHAR(512) NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     last_seen_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    last_access_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    last_presence_at DATETIME(6) NULL,
     expires_at DATETIME(6) NOT NULL,
     two_factor_verified_at DATETIME(6) NULL,
     two_factor_remember_until DATETIME(6) NULL,

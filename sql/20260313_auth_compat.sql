@@ -12,9 +12,14 @@ SET status = CASE
 END;
 
 ALTER TABLE user_sessions
+    ADD COLUMN last_access_at DATETIME(6) NULL AFTER last_seen_at,
+    ADD COLUMN last_presence_at DATETIME(6) NULL AFTER last_access_at,
     ADD COLUMN two_factor_verified_at DATETIME(6) NULL AFTER expires_at,
     ADD COLUMN two_factor_remember_until DATETIME(6) NULL AFTER two_factor_verified_at,
     ADD COLUMN revoked_at DATETIME(6) NULL AFTER two_factor_remember_until;
+
+UPDATE user_sessions
+SET last_presence_at = NULL;
 
 CREATE TABLE auth_identities (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

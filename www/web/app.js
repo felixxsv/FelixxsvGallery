@@ -29,6 +29,86 @@
   const twoFactorStatusEl = document.getElementById('settings-2fa-status');
   const adminSectionEl = document.getElementById('settings-admin-section');
 
+
+  function createPresenceReporter() {
+    const endpoint = "/gallery/api/auth/presence";
+    const intervalMs = 30000;
+    let timerId = null;
+    let started = false;
+    let visible = false;
+
+    async function post(nextVisible, useBeacon) {
+      const body = JSON.stringify({ visible: Boolean(nextVisible) });
+      if (useBeacon && navigator.sendBeacon) {
+        try {
+          const blob = new Blob([body], { type: "application/json" });
+          navigator.sendBeacon(endpoint, blob);
+          return;
+        } catch (e) {}
+      }
+      try {
+        await fetch(endpoint, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: Boolean(useBeacon)
+        });
+      } catch (e) {}
+    }
+
+    function clearTimer() {
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+    }
+
+    function schedule() {
+      clearTimer();
+      if (!visible) return;
+      timerId = setTimeout(async () => {
+        await post(true, false);
+        schedule();
+      }, intervalMs);
+    }
+
+    async function setVisible(nextVisible, useBeacon) {
+      visible = Boolean(nextVisible);
+      if (!visible) {
+        clearTimer();
+        await post(false, useBeacon);
+        return;
+      }
+      await post(true, useBeacon);
+      schedule();
+    }
+
+    function bind() {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          void setVisible(false, true);
+          return;
+        }
+        void setVisible(true, false);
+      });
+      window.addEventListener("pagehide", () => {
+        void setVisible(false, true);
+      });
+    }
+
+    return {
+      start() {
+        if (started) return;
+        started = true;
+        bind();
+        void setVisible(document.visibilityState !== "hidden", false);
+      }
+    };
+  }
+
+  const presenceReporter = createPresenceReporter();
+
   const twoFactorEnableBtn = document.getElementById('settings-2fa-enable-btn');
   const twoFactorDisableOpenBtn = document.getElementById('settings-2fa-disable-open-btn');
   const twoFactorSetupBox = document.getElementById('settings-2fa-setup-box');
@@ -51,17 +131,6 @@
       .replaceAll("'", '&#39;');
   }
 
-
-
-  const PRESENCE_ENDPOINT = '/gallery/api/auth/presence';
-  const PRESENCE_FALLBACK_INTERVAL_MS = 30 * 1000;
-  const presenceState = {
-    started: false,
-    stopped: false,
-    inFlight: false,
-    intervalMs: PRESENCE_FALLBACK_INTERVAL_MS,
-    timerId: null
-  };
   async function api(path, options = {}) {
     const response = await fetch(path, {
       method: options.method || 'GET',
@@ -95,87 +164,6 @@
     return payload;
   }
 
-
-
-  function clearPresenceTimer() {
-    if (presenceState.timerId) {
-      clearTimeout(presenceState.timerId);
-      presenceState.timerId = null;
-    }
-  }
-
-  function applyPresenceConfig(data) {
-    const heartbeatSec = Number(data?.heartbeat_interval_sec || 0);
-    if (Number.isFinite(heartbeatSec) && heartbeatSec >= 10) {
-      presenceState.intervalMs = heartbeatSec * 1000;
-    }
-  }
-
-  function schedulePresencePing() {
-    clearPresenceTimer();
-    if (presenceState.stopped || document.visibilityState !== 'visible') return;
-    presenceState.timerId = setTimeout(() => {
-      void pingPresence();
-    }, presenceState.intervalMs);
-  }
-
-  async function pingPresence() {
-    if (presenceState.stopped || presenceState.inFlight) return;
-    presenceState.inFlight = true;
-    try {
-      const response = await fetch(PRESENCE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-        keepalive: true,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      if (response.status === 401 || response.status === 403) {
-        presenceState.stopped = true;
-        clearPresenceTimer();
-        return;
-      }
-      const payload = await response.json().catch(() => null);
-      if (response.ok && payload?.ok !== false) {
-        applyPresenceConfig(payload?.data?.presence || payload?.data || null);
-      }
-    } catch (error) {
-    } finally {
-      presenceState.inFlight = false;
-      schedulePresencePing();
-    }
-  }
-
-  function sendPresenceBeacon() {
-    if (presenceState.stopped) return;
-    try {
-      const blob = new Blob(['{}'], { type: 'application/json' });
-      navigator.sendBeacon(PRESENCE_ENDPOINT, blob);
-    } catch (error) {
-    }
-  }
-
-  function handlePresenceVisibilityChange() {
-    if (document.visibilityState === 'visible') {
-      void pingPresence();
-      return;
-    }
-    sendPresenceBeacon();
-    clearPresenceTimer();
-  }
-
-  function startPresenceTracking() {
-    if (presenceState.started) return;
-    presenceState.started = true;
-    document.addEventListener('visibilitychange', handlePresenceVisibilityChange);
-    window.addEventListener('pagehide', () => {
-      sendPresenceBeacon();
-      clearPresenceTimer();
-    });
-    handlePresenceVisibilityChange();
-  }
   function setMainLoading(isLoading) {
     settingsLoading.hidden = !isLoading;
     settingsBody.hidden = isLoading;
@@ -1386,7 +1374,6 @@ function initPerPageSort() {
 }
 
 async function init() {
-  startPresenceTracking()
   initColumns()
   initPerPageSort()
   initSelects()

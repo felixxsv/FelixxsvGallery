@@ -99,7 +99,7 @@
                   </select>
                 </div>
                 <div class="admin-users-filter-wrap">
-                  <label class="admin-form-label" for="adminUsersStatusFilter">状態</label>
+                  <label class="admin-form-label" for="adminUsersStatusFilter">利用状態</label>
                   <select id="adminUsersStatusFilter" class="app-select">
                     <option value="">すべて</option>
                     <option value="active">利用可</option>
@@ -129,14 +129,13 @@
           <article class="admin-panel admin-users-panel admin-users-panel--list">
             <div class="admin-users-list-head">
               <div class="admin-panel__title">ユーザー一覧</div>
-              <div id="adminUsersSummary" class="admin-panel__meta">-</div>
+              <div class="admin-users-list-head__meta"><div id="adminUsersSummary" class="admin-panel__meta">-</div><div id="adminUsersLiveStatus" class="admin-users-live-status">変更検知中</div></div>
             </div>
             <div class="admin-users-table-wrap">
               <table class="admin-users-table">
                 <thead>
                   <tr>
-                    <th>アイコン</th>
-                    <th>表示名</th>
+                    <th>ユーザー</th>
                     <th>メール</th>
                     <th>ロール</th>
                     <th>利用状態</th>
@@ -150,7 +149,7 @@
                 </thead>
                 <tbody id="adminUsersTableBody">
                   <tr>
-                    <td colspan="11" class="admin-users-table__empty">読み込み中です。</td>
+                    <td colspan="10" class="admin-users-table__empty">読み込み中です。</td>
                   </tr>
                 </tbody>
               </table>
@@ -226,7 +225,9 @@
             <div class="admin-users-modal__meta">
               <div><span>メール</span><strong id="adminUsersEditEmail">-</strong></div>
               <div><span>作成日時</span><strong id="adminUsersEditCreatedAt">-</strong></div>
-              <div><span>最終アクセス</span><strong id="adminUsersEditLastSeenAt">-</strong></div>
+              <div><span>ログイン</span><strong id="adminUsersEditLoginStatus">-</strong></div>
+              <div><span>画面</span><strong id="adminUsersEditScreenStatus">-</strong></div>
+              <div><span>最終アクセス</span><strong id="adminUsersEditLastAccessAt">-</strong></div>
               <div><span>2FA</span><strong id="adminUsersEditTwoFactor">-</strong></div>
             </div>
           </div>
