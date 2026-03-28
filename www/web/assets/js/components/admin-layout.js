@@ -6,85 +6,6 @@ import { createSessionStore } from "../core/session.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
 
-function createPresenceReporter(appBase) {
-  const endpoint = `${appBase}/api/auth/presence`;
-  const intervalMs = 30000;
-  let timerId = null;
-  let visible = false;
-
-  async function postVisibleState(nextVisible, useBeacon = false) {
-    const body = JSON.stringify({ visible: Boolean(nextVisible) });
-    if (useBeacon && navigator.sendBeacon) {
-      try {
-        const blob = new Blob([body], { type: "application/json" });
-        navigator.sendBeacon(endpoint, blob);
-        return;
-      } catch {
-      }
-    }
-    try {
-      await fetch(endpoint, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: useBeacon,
-      });
-    } catch {
-    }
-  }
-
-  function clearTimer() {
-    if (timerId) {
-      window.clearTimeout(timerId);
-      timerId = null;
-    }
-  }
-
-  function schedule() {
-    clearTimer();
-    if (!visible) return;
-    timerId = window.setTimeout(async () => {
-      await postVisibleState(true);
-      schedule();
-    }, intervalMs);
-  }
-
-  async function setVisible(nextVisible, useBeacon = false) {
-    visible = Boolean(nextVisible);
-    if (!visible) {
-      clearTimer();
-      await postVisibleState(false, useBeacon);
-      return;
-    }
-    await postVisibleState(true, useBeacon);
-    schedule();
-  }
-
-  function bind() {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        void setVisible(false, true);
-        return;
-      }
-      void setVisible(true);
-    });
-    window.addEventListener("pagehide", () => {
-      void setVisible(false, true);
-    });
-  }
-
-  return {
-    start() {
-      bind();
-      void setVisible(document.visibilityState !== "hidden");
-    },
-    stop() {
-      void setVisible(false, true);
-    }
-  };
-}
-
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
   const api = createApiClient({ baseUrl: appBase });
@@ -100,11 +21,76 @@ function createAdminContext() {
     session,
     modal,
     toast,
-    presence: createPresenceReporter(appBase),
     page: document.body.dataset.adminPage || "dashboard",
     ready: false,
     bootstrapData: null
   };
+}
+
+
+function startPresenceMonitor(app) {
+  if (!app || app._presenceMonitorStarted) return;
+  app._presenceMonitorStarted = true;
+
+  const endpoint = `${app.appBase}/api/auth/presence`;
+  let timer = null;
+
+  async function postPresence(visible, useBeacon = false) {
+    const payload = JSON.stringify({ visible: Boolean(visible) });
+    if (useBeacon && navigator.sendBeacon) {
+      try {
+        const blob = new Blob([payload], { type: "application/json" });
+        navigator.sendBeacon(endpoint, blob);
+        return;
+      } catch (_) {}
+    }
+    try {
+      await fetch(endpoint, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        keepalive: !visible,
+        cache: "no-store",
+      });
+    } catch (_) {}
+  }
+
+  function pulse() {
+    if (document.visibilityState !== "visible") return;
+    void postPresence(true);
+  }
+
+  function startTimer() {
+    if (timer) return;
+    timer = window.setInterval(pulse, 30000);
+  }
+
+  function stopTimer() {
+    if (!timer) return;
+    window.clearInterval(timer);
+    timer = null;
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      startTimer();
+      void postPresence(true);
+    } else {
+      stopTimer();
+      void postPresence(false, true);
+    }
+  });
+
+  window.addEventListener("pagehide", () => {
+    stopTimer();
+    void postPresence(false, true);
+  });
+
+  if (document.visibilityState === "visible") {
+    startTimer();
+    void postPresence(true);
+  }
 }
 
 function show(el) {
@@ -229,7 +215,7 @@ export async function initAdminLayout() {
   const sidebar = initSidebar({
     root: refs.sidebar,
     toggleButton: refs.sidebarToggle,
-    onNavigate: async () => {
+    onNavigate: async (href) => {
       const ok = await dirtyGuard.confirmIfNeeded("未保存の変更があります。破棄して移動しますか？");
       if (!ok) return false;
       dirtyGuard.allowNextLeave();
@@ -254,6 +240,8 @@ export async function initAdminLayout() {
       return;
     }
 
+    startPresenceMonitor(app);
+
     const payload = await app.api.get(`/api/admin/bootstrap?page=${encodeURIComponent(app.page)}`);
     const data = payload.data || {};
     const currentUser = data.current_user || {};
@@ -272,7 +260,6 @@ export async function initAdminLayout() {
     app.bootstrapData = data;
     app.ready = true;
     showApp();
-    app.presence.start();
     document.dispatchEvent(new CustomEvent("admin:ready", { detail: { app, bootstrap: data } }));
   } catch (error) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {

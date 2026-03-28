@@ -69,84 +69,68 @@ const AUTH_ME_ENDPOINTS = [
 ]
 
 
-function createPresenceReporter() {
-  const endpoint = "/gallery/api/auth/presence"
-  const intervalMs = 30000
-  let timerId = null
-  let started = false
-  let visible = false
+const PRESENCE_ENDPOINT = "/gallery/api/auth/presence"
+let presenceTimer = null
+let presenceStarted = false
 
-  async function post(nextVisible, useBeacon) {
-    const body = JSON.stringify({ visible: !!nextVisible })
-    if (useBeacon && navigator.sendBeacon) {
-      try {
-        const blob = new Blob([body], { type: "application/json" })
-        navigator.sendBeacon(endpoint, blob)
-        return
-      } catch (e) {}
-    }
+async function postPresence(visible, useBeacon) {
+  const body = JSON.stringify({ visible: !!visible })
+  if (useBeacon && navigator.sendBeacon) {
     try {
-      await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: !!useBeacon,
-      })
+      const blob = new Blob([body], { type: "application/json" })
+      navigator.sendBeacon(PRESENCE_ENDPOINT, blob)
+      return
     } catch (e) {}
   }
-
-  function clearTimer() {
-    if (timerId) {
-      clearTimeout(timerId)
-      timerId = null
-    }
-  }
-
-  function schedule() {
-    clearTimer()
-    if (!visible) return
-    timerId = setTimeout(async () => {
-      await post(true, false)
-      schedule()
-    }, intervalMs)
-  }
-
-  async function setVisible(nextVisible, useBeacon) {
-    visible = !!nextVisible
-    if (!visible) {
-      clearTimer()
-      await post(false, useBeacon)
-      return
-    }
-    await post(true, useBeacon)
-    schedule()
-  }
-
-  function bind() {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        void setVisible(false, true)
-        return
-      }
-      void setVisible(true, false)
+  try {
+    await fetch(PRESENCE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      cache: "no-store",
+      keepalive: !visible,
+      body,
     })
-    window.addEventListener("pagehide", () => {
-      void setVisible(false, true)
-    })
-  }
-
-  return {
-    start() {
-      if (started) return
-      started = true
-      bind()
-      void setVisible(document.visibilityState !== "hidden", false)
-    },
-  }
+  } catch (e) {}
 }
 
-const presenceReporter = createPresenceReporter()
+function startPresenceTimer() {
+  if (presenceTimer) return
+  presenceTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") void postPresence(true, false)
+  }, 30000)
+}
+
+function stopPresenceTimer() {
+  if (!presenceTimer) return
+  clearInterval(presenceTimer)
+  presenceTimer = null
+}
+
+function startPresenceMonitor() {
+  if (presenceStarted) return
+  presenceStarted = true
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      startPresenceTimer()
+      void postPresence(true, false)
+    } else {
+      stopPresenceTimer()
+      void postPresence(false, true)
+    }
+  })
+
+  window.addEventListener("pagehide", () => {
+    stopPresenceTimer()
+    void postPresence(false, true)
+  })
+
+  if (document.visibilityState === "visible") {
+    startPresenceTimer()
+    void postPresence(true, false)
+  }
+}
 
 function gotoAuth() {
   const next = `${location.pathname}${location.search}${location.hash}`
@@ -1292,7 +1276,7 @@ async function boot() {
   const ok = await requireLoginOrRedirect()
   if (!ok) return
   if (document && document.body) document.body.style.visibility = ""
-  presenceReporter.start()
+  startPresenceMonitor()
   initMain()
 }
 

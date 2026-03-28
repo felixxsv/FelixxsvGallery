@@ -99,13 +99,13 @@
                   </select>
                 </div>
                 <div class="admin-users-filter-wrap">
-                  <label class="admin-form-label" for="adminUsersStatusFilter">利用状態</label>
+                  <label class="admin-form-label" for="adminUsersStatusFilter">状態</label>
                   <select id="adminUsersStatusFilter" class="app-select">
                     <option value="">すべて</option>
-                    <option value="active">利用可</option>
-                    <option value="locked">ロック</option>
-                    <option value="disabled">停止</option>
-                    <option value="deleted">削除済み</option>
+                    <option value="active">active</option>
+                    <option value="locked">locked</option>
+                    <option value="disabled">disabled</option>
+                    <option value="deleted">deleted</option>
                   </select>
                 </div>
                 <div class="admin-users-filter-wrap">
@@ -129,7 +129,7 @@
           <article class="admin-panel admin-users-panel admin-users-panel--list">
             <div class="admin-users-list-head">
               <div class="admin-panel__title">ユーザー一覧</div>
-              <div class="admin-users-list-head__meta"><div id="adminUsersSummary" class="admin-panel__meta">-</div><div id="adminUsersLiveStatus" class="admin-users-live-status">変更検知中</div></div>
+              <div id="adminUsersSummary" class="admin-panel__meta">-</div>
             </div>
             <div class="admin-users-table-wrap">
               <table class="admin-users-table">
@@ -208,12 +208,12 @@
               </select>
             </div>
             <div class="admin-users-modal__field">
-              <label class="admin-form-label" for="adminUsersEditStatus">利用状態</label>
+              <label class="admin-form-label" for="adminUsersEditStatus">状態</label>
               <select id="adminUsersEditStatus" class="app-select">
-                <option value="active">利用可</option>
-                <option value="locked">ロック</option>
-                <option value="disabled">停止</option>
-                <option value="deleted">削除済み</option>
+                <option value="active">active</option>
+                <option value="locked">locked</option>
+                <option value="disabled">disabled</option>
+                <option value="deleted">deleted</option>
               </select>
             </div>
             <div class="admin-users-modal__field admin-users-modal__field--check">
@@ -225,9 +225,7 @@
             <div class="admin-users-modal__meta">
               <div><span>メール</span><strong id="adminUsersEditEmail">-</strong></div>
               <div><span>作成日時</span><strong id="adminUsersEditCreatedAt">-</strong></div>
-              <div><span>ログイン</span><strong id="adminUsersEditLoginStatus">-</strong></div>
-              <div><span>画面</span><strong id="adminUsersEditScreenStatus">-</strong></div>
-              <div><span>最終アクセス</span><strong id="adminUsersEditLastAccessAt">-</strong></div>
+              <div><span>最終アクセス</span><strong id="adminUsersEditLastSeenAt">-</strong></div>
               <div><span>2FA</span><strong id="adminUsersEditTwoFactor">-</strong></div>
             </div>
           </div>

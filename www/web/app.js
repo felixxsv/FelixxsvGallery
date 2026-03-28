@@ -8,116 +8,89 @@
 
 
   const AUTH_ME_ENDPOINTS = [
-    '/api/auth/me',
     '/gallery/api/auth/me',
+    '/api/auth/me',
     '/gallery/api/me',
     '/gallery/api/session'
-  ]
+  ];
+  const PRESENCE_ENDPOINT = '/gallery/api/auth/presence';
+  let presenceStarted = false;
+  let presenceTimer = null;
 
-  function createPresenceReporter() {
-    const endpoint = '/api/auth/presence'
-    const intervalMs = 30000
-    let timerId = null
-    let started = false
-    let visible = false
-
-    async function post(nextVisible, useBeacon) {
-      const body = JSON.stringify({ visible: !!nextVisible })
-      if (useBeacon && navigator.sendBeacon) {
-        try {
-          const blob = new Blob([body], { type: 'application/json' })
-          navigator.sendBeacon(endpoint, blob)
-          return
-        } catch (e) {}
-      }
+  async function fetchPresenceMe() {
+    for (const url of AUTH_ME_ENDPOINTS) {
       try {
-        await fetch(endpoint, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-          keepalive: !!useBeacon,
-        })
-      } catch (e) {}
+        const response = await fetch(url, { method: 'GET', cache: 'no-store', credentials: 'include' });
+        if (response.status === 404) continue;
+        if (response.status === 401) return false;
+        if (!response.ok) continue;
+        const payload = await response.json().catch(() => ({}));
+        const user = payload?.data?.user || payload?.user || null;
+        if (user) return true;
+      } catch (_) {}
     }
-
-    function clearTimer() {
-      if (timerId) {
-        clearTimeout(timerId)
-        timerId = null
-      }
-    }
-
-    function schedule() {
-      clearTimer()
-      if (!visible) return
-      timerId = setTimeout(async () => {
-        await post(true, false)
-        schedule()
-      }, intervalMs)
-    }
-
-    async function setVisible(nextVisible, useBeacon) {
-      visible = !!nextVisible
-      if (!visible) {
-        clearTimer()
-        await post(false, useBeacon)
-        return
-      }
-      await post(true, useBeacon)
-      schedule()
-    }
-
-    function bind() {
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-          void setVisible(false, true)
-          return
-        }
-        void setVisible(true, false)
-      })
-      window.addEventListener('pagehide', () => {
-        void setVisible(false, true)
-      })
-    }
-
-    return {
-      start() {
-        if (started) return
-        started = true
-        bind()
-        void setVisible(document.visibilityState !== 'hidden', false)
-      },
-    }
+    return false;
   }
 
-  const presenceReporter = createPresenceReporter()
-
-  async function startPresenceIfAuthenticated() {
-    for (const endpoint of AUTH_ME_ENDPOINTS) {
+  async function postPresence(visible, useBeacon = false) {
+    const body = JSON.stringify({ visible: Boolean(visible) });
+    if (useBeacon && navigator.sendBeacon) {
       try {
-        const response = await fetch(endpoint, {
-          method: 'GET',
-          credentials: 'include',
-          headers: { Accept: 'application/json' },
-        })
-
-        if (response.status === 401 || response.status === 403 || response.status === 404) {
-          continue
-        }
-
-        let payload = null
-        try {
-          payload = await response.json()
-        } catch (e) {}
-
-        if (response.ok && payload && payload.ok !== false) {
-          presenceReporter.start()
-          return true
-        }
-      } catch (e) {}
+        const blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon(PRESENCE_ENDPOINT, blob);
+        return;
+      } catch (_) {}
     }
-    return false
+    try {
+      await fetch(PRESENCE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body,
+        keepalive: !visible,
+        cache: 'no-store'
+      });
+    } catch (_) {}
+  }
+
+  function startPresenceTimer() {
+    if (presenceTimer) return;
+    presenceTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void postPresence(true);
+    }, 30000);
+  }
+
+  function stopPresenceTimer() {
+    if (!presenceTimer) return;
+    clearInterval(presenceTimer);
+    presenceTimer = null;
+  }
+
+  async function startPresenceMonitor() {
+    if (presenceStarted) return;
+    const loggedIn = await fetchPresenceMe();
+    if (!loggedIn) return;
+    presenceStarted = true;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        startPresenceTimer();
+        void postPresence(true);
+      } else {
+        stopPresenceTimer();
+        void postPresence(false, true);
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      stopPresenceTimer();
+      void postPresence(false, true);
+    });
+
+    if (document.visibilityState === 'visible') {
+      startPresenceTimer();
+      await postPresence(true);
+    }
   }
 
   const settingsModal = document.getElementById('settings-modal');
@@ -1408,14 +1381,14 @@ function initPerPageSort() {
 }
 
 async function init() {
+  await startPresenceMonitor()
+
   initColumns()
   initPerPageSort()
   initSelects()
   initFilters()
   initSearch()
   initLightboxAndModals()
-
-  void startPresenceIfAuthenticated()
 
   await loadPalette()
   await loadTags()

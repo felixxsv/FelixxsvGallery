@@ -14,7 +14,7 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -23,30 +23,26 @@ function buildPill(text, mod) {
 }
 
 function accountStatusLabel(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (normalized === "active") return "利用可";
-  if (normalized === "locked") return "ロック";
-  if (normalized === "disabled") return "停止";
-  if (normalized === "deleted") return "削除済み";
-  return normalized || "-";
+  switch (String(value || "").toLowerCase()) {
+    case "active":
+      return "利用可";
+    case "locked":
+      return "ロック";
+    case "disabled":
+      return "停止";
+    case "deleted":
+      return "削除";
+    default:
+      return String(value || "-");
+  }
 }
 
-function loginStatusLabel(isLoggedIn) {
-  return isLoggedIn ? "ログイン中" : "未ログイン";
+function loginStatusLabel(value) {
+  return String(value || "") === "logged_in" ? "ログイン中" : "未ログイン";
 }
 
-function screenStatusLabel(isScreenOpen) {
-  return isScreenOpen ? "表示中" : "未表示";
-}
-
-function twoFactorLabel(twoFactor) {
-  if (!twoFactor?.is_enabled) return "OFF";
-  return `${twoFactor.method || "email"} / ON`;
-}
-
-function statusPillClass(value) {
-  const normalized = String(value || "active").trim().toLowerCase();
-  return `admin-users-pill--${normalized || "active"}`;
+function screenStatusLabel(value) {
+  return String(value || "") === "visible" ? "表示中" : "非表示";
 }
 
 const state = {
@@ -65,11 +61,6 @@ const state = {
   createDirty: false,
   pendingConfirm: null,
   filterTimer: null,
-  revision: "",
-  revisionTimer: null,
-  revisionIntervalMs: 10000,
-  pendingReload: false,
-  loading: false,
 };
 
 function qs() {
@@ -124,43 +115,16 @@ function resetCreateForm() {
   window.AdminApp?.dirtyGuard?.setDirty("admin-users-create", false);
 }
 
-function clearRevisionTimer() {
-  if (state.revisionTimer) {
-    window.clearTimeout(state.revisionTimer);
-    state.revisionTimer = null;
-  }
-}
-
-function isEditModalOpen() {
-  return Boolean(document.querySelector("[data-modal-layer][data-modal-id='admin-users-edit']:not([hidden])"));
-}
-
-function isCreateModalOpen() {
-  return Boolean(document.querySelector("[data-modal-layer][data-modal-id='admin-users-create']:not([hidden])"));
-}
-
-function isAutoRefreshBlocked() {
-  return Boolean(state.editDirty || state.createDirty || isEditModalOpen() || isCreateModalOpen());
-}
-
-async function applyPendingReload() {
-  if (!state.pendingReload || isAutoRefreshBlocked()) return;
-  state.pendingReload = false;
-  await loadUsers({ silent: true });
-}
-
 function closeEditModal() {
   window.AdminApp?.modal?.close?.("admin-users-edit");
   state.editOriginal = null;
   state.editDirty = false;
   window.AdminApp?.dirtyGuard?.clear?.("admin-users-edit");
-  void applyPendingReload();
 }
 
 function closeCreateModal() {
   window.AdminApp?.modal?.close?.("admin-users-create");
   resetCreateForm();
-  void applyPendingReload();
 }
 
 async function openActionConfirm(message, approveLabel = "実行") {
@@ -181,16 +145,6 @@ function closeActionConfirm(result) {
   if (typeof resolver === "function") resolver(Boolean(result));
 }
 
-function updateLiveStatusText() {
-  const el = byId("adminUsersLiveStatus");
-  if (!el) return;
-  if (state.pendingReload) {
-    el.textContent = "更新保留中";
-    return;
-  }
-  el.textContent = document.visibilityState === "hidden" ? "自動確認停止中" : "変更検知中";
-}
-
 function renderTable() {
   const tbody = byId("adminUsersTableBody");
   const summary = byId("adminUsersSummary");
@@ -209,6 +163,10 @@ function renderTable() {
         ? `<img src="${escapeHtml(item.avatar_url)}" alt="${escapeHtml(item.display_name || item.user_key || "user")}">`
         : `<span>${escapeHtml((item.display_name || item.user_key || "?").slice(0, 1).toUpperCase())}</span>`;
       const providers = Array.isArray(item.auth_providers) && item.auth_providers.length > 0 ? item.auth_providers.join(", ") : "-";
+      const twoFactorText = item.two_factor?.is_enabled ? `${item.two_factor.method || "email"} / ON` : "OFF";
+      const accountStatus = String(item.account_status || item.status || "active").toLowerCase();
+      const loginStatus = String(item.login_status || "logged_out").toLowerCase();
+      const screenStatus = String(item.screen_status || "hidden").toLowerCase();
       tr.innerHTML = `
         <td>
           <div class="admin-user-cell">
@@ -221,10 +179,10 @@ function renderTable() {
         </td>
         <td>${escapeHtml(item.primary_email || "未登録")}</td>
         <td>${buildPill(item.role || "-", item.role === "admin" ? "admin-users-pill--admin" : "admin-users-pill--user")}</td>
-        <td>${buildPill(accountStatusLabel(item.status), statusPillClass(item.status))}</td>
-        <td>${buildPill(loginStatusLabel(Boolean(item.is_logged_in)), Boolean(item.is_logged_in) ? "admin-users-pill--login-on" : "admin-users-pill--login-off")}</td>
-        <td>${buildPill(screenStatusLabel(Boolean(item.is_screen_open)), Boolean(item.is_screen_open) ? "admin-users-pill--screen-on" : "admin-users-pill--screen-off")}</td>
-        <td>${escapeHtml(twoFactorLabel(item.two_factor))}</td>
+        <td>${buildPill(accountStatusLabel(accountStatus), `admin-users-pill--${escapeHtml(accountStatus || "active")}`)}</td>
+        <td>${buildPill(loginStatusLabel(loginStatus), loginStatus === "logged_in" ? "admin-users-pill--logged-in" : "admin-users-pill--logged-out")}</td>
+        <td>${buildPill(screenStatusLabel(screenStatus), screenStatus === "visible" ? "admin-users-pill--visible" : "admin-users-pill--hidden")}</td>
+        <td>${escapeHtml(twoFactorText)}</td>
         <td>${item.upload_enabled ? "許可" : "禁止"}</td>
         <td>${escapeHtml(formatDateTime(item.last_access_at || item.last_seen_at))}</td>
         <td>
@@ -241,15 +199,13 @@ function renderTable() {
   if (pageInfo) pageInfo.textContent = `${state.page} / ${state.pages}`;
   if (prev) prev.disabled = state.page <= 1;
   if (next) next.disabled = state.page >= state.pages;
-  updateLiveStatusText();
 }
 
-async function loadUsers(options = {}) {
+
+async function loadUsers() {
   const app = window.AdminApp;
-  const silent = Boolean(options.silent);
   const tbody = byId("adminUsersTableBody");
-  state.loading = true;
-  if (!silent && tbody) {
+  if (tbody) {
     tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">読み込み中です。</td></tr>`;
   }
   try {
@@ -258,7 +214,6 @@ async function loadUsers(options = {}) {
     state.pages = Number(payload.data?.pages || 1);
     state.page = Number(payload.data?.page || state.page);
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
-    state.revision = String(payload.data?.revision || state.revision || "");
     renderTable();
   } catch (error) {
     const message = error?.message || "ユーザー一覧の取得に失敗しました。";
@@ -267,52 +222,11 @@ async function loadUsers(options = {}) {
     state.total = 0;
     state.pages = 1;
     renderTable();
+    const tbody = byId("adminUsersTableBody");
     if (tbody) {
       tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
     }
-  } finally {
-    state.loading = false;
-    scheduleRevisionCheck();
   }
-}
-
-async function fetchUsersRevision() {
-  const payload = await window.AdminApp.api.get("/api/admin/users/revision");
-  return String(payload.data?.revision || "");
-}
-
-async function pollUsersRevision() {
-  clearRevisionTimer();
-  if (document.visibilityState === "hidden") {
-    updateLiveStatusText();
-    return;
-  }
-  try {
-    const revision = await fetchUsersRevision();
-    if (state.revision && revision && revision !== state.revision) {
-      if (isAutoRefreshBlocked()) {
-        state.pendingReload = true;
-      } else {
-        await loadUsers({ silent: true });
-        return;
-      }
-    }
-    if (!state.revision && revision) {
-      state.revision = revision;
-    }
-  } catch (error) {
-  } finally {
-    updateLiveStatusText();
-    scheduleRevisionCheck();
-  }
-}
-
-function scheduleRevisionCheck() {
-  clearRevisionTimer();
-  if (document.visibilityState === "hidden") return;
-  state.revisionTimer = window.setTimeout(() => {
-    void pollUsersRevision();
-  }, state.revisionIntervalMs);
 }
 
 async function openEditModal(userId) {
@@ -335,10 +249,8 @@ async function openEditModal(userId) {
     byId("adminUsersEditUploadEnabled").checked = state.editOriginal.upload_enabled;
     byId("adminUsersEditEmail").textContent = user.primary_email || "未登録";
     byId("adminUsersEditCreatedAt").textContent = formatDateTime(user.created_at);
-    byId("adminUsersEditLastAccessAt").textContent = formatDateTime(user.last_access_at || user.last_seen_at);
-    byId("adminUsersEditLoginStatus").textContent = loginStatusLabel(Boolean(user.is_logged_in));
-    byId("adminUsersEditScreenStatus").textContent = screenStatusLabel(Boolean(user.is_screen_open));
-    byId("adminUsersEditTwoFactor").textContent = twoFactorLabel(user.two_factor);
+    byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_seen_at);
+    byId("adminUsersEditTwoFactor").textContent = user.two_factor?.is_enabled ? `${user.two_factor?.method || "email"} / ON` : "OFF";
     state.editDirty = false;
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
     window.AdminApp.modal.open("admin-users-edit");
@@ -382,7 +294,7 @@ async function saveEdit() {
     }
     window.AdminApp?.toast?.success?.(data?.message || "更新しました。");
     closeEditModal();
-    await loadUsers({ silent: true });
+    await loadUsers();
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ユーザー情報の更新に失敗しました。");
   }
@@ -405,7 +317,7 @@ async function deleteCurrentUser() {
     }
     window.AdminApp?.toast?.success?.(data?.message || "削除しました。");
     closeEditModal();
-    await loadUsers({ silent: true });
+    await loadUsers();
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ユーザー削除に失敗しました。");
   }
@@ -438,7 +350,7 @@ async function createTempUser() {
     window.AdminApp?.toast?.success?.(data?.message || "仮ユーザーを作成しました。");
     state.createDirty = false;
     window.AdminApp?.dirtyGuard?.setDirty?.("admin-users-create", false);
-    await loadUsers({ silent: true });
+    await loadUsers();
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "仮ユーザー作成に失敗しました。");
   }
@@ -490,17 +402,6 @@ function bindFilters() {
     if (state.page >= state.pages) return;
     state.page += 1;
     loadUsers();
-  });
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      if (state.pendingReload) {
-        void applyPendingReload();
-      }
-      scheduleRevisionCheck();
-    } else {
-      clearRevisionTimer();
-      updateLiveStatusText();
-    }
   });
 }
 
@@ -558,5 +459,5 @@ async function initPage() {
 }
 
 document.addEventListener("admin:ready", () => {
-  void initPage();
+  initPage();
 });
