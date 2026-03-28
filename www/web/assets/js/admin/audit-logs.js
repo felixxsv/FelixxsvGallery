@@ -129,49 +129,10 @@ function isDefaultLiveView() {
     && !state.dateTo;
 }
 
-function ensureLiveRefreshControl() {
-  const reloadButton = byId("adminAuditReloadButton");
-  if (!reloadButton || byId("adminAuditLiveRefreshInterval")) return;
-
-  const wrapper = document.createElement("label");
-  wrapper.style.display = "inline-flex";
-  wrapper.style.alignItems = "center";
-  wrapper.style.gap = "8px";
-  wrapper.style.marginRight = "8px";
-  wrapper.setAttribute("for", "adminAuditLiveRefreshInterval");
-  wrapper.textContent = "自動更新";
-
-  const select = document.createElement("select");
-  select.id = "adminAuditLiveRefreshInterval";
-  select.style.minWidth = "96px";
-
-  const options = [
-    [0, "OFF"],
-    [3000, "3秒"],
-    [5000, "5秒"],
-    [10000, "10秒"],
-    [30000, "30秒"],
-    [60000, "1分"],
-  ];
-  for (const [value, label] of options) {
-    const option = document.createElement("option");
-    option.value = String(value);
-    option.textContent = label;
-    select.appendChild(option);
-  }
-
+function syncLiveRefreshControl() {
+  const select = byId("adminAuditLiveRefreshInterval");
+  if (!select) return;
   select.value = String(getLiveInterval());
-  wrapper.appendChild(select);
-  reloadButton.parentElement?.insertBefore(wrapper, reloadButton);
-
-  select.addEventListener("change", () => {
-    const value = setLiveInterval(select.value);
-    select.value = String(value);
-    state.liveWatcher?.schedule?.();
-    if (value && isDefaultLiveView()) {
-      void state.liveWatcher?.refreshNow?.();
-    }
-  });
 }
 
 async function loadAuditLogs({ silent = false, force = false } = {}) {
@@ -250,6 +211,16 @@ function bindEvents() {
     state.liveWatcher?.schedule?.();
   });
 
+  byId("adminAuditLiveRefreshInterval")?.addEventListener("change", async (event) => {
+    const value = setLiveInterval(event.currentTarget?.value);
+    if (event.currentTarget) event.currentTarget.value = String(value);
+    state.liveWatcher?.schedule?.();
+    if (value && isDefaultLiveView()) {
+      state.lastSnapshot = "";
+      await loadAuditLogs({ silent: true, force: true });
+    }
+  });
+
   byId("adminAuditReloadButton")?.addEventListener("click", async () => {
     state.lastSnapshot = "";
     await loadAuditLogs({ force: true });
@@ -288,7 +259,7 @@ function bindEvents() {
 }
 
 function startLiveRefresh() {
-  ensureLiveRefreshControl();
+  syncLiveRefreshControl();
   state.liveWatcher = window.AdminApp?.live?.createWatcher?.({
     storageKey: LIVE_REFRESH_KEY,
     defaultIntervalMs: LIVE_DEFAULT_INTERVAL_MS,
