@@ -9,6 +9,9 @@ import { createImageModalController } from "../core/image-modal.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
 
+const PRESENCE_INTERVAL_MS = 30000;
+const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
+
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
   const api = createApiClient({ baseUrl: appBase });
@@ -32,7 +35,8 @@ function createAdminContext() {
     imageModal,
     page: document.body.dataset.adminPage || "dashboard",
     ready: false,
-    bootstrapData: null
+    bootstrapData: null,
+    presence: null
   };
 }
 
@@ -42,6 +46,145 @@ function show(el) {
 
 function hide(el) {
   if (el) el.hidden = true;
+}
+
+function createPresenceController(app) {
+  let started = false;
+  let intervalId = null;
+  let hiddenTimerId = null;
+  let lastVisible = null;
+  let lastSentAt = 0;
+  let inflight = null;
+
+  function clearHiddenTimer() {
+    if (hiddenTimerId !== null) {
+      window.clearTimeout(hiddenTimerId);
+      hiddenTimerId = null;
+    }
+  }
+
+  function currentVisibleState() {
+    return document.visibilityState !== "hidden";
+  }
+
+  async function sendPresence(visible, keepalive = false, force = false) {
+    const now = Date.now();
+    if (!force && lastVisible === visible && now - lastSentAt < 5000) {
+      return;
+    }
+    if (inflight && !force) {
+      return inflight;
+    }
+
+    const url = `${app.appBase}/api/auth/presence`;
+    const request = fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ visible }),
+      keepalive
+    })
+      .then(async (response) => {
+        const contentType = response.headers.get("content-type") || "";
+        let payload = null;
+        if (contentType.includes("application/json")) {
+          payload = await response.json().catch(() => null);
+        }
+        if (!response.ok || (payload && payload.ok === false)) {
+          throw new Error(payload?.error?.message || payload?.message || "presence update failed");
+        }
+        lastVisible = visible;
+        lastSentAt = Date.now();
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (inflight === request) {
+          inflight = null;
+        }
+      });
+
+    inflight = request;
+    return request;
+  }
+
+  function scheduleHiddenPresence() {
+    clearHiddenTimer();
+    hiddenTimerId = window.setTimeout(() => {
+      sendPresence(false);
+    }, PRESENCE_HIDDEN_DEBOUNCE_MS);
+  }
+
+  function handleVisibilityChange() {
+    if (currentVisibleState()) {
+      clearHiddenTimer();
+      sendPresence(true, false, true);
+      return;
+    }
+    scheduleHiddenPresence();
+  }
+
+  function handlePageShow() {
+    clearHiddenTimer();
+    sendPresence(true, false, true);
+  }
+
+  function handlePageHide() {
+    clearHiddenTimer();
+    sendPresence(false, true, true);
+  }
+
+  function handleFocus() {
+    clearHiddenTimer();
+    sendPresence(true, false, true);
+  }
+
+  function handleBlur() {
+    if (!currentVisibleState()) {
+      scheduleHiddenPresence();
+    }
+  }
+
+  function startInterval() {
+    if (intervalId !== null) return;
+    intervalId = window.setInterval(() => {
+      if (!currentVisibleState()) return;
+      sendPresence(true);
+    }, PRESENCE_INTERVAL_MS);
+  }
+
+  function stopInterval() {
+    if (intervalId !== null) {
+      window.clearInterval(intervalId);
+      intervalId = null;
+    }
+  }
+
+  return {
+    async start() {
+      if (started) return;
+      started = true;
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("pageshow", handlePageShow);
+      window.addEventListener("pagehide", handlePageHide);
+      window.addEventListener("focus", handleFocus);
+      window.addEventListener("blur", handleBlur);
+      startInterval();
+      await sendPresence(currentVisibleState(), false, true);
+    },
+    stop() {
+      if (!started) return;
+      started = false;
+      clearHiddenTimer();
+      stopInterval();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    }
+  };
 }
 
 export async function initAdminLayout() {
@@ -182,6 +325,9 @@ export async function initAdminLayout() {
       showNotFound();
       return;
     }
+
+    app.presence = createPresenceController(app);
+    await app.presence.start();
 
     const payload = await app.api.get(`/api/admin/bootstrap?page=${encodeURIComponent(app.page)}`);
     const data = payload.data || {};
