@@ -70,6 +70,9 @@ const dashboardState = {
   latestData: null,
   latestImageItem: null,
   liveWatcher: null,
+  liveTimerId: null,
+  liveVisibilityBound: false,
+  liveStorageBound: false,
   elapsedTimerId: null,
 };
 
@@ -95,6 +98,27 @@ function setStorageUsageRefreshInterval(value) {
     return normalized;
   }
   return normalized;
+}
+
+function normalizeDashboardLiveRefreshInterval(value) {
+  const ms = Number(value);
+  return DASHBOARD_LIVE_ALLOWED_INTERVALS.includes(ms) ? ms : DASHBOARD_LIVE_DEFAULT_INTERVAL_MS;
+}
+
+function getDashboardLiveRefreshInterval() {
+  try {
+    const raw = window.localStorage.getItem(DASHBOARD_LIVE_REFRESH_KEY);
+    return normalizeDashboardLiveRefreshInterval(raw == null ? DASHBOARD_LIVE_DEFAULT_INTERVAL_MS : Number(raw));
+  } catch {
+    return DASHBOARD_LIVE_DEFAULT_INTERVAL_MS;
+  }
+}
+
+function clearDashboardLiveRefreshTimer() {
+  if (dashboardState.liveTimerId) {
+    window.clearTimeout(dashboardState.liveTimerId);
+    dashboardState.liveTimerId = null;
+  }
 }
 
 function clearDashboardStorageTimer() {
@@ -707,18 +731,48 @@ function bindIntegrityButton() {
   });
 }
 
+function scheduleDashboardLiveRefresh() {
+  clearDashboardLiveRefreshTimer();
+  if (document.visibilityState === "hidden") return;
+  const intervalMs = getDashboardLiveRefreshInterval();
+  if (!intervalMs) return;
+  dashboardState.liveTimerId = window.setTimeout(async () => {
+    await loadDashboard({ silent: true });
+    scheduleDashboardLiveRefresh();
+  }, intervalMs);
+}
+
+function bindDashboardLiveRefreshLifecycle() {
+  if (!dashboardState.liveVisibilityBound) {
+    dashboardState.liveVisibilityBound = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        void loadDashboard({ silent: true, force: true }).finally(() => {
+          scheduleDashboardLiveRefresh();
+        });
+        return;
+      }
+      clearDashboardLiveRefreshTimer();
+    });
+  }
+
+  if (!dashboardState.liveStorageBound) {
+    dashboardState.liveStorageBound = true;
+    window.addEventListener("storage", (event) => {
+      if (event.key !== DASHBOARD_LIVE_REFRESH_KEY) return;
+      scheduleDashboardLiveRefresh();
+    });
+  }
+}
+
 function startDashboardLiveRefresh() {
-  dashboardState.liveWatcher = window.AdminApp?.live?.createWatcher?.({
-    storageKey: DASHBOARD_LIVE_REFRESH_KEY,
-    defaultIntervalMs: DASHBOARD_LIVE_DEFAULT_INTERVAL_MS,
-    allowedIntervals: DASHBOARD_LIVE_ALLOWED_INTERVALS,
-    visibleOnly: true,
-    enabledWhen: () => true,
-    onTick: async () => {
-      await loadDashboard({ silent: true });
+  bindDashboardLiveRefreshLifecycle();
+  dashboardState.liveWatcher = {
+    stop() {
+      clearDashboardLiveRefreshTimer();
     },
-  });
-  dashboardState.liveWatcher?.start?.({ immediate: false });
+  };
+  scheduleDashboardLiveRefresh();
 }
 
 async function initDashboard() {
