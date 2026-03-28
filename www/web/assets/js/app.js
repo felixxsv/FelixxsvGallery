@@ -10,6 +10,9 @@ import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js";
 import { initHomePage } from "./pages/home.js";
 
+const PRESENCE_INTERVAL_MS = 30000;
+const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
+
 function createAppContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
   const api = createApiClient({ baseUrl: appBase });
@@ -23,7 +26,158 @@ function createAppContext() {
   const modal = createModalManager({ root: modalRoot, closeButton: modalClose });
   const toast = createToastManager({ root: toastRoot });
   const imageModal = createImageModalController({ app: { api, appBase, settings, session, i18n, modal, toast } });
-  return { api, appBase, settings, theme, session, i18n, modal, toast, imageModal, page: document.body.dataset.page || "" };
+  return {
+    api,
+    appBase,
+    settings,
+    theme,
+    session,
+    i18n,
+    modal,
+    toast,
+    imageModal,
+    page: document.body.dataset.page || "",
+    presence: null
+  };
+}
+
+function createPresenceController(app) {
+  let started = false;
+  let intervalId = null;
+  let hiddenTimerId = null;
+  let lastVisible = null;
+  let lastSentAt = 0;
+  let inflight = null;
+
+  function clearHiddenTimer() {
+    if (hiddenTimerId !== null) {
+      window.clearTimeout(hiddenTimerId);
+      hiddenTimerId = null;
+    }
+  }
+
+  function currentVisibleState() {
+    return document.visibilityState !== "hidden";
+  }
+
+  async function sendPresence(visible, keepalive = false, force = false) {
+    const now = Date.now();
+    if (!force && lastVisible === visible && now - lastSentAt < 5000) {
+      return;
+    }
+    if (inflight && !force) {
+      return inflight;
+    }
+
+    const url = `${app.appBase}/api/auth/presence`;
+    const request = fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ visible }),
+      keepalive
+    })
+      .then(async (response) => {
+        const contentType = response.headers.get("content-type") || "";
+        let payload = null;
+        if (contentType.includes("application/json")) {
+          payload = await response.json().catch(() => null);
+        }
+        if (!response.ok || (payload && payload.ok === false)) {
+          throw new Error(payload?.error?.message || payload?.message || "presence update failed");
+        }
+        lastVisible = visible;
+        lastSentAt = Date.now();
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (inflight === request) {
+          inflight = null;
+        }
+      });
+
+    inflight = request;
+    return request;
+  }
+
+  function scheduleHiddenPresence() {
+    clearHiddenTimer();
+    hiddenTimerId = window.setTimeout(() => {
+      sendPresence(false);
+    }, PRESENCE_HIDDEN_DEBOUNCE_MS);
+  }
+
+  function handleVisibilityChange() {
+    if (currentVisibleState()) {
+      clearHiddenTimer();
+      sendPresence(true, false, true);
+      return;
+    }
+    scheduleHiddenPresence();
+  }
+
+  function handlePageShow() {
+    clearHiddenTimer();
+    sendPresence(true, false, true);
+  }
+
+  function handlePageHide() {
+    clearHiddenTimer();
+    sendPresence(false, true, true);
+  }
+
+  function handleFocus() {
+    clearHiddenTimer();
+    sendPresence(true, false, true);
+  }
+
+  function handleBlur() {
+    if (!currentVisibleState()) {
+      scheduleHiddenPresence();
+    }
+  }
+
+  function startInterval() {
+    if (intervalId !== null) return;
+    intervalId = window.setInterval(() => {
+      if (!currentVisibleState()) return;
+      sendPresence(true);
+    }, PRESENCE_INTERVAL_MS);
+  }
+
+  function stopInterval() {
+    if (intervalId !== null) {
+      window.clearInterval(intervalId);
+      intervalId = null;
+    }
+  }
+
+  return {
+    async start() {
+      if (started) return;
+      started = true;
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("pageshow", handlePageShow);
+      window.addEventListener("pagehide", handlePageHide);
+      window.addEventListener("focus", handleFocus);
+      window.addEventListener("blur", handleBlur);
+      startInterval();
+      await sendPresence(currentVisibleState(), false, true);
+    },
+    stop() {
+      if (!started) return;
+      started = false;
+      clearHiddenTimer();
+      stopInterval();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    }
+  };
 }
 
 async function bootstrap() {
@@ -33,7 +187,11 @@ async function bootstrap() {
   initUserShell(app);
 
   try {
-    await app.session.load();
+    const sessionState = await app.session.load();
+    if (sessionState.authenticated) {
+      app.presence = createPresenceController(app);
+      await app.presence.start();
+    }
   } catch (error) {
     app.toast.error(error.message || "セッション情報の取得に失敗しました。");
   }
