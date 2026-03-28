@@ -35,6 +35,33 @@ function buildPill(text, mod) {
   return `<span class="admin-content-pill ${mod}">${escapeHtml(text)}</span>`;
 }
 
+function buildImageModalPayload(item) {
+  const imageId = Number(item?.image_id || item?.id || 0);
+  const uploader = item?.uploader || item?.user || {};
+  return {
+    image_id: imageId || item?.image_id || item?.id || null,
+    title: item?.title || item?.alt || "タイトル未設定",
+    alt: item?.alt || item?.title || "",
+    preview_url: item?.preview_url || item?.original_url || (imageId ? `/media/original/${imageId}` : ""),
+    original_url: item?.original_url || item?.preview_url || (imageId ? `/media/original/${imageId}` : ""),
+    posted_at: item?.posted_at || item?.created_at || item?.shot_at || null,
+    shot_at: item?.shot_at || null,
+    like_count: Number(item?.like_count ?? 0),
+    view_count: Number(item?.view_count ?? 0),
+    user: {
+      display_name: uploader.display_name || uploader.user_key || "投稿者不明",
+      user_key: uploader.user_key || "-",
+      avatar_url: uploader.avatar_url || uploader.avatar_path || ""
+    },
+    tags: Array.isArray(item?.tags) ? item.tags : [],
+    color_tags: Array.isArray(item?.color_tags) ? item.color_tags : [],
+    file_size_bytes: item?.file_size_bytes ?? null,
+    image_width: item?.image_width ?? item?.width ?? null,
+    image_height: item?.image_height ?? item?.height ?? null,
+    admin_meta: item?.admin_meta || {}
+  };
+}
+
 const state = {
   page: 1,
   perPage: 20,
@@ -47,7 +74,7 @@ const state = {
   items: [],
   currentContent: null,
   pendingConfirm: null,
-  filterTimer: null,
+  filterTimer: null
 };
 
 function qs() {
@@ -76,11 +103,11 @@ function renderTable() {
     for (const item of state.items) {
       const tr = document.createElement("tr");
       const preview = item.preview_url
-        ? `<img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || "preview")}">`
-        : `<div class="admin-content-thumb__empty">NO IMAGE</div>`;
+        ? `<div class="admin-content-thumb" data-image-open="true" data-image-id="${item.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title || "画像を開く")}"><img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || "preview")}"></div>`
+        : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">NO IMAGE</div></div>`;
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
       tr.innerHTML = `
-        <td><div class="admin-content-thumb">${preview}</div></td>
+        <td>${preview}</td>
         <td>
           <div class="admin-content-main">
             <div class="admin-content-main__title">${escapeHtml(item.title || "(無題)")}</div>
@@ -129,10 +156,29 @@ async function loadContents() {
   }
 }
 
+async function loadContentDetail(imageId) {
+  const payload = await window.AdminApp.api.get(`/api/admin/content/${imageId}`);
+  const content = payload.data?.content;
+  if (!content) {
+    throw new Error("対象コンテンツが見つかりません。");
+  }
+  return content;
+}
+
 function setDetail(content) {
   state.currentContent = content;
-  byId("adminContentDetailPreview").src = content.preview_url || "";
-  byId("adminContentDetailPreview").alt = content.title || "preview";
+
+  const preview = byId("adminContentDetailPreview");
+  if (preview) {
+    preview.src = content.preview_url || "";
+    preview.alt = content.title || "preview";
+    preview.dataset.imageId = String(content.image_id || "");
+    preview.tabIndex = content.preview_url ? 0 : -1;
+    preview.setAttribute("role", content.preview_url ? "button" : "img");
+    preview.setAttribute("aria-label", content.preview_url ? "画像を開く" : "preview");
+    preview.style.cursor = content.preview_url ? "zoom-in" : "";
+  }
+
   byId("adminContentDetailName").textContent = content.title || "(無題)";
   byId("adminContentDetailSubline").textContent = `${content.uploader?.display_name || content.uploader?.user_key || "-"} ・ ${formatDateTime(content.posted_at)}`;
   byId("adminContentDetailFieldTitle").textContent = content.title || "-";
@@ -157,14 +203,29 @@ function setDetail(content) {
 
 async function openDetail(imageId) {
   try {
-    const payload = await window.AdminApp.api.get(`/api/admin/content/${imageId}`);
-    const content = payload.data?.content;
-    if (!content) throw new Error("対象コンテンツが見つかりません。");
+    const content = await loadContentDetail(imageId);
     setDetail(content);
     window.AdminApp.modal.open("admin-content-detail");
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "コンテンツ詳細の取得に失敗しました。");
   }
+}
+
+function findContentItem(imageId) {
+  return state.items.find((item) => Number(item.image_id || item.id || 0) === Number(imageId || 0)) || null;
+}
+
+function openImageModal(item) {
+  const app = window.AdminApp;
+  const imageId = Number(item?.image_id || item?.id || 0);
+  if (!app?.imageModal || !imageId) return;
+
+  app.imageModal.openByPreference(
+    buildImageModalPayload(item),
+    {
+      detailLoader: async () => buildImageModalPayload(await loadContentDetail(imageId))
+    }
+  );
 }
 
 async function openActionConfirm(message, approveLabel = "実行") {
@@ -265,14 +326,37 @@ function bindFilters() {
 }
 
 function bindTableEvents() {
-  byId("adminContentTableBody")?.addEventListener("click", (event) => {
+  const tbody = byId("adminContentTableBody");
+  if (!tbody) return;
+
+  tbody.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-action]");
-    if (!button) return;
-    const imageId = Number(button.dataset.imageId || 0);
-    if (!imageId) return;
-    if (button.dataset.action === "detail") {
-      openDetail(imageId);
+    if (button) {
+      const imageId = Number(button.dataset.imageId || 0);
+      if (!imageId) return;
+      if (button.dataset.action === "detail") {
+        openDetail(imageId);
+      }
+      return;
     }
+
+    const imageTarget = event.target.closest("[data-image-open='true']");
+    if (!imageTarget) return;
+    const imageId = Number(imageTarget.dataset.imageId || 0);
+    const item = findContentItem(imageId);
+    if (!item) return;
+    openImageModal(item);
+  });
+
+  tbody.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const imageTarget = event.target.closest("[data-image-open='true']");
+    if (!imageTarget) return;
+    event.preventDefault();
+    const imageId = Number(imageTarget.dataset.imageId || 0);
+    const item = findContentItem(imageId);
+    if (!item) return;
+    openImageModal(item);
   });
 }
 
@@ -287,6 +371,16 @@ function bindModals() {
   byId("adminContentQuarantineButton")?.addEventListener("click", () => applyAction("quarantine"));
   byId("adminContentRestoreButton")?.addEventListener("click", () => applyAction("restore"));
   byId("adminContentDeleteButton")?.addEventListener("click", () => applyAction("delete"));
+  byId("adminContentDetailPreview")?.addEventListener("click", () => {
+    if (!state.currentContent?.preview_url) return;
+    openImageModal(state.currentContent);
+  });
+  byId("adminContentDetailPreview")?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (!state.currentContent?.preview_url) return;
+    event.preventDefault();
+    openImageModal(state.currentContent);
+  });
 }
 
 async function initPage() {

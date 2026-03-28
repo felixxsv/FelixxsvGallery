@@ -3,94 +3,37 @@ import { createApiClient, ApiError } from "../core/api.js";
 import { createModalManager } from "../core/modal.js";
 import { createToastManager } from "../core/toast.js";
 import { createSessionStore } from "../core/session.js";
+import { createSettingsStore } from "../core/settings.js";
+import { createI18n } from "../core/i18n.js";
+import { createImageModalController } from "../core/image-modal.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
 
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
   const api = createApiClient({ baseUrl: appBase });
+  const settings = createSettingsStore();
   const session = createSessionStore(api);
+  const i18n = createI18n(settings);
   const modalRoot = byId("appModalRoot");
   const modalClose = byId("appGlobalClose");
   const toastRoot = byId("appToastRoot");
   const modal = createModalManager({ root: modalRoot, closeButton: modalClose });
   const toast = createToastManager({ root: toastRoot });
+  const imageModal = createImageModalController({ app: { api, appBase, settings, session, i18n, modal, toast } });
   return {
     appBase,
     api,
+    settings,
     session,
+    i18n,
     modal,
     toast,
+    imageModal,
     page: document.body.dataset.adminPage || "dashboard",
     ready: false,
     bootstrapData: null
   };
-}
-
-
-function startPresenceMonitor(app) {
-  if (!app || app._presenceMonitorStarted) return;
-  app._presenceMonitorStarted = true;
-
-  const endpoint = `${app.appBase}/api/auth/presence`;
-  let timer = null;
-
-  async function postPresence(visible, useBeacon = false) {
-    const payload = JSON.stringify({ visible: Boolean(visible) });
-    if (useBeacon && navigator.sendBeacon) {
-      try {
-        const blob = new Blob([payload], { type: "application/json" });
-        navigator.sendBeacon(endpoint, blob);
-        return;
-      } catch (_) {}
-    }
-    try {
-      await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-        keepalive: !visible,
-        cache: "no-store",
-      });
-    } catch (_) {}
-  }
-
-  function pulse() {
-    if (document.visibilityState !== "visible") return;
-    void postPresence(true);
-  }
-
-  function startTimer() {
-    if (timer) return;
-    timer = window.setInterval(pulse, 30000);
-  }
-
-  function stopTimer() {
-    if (!timer) return;
-    window.clearInterval(timer);
-    timer = null;
-  }
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      startTimer();
-      void postPresence(true);
-    } else {
-      stopTimer();
-      void postPresence(false, true);
-    }
-  });
-
-  window.addEventListener("pagehide", () => {
-    stopTimer();
-    void postPresence(false, true);
-  });
-
-  if (document.visibilityState === "visible") {
-    startTimer();
-    void postPresence(true);
-  }
 }
 
 function show(el) {
@@ -215,7 +158,7 @@ export async function initAdminLayout() {
   const sidebar = initSidebar({
     root: refs.sidebar,
     toggleButton: refs.sidebarToggle,
-    onNavigate: async (href) => {
+    onNavigate: async () => {
       const ok = await dirtyGuard.confirmIfNeeded("未保存の変更があります。破棄して移動しますか？");
       if (!ok) return false;
       dirtyGuard.allowNextLeave();
@@ -239,8 +182,6 @@ export async function initAdminLayout() {
       showNotFound();
       return;
     }
-
-    startPresenceMonitor(app);
 
     const payload = await app.api.get(`/api/admin/bootstrap?page=${encodeURIComponent(app.page)}`);
     const data = payload.data || {};
