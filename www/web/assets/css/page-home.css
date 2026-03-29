@@ -262,22 +262,29 @@
   gap: var(--space-3);
 }
 
+.home-shell-layout.is-sidebar-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
 .home-sidebar.is-collapsed {
-  padding: var(--space-3);
+  width: 0;
+  padding: 0;
+  border-color: transparent;
+  box-shadow: none;
+  background: transparent;
 }
 
 .home-sidebar.is-collapsed .home-sidebar__body,
+.home-sidebar.is-collapsed .home-sidebar__brand,
+.home-sidebar.is-collapsed .home-sidebar__eyebrow,
 .home-sidebar.is-collapsed .home-sidebar__title,
-.home-sidebar.is-collapsed .home-sidebar__eyebrow {
+.home-sidebar.is-collapsed .home-sidebar__close {
   display: none;
 }
 
 .home-sidebar.is-collapsed .home-sidebar__header {
-  justify-content: center;
-}
-
-.home-sidebar.is-collapsed .home-sidebar__close {
-  display: none;
+  min-height: 0;
+  padding: 0;
 }
 
 @media (max-width: 980px) {
@@ -288,5 +295,69 @@
   .home-sidebar {
     position: static;
     top: auto;
+  }
+}
+
+.app-shell-toggle {
+  transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
+}
+
+body:not(.is-home-sidebar-collapsed) .app-shell-toggle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.is-home-sidebar-collapsed .app-shell-toggle {
+  position: fixed;
+  top: calc(var(--header-height) + 18px);
+  left: 0;
+  width: 32px;
+  height: 48px;
+  padding-left: 10px;
+  border-radius: 0 999px 999px 0;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  background: color-mix(in srgb, var(--color-bg-elevated) 96%, transparent);
+  box-shadow: var(--shadow-2);
+  transform: translateX(-10px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+body.is-home-sidebar-collapsed.is-home-sidebar-edge-peek .app-shell-toggle,
+body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.home-sidebar {
+  overflow: visible;
+  transition: width 180ms ease, padding 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.home-shell-layout {
+  transition: grid-template-columns 180ms ease;
+}
+
+.home-sidebar__header {
+  align-items: center;
+}
+
+.home-sidebar__close {
+  flex-shrink: 0;
+}
+
+.home-hero {
+  margin-top: 0;
+}
+
+@media (max-width: 980px) {
+  .home-shell-layout.is-sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  body.is-home-sidebar-collapsed .app-shell-toggle {
+    top: calc(var(--header-height) + 14px);
   }
 }

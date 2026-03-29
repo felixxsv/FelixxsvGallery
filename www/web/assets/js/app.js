@@ -180,14 +180,15 @@ function createPresenceController(app) {
   };
 }
 
-
 function initPublicSidebar() {
   const root = byId("homeSidebar");
   const toggleButton = byId("homeSidebarToggle");
   const closeButton = byId("homeSidebarClose");
-  if (!root || !toggleButton) return;
+  const layout = root?.closest(".home-shell-layout") || null;
+  if (!root || !toggleButton || !layout) return;
 
   const storageKey = "gallery.home.sidebar.collapsed";
+  const edgePeekPx = 40;
 
   function readStoredState() {
     try {
@@ -207,8 +208,17 @@ function initPublicSidebar() {
 
   function applyState(collapsed) {
     root.classList.toggle("is-collapsed", collapsed);
+    layout.classList.toggle("is-sidebar-collapsed", collapsed);
+    document.body.classList.toggle("is-home-sidebar-collapsed", collapsed);
+    if (!collapsed) {
+      document.body.classList.remove("is-home-sidebar-edge-peek");
+    }
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
     toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
+    const icon = toggleButton.querySelector("span");
+    if (icon) {
+      icon.textContent = ">";
+    }
     if (closeButton) closeButton.hidden = collapsed;
     writeStoredState(collapsed);
   }
@@ -217,12 +227,33 @@ function initPublicSidebar() {
     return root.classList.contains("is-collapsed");
   }
 
+  function syncEdgePeek(clientX) {
+    if (!isCollapsed()) {
+      document.body.classList.remove("is-home-sidebar-edge-peek");
+      return;
+    }
+    document.body.classList.toggle("is-home-sidebar-edge-peek", Number(clientX || 0) <= edgePeekPx);
+  }
+
   toggleButton.addEventListener("click", () => {
     applyState(!isCollapsed());
   });
 
   closeButton?.addEventListener("click", () => {
     applyState(true);
+  });
+
+  window.addEventListener("mousemove", (event) => {
+    syncEdgePeek(event.clientX);
+  });
+
+  layout.addEventListener("mouseleave", () => {
+    document.body.classList.remove("is-home-sidebar-edge-peek");
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== storageKey) return;
+    applyState(readStoredState());
   });
 
   applyState(readStoredState());

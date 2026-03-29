@@ -11,6 +11,7 @@ import { createDirtyGuard } from "../core/dirty-guard.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
+const SIDEBAR_EDGE_PEEK_PX = 40;
 
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
@@ -204,6 +205,8 @@ export async function initAdminLayout() {
     headerSidebarToggle: byId("adminHeaderSidebarToggle"),
     homeLink: byId("adminHomeLink"),
     sidebar: byId("adminSidebar"),
+    sidebarTitle: document.querySelector("#adminSidebar .admin-sidebar__title"),
+    sidebarSubtitle: document.querySelector("#adminSidebar .admin-sidebar__subtitle"),
     sidebarToggle: byId("adminSidebarToggle"),
     navList: byId("adminSidebarNav"),
     confirmMessage: byId("adminDiscardConfirmMessage"),
@@ -215,6 +218,72 @@ export async function initAdminLayout() {
   const shellState = {
     confirmResolver: null
   };
+
+  function syncSidebarDisplay(pageTitle = null) {
+    const titleText = pageTitle || refs.pageTitle?.textContent || "管理画面";
+    const collapsed = app.sidebar?.isCollapsed?.() ?? refs.sidebar?.classList.contains("is-collapsed") ?? false;
+
+    refs.appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
+
+    if (refs.sidebarTitle) {
+      refs.sidebarTitle.textContent = titleText;
+    }
+
+    if (refs.sidebarSubtitle) {
+      refs.sidebarSubtitle.textContent = "";
+      refs.sidebarSubtitle.hidden = true;
+    }
+
+    if (refs.sidebarToggle) {
+      refs.sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
+      refs.sidebarToggle.setAttribute("aria-label", collapsed ? "サイドバーを展開する" : "サイドバーを閉じる");
+      const icon = refs.sidebarToggle.querySelector("span");
+      if (icon) {
+        icon.textContent = collapsed ? ">" : "×";
+      }
+    }
+
+    if (!collapsed) {
+      refs.appShell?.classList.remove("is-sidebar-edge-peek");
+    }
+  }
+
+  function bindSidebarEdgePeek() {
+    if (!refs.appShell || !refs.sidebar) return;
+
+    const handlePointerMove = (event) => {
+      const collapsed = app.sidebar?.isCollapsed?.() ?? refs.sidebar.classList.contains("is-collapsed");
+      if (!collapsed) {
+        refs.appShell.classList.remove("is-sidebar-edge-peek");
+        return;
+      }
+
+      const nearLeftEdge = Number(event.clientX || 0) <= SIDEBAR_EDGE_PEEK_PX;
+      refs.appShell.classList.toggle("is-sidebar-edge-peek", nearLeftEdge);
+    };
+
+    window.addEventListener("mousemove", handlePointerMove);
+    refs.appShell.addEventListener("mouseleave", () => {
+      refs.appShell.classList.remove("is-sidebar-edge-peek");
+    });
+  }
+
+  function bindSidebarToggleSync() {
+    if (!refs.sidebarToggle) return;
+
+    refs.sidebarToggle.addEventListener("click", () => {
+      window.requestAnimationFrame(() => {
+        syncSidebarDisplay();
+      });
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== "gallery.admin.sidebar.collapsed") return;
+      window.requestAnimationFrame(() => {
+        syncSidebarDisplay();
+      });
+    });
+  }
 
   function showNotFound() {
     hide(refs.loading);
@@ -317,9 +386,9 @@ export async function initAdminLayout() {
   app.dirtyGuard = dirtyGuard;
   app.sidebar = sidebar;
 
-  refs.headerSidebarToggle?.addEventListener("click", () => {
-    app.sidebar?.toggle?.();
-  });
+  bindSidebarEdgePeek();
+  bindSidebarToggleSync();
+  syncSidebarDisplay();
 
   refs.homeLink?.addEventListener("click", async (event) => {
     if (event.defaultPrevented) return;
@@ -369,6 +438,7 @@ export async function initAdminLayout() {
 
     const desc = document.body.dataset.adminDescription || "";
     if (refs.pageDescription) refs.pageDescription.textContent = desc;
+    syncSidebarDisplay(pageTitle);
 
     populateNavigation(data.navigation || []);
     app.bootstrapData = data;
