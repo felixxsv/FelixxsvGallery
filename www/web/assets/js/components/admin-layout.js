@@ -8,7 +8,6 @@ import { createI18n } from "../core/i18n.js";
 import { createImageModalController } from "../core/image-modal.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
-import { initUserShell } from "./user-shell.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
@@ -25,6 +24,7 @@ function createAdminContext() {
   const modal = createModalManager({ root: modalRoot, closeButton: modalClose });
   const toast = createToastManager({ root: toastRoot });
   const imageModal = createImageModalController({ app: { api, appBase, settings, session, i18n, modal, toast } });
+
   return {
     appBase,
     api,
@@ -247,6 +247,7 @@ export async function initAdminLayout() {
   function populateNavigation(items) {
     const links = qsa("[data-admin-nav-link]", refs.navList);
     const currentPath = `${window.location.pathname}${window.location.pathname.endsWith("/") ? "" : "/"}`;
+
     for (const link of links) {
       const href = link.getAttribute("href") || "";
       const normalizedHref = href.endsWith("/") ? href : `${href}/`;
@@ -256,6 +257,7 @@ export async function initAdminLayout() {
     }
 
     if (!Array.isArray(items)) return;
+
     for (const item of items) {
       const target = refs.navList?.querySelector(`[data-admin-nav-link-key="${item.key}"]`);
       if (!target) continue;
@@ -314,7 +316,6 @@ export async function initAdminLayout() {
 
   app.dirtyGuard = dirtyGuard;
   app.sidebar = sidebar;
-  initUserShell(app);
 
   refs.headerSidebarToggle?.addEventListener("click", () => {
     app.sidebar?.toggle?.();
@@ -324,16 +325,20 @@ export async function initAdminLayout() {
     if (event.defaultPrevented) return;
     if (event.button !== 0) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
     const href = refs.homeLink.getAttribute("href") || "/gallery/";
     event.preventDefault();
+
     const ok = await dirtyGuard.confirmIfNeeded("未保存の変更があります。破棄して移動しますか？");
     if (!ok) return;
+
     dirtyGuard.allowNextLeave();
     window.location.assign(href);
   });
 
   try {
     const sessionState = await app.session.load();
+
     if (!sessionState.authenticated) {
       showNotFound();
       return;
@@ -341,6 +346,7 @@ export async function initAdminLayout() {
 
     const user = sessionState.data?.user || null;
     const canOpenAdmin = Boolean(sessionState.data?.features?.can_open_admin);
+
     if (!user || !canOpenAdmin || user.role !== "admin") {
       showNotFound();
       return;
@@ -356,6 +362,7 @@ export async function initAdminLayout() {
     const pageTitle = page.title || refs.pageTitle?.textContent || "管理画面";
 
     document.title = `${pageTitle} - Felixxsv Gallery`;
+
     if (refs.pageTitle) refs.pageTitle.textContent = pageTitle;
     if (refs.headerUserName) refs.headerUserName.textContent = currentUser.display_name || "-";
     if (refs.headerUserKey) refs.headerUserKey.textContent = currentUser.user_key || "-";
@@ -367,12 +374,19 @@ export async function initAdminLayout() {
     app.bootstrapData = data;
     app.ready = true;
     showApp();
-    document.dispatchEvent(new CustomEvent("admin:ready", { detail: { app, bootstrap: data } }));
+
+    document.dispatchEvent(new CustomEvent("admin:ready", {
+      detail: {
+        app,
+        bootstrap: data
+      }
+    }));
   } catch (error) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
       showNotFound();
       return;
     }
+
     showError(error?.message || "管理画面の初期化に失敗しました。");
   }
 }
