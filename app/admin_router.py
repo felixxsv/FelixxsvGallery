@@ -47,6 +47,8 @@ _DASHBOARD_PREFERENCE_KEY = "admin_dashboard.clock_mode"
 _ALLOWED_CLOCK_MODES = {"digital", "analog"}
 _ALLOWED_ROLES = {"admin", "user"}
 _ALLOWED_STATUSES = {"active", "locked", "disabled", "deleted"}
+_PRESENCE_VISIBLE_WINDOW_SEC = 90
+_SESSION_FUTURE_SKEW_SEC = 300
 _USERKEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{3,19}$")
 _TEMP_USERKEY_CHARS = string.ascii_lowercase + string.digits
 _TEMP_PASSWORD_CHARS = string.ascii_letters + string.digits
@@ -152,6 +154,20 @@ def _coerce_utc_datetime(value) -> datetime | None:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
     return None
+
+
+def _presence_cutoff(now: datetime | None = None) -> datetime:
+    base = _coerce_utc_datetime(now) if now is not None else _utc_now()
+    if base is None:
+        base = _utc_now()
+    return base - timedelta(seconds=_PRESENCE_VISIBLE_WINDOW_SEC)
+
+
+def _session_future_limit(now: datetime | None = None) -> datetime:
+    base = _coerce_utc_datetime(now) if now is not None else _utc_now()
+    if base is None:
+        base = _utc_now()
+    return base + timedelta(seconds=_SESSION_FUTURE_SKEW_SEC)
 
 
 def _detect_table(conn, *table_names: str) -> str | None:
@@ -326,8 +342,13 @@ def _load_active_users(conn) -> list[dict]:
 
     session_cols = _table_columns(conn, session_table)
     now_dt = _utc_now()
+    cutoff_dt = _presence_cutoff(now_dt)
+    future_limit_dt = _session_future_limit(now_dt)
     email_col = _users_email_column(conn)
     avatar_col = _users_avatar_column(conn)
+
+    presence_col = "last_presence_at" if "last_presence_at" in session_cols else "last_seen_at"
+    access_col = "last_access_at" if "last_access_at" in session_cols else "last_seen_at"
 
     select_parts = [
         "u.id AS user_id",
@@ -335,7 +356,8 @@ def _load_active_users(conn) -> list[dict]:
         "u.display_name",
         f"u.{email_col} AS primary_email" if email_col else "NULL AS primary_email",
         f"u.{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path",
-        "MAX(s.last_seen_at) AS last_seen_at",
+        f"MAX(s.{presence_col}) AS last_presence_at",
+        f"MAX(s.{access_col}) AS last_access_at",
         "MIN(s.created_at) AS session_started_at",
     ]
 
@@ -352,14 +374,16 @@ FROM `{session_table}` s
 JOIN users u ON u.id=s.user_id
 WHERE s.expires_at > %s
   {revoked_where}
-  AND s.last_seen_at >= DATE_SUB(%s, INTERVAL 10 MINUTE)
+  AND s.{presence_col} IS NOT NULL
+  AND s.{presence_col} >= %s
+  AND s.{presence_col} <= %s
   AND u.status='active'
 GROUP BY {", ".join(group_parts)}
-ORDER BY MAX(s.last_seen_at) DESC
+ORDER BY MAX(s.{presence_col}) DESC
 LIMIT 200
 """
     with conn.cursor() as cur:
-        cur.execute(sql, (now_dt, now_dt))
+        cur.execute(sql, (now_dt, cutoff_dt, future_limit_dt))
         rows = cur.fetchall()
 
     items = []
@@ -377,7 +401,8 @@ LIMIT 200
                 "primary_email": row.get("primary_email"),
                 "avatar_url": _build_preview_url(row.get("avatar_path")),
                 "session_started_at": _coerce_utc_text(row.get("session_started_at")),
-                "last_seen_at": _coerce_utc_text(row.get("last_seen_at")),
+                "last_presence_at": _coerce_utc_text(row.get("last_presence_at")),
+                "last_access_at": _coerce_utc_text(row.get("last_access_at")),
                 "session_elapsed_sec": elapsed,
             }
         )
@@ -832,16 +857,32 @@ GROUP BY user_id
     return {int(row.get("user_id")): _coerce_utc_text(row.get("last_seen_at")) for row in rows}
 
 
-def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict], last_seen_map: dict[int, str | None]) -> dict:
+def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict]) -> dict:
     row = _normalize_user_row_runtime(row)
     user_id = int(row.get("id"))
+    active_session_count = int(row.get("active_session_count") or 0)
+    account_status = str(row.get("status") or "active")
+    login_status = "logged_in" if active_session_count > 0 else "logged_out"
+
+    last_presence_dt = _coerce_utc_datetime(row.get("last_presence_at"))
+    now_dt = _utc_now()
+    is_visible = False
+    if last_presence_dt is not None and active_session_count > 0:
+        is_visible = _presence_cutoff(now_dt) <= last_presence_dt <= _session_future_limit(now_dt)
+    screen_status = "visible" if is_visible else "hidden"
+
+    last_access_value = row.get("last_access_at") or row.get("last_seen_at")
+
     return {
         "user_id": user_id,
         "display_name": row.get("display_name"),
         "user_key": row.get("user_key"),
         "primary_email": row.get("primary_email"),
         "role": row.get("role"),
-        "status": row.get("status"),
+        "status": account_status,
+        "account_status": account_status,
+        "login_status": login_status,
+        "screen_status": screen_status,
         "upload_enabled": bool(row.get("upload_enabled")) if row.get("upload_enabled") is not None else True,
         "is_email_verified": bool(row.get("is_email_verified")) if row.get("is_email_verified") is not None else False,
         "avatar_url": _build_preview_url(row.get("avatar_path")),
@@ -855,7 +896,9 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
         },
         "created_at": _coerce_utc_text(row.get("created_at")),
         "updated_at": _coerce_utc_text(row.get("updated_at")),
-        "last_seen_at": last_seen_map.get(user_id),
+        "last_seen_at": _coerce_utc_text(row.get("last_seen_at")),
+        "last_presence_at": _coerce_utc_text(row.get("last_presence_at")),
+        "last_access_at": _coerce_utc_text(last_access_value),
     }
 
 
@@ -888,42 +931,51 @@ def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | 
     if role_value in _ALLOWED_ROLES:
         where.append("u.role=%s")
         params.append(role_value)
+
     if status_value in _ALLOWED_STATUSES:
         where.append("u.status=%s")
         params.append(status_value)
-    if provider_value and _detect_table(conn, "auth_identities") is not None:
+
+    if provider_value:
         where.append("EXISTS (SELECT 1 FROM auth_identities ai WHERE ai.user_id=u.id AND ai.provider=%s)")
         params.append(provider_value)
 
-    if sort_value == "name_asc":
+    if sort_value == "created_desc":
+        order_sql = "u.created_at DESC, u.id DESC"
+    elif sort_value == "name_asc":
         order_sql = "u.display_name ASC, u.id ASC"
     elif sort_value == "name_desc":
         order_sql = "u.display_name DESC, u.id DESC"
     elif sort_value == "last_seen_desc":
-        order_sql = "last_seen_at DESC, u.id DESC"
+        order_sql = "COALESCE(session_state.last_access_at, session_state.last_seen_at) DESC, u.id DESC"
     elif sort_value == "created_asc":
         order_sql = "u.created_at ASC, u.id ASC"
     else:
         order_sql = "u.created_at DESC, u.id DESC"
 
     session_table = _detect_table(conn, "sessions", "user_sessions")
-    last_seen_join = ""
+    session_join = ""
     session_params: list = []
     if session_table is not None:
         session_cols = _table_columns(conn, session_table)
-        revoked_where = "AND s.revoked_at IS NULL" if "revoked_at" in session_cols else ""
-        last_seen_join = f"""
+        revoked_active_case = "AND s.revoked_at IS NULL" if "revoked_at" in session_cols else ""
+        access_expr = "s.last_access_at" if "last_access_at" in session_cols else "s.last_seen_at"
+        presence_expr = "s.last_presence_at" if "last_presence_at" in session_cols else "s.last_seen_at"
+        session_join = f"""
 LEFT JOIN (
-    SELECT s.user_id, MAX(s.last_seen_at) AS last_seen_at
+    SELECT
+        s.user_id,
+        MAX(s.last_seen_at) AS last_seen_at,
+        MAX({access_expr}) AS last_access_at,
+        MAX({presence_expr}) AS last_presence_at,
+        SUM(CASE WHEN s.expires_at > %s {revoked_active_case} THEN 1 ELSE 0 END) AS active_session_count
     FROM `{session_table}` s
-    WHERE s.expires_at > %s
-      {revoked_where}
     GROUP BY s.user_id
-) session_last_seen ON session_last_seen.user_id=u.id
+) session_state ON session_state.user_id=u.id
 """
         session_params = [_utc_now()]
     else:
-        last_seen_join = "LEFT JOIN (SELECT NULL AS user_id, NULL AS last_seen_at) session_last_seen ON 1=0"
+        session_join = "LEFT JOIN (SELECT NULL AS user_id, NULL AS last_seen_at, NULL AS last_access_at, NULL AS last_presence_at, 0 AS active_session_count) session_state ON 1=0"
 
     where_sql = " AND ".join(where)
     email_select = f"u.{email_col} AS primary_email" if email_col else "NULL AS primary_email"
@@ -948,9 +1000,12 @@ SELECT
     {avatar_select},
     u.created_at,
     u.updated_at,
-    session_last_seen.last_seen_at
+    session_state.last_seen_at,
+    session_state.last_access_at,
+    session_state.last_presence_at,
+    session_state.active_session_count
 FROM users u
-{last_seen_join}
+{session_join}
 WHERE {where_sql}
 ORDER BY {order_sql}
 LIMIT %s OFFSET %s
@@ -962,9 +1017,8 @@ LIMIT %s OFFSET %s
     user_ids = [int(row.get("id")) for row in rows]
     providers_map = _load_user_providers_map(conn, user_ids)
     two_factor_map = _load_user_two_factor_map(conn, user_ids)
-    last_seen_map = {int(row.get("id")): _coerce_utc_text(row.get("last_seen_at")) for row in rows}
 
-    items = [_serialize_user_list_item(row, providers_map, two_factor_map, last_seen_map) for row in rows]
+    items = [_serialize_user_list_item(row, providers_map, two_factor_map) for row in rows]
     pages = (total + per_page - 1) // per_page if total > 0 else 1
     return {
         "page": page,

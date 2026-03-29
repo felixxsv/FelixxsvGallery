@@ -6,6 +6,93 @@
     twoFactorSetupExpiresInSec: null
   };
 
+
+  const AUTH_ME_ENDPOINTS = [
+    '/gallery/api/auth/me',
+    '/api/auth/me',
+    '/gallery/api/me',
+    '/gallery/api/session'
+  ];
+  const PRESENCE_ENDPOINT = '/gallery/api/auth/presence';
+  let presenceStarted = false;
+  let presenceTimer = null;
+
+  async function fetchPresenceMe() {
+    for (const url of AUTH_ME_ENDPOINTS) {
+      try {
+        const response = await fetch(url, { method: 'GET', cache: 'no-store', credentials: 'include' });
+        if (response.status === 404) continue;
+        if (response.status === 401) return false;
+        if (!response.ok) continue;
+        const payload = await response.json().catch(() => ({}));
+        const user = payload?.data?.user || payload?.user || null;
+        if (user) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  async function postPresence(visible, useBeacon = false) {
+    const body = JSON.stringify({ visible: Boolean(visible) });
+    if (useBeacon && navigator.sendBeacon) {
+      try {
+        const blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon(PRESENCE_ENDPOINT, blob);
+        return;
+      } catch (_) {}
+    }
+    try {
+      await fetch(PRESENCE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body,
+        keepalive: !visible,
+        cache: 'no-store'
+      });
+    } catch (_) {}
+  }
+
+  function startPresenceTimer() {
+    if (presenceTimer) return;
+    presenceTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void postPresence(true);
+    }, 30000);
+  }
+
+  function stopPresenceTimer() {
+    if (!presenceTimer) return;
+    clearInterval(presenceTimer);
+    presenceTimer = null;
+  }
+
+  async function startPresenceMonitor() {
+    if (presenceStarted) return;
+    const loggedIn = await fetchPresenceMe();
+    if (!loggedIn) return;
+    presenceStarted = true;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        startPresenceTimer();
+        void postPresence(true);
+      } else {
+        stopPresenceTimer();
+        void postPresence(false, true);
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      stopPresenceTimer();
+      void postPresence(false, true);
+    });
+
+    if (document.visibilityState === 'visible') {
+      startPresenceTimer();
+      await postPresence(true);
+    }
+  }
+
   const settingsModal = document.getElementById('settings-modal');
   const settingsBody = document.getElementById('settings-modal-body');
   const settingsLoading = document.getElementById('settings-modal-loading');
@@ -1294,6 +1381,8 @@ function initPerPageSort() {
 }
 
 async function init() {
+  await startPresenceMonitor()
+
   initColumns()
   initPerPageSort()
   initSelects()

@@ -22,6 +22,29 @@ function buildPill(text, mod) {
   return `<span class="admin-users-pill ${mod}">${escapeHtml(text)}</span>`;
 }
 
+function accountStatusLabel(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "active":
+      return "利用可";
+    case "locked":
+      return "ロック";
+    case "disabled":
+      return "停止";
+    case "deleted":
+      return "削除";
+    default:
+      return String(value || "-");
+  }
+}
+
+function loginStatusLabel(value) {
+  return String(value || "") === "logged_in" ? "ログイン中" : "未ログイン";
+}
+
+function screenStatusLabel(value) {
+  return String(value || "") === "visible" ? "表示中" : "非表示";
+}
+
 const state = {
   page: 1,
   perPage: 20,
@@ -132,7 +155,7 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="admin-users-table__empty">該当するユーザーがいません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">該当するユーザーがいません。</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
@@ -141,6 +164,9 @@ function renderTable() {
         : `<span>${escapeHtml((item.display_name || item.user_key || "?").slice(0, 1).toUpperCase())}</span>`;
       const providers = Array.isArray(item.auth_providers) && item.auth_providers.length > 0 ? item.auth_providers.join(", ") : "-";
       const twoFactorText = item.two_factor?.is_enabled ? `${item.two_factor.method || "email"} / ON` : "OFF";
+      const accountStatus = String(item.account_status || item.status || "active").toLowerCase();
+      const loginStatus = String(item.login_status || "logged_out").toLowerCase();
+      const screenStatus = String(item.screen_status || "hidden").toLowerCase();
       tr.innerHTML = `
         <td>
           <div class="admin-user-cell">
@@ -153,10 +179,12 @@ function renderTable() {
         </td>
         <td>${escapeHtml(item.primary_email || "未登録")}</td>
         <td>${buildPill(item.role || "-", item.role === "admin" ? "admin-users-pill--admin" : "admin-users-pill--user")}</td>
-        <td>${buildPill(item.status || "-", `admin-users-pill--${escapeHtml(item.status || "active")}`)}</td>
+        <td>${buildPill(accountStatusLabel(accountStatus), `admin-users-pill--${escapeHtml(accountStatus || "active")}`)}</td>
+        <td>${buildPill(loginStatusLabel(loginStatus), loginStatus === "logged_in" ? "admin-users-pill--logged-in" : "admin-users-pill--logged-out")}</td>
+        <td>${buildPill(screenStatusLabel(screenStatus), screenStatus === "visible" ? "admin-users-pill--visible" : "admin-users-pill--hidden")}</td>
         <td>${escapeHtml(twoFactorText)}</td>
         <td>${item.upload_enabled ? "許可" : "禁止"}</td>
-        <td>${escapeHtml(formatDateTime(item.last_seen_at))}</td>
+        <td>${escapeHtml(formatDateTime(item.last_access_at || item.last_seen_at))}</td>
         <td>
           <div class="admin-users-actions">
             <button type="button" class="app-button app-button--ghost admin-users-mini-button" data-action="edit" data-user-id="${item.user_id}">編集</button>
@@ -173,11 +201,12 @@ function renderTable() {
   if (next) next.disabled = state.page >= state.pages;
 }
 
+
 async function loadUsers() {
   const app = window.AdminApp;
   const tbody = byId("adminUsersTableBody");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="8" class="admin-users-table__empty">読み込み中です。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">読み込み中です。</td></tr>`;
   }
   try {
     const payload = await app.api.get(`/api/admin/users?${qs()}`);
@@ -195,7 +224,7 @@ async function loadUsers() {
     renderTable();
     const tbody = byId("adminUsersTableBody");
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="8" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
     }
   }
 }

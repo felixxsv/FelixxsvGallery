@@ -11,7 +11,7 @@ def load_conf(path: str) -> dict:
 
 def db_conn(conf: dict, autocommit: bool = True) -> pymysql.Connection:
     db = conf["db"]
-    return pymysql.connect(
+    conn = pymysql.connect(
         host=db["host"],
         port=int(db["port"]),
         user=db["user"],
@@ -21,3 +21,6 @@ def db_conn(conf: dict, autocommit: bool = True) -> pymysql.Connection:
         autocommit=autocommit,
         cursorclass=pymysql.cursors.DictCursor,
     )
+    with conn.cursor() as cursor:
+        cursor.execute("SET time_zone = '+00:00'")
+    return conn

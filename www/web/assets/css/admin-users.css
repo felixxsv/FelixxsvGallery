@@ -167,6 +167,18 @@
   border-color: rgba(248, 113, 113, 0.22);
 }
 
+.admin-users-pill--logged-in,
+.admin-users-pill--visible {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(74, 222, 128, 0.22);
+}
+
+.admin-users-pill--logged-out,
+.admin-users-pill--hidden {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 .admin-users-actions {
   display: inline-flex;
   gap: 8px;

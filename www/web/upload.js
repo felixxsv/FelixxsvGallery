@@ -68,6 +68,70 @@ const AUTH_ME_ENDPOINTS = [
   "/gallery/api/session"
 ]
 
+
+const PRESENCE_ENDPOINT = "/gallery/api/auth/presence"
+let presenceTimer = null
+let presenceStarted = false
+
+async function postPresence(visible, useBeacon) {
+  const body = JSON.stringify({ visible: !!visible })
+  if (useBeacon && navigator.sendBeacon) {
+    try {
+      const blob = new Blob([body], { type: "application/json" })
+      navigator.sendBeacon(PRESENCE_ENDPOINT, blob)
+      return
+    } catch (e) {}
+  }
+  try {
+    await fetch(PRESENCE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      cache: "no-store",
+      keepalive: !visible,
+      body,
+    })
+  } catch (e) {}
+}
+
+function startPresenceTimer() {
+  if (presenceTimer) return
+  presenceTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") void postPresence(true, false)
+  }, 30000)
+}
+
+function stopPresenceTimer() {
+  if (!presenceTimer) return
+  clearInterval(presenceTimer)
+  presenceTimer = null
+}
+
+function startPresenceMonitor() {
+  if (presenceStarted) return
+  presenceStarted = true
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      startPresenceTimer()
+      void postPresence(true, false)
+    } else {
+      stopPresenceTimer()
+      void postPresence(false, true)
+    }
+  })
+
+  window.addEventListener("pagehide", () => {
+    stopPresenceTimer()
+    void postPresence(false, true)
+  })
+
+  if (document.visibilityState === "visible") {
+    startPresenceTimer()
+    void postPresence(true, false)
+  }
+}
+
 function gotoAuth() {
   const next = `${location.pathname}${location.search}${location.hash}`
   location.replace(`/gallery/auth/?next=${encodeURIComponent(next)}`)
@@ -1212,6 +1276,7 @@ async function boot() {
   const ok = await requireLoginOrRedirect()
   if (!ok) return
   if (document && document.body) document.body.style.visibility = ""
+  startPresenceMonitor()
   initMain()
 }
 

@@ -123,15 +123,15 @@
                 <div class="admin-settings-grid">
                   <label class="admin-settings-field">
                     <span>サイト名</span>
-                    <input id="adminSettingsGeneralSiteName" type="text" maxlength="120">
+                    <input id="adminSettingsGeneralSiteName" class="app-input" type="text" maxlength="120">
                   </label>
                   <label class="admin-settings-field">
                     <span>ギャラリーキー</span>
-                    <input id="adminSettingsGeneralGalleryKey" type="text" maxlength="64">
+                    <input id="adminSettingsGeneralGalleryKey" class="app-input" type="text" maxlength="64">
                   </label>
                   <label class="admin-settings-field admin-settings-field--full">
                     <span>Deleted User 表示名</span>
-                    <input id="adminSettingsGeneralDeletedUserDisplayName" type="text" maxlength="120">
+                    <input id="adminSettingsGeneralDeletedUserDisplayName" class="app-input" type="text" maxlength="120">
                   </label>
                   <label class="admin-settings-field">
                     <span>画像クリック時の既定挙動</span>
@@ -157,15 +157,15 @@
                 <div class="admin-settings-grid">
                   <label class="admin-settings-field">
                     <span>最小パスワード長</span>
-                    <input id="adminSettingsSecurityPasswordMinLength" type="number" min="8" max="128">
+                    <input id="adminSettingsSecurityPasswordMinLength" class="app-input" type="number" min="8" max="128">
                   </label>
                   <label class="admin-settings-field">
                     <span>10分あたりのログイン試行上限</span>
-                    <input id="adminSettingsSecurityLoginRateLimit" type="number" min="1" max="1000">
+                    <input id="adminSettingsSecurityLoginRateLimit" class="app-input" type="number" min="1" max="1000">
                   </label>
                   <label class="admin-settings-field">
                     <span>セッションアイドルタイムアウト (分)</span>
-                    <input id="adminSettingsSecuritySessionIdleTimeout" type="number" min="5" max="10080">
+                    <input id="adminSettingsSecuritySessionIdleTimeout" class="app-input" type="number" min="5" max="10080">
                   </label>
                   <label class="admin-settings-field admin-settings-field--switch app-switch">
                     <input id="adminSettingsSecurityRequireUppercase" class="app-switch__input" type="checkbox">
@@ -194,19 +194,19 @@
                 <div class="admin-settings-grid">
                   <label class="admin-settings-field">
                     <span>SMTP ホスト</span>
-                    <input id="adminSettingsSmtpHost" type="text" maxlength="255">
+                    <input id="adminSettingsSmtpHost" class="app-input" type="text" maxlength="255">
                   </label>
                   <label class="admin-settings-field">
                     <span>ポート</span>
-                    <input id="adminSettingsSmtpPort" type="number" min="1" max="65535">
+                    <input id="adminSettingsSmtpPort" class="app-input" type="number" min="1" max="65535">
                   </label>
                   <label class="admin-settings-field admin-settings-field--full">
                     <span>送信元メールアドレス</span>
-                    <input id="adminSettingsSmtpFromEmail" type="email" maxlength="255">
+                    <input id="adminSettingsSmtpFromEmail" class="app-input" type="email" maxlength="255">
                   </label>
                   <label class="admin-settings-field admin-settings-field--full">
                     <span>送信元表示名</span>
-                    <input id="adminSettingsSmtpFromName" type="text" maxlength="255">
+                    <input id="adminSettingsSmtpFromName" class="app-input" type="text" maxlength="255">
                   </label>
                   <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
                     <input id="adminSettingsSmtpUseStarttls" class="app-switch__input" type="checkbox">
@@ -228,23 +228,23 @@
                     <div class="admin-settings-grid">
                       <label class="admin-settings-field admin-settings-field--full">
                         <span>source_root</span>
-                        <input id="adminSettingsStorageSourceRoot" type="text" maxlength="500">
+                        <input id="adminSettingsStorageSourceRoot" class="app-input" type="text" maxlength="500">
                       </label>
                       <label class="admin-settings-field admin-settings-field--full">
                         <span>storage_root</span>
-                        <input id="adminSettingsStorageStorageRoot" type="text" maxlength="500">
+                        <input id="adminSettingsStorageStorageRoot" class="app-input" type="text" maxlength="500">
                       </label>
                       <label class="admin-settings-field admin-settings-field--full">
                         <span>original_cache_root</span>
-                        <input id="adminSettingsStorageOriginalCacheRoot" type="text" maxlength="500">
+                        <input id="adminSettingsStorageOriginalCacheRoot" class="app-input" type="text" maxlength="500">
                       </label>
                       <label class="admin-settings-field">
                         <span>アップロード可能ファイル数</span>
-                        <input id="adminSettingsStorageMaxUploadFiles" type="number" min="1" max="1000">
+                        <input id="adminSettingsStorageMaxUploadFiles" class="app-input" type="number" min="1" max="1000">
                       </label>
                       <label class="admin-settings-field">
                         <span>最大アップロードサイズ (MB)</span>
-                        <input id="adminSettingsStorageMaxUploadSizeMb" type="number" min="1" max="10240">
+                        <input id="adminSettingsStorageMaxUploadSizeMb" class="app-input" type="number" min="1" max="10240">
                       </label>
                     </div>
                   </div>
@@ -345,14 +345,14 @@
                       </label>
                       <label class="admin-settings-field">
                         <span>実行時刻</span>
-                        <input id="adminSettingsIntegrityRunAt" type="time" step="60">
+                        <input id="adminSettingsIntegrityRunAt" class="app-input" type="time" step="60">
                         <small class="admin-settings-field__help">24時間表記で設定します。</small>
                       </label>
                     </div>
 
                     <label id="adminIntegrityIntervalField" class="admin-settings-field admin-integrity-dependent-field" hidden>
                       <span>n日ごとの日数</span>
-                      <input id="adminSettingsIntegrityIntervalDays" type="number" min="1" max="365">
+                      <input id="adminSettingsIntegrityIntervalDays" class="app-input" type="number" min="1" max="365">
                       <small class="admin-settings-field__help">例: 3 を指定すると 3 日ごとに実行します。</small>
                     </label>
 
@@ -400,7 +400,7 @@
                     <div class="admin-settings-grid admin-settings-grid--integrity-secondary">
                       <label class="admin-settings-field">
                         <span>レポート保持日数</span>
-                        <input id="adminSettingsIntegrityReportRetentionDays" type="number" min="1" max="3650">
+                        <input id="adminSettingsIntegrityReportRetentionDays" class="app-input" type="number" min="1" max="3650">
                         <small class="admin-settings-field__help">古い JSON レポートを整理する際の目安です。</small>
                       </label>
                       <div class="admin-integrity-note-card">

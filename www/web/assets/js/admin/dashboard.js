@@ -52,12 +52,28 @@ function clampRatio(value) {
 const STORAGE_USAGE_REFRESH_INTERVAL_KEY = "admin.storageUsage.refreshIntervalMs";
 const STORAGE_USAGE_DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 const STORAGE_USAGE_ALLOWED_INTERVALS = [0, 60 * 1000, 3 * 60 * 1000, 5 * 60 * 1000, 10 * 60 * 1000, 15 * 60 * 1000, 30 * 60 * 1000];
+const DASHBOARD_LIVE_REFRESH_KEY = "admin.dashboard.liveRefreshMs";
+const DASHBOARD_LIVE_ALLOWED_INTERVALS = [0, 3000, 5000, 10000, 30000, 60000];
+const DASHBOARD_LIVE_DEFAULT_INTERVAL_MS = 3000;
+
 const storageUsageState = {
   loading: false,
   loaded: false,
   error: "",
   data: null,
   timerId: null,
+};
+
+const dashboardState = {
+  loadPromise: null,
+  lastSnapshot: "",
+  latestData: null,
+  latestImageItem: null,
+  liveWatcher: null,
+  liveTimerId: null,
+  liveVisibilityBound: false,
+  liveStorageBound: false,
+  elapsedTimerId: null,
 };
 
 function normalizeStorageUsageRefreshInterval(value) {
@@ -82,6 +98,27 @@ function setStorageUsageRefreshInterval(value) {
     return normalized;
   }
   return normalized;
+}
+
+function normalizeDashboardLiveRefreshInterval(value) {
+  const ms = Number(value);
+  return DASHBOARD_LIVE_ALLOWED_INTERVALS.includes(ms) ? ms : DASHBOARD_LIVE_DEFAULT_INTERVAL_MS;
+}
+
+function getDashboardLiveRefreshInterval() {
+  try {
+    const raw = window.localStorage.getItem(DASHBOARD_LIVE_REFRESH_KEY);
+    return normalizeDashboardLiveRefreshInterval(raw == null ? DASHBOARD_LIVE_DEFAULT_INTERVAL_MS : Number(raw));
+  } catch {
+    return DASHBOARD_LIVE_DEFAULT_INTERVAL_MS;
+  }
+}
+
+function clearDashboardLiveRefreshTimer() {
+  if (dashboardState.liveTimerId) {
+    window.clearTimeout(dashboardState.liveTimerId);
+    dashboardState.liveTimerId = null;
+  }
 }
 
 function clearDashboardStorageTimer() {
@@ -156,6 +193,20 @@ function startClockLoop() {
   }, 1000);
 }
 
+function startElapsedLoop() {
+  if (dashboardState.elapsedTimerId) {
+    return;
+  }
+  dashboardState.elapsedTimerId = window.setInterval(() => {
+    const nodes = document.querySelectorAll("[data-session-elapsed]");
+    for (const node of nodes) {
+      const next = Number(node.dataset.sessionElapsed || 0) + 1;
+      node.dataset.sessionElapsed = String(next);
+      node.textContent = formatElapsed(next);
+    }
+  }, 1000);
+}
+
 function renderStats(stats) {
   const refs = {
     online: byId("adminStatOnlineUsers"),
@@ -178,6 +229,7 @@ function renderStats(stats) {
 function renderActiveUsers(items) {
   const container = byId("adminDashboardActiveUsers");
   if (!container) return;
+
   container.innerHTML = "";
   if (!Array.isArray(items) || items.length === 0) {
     const empty = document.createElement("div");
@@ -209,7 +261,7 @@ function renderActiveUsers(items) {
       <div class="admin-active-user__display">${item.display_name || "-"}</div>
       <div class="admin-active-user__id">@${item.user_key || "-"}</div>
       <div class="admin-active-user__status"><span class="admin-status-badge admin-status-badge--online">オンライン</span></div>
-      <div class="admin-active-user__elapsed">${formatElapsed(item.session_elapsed_sec)}</div>
+      <div class="admin-active-user__elapsed" data-session-elapsed="${Number(item.session_elapsed_sec || 0)}">${formatElapsed(item.session_elapsed_sec)}</div>
     `;
     container.appendChild(row);
   }
@@ -218,6 +270,7 @@ function renderActiveUsers(items) {
 function renderAuditLogs(items) {
   const container = byId("adminDashboardRecentLogs");
   if (!container) return;
+
   container.innerHTML = "";
   if (!Array.isArray(items) || items.length === 0) {
     const empty = document.createElement("div");
@@ -277,6 +330,7 @@ function renderDashboardStorageUsage() {
   const filesystemFreeEl = byId("adminDashboardStorageFilesystemFree");
   const percentEl = byId("adminDashboardStorageUsagePercent");
   const ringEl = byId("adminDashboardStorageRing");
+
   if (!loadingEl || !messageEl || !contentEl) return;
 
   if (refreshButton) refreshButton.disabled = storageUsageState.loading;
@@ -284,6 +338,7 @@ function renderDashboardStorageUsage() {
     intervalSelect.disabled = storageUsageState.loading;
     intervalSelect.value = String(getStorageUsageRefreshInterval());
   }
+
   loadingEl.hidden = !storageUsageState.loading && storageUsageState.loaded;
   loadingEl.textContent = storageUsageState.loading ? "使用状況を読み込み中です…" : "使用状況はまだ読み込まれていません。";
   messageEl.hidden = !storageUsageState.error;
@@ -325,10 +380,12 @@ async function loadDashboardStorageUsage({ force = false, silent = false } = {})
     scheduleDashboardStorageRefresh();
     return;
   }
+
   const app = window.AdminApp;
   storageUsageState.loading = true;
   storageUsageState.error = "";
   renderDashboardStorageUsage();
+
   try {
     const payload = await app.api.get("/api/admin/settings/storage/usage");
     storageUsageState.data = payload.data || null;
@@ -360,20 +417,23 @@ function scheduleDashboardStorageRefresh() {
 
 function bindDashboardStorageUsage() {
   byId("adminDashboardStorageRefreshButton")?.addEventListener("click", () => {
-    loadDashboardStorageUsage({ force: true });
+    void loadDashboardStorageUsage({ force: true });
   });
+
   byId("adminDashboardStorageRefreshInterval")?.addEventListener("change", (event) => {
     const value = setStorageUsageRefreshInterval(event.currentTarget?.value);
     event.currentTarget.value = String(value);
     scheduleDashboardStorageRefresh();
   });
+
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-      loadDashboardStorageUsage({ force: true, silent: true });
+      void loadDashboardStorageUsage({ force: true, silent: true });
       return;
     }
     clearDashboardStorageTimer();
   });
+
   window.addEventListener("storage", (event) => {
     if (event.key !== STORAGE_USAGE_REFRESH_INTERVAL_KEY) return;
     syncDashboardStorageIntervalControl();
@@ -388,6 +448,7 @@ function renderIntegritySummary(summary) {
   const pending = byId("adminDashboardIntegrityPending");
   const container = byId("adminDashboardIntegrityIssues");
   const action = byId("adminDashboardIntegrityRunButton");
+
   if (latestStatus) latestStatus.textContent = summary?.latest_status || "never";
   if (latestRun) {
     const run = summary?.last_run;
@@ -409,6 +470,7 @@ function renderIntegritySummary(summary) {
     action.textContent = summary?.has_pending ? "実行待ちがあります" : "手動実行を予約";
   }
   if (!container) return;
+
   container.innerHTML = "";
   const items = summary?.issue_items || [];
   if (!Array.isArray(items) || items.length === 0) {
@@ -418,6 +480,7 @@ function renderIntegritySummary(summary) {
     container.appendChild(empty);
     return;
   }
+
   for (const item of items) {
     const row = document.createElement("article");
     row.className = "admin-log-item";
@@ -437,8 +500,6 @@ function renderIntegritySummary(summary) {
     container.appendChild(row);
   }
 }
-
-let latestImageItem = null;
 
 function buildDashboardDetail(item) {
   return {
@@ -460,6 +521,8 @@ function buildDashboardDetail(item) {
     image_width: item.image_width ?? item.width ?? null,
     image_height: item.image_height ?? item.height ?? null,
     admin_meta: item.admin_meta || {},
+    preview_url: item.preview_url || item.thumbnail_url || item.url || "",
+    original_url: item.original_url || item.preview_url || item.thumbnail_url || item.url || "",
   };
 }
 
@@ -471,13 +534,14 @@ async function loadAdminContentDetail(imageId) {
 }
 
 function renderLatestImage(item) {
-  latestImageItem = item || null;
+  dashboardState.latestImageItem = item || null;
   const card = byId("adminDashboardLatestImageCard");
   const image = byId("adminDashboardLatestImage");
   const title = byId("adminDashboardLatestImageTitle");
   const meta = byId("adminDashboardLatestImageMeta");
   const stats = byId("adminDashboardLatestImageStats");
   const placeholder = byId("adminDashboardLatestImagePlaceholder");
+
   if (!card || !image || !title || !meta || !stats || !placeholder) return;
 
   if (!item || !item.preview_url) {
@@ -515,27 +579,86 @@ async function queueIntegrityRun() {
   return app.api.post("/api/admin/integrity/run", {});
 }
 
-async function loadDashboard() {
-  const app = window.AdminApp;
-  const payload = await app.api.get("/api/admin/dashboard");
-  const data = payload.data || {};
-  renderStats({
+function buildDashboardSnapshot(data) {
+  return JSON.stringify({
+    stats: data.stats || {},
     online_user_count: data.online_user_count ?? 0,
-    ...(data.stats || {}),
+    active_users: Array.isArray(data.active_users)
+      ? data.active_users.map((item) => ({
+          user_id: item.user_id,
+          display_name: item.display_name,
+          user_key: item.user_key,
+          avatar_url: item.avatar_url || "",
+          session_elapsed_sec: Number(item.session_elapsed_sec || 0),
+          last_seen_at: item.last_seen_at || "",
+        }))
+      : [],
+    recent_audit_logs: Array.isArray(data.recent_audit_logs)
+      ? data.recent_audit_logs.map((item) => ({
+          id: item.id,
+          created_at: item.created_at,
+          action_type: item.action_type,
+          summary: item.summary,
+          result: item.result,
+          actor: item.actor?.display_name || item.actor?.user_key || "",
+        }))
+      : [],
+    latest_image: data.latest_image ? {
+      image_id: data.latest_image.image_id || data.latest_image.id,
+      posted_at: data.latest_image.posted_at,
+      title: data.latest_image.title,
+      preview_url: data.latest_image.preview_url,
+      like_count_short: data.latest_image.like_count_short,
+      view_count_short: data.latest_image.view_count_short,
+    } : null,
+    integrity_summary: data.integrity_summary || {},
+    clock_mode: data.clock_mode || "digital",
   });
-  renderActiveUsers(data.active_users || []);
-  renderAuditLogs(data.recent_audit_logs || []);
-  renderLatestImage(data.latest_image || null);
-  renderIntegritySummary(data.integrity_summary || {});
+}
 
-  const mode = data.clock_mode === "analog" ? "analog" : "digital";
-  const digitalBtn = byId("adminClockModeDigital");
-  const analogBtn = byId("adminClockModeAnalog");
-  if (digitalBtn) digitalBtn.classList.toggle("is-active", mode === "digital");
-  if (analogBtn) analogBtn.classList.toggle("is-active", mode === "analog");
-  showClock(mode);
-  updateDigitalClock();
-  updateAnalogClock();
+async function loadDashboard({ silent = false, force = false } = {}) {
+  if (dashboardState.loadPromise) {
+    return dashboardState.loadPromise;
+  }
+
+  const app = window.AdminApp;
+  dashboardState.loadPromise = app.api.get("/api/admin/dashboard")
+    .then((payload) => {
+      const data = payload.data || {};
+      const snapshot = buildDashboardSnapshot(data);
+      if (!force && silent && snapshot === dashboardState.lastSnapshot) {
+        return;
+      }
+      dashboardState.lastSnapshot = snapshot;
+      dashboardState.latestData = data;
+
+      renderStats({
+        online_user_count: data.online_user_count ?? 0,
+        ...(data.stats || {}),
+      });
+      renderActiveUsers(data.active_users || []);
+      renderAuditLogs(data.recent_audit_logs || []);
+      renderLatestImage(data.latest_image || null);
+      renderIntegritySummary(data.integrity_summary || {});
+      const mode = data.clock_mode === "analog" ? "analog" : "digital";
+      const digitalBtn = byId("adminClockModeDigital");
+      const analogBtn = byId("adminClockModeAnalog");
+      if (digitalBtn) digitalBtn.classList.toggle("is-active", mode === "digital");
+      if (analogBtn) analogBtn.classList.toggle("is-active", mode === "analog");
+      showClock(mode);
+      updateDigitalClock();
+      updateAnalogClock();
+    })
+    .catch((error) => {
+      if (!silent) {
+        window.AdminApp?.toast?.error?.(error?.message || "ダッシュボードの取得に失敗しました。");
+      }
+    })
+    .finally(() => {
+      dashboardState.loadPromise = null;
+    });
+
+  return dashboardState.loadPromise;
 }
 
 function bindClockButtons() {
@@ -575,12 +698,12 @@ function bindLatestImage() {
 
   card.addEventListener("click", async (event) => {
     event.preventDefault();
-    if (!latestImageItem || !window.AdminApp?.imageModal) return;
-    const imageId = latestImageItem.image_id || latestImageItem.id;
+    if (!dashboardState.latestImageItem || !window.AdminApp?.imageModal) return;
+    const imageId = dashboardState.latestImageItem.image_id || dashboardState.latestImageItem.id;
     window.AdminApp.imageModal.openByPreference(
       {
-        ...latestImageItem,
-        original_url: latestImageItem.original_url || latestImageItem.preview_url,
+        ...dashboardState.latestImageItem,
+        original_url: dashboardState.latestImageItem.original_url || dashboardState.latestImageItem.preview_url,
       },
       {
         detailLoader: async () => loadAdminContentDetail(imageId),
@@ -592,13 +715,15 @@ function bindLatestImage() {
 function bindIntegrityButton() {
   const button = byId("adminDashboardIntegrityRunButton");
   if (!button) return;
+
   button.addEventListener("click", async () => {
     if (button.disabled) return;
     button.disabled = true;
     try {
       const result = await queueIntegrityRun();
       window.AdminApp?.toast?.success?.(result?.message || "整合性チェックを実行キューへ追加しました。");
-      await loadDashboard();
+      dashboardState.lastSnapshot = "";
+      await loadDashboard({ force: true });
     } catch (error) {
       button.disabled = false;
       window.AdminApp?.toast?.error?.(error?.message || "整合性チェックの実行予約に失敗しました。");
@@ -606,28 +731,76 @@ function bindIntegrityButton() {
   });
 }
 
+function scheduleDashboardLiveRefresh() {
+  clearDashboardLiveRefreshTimer();
+  if (document.visibilityState === "hidden") return;
+  const intervalMs = getDashboardLiveRefreshInterval();
+  if (!intervalMs) return;
+  dashboardState.liveTimerId = window.setTimeout(async () => {
+    await loadDashboard({ silent: true });
+    scheduleDashboardLiveRefresh();
+  }, intervalMs);
+}
+
+function bindDashboardLiveRefreshLifecycle() {
+  if (!dashboardState.liveVisibilityBound) {
+    dashboardState.liveVisibilityBound = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        void loadDashboard({ silent: true, force: true }).finally(() => {
+          scheduleDashboardLiveRefresh();
+        });
+        return;
+      }
+      clearDashboardLiveRefreshTimer();
+    });
+  }
+
+  if (!dashboardState.liveStorageBound) {
+    dashboardState.liveStorageBound = true;
+    window.addEventListener("storage", (event) => {
+      if (event.key !== DASHBOARD_LIVE_REFRESH_KEY) return;
+      scheduleDashboardLiveRefresh();
+    });
+  }
+}
+
+function startDashboardLiveRefresh() {
+  bindDashboardLiveRefreshLifecycle();
+  dashboardState.liveWatcher = {
+    stop() {
+      clearDashboardLiveRefreshTimer();
+    },
+  };
+  scheduleDashboardLiveRefresh();
+}
+
 async function initDashboard() {
   if (!window.AdminApp || !window.AdminApp.ready) return;
+
   bindClockButtons();
   bindLatestImage();
   bindIntegrityButton();
   bindDashboardStorageUsage();
   syncDashboardStorageIntervalControl();
   startClockLoop();
+  startElapsedLoop();
+
   try {
     await Promise.all([
-      loadDashboard(),
+      loadDashboard({ force: true }),
       loadDashboardStorageUsage({ force: true, silent: true }),
     ]);
+    startDashboardLiveRefresh();
   } catch (error) {
     window.AdminApp?.toast?.error?.(error?.message || "ダッシュボードの取得に失敗しました。");
   }
 }
 
 if (window.AdminApp?.ready) {
-  initDashboard();
+  void initDashboard();
 } else {
   document.addEventListener("admin:ready", () => {
-    initDashboard();
+    void initDashboard();
   }, { once: true });
 }

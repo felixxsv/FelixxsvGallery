@@ -31,6 +31,7 @@ from auth_service import (
     login_with_email_password,
     logout_all_for_current_session,
     logout_by_session_token,
+    update_current_session_presence,
     start_registration,
     complete_registration,
     request_password_reset,
@@ -106,6 +107,10 @@ class TwoFactorSetupConfirmRequest(BaseModel):
 class TwoFactorDisableConfirmRequest(BaseModel):
     verify_ticket: str
     code: str
+
+
+class PresenceRequest(BaseModel):
+    visible: bool = True
 
 
 def build_request_id() -> str:
@@ -279,6 +284,29 @@ async def login(
             message="ログイン処理に失敗しました。",
             http_status=500,
         )
+
+
+@router.post("/presence")
+async def presence(
+    request: Request,
+    payload: PresenceRequest | None = None,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        visible = True if payload is None else bool(payload.visible)
+        result = update_current_session_presence(session_token=gallery_session, visible=visible)
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        response = build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="画面状態の更新に失敗しました。",
+            http_status=500,
+        )
+        if gallery_session is None or str(gallery_session).strip() == "":
+            clear_session_cookie(response)
+        return response
 
 
 @router.post("/logout")

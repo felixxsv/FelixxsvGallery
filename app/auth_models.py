@@ -716,6 +716,7 @@ def create_session(
     ip_address: bytes | None,
     user_agent: str | None,
     expires_at,
+    now_dt,
     two_factor_verified_at=None,
     two_factor_remember_until=None,
 ) -> str:
@@ -726,17 +727,23 @@ def create_session(
             user_id,
             created_at,
             last_seen_at,
+            last_access_at,
+            last_presence_at,
             expires_at,
             two_factor_verified_at,
             two_factor_remember_until,
             user_agent,
             ip_addr
-        ) VALUES (%s, %s, %s, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6), %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (
         session_token_hash,
         _get_gallery_name(),
         user_id,
+        now_dt,
+        now_dt,
+        now_dt,
+        now_dt,
         expires_at,
         two_factor_verified_at,
         two_factor_remember_until,
@@ -766,6 +773,41 @@ def update_session_last_seen(
         SET {", ".join(fields)}
         WHERE sid = %s
           AND gallery = %s
+    """
+    params.append(session_id)
+    params.append(_get_gallery_name())
+
+    with conn.cursor() as cursor:
+        cursor.execute(sql, tuple(params))
+        return _rows_affected(cursor)
+
+
+def update_session_presence(
+    conn,
+    session_id: str,
+    now_dt,
+    visible: bool,
+    expires_at=None,
+) -> int:
+    fields = ["last_seen_at = %s", "last_access_at = %s"]
+    params: list[Any] = [now_dt, now_dt]
+
+    if visible:
+        fields.append("last_presence_at = %s")
+        params.append(now_dt)
+    else:
+        fields.append("last_presence_at = NULL")
+
+    if expires_at is not None:
+        fields.append("expires_at = %s")
+        params.append(expires_at)
+
+    sql = f"""
+        UPDATE user_sessions
+        SET {", ".join(fields)}
+        WHERE sid = %s
+          AND gallery = %s
+          AND revoked_at IS NULL
     """
     params.append(session_id)
     params.append(_get_gallery_name())

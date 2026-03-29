@@ -111,6 +111,17 @@
               </div>
               <div class="admin-audit-toolbar__right">
                 <button id="adminAuditSearchButton" type="button" class="app-button app-button--ghost">検索</button>
+                <label class="admin-audit-toolbar__refresh" for="adminAuditLiveRefreshInterval">
+                  <span class="admin-audit-toolbar__refresh-label">自動更新</span>
+                  <select id="adminAuditLiveRefreshInterval" class="app-select app-select--compact" aria-label="監査ログの自動更新間隔">
+                    <option value="0">OFF</option>
+                    <option value="3000">3秒</option>
+                    <option value="5000">5秒</option>
+                    <option value="10000">10秒</option>
+                    <option value="30000">30秒</option>
+                    <option value="60000">1分</option>
+                  </select>
+                </label>
                 <button id="adminAuditReloadButton" type="button" class="app-button app-button--ghost">再読込</button>
                 <button id="adminAuditExportButton" type="button" class="app-button app-button--primary">CSV 出力</button>
               </div>
@@ -129,6 +140,7 @@
                     <th>日時</th>
                     <th>実行者</th>
                     <th>操作種別</th>
+                    <th>対象</th>
                     <th>結果</th>
                     <th>概要</th>
                     <th>操作</th>

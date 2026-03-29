@@ -42,6 +42,7 @@ from auth_models import (
     revoke_session_by_id,
     revoke_sessions_by_user_id,
     update_session_last_seen,
+    update_session_presence,
     update_auth_identity_last_used,
     update_password_failed_attempts,
     update_password_hash,
@@ -419,6 +420,12 @@ def logout_by_session_token(
         session_token_hash = hash_session_token(str(session_token))
         session_row = get_session_by_token_hash(conn, session_token_hash)
         if session_row is not None:
+            update_session_presence(
+                conn=conn,
+                session_id=session_row["id"],
+                now_dt=now_dt,
+                visible=False,
+            )
             revoke_session_by_id(conn, session_row["id"], now_dt)
             log_auth_event(
                 conn=conn,
@@ -548,6 +555,12 @@ def logout_all_for_current_session(
                     clear_session_cookie=True,
                 )
 
+        update_session_presence(
+            conn=conn,
+            session_id=session_row["id"],
+            now_dt=now_dt,
+            visible=False,
+        )
         revoked_count = revoke_sessions_by_user_id(conn, user["id"], now_dt)
 
         log_auth_event(
@@ -1489,6 +1502,7 @@ def confirm_two_factor_challenge(
             ip_address=ip_address,
             user_agent=user_agent,
             expires_at=build_session_expiry(now=now_dt),
+            now_dt=now_dt,
             two_factor_verified_at=now_dt,
             two_factor_remember_until=remember_until,
         )
@@ -3070,6 +3084,87 @@ def get_current_user_profile(
         _safe_close(conn)
 
 
+
+def update_current_session_presence(
+    session_token: str | None,
+    visible: bool = True,
+    now=None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    now_dt = _utc_now(now)
+
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+        if session_row.get("revoked_at") is not None or _is_expired(session_row["expires_at"], now_dt):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        force_logout_after = user.get("force_logout_after")
+        if force_logout_after is not None and _coerce_utc_datetime(session_row["created_at"]) < _coerce_utc_datetime(force_logout_after):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+        if _is_two_factor_required(two_factor_settings) and session_row.get("two_factor_verified_at") is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        refreshed_expires_at = build_refreshed_session_expiry(now=now_dt) if needs_session_refresh(session_row["last_seen_at"], now=now_dt) else None
+        update_session_presence(
+            conn=conn,
+            session_id=session_row["id"],
+            now_dt=now_dt,
+            visible=bool(visible),
+            expires_at=refreshed_expires_at,
+        )
+        conn.commit()
+        return build_service_success(data={"visible": bool(visible)})
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="画面状態の更新に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
 def _get_conf() -> dict:
     conf_path = os.environ.get(
         "GALLERY_CONF",
@@ -3479,6 +3574,7 @@ def _create_authenticated_session_result(conn, user: dict, ip_address: bytes | N
         ip_address=ip_address,
         user_agent=user_agent,
         expires_at=build_session_expiry(now=now_dt),
+        now_dt=now_dt,
         two_factor_verified_at=now_dt,
         two_factor_remember_until=None,
     )
