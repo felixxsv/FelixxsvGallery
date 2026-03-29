@@ -11,7 +11,9 @@ import { createDirtyGuard } from "../core/dirty-guard.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
-const SIDEBAR_EDGE_PEEK_PX = 40;
+const SIDEBAR_EDGE_PEEK_PX = 44;
+const ADMIN_SIDEBAR_COLLAPSED_KEY = "gallery.admin.sidebar.collapsed";
+const ADMIN_SIDEBAR_INIT_KEY = "gallery.admin.sidebar.init.v2";
 
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
@@ -48,6 +50,17 @@ function show(el) {
 
 function hide(el) {
   if (el) el.hidden = true;
+}
+
+function ensureAdminSidebarDefaultExpanded() {
+  try {
+    const initialized = window.localStorage.getItem(ADMIN_SIDEBAR_INIT_KEY);
+    if (initialized === "1") return;
+    window.localStorage.setItem(ADMIN_SIDEBAR_COLLAPSED_KEY, "0");
+    window.localStorage.setItem(ADMIN_SIDEBAR_INIT_KEY, "1");
+  } catch {
+    return;
+  }
 }
 
 function createPresenceController(app) {
@@ -216,11 +229,16 @@ export async function initAdminLayout() {
   };
 
   const shellState = {
-    confirmResolver: null
+    confirmResolver: null,
+    currentSidebarTitle: (refs.pageTitle?.textContent || "").trim() || "管理画面"
   };
 
-  function syncSidebarDisplay(pageTitle = null) {
-    const titleText = pageTitle || refs.pageTitle?.textContent || "管理画面";
+  function syncSidebarDisplay(nextTitle = null) {
+    if (typeof nextTitle === "string" && nextTitle.trim()) {
+      shellState.currentSidebarTitle = nextTitle.trim();
+    }
+
+    const titleText = shellState.currentSidebarTitle || "管理画面";
     const collapsed = app.sidebar?.isCollapsed?.() ?? refs.sidebar?.classList.contains("is-collapsed") ?? false;
 
     refs.appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
@@ -239,7 +257,7 @@ export async function initAdminLayout() {
       refs.sidebarToggle.setAttribute("aria-label", collapsed ? "サイドバーを展開する" : "サイドバーを閉じる");
       const icon = refs.sidebarToggle.querySelector("span");
       if (icon) {
-        icon.textContent = collapsed ? ">" : "×";
+        icon.textContent = collapsed ? "❯" : "×";
       }
     }
 
@@ -263,6 +281,7 @@ export async function initAdminLayout() {
     };
 
     window.addEventListener("mousemove", handlePointerMove);
+
     refs.appShell.addEventListener("mouseleave", () => {
       refs.appShell.classList.remove("is-sidebar-edge-peek");
     });
@@ -278,7 +297,7 @@ export async function initAdminLayout() {
     });
 
     window.addEventListener("storage", (event) => {
-      if (event.key !== "gallery.admin.sidebar.collapsed") return;
+      if (event.key !== ADMIN_SIDEBAR_COLLAPSED_KEY) return;
       window.requestAnimationFrame(() => {
         syncSidebarDisplay();
       });
@@ -372,6 +391,8 @@ export async function initAdminLayout() {
     confirmDiscard: openDiscardConfirm
   });
 
+  ensureAdminSidebarDefaultExpanded();
+
   const sidebar = initSidebar({
     root: refs.sidebar,
     toggleButton: refs.sidebarToggle,
@@ -435,12 +456,13 @@ export async function initAdminLayout() {
     if (refs.pageTitle) refs.pageTitle.textContent = pageTitle;
     if (refs.headerUserName) refs.headerUserName.textContent = currentUser.display_name || "-";
     if (refs.headerUserKey) refs.headerUserKey.textContent = currentUser.user_key || "-";
-
-    const desc = document.body.dataset.adminDescription || "";
-    if (refs.pageDescription) refs.pageDescription.textContent = desc;
-    syncSidebarDisplay(pageTitle);
+    if (refs.pageDescription) {
+      refs.pageDescription.textContent = document.body.dataset.adminDescription || "";
+    }
 
     populateNavigation(data.navigation || []);
+    syncSidebarDisplay(pageTitle);
+
     app.bootstrapData = data;
     app.ready = true;
     showApp();

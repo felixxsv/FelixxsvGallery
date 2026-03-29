@@ -12,6 +12,8 @@ import { initHomePage } from "./pages/home.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
+const HOME_SIDEBAR_COLLAPSED_KEY = "gallery.home.sidebar.collapsed";
+const HOME_SIDEBAR_INIT_KEY = "gallery.home.sidebar.init.v2";
 
 function createAppContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
@@ -180,6 +182,17 @@ function createPresenceController(app) {
   };
 }
 
+function ensureHomeSidebarDefaultExpanded() {
+  try {
+    const initialized = window.localStorage.getItem(HOME_SIDEBAR_INIT_KEY);
+    if (initialized === "1") return;
+    window.localStorage.setItem(HOME_SIDEBAR_COLLAPSED_KEY, "0");
+    window.localStorage.setItem(HOME_SIDEBAR_INIT_KEY, "1");
+  } catch {
+    return;
+  }
+}
+
 function initPublicSidebar() {
   const root = byId("homeSidebar");
   const toggleButton = byId("homeSidebarToggle");
@@ -187,12 +200,11 @@ function initPublicSidebar() {
   const layout = root?.closest(".home-shell-layout") || null;
   if (!root || !toggleButton || !layout) return;
 
-  const storageKey = "gallery.home.sidebar.collapsed";
-  const edgePeekPx = 40;
+  const edgePeekPx = 44;
 
   function readStoredState() {
     try {
-      return window.localStorage.getItem(storageKey) === "1";
+      return window.localStorage.getItem(HOME_SIDEBAR_COLLAPSED_KEY) === "1";
     } catch {
       return false;
     }
@@ -200,7 +212,7 @@ function initPublicSidebar() {
 
   function writeStoredState(collapsed) {
     try {
-      window.localStorage.setItem(storageKey, collapsed ? "1" : "0");
+      window.localStorage.setItem(HOME_SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
     } catch {
       return;
     }
@@ -210,16 +222,23 @@ function initPublicSidebar() {
     root.classList.toggle("is-collapsed", collapsed);
     layout.classList.toggle("is-sidebar-collapsed", collapsed);
     document.body.classList.toggle("is-home-sidebar-collapsed", collapsed);
+
     if (!collapsed) {
       document.body.classList.remove("is-home-sidebar-edge-peek");
     }
+
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
     toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
+
     const icon = toggleButton.querySelector("span");
     if (icon) {
-      icon.textContent = ">";
+      icon.textContent = "❯";
     }
-    if (closeButton) closeButton.hidden = collapsed;
+
+    if (closeButton) {
+      closeButton.hidden = collapsed;
+    }
+
     writeStoredState(collapsed);
   }
 
@@ -232,8 +251,12 @@ function initPublicSidebar() {
       document.body.classList.remove("is-home-sidebar-edge-peek");
       return;
     }
-    document.body.classList.toggle("is-home-sidebar-edge-peek", Number(clientX || 0) <= edgePeekPx);
+
+    const nearEdge = Number(clientX || 0) <= edgePeekPx;
+    document.body.classList.toggle("is-home-sidebar-edge-peek", nearEdge);
   }
+
+  ensureHomeSidebarDefaultExpanded();
 
   toggleButton.addEventListener("click", () => {
     applyState(!isCollapsed());
@@ -252,7 +275,7 @@ function initPublicSidebar() {
   });
 
   window.addEventListener("storage", (event) => {
-    if (event.key !== storageKey) return;
+    if (event.key !== HOME_SIDEBAR_COLLAPSED_KEY) return;
     applyState(readStoredState());
   });
 
