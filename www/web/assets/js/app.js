@@ -180,6 +180,54 @@ function createPresenceController(app) {
   };
 }
 
+
+function initPublicSidebar() {
+  const root = byId("homeSidebar");
+  const toggleButton = byId("homeSidebarToggle");
+  const closeButton = byId("homeSidebarClose");
+  if (!root || !toggleButton) return;
+
+  const storageKey = "gallery.home.sidebar.collapsed";
+
+  function readStoredState() {
+    try {
+      return window.localStorage.getItem(storageKey) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function writeStoredState(collapsed) {
+    try {
+      window.localStorage.setItem(storageKey, collapsed ? "1" : "0");
+    } catch {
+      return;
+    }
+  }
+
+  function applyState(collapsed) {
+    root.classList.toggle("is-collapsed", collapsed);
+    toggleButton.setAttribute("aria-expanded", String(!collapsed));
+    toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
+    if (closeButton) closeButton.hidden = collapsed;
+    writeStoredState(collapsed);
+  }
+
+  function isCollapsed() {
+    return root.classList.contains("is-collapsed");
+  }
+
+  toggleButton.addEventListener("click", () => {
+    applyState(!isCollapsed());
+  });
+
+  closeButton?.addEventListener("click", () => {
+    applyState(true);
+  });
+
+  applyState(readStoredState());
+}
+
 async function bootstrap() {
   const app = createAppContext();
   window.App = app;
@@ -197,6 +245,7 @@ async function bootstrap() {
   }
 
   if (app.page === "home") {
+    initPublicSidebar();
     initHomePage(app);
   }
 }

@@ -362,3 +362,39 @@ body.admin-page {
     padding: 18px;
   }
 }
+
+
+body.admin-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-page .app-site-header {
+  flex: 0 0 auto;
+}
+
+.admin-shell {
+  min-height: calc(100vh - var(--header-height));
+}
+
+.admin-sidebar__toggle {
+  display: none;
+}
+
+.admin-topbar__meta {
+  display: none;
+}
+
+.admin-topbar {
+  align-items: start;
+}
+
+.admin-topbar__title {
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+@media (max-width: 960px) {
+  .admin-shell {
+    min-height: calc(100vh - 112px);
+  }
+}

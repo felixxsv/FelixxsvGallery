@@ -1,465 +1,755 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>サイト設定 - Felixxsv Gallery</title>
-  <link rel="stylesheet" href="/gallery/assets/css/common.css">
-  <link rel="stylesheet" href="/gallery/assets/css/components.css">
-  <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
-  <link rel="stylesheet" href="/gallery/assets/css/admin-settings.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>サイト設定 - Felixxsv Gallery</title>
+<link href="/gallery/assets/css/common.css" rel="stylesheet"/>
+<link href="/gallery/assets/css/components.css" rel="stylesheet"/>
+<link href="/gallery/assets/css/admin-common.css" rel="stylesheet"/>
+<link href="/gallery/assets/css/admin-settings.css" rel="stylesheet"/>
 </head>
-<body
-  class="admin-page"
-  data-app-base="/gallery"
-  data-admin-page="settings"
-  data-admin-description="サイト共通の運用設定を管理します。ダッシュボードなどの個人表示設定は管理者ごとに保持されます。"
->
-  <section id="adminLoadingState" class="admin-state-screen">
-    <div class="admin-state-card">
-      <h1 class="admin-state-card__title">管理画面を確認しています</h1>
-      <p class="admin-state-card__description">admin 権限の確認が完了するまで、管理画面本体は描画しません。</p>
-    </div>
-  </section>
+<body class="admin-page" data-admin-description="サイト共通の運用設定を管理します。ダッシュボードなどの個人表示設定は管理者ごとに保持されます。" data-admin-page="settings" data-app-base="/gallery" data-hide-admin-link-in-shell="1">
+<section class="admin-state-screen" id="adminLoadingState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title">管理画面を確認しています</h1>
+<p class="admin-state-card__description">admin 権限の確認が完了するまで、管理画面本体は描画しません。</p>
+</div>
+</section>
+<section class="admin-state-screen" hidden="" id="adminNotFoundState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title">404</h1>
+<p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
+<div class="admin-state-card__actions">
+<a class="app-button app-button--primary" href="/gallery/">ホームへ戻る</a>
+</div>
+</div>
+</section>
+<section class="admin-state-screen" hidden="" id="adminErrorState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title">初期化に失敗しました</h1>
+<p class="admin-state-card__description">管理画面の初期化中にエラーが発生しました。</p>
+<div class="admin-state-card__actions">
+<button class="app-button app-button--primary" id="adminReloadButton" type="button">再読み込み</button>
+</div>
+</div>
+</section>
+<header class="app-site-header app-site-header--admin">
+<div class="app-site-header__inner">
+<div class="app-site-header__left">
+<button aria-expanded="true" aria-label="サイドバーを開閉" class="app-icon-button app-shell-toggle" id="adminHeaderSidebarToggle" type="button"><span aria-hidden="true">☰</span></button>
+<a aria-label="Felixxsv Gallery" class="app-site-logo" href="/gallery/" id="adminHomeLink">
+<span aria-hidden="true" class="app-site-logo__mark"></span>
+<span class="app-site-logo__label">Felixxsv Gallery</span>
+</a>
+</div>
+<div class="app-site-header__right">
+<button aria-label="ユーザー情報" class="app-icon-button" id="shellUserTrigger" type="button">
+<span aria-hidden="true" class="shell-user-icon shell-user-icon--guest" id="shellUserTriggerGuestIcon"></span>
+<span aria-hidden="true" class="shell-user-icon shell-user-icon--auth" hidden="" id="shellUserTriggerAuthIcon"></span>
+</button>
+</div>
+</div>
+</header><section class="admin-shell" hidden="" id="adminAppShell">
+<aside class="admin-sidebar" id="adminSidebar">
+<div class="admin-sidebar__header">
+<div class="admin-sidebar__brand">
+<div class="admin-sidebar__title">Felixxsv Gallery</div>
+<div class="admin-sidebar__subtitle">Admin Console</div>
+</div>
+<button aria-expanded="true" aria-label="サイドバーを折りたたむ" class="app-icon-button admin-sidebar__toggle" id="adminSidebarToggle" type="button">
+<span aria-hidden="true">⇔</span>
+</button>
+</div>
+<div class="admin-sidebar__scroll">
+<nav aria-label="管理画面ナビゲーション" class="admin-sidebar__nav" id="adminSidebarNav">
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="dashboard" href="/gallery/admin/">
+<span aria-hidden="true" class="admin-sidebar__icon">⌂</span>
+<span class="admin-sidebar__label">ダッシュボード</span>
+</a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="content" href="/gallery/admin/content/">
+<span aria-hidden="true" class="admin-sidebar__icon">▣</span>
+<span class="admin-sidebar__label">コンテンツ管理</span>
+</a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="users" href="/gallery/admin/users/">
+<span aria-hidden="true" class="admin-sidebar__icon">👥</span>
+<span class="admin-sidebar__label">ユーザー管理</span>
+</a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
+<span aria-hidden="true" class="admin-sidebar__icon">✉</span>
+<span class="admin-sidebar__label">メール配信</span>
+</a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
+<span aria-hidden="true" class="admin-sidebar__icon">⚙</span>
+<span class="admin-sidebar__label">サイト設定</span>
+</a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
+<span aria-hidden="true" class="admin-sidebar__icon">☰</span>
+<span class="admin-sidebar__label">監査ログ</span>
+</a>
+</nav>
+</div>
+<div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
+</aside>
+<div class="admin-shell__main">
+<header class="admin-topbar">
+<div class="admin-topbar__heading">
+<h1 class="admin-topbar__title" id="adminPageTitle">サイト設定</h1>
+<p class="admin-topbar__description" id="adminPageDescription">サイト共通の運用設定を管理します。</p>
+</div>
 
-  <section id="adminNotFoundState" class="admin-state-screen" hidden>
-    <div class="admin-state-card">
-      <h1 class="admin-state-card__title">404</h1>
-      <p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
-      <div class="admin-state-card__actions">
-        <a href="/gallery/" class="app-button app-button--primary">ホームへ戻る</a>
-      </div>
-    </div>
-  </section>
-
-  <section id="adminErrorState" class="admin-state-screen" hidden>
-    <div class="admin-state-card">
-      <h1 class="admin-state-card__title">初期化に失敗しました</h1>
-      <p class="admin-state-card__description">管理画面の初期化中にエラーが発生しました。</p>
-      <div class="admin-state-card__actions">
-        <button id="adminReloadButton" type="button" class="app-button app-button--primary">再読み込み</button>
-      </div>
-    </div>
-  </section>
-
-  <section id="adminAppShell" class="admin-shell" hidden>
-    <aside id="adminSidebar" class="admin-sidebar">
-      <div class="admin-sidebar__header">
-        <div class="admin-sidebar__brand">
-          <div class="admin-sidebar__title">Felixxsv Gallery</div>
-          <div class="admin-sidebar__subtitle">Admin Console</div>
-        </div>
-        <button id="adminSidebarToggle" class="app-icon-button admin-sidebar__toggle" type="button" aria-label="サイドバーを折りたたむ" aria-expanded="true">
-          <span aria-hidden="true">⇔</span>
-        </button>
-      </div>
-      <div class="admin-sidebar__scroll">
-        <nav id="adminSidebarNav" class="admin-sidebar__nav" aria-label="管理画面ナビゲーション">
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/">
-            <span class="admin-sidebar__icon" aria-hidden="true">⌂</span>
-            <span class="admin-sidebar__label">ダッシュボード</span>
-          </a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/">
-            <span class="admin-sidebar__icon" aria-hidden="true">▣</span>
-            <span class="admin-sidebar__label">コンテンツ管理</span>
-          </a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/">
-            <span class="admin-sidebar__icon" aria-hidden="true">👥</span>
-            <span class="admin-sidebar__label">ユーザー管理</span>
-          </a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
-            <span class="admin-sidebar__icon" aria-hidden="true">✉</span>
-            <span class="admin-sidebar__label">メール配信</span>
-          </a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
-            <span class="admin-sidebar__icon" aria-hidden="true">⚙</span>
-            <span class="admin-sidebar__label">サイト設定</span>
-          </a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
-            <span class="admin-sidebar__icon" aria-hidden="true">☰</span>
-            <span class="admin-sidebar__label">監査ログ</span>
-          </a>
-        </nav>
-      </div>
-      <div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
-    </aside>
-
-    <div class="admin-shell__main">
-      <header class="admin-topbar">
-        <div class="admin-topbar__heading">
-          <h1 id="adminPageTitle" class="admin-topbar__title">サイト設定</h1>
-          <p id="adminPageDescription" class="admin-topbar__description">サイト共通の運用設定を管理します。</p>
-        </div>
-        <div class="admin-topbar__meta">
-          <div class="admin-topbar__meta-label">ログイン中の管理者</div>
-          <div id="adminHeaderUserName" class="admin-topbar__meta-value">-</div>
-          <div id="adminHeaderUserKey" class="admin-topbar__meta-label">-</div>
-        </div>
-      </header>
-
-      <main class="admin-main-scroll admin-main-scroll--settings">
-        <section class="admin-page-grid admin-page-grid--settings">
-          <div id="adminSettingsMessage" class="admin-page-message" hidden></div>
-
-          <article class="admin-panel admin-settings-panel">
-            <div class="admin-settings-tabs" role="tablist" aria-label="設定タブ">
-              <button type="button" class="admin-settings-tab is-active" data-settings-tab="general" role="tab" aria-selected="true">全般</button>
-              <button type="button" class="admin-settings-tab" data-settings-tab="security" role="tab" aria-selected="false">セキュリティ</button>
-              <button type="button" class="admin-settings-tab" data-settings-tab="smtp" role="tab" aria-selected="false">メール (SMTP)</button>
-              <button type="button" class="admin-settings-tab" data-settings-tab="storage" role="tab" aria-selected="false">ストレージ</button>
-              <button type="button" class="admin-settings-tab" data-settings-tab="integrity" role="tab" aria-selected="false">整合性チェック</button>
-            </div>
-
-            <div class="admin-settings-panel__head">
-              <div>
-                <h2 id="adminSettingsPanelTitle" class="admin-panel__title">全般</h2>
-                <p id="adminSettingsPanelDescription" class="admin-panel__meta">サイト名や画像モーダルの既定値を管理します。</p>
-              </div>
-              <div id="adminSettingsSaveState" class="admin-settings-save-state">読み込み中…</div>
-            </div>
-
-            <div class="admin-settings-panel__body">
-              <form id="adminSettingsFormGeneral" class="admin-settings-form" data-settings-form="general" novalidate>
-                <div class="admin-settings-grid">
-                  <label class="admin-settings-field">
-                    <span>サイト名</span>
-                    <input id="adminSettingsGeneralSiteName" class="app-input" type="text" maxlength="120">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>ギャラリーキー</span>
-                    <input id="adminSettingsGeneralGalleryKey" class="app-input" type="text" maxlength="64">
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--full">
-                    <span>Deleted User 表示名</span>
-                    <input id="adminSettingsGeneralDeletedUserDisplayName" class="app-input" type="text" maxlength="120">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>画像クリック時の既定挙動</span>
-                    <select class="app-select" id="adminSettingsGeneralImageOpenBehavior">
-                      <option value="modal">モーダル表示</option>
-                      <option value="new_tab">別タブ表示</option>
-                    </select>
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
-                    <input id="adminSettingsGeneralBackdropClose" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">画像モーダルで背景クリックを既定で許可する</span>
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
-                    <input id="adminSettingsGeneralMetaBarPinned" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">画像モーダルのメタ情報バーを既定で常時表示する</span>
-                  </label>
-                </div>
-              </form>
-
-              <form id="adminSettingsFormSecurity" class="admin-settings-form" data-settings-form="security" hidden novalidate>
-                <div class="admin-settings-grid">
-                  <label class="admin-settings-field">
-                    <span>最小パスワード長</span>
-                    <input id="adminSettingsSecurityPasswordMinLength" class="app-input" type="number" min="8" max="128">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>10分あたりのログイン試行上限</span>
-                    <input id="adminSettingsSecurityLoginRateLimit" class="app-input" type="number" min="1" max="1000">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>セッションアイドルタイムアウト (分)</span>
-                    <input id="adminSettingsSecuritySessionIdleTimeout" class="app-input" type="number" min="5" max="10080">
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--switch app-switch">
-                    <input id="adminSettingsSecurityRequireUppercase" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">大文字を必須にする</span>
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--switch app-switch">
-                    <input id="adminSettingsSecurityRequireLowercase" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">小文字を必須にする</span>
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--switch app-switch">
-                    <input id="adminSettingsSecurityRequireNumber" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">数字を必須にする</span>
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
-                    <input id="adminSettingsSecurityAdmin2faRecommended" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">管理者に 2FA 有効化を推奨する</span>
-                  </label>
-                </div>
-              </form>
-
-              <form id="adminSettingsFormSmtp" class="admin-settings-form" data-settings-form="smtp" hidden novalidate>
-                <div class="admin-settings-grid">
-                  <label class="admin-settings-field">
-                    <span>SMTP ホスト</span>
-                    <input id="adminSettingsSmtpHost" class="app-input" type="text" maxlength="255">
-                  </label>
-                  <label class="admin-settings-field">
-                    <span>ポート</span>
-                    <input id="adminSettingsSmtpPort" class="app-input" type="number" min="1" max="65535">
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--full">
-                    <span>送信元メールアドレス</span>
-                    <input id="adminSettingsSmtpFromEmail" class="app-input" type="email" maxlength="255">
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--full">
-                    <span>送信元表示名</span>
-                    <input id="adminSettingsSmtpFromName" class="app-input" type="text" maxlength="255">
-                  </label>
-                  <label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
-                    <input id="adminSettingsSmtpUseStarttls" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__control" aria-hidden="true"></span>
-                    <span class="app-switch__label">STARTTLS を使用する</span>
-                  </label>
-                </div>
-              </form>
-
-              <form id="adminSettingsFormStorage" class="admin-settings-form admin-settings-form--storage" data-settings-form="storage" hidden novalidate>
-                <section class="admin-storage-pane admin-storage-pane--config" aria-labelledby="adminStorageConfigTitle">
-                  <div class="admin-storage-pane__head admin-storage-pane__head--config">
-                    <div>
-                      <h3 id="adminStorageConfigTitle" class="admin-storage-pane__title">参照パスとアップロード制限</h3>
-                      <p class="admin-storage-pane__meta">source_root / storage_root / original_cache_root と、アップロード上限をここで管理します。</p>
-                    </div>
-                  </div>
-                  <div class="admin-storage-pane__body admin-storage-pane__body--config">
-                    <div class="admin-settings-grid">
-                      <label class="admin-settings-field admin-settings-field--full">
-                        <span>source_root</span>
-                        <input id="adminSettingsStorageSourceRoot" class="app-input" type="text" maxlength="500">
-                      </label>
-                      <label class="admin-settings-field admin-settings-field--full">
-                        <span>storage_root</span>
-                        <input id="adminSettingsStorageStorageRoot" class="app-input" type="text" maxlength="500">
-                      </label>
-                      <label class="admin-settings-field admin-settings-field--full">
-                        <span>original_cache_root</span>
-                        <input id="adminSettingsStorageOriginalCacheRoot" class="app-input" type="text" maxlength="500">
-                      </label>
-                      <label class="admin-settings-field">
-                        <span>アップロード可能ファイル数</span>
-                        <input id="adminSettingsStorageMaxUploadFiles" class="app-input" type="number" min="1" max="1000">
-                      </label>
-                      <label class="admin-settings-field">
-                        <span>最大アップロードサイズ (MB)</span>
-                        <input id="adminSettingsStorageMaxUploadSizeMb" class="app-input" type="number" min="1" max="10240">
-                      </label>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="admin-storage-pane admin-storage-pane--usage" aria-labelledby="adminStorageUsageTitle">
-                  <div class="admin-storage-pane__head admin-storage-pane__head--usage">
-                    <div class="admin-storage-overview__heading">
-                      <h3 id="adminStorageUsageTitle" class="admin-storage-overview__title">ディレクトリ使用状況</h3>
-                      <p class="admin-storage-overview__meta">保存済みの source_root / storage_root / original_cache_root を基準に、ディレクトリサイズと配置先ファイルシステムの使用率を表示します。</p>
-                    </div>
-                    <div class="admin-storage-overview__actions">
-                      <span class="admin-storage-overview__timestamp">最終取得: <strong id="adminStorageUsageGeneratedAt">-</strong></span>
-                      <label class="admin-storage-refresh-interval" for="adminStorageUsageRefreshInterval">
-                        <span>自動更新</span>
-                        <select class="app-select app-select--compact" id="adminStorageUsageRefreshInterval" aria-label="ストレージ使用状況の自動更新間隔">
-                          <option value="0">手動のみ</option>
-                          <option value="60000">1分</option>
-                          <option value="180000">3分</option>
-                          <option value="300000">5分</option>
-                          <option value="600000">10分</option>
-                          <option value="900000">15分</option>
-                          <option value="1800000">30分</option>
-                        </select>
-                      </label>
-                      <button id="adminStorageUsageRefreshButton" type="button" class="app-button app-button--secondary">使用状況を再取得</button>
-                    </div>
-                  </div>
-                  <div class="admin-storage-pane__body admin-storage-pane__body--usage">
-                    <div id="adminStorageUsageMessage" class="admin-page-message" hidden></div>
-                    <div id="adminStorageUsageLoading" class="admin-storage-loading">使用状況を読み込みます…</div>
-                    <div id="adminStorageUsageContent" class="admin-storage-overview__content" hidden>
-                      <article class="admin-storage-summary-card">
-                        <div class="admin-storage-summary-card__chart">
-                          <div id="adminStoragePrimaryRing" class="admin-storage-ring" aria-hidden="true">
-                            <span id="adminStoragePrimaryUsagePercent" class="admin-storage-ring__value">-%</span>
-                          </div>
-                        </div>
-                        <div class="admin-storage-summary-card__body">
-                          <span class="admin-storage-summary-card__eyebrow">メイン表示</span>
-                          <h4 id="adminStoragePrimaryLabel" class="admin-storage-summary-card__title">storage_root</h4>
-                          <p id="adminStoragePrimaryPath" class="admin-storage-summary-card__path">使用状況を取得するとここに表示します。</p>
-                          <div class="admin-storage-summary-card__metrics">
-                            <div class="admin-storage-summary-card__metric">
-                              <span>ディレクトリサイズ</span>
-                              <strong id="adminStoragePrimaryDirectorySize">-</strong>
-                            </div>
-                            <div class="admin-storage-summary-card__metric">
-                              <span>使用中 / 総容量</span>
-                              <strong id="adminStoragePrimaryFilesystemUsage">-</strong>
-                            </div>
-                            <div class="admin-storage-summary-card__metric">
-                              <span>空き容量</span>
-                              <strong id="adminStoragePrimaryFilesystemFree">-</strong>
-                            </div>
-                          </div>
-                        </div>
-                      </article>
-                      <div id="adminStorageUsageCards" class="admin-storage-card-grid"></div>
-                    </div>
-                  </div>
-                </section>
-              </form>
-
-              <form id="adminSettingsFormIntegrity" class="admin-settings-form admin-integrity-form" data-settings-form="integrity" hidden novalidate>
-                <div class="admin-integrity-stack">
-                  <section class="admin-integrity-section admin-integrity-section--hero">
-                    <label class="admin-integrity-hero" for="adminSettingsIntegrityEnabled">
-                      <div class="admin-integrity-hero__content">
-                        <span class="admin-integrity-hero__eyebrow">定期実行</span>
-                        <span class="admin-integrity-hero__title">整合性チェックを有効にする</span>
-                        <span class="admin-integrity-hero__description">source / DB / 派生物 / 色情報の整合を定期確認します。無効の間は定期実行されませんが、設定値は保存できます。</span>
-                      </div>
-                      <span class="admin-integrity-hero__toggle app-switch">
-                        <input id="adminSettingsIntegrityEnabled" class="app-switch__input" type="checkbox">
-                        <span class="app-switch__control" aria-hidden="true"></span>
-                        <span class="admin-integrity-hero__toggle-text">有効</span>
-                      </span>
-                    </label>
-                    <div id="adminIntegrityScheduleSummary" class="admin-integrity-summary" aria-live="polite"></div>
-                  </section>
-
-                  <section class="admin-integrity-section">
-                    <div class="admin-integrity-section__head">
-                      <h3 class="admin-integrity-section__title">実行ルール</h3>
-                      <p class="admin-integrity-section__meta">実行方法を選ぶと、必要な入力欄だけ表示します。</p>
-                    </div>
-
-                    <div class="admin-settings-grid admin-settings-grid--integrity-primary">
-                      <label class="admin-settings-field">
-                        <span>実行周期</span>
-                        <select class="app-select" id="adminSettingsIntegrityScheduleType">
-                          <option value="daily">毎日</option>
-                          <option value="every_n_days">n日ごと</option>
-                          <option value="weekly">曜日指定</option>
-                        </select>
-                        <small id="adminIntegrityScheduleHelp" class="admin-settings-field__help">毎日、指定した時刻に 1 回実行します。</small>
-                      </label>
-                      <label class="admin-settings-field">
-                        <span>実行時刻</span>
-                        <input id="adminSettingsIntegrityRunAt" class="app-input" type="time" step="60">
-                        <small class="admin-settings-field__help">24時間表記で設定します。</small>
-                      </label>
-                    </div>
-
-                    <label id="adminIntegrityIntervalField" class="admin-settings-field admin-integrity-dependent-field" hidden>
-                      <span>n日ごとの日数</span>
-                      <input id="adminSettingsIntegrityIntervalDays" class="app-input" type="number" min="1" max="365">
-                      <small class="admin-settings-field__help">例: 3 を指定すると 3 日ごとに実行します。</small>
-                    </label>
-
-                    <div id="adminIntegrityWeeklyField" class="admin-settings-field admin-settings-field--full admin-integrity-dependent-field" hidden>
-                      <span>曜日指定</span>
-                      <p id="adminIntegrityWeeklyHelp" class="admin-settings-field__help admin-settings-field__help--block">曜日指定を選んだときだけ使用します。</p>
-                      <div class="admin-integrity-weekday-grid" role="group" aria-label="整合性チェックの曜日指定">
-                        <label class="admin-integrity-weekday-chip">
-                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="mon">
-                          <span>月</span>
-                        </label>
-                        <label class="admin-integrity-weekday-chip">
-                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="tue">
-                          <span>火</span>
-                        </label>
-                        <label class="admin-integrity-weekday-chip">
-                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="wed">
-                          <span>水</span>
-                        </label>
-                        <label class="admin-integrity-weekday-chip">
-                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="thu">
-                          <span>木</span>
-                        </label>
-                        <label class="admin-integrity-weekday-chip">
-                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="fri">
-                          <span>金</span>
-                        </label>
-                        <label class="admin-integrity-weekday-chip">
-                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sat">
-                          <span>土</span>
-                        </label>
-                        <label class="admin-integrity-weekday-chip">
-                          <input type="checkbox" name="adminSettingsIntegrityWeeklyDays" value="sun">
-                          <span>日</span>
-                        </label>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="admin-integrity-section admin-integrity-section--secondary">
-                    <div class="admin-integrity-section__head">
-                      <h3 class="admin-integrity-section__title">レポート保持</h3>
-                      <p class="admin-integrity-section__meta">レポート保存期間と運用メモです。</p>
-                    </div>
-                    <div class="admin-settings-grid admin-settings-grid--integrity-secondary">
-                      <label class="admin-settings-field">
-                        <span>レポート保持日数</span>
-                        <input id="adminSettingsIntegrityReportRetentionDays" class="app-input" type="number" min="1" max="3650">
-                        <small class="admin-settings-field__help">古い JSON レポートを整理する際の目安です。</small>
-                      </label>
-                      <div class="admin-integrity-note-card">
-                        <div class="admin-integrity-note-card__title">運用メモ</div>
-                        <p class="admin-panel__meta">手動実行はダッシュボードから予約します。実際の定期起動は dispatcher を systemd timer などで定期実行する想定です。</p>
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              </form>
-            </div>
-
-            <div class="admin-settings-footer">
-              <div id="adminSettingsUpdatedMeta" class="admin-settings-updated-meta">-</div>
-              <button id="adminSettingsApplyButton" type="button" class="app-button app-button--primary">適用</button>
-            </div>
-          </article>
-        </section>
-      </main>
-    </div>
-  </section>
-
-  <div id="appModalRoot" class="app-modal-root" aria-live="polite">
-    <button id="appGlobalClose" class="app-global-close" type="button" aria-label="閉じる" hidden>×</button>
-
-    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-discard-confirm" hidden>
-      <div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDiscardConfirmTitle" tabindex="-1">
-        <div class="app-modal-header">
-          <h2 id="adminDiscardConfirmTitle" class="app-modal-title">確認</h2>
-        </div>
-        <div class="app-modal-body">
-          <p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
-        </div>
-        <div class="app-modal-footer app-modal-footer--end">
-          <button id="adminDiscardConfirmApproveButton" type="button" class="app-button app-button--danger">破棄して移動</button>
-          <button id="adminDiscardConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-settings-apply-confirm" hidden>
-      <div class="app-modal-backdrop" data-modal-backdrop="admin-settings-apply-confirm"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminSettingsApplyConfirmTitle" tabindex="-1">
-        <div class="app-modal-header">
-          <h2 id="adminSettingsApplyConfirmTitle" class="app-modal-title">設定を適用しますか？</h2>
-        </div>
-        <div class="app-modal-body">
-          <p id="adminSettingsApplyConfirmMessage">現在の変更を適用します。よろしいですか？</p>
-        </div>
-        <div class="app-modal-footer app-modal-footer--end">
-          <button id="adminSettingsApplyConfirmApprove" type="button" class="app-button app-button--primary">適用</button>
-          <button id="adminSettingsApplyConfirmCancel" type="button" class="app-button app-button--ghost">キャンセル</button>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
-  <script type="module" src="/gallery/assets/js/admin/settings.js"></script>
+</header>
+<main class="admin-main-scroll admin-main-scroll--settings">
+<section class="admin-page-grid admin-page-grid--settings">
+<div class="admin-page-message" hidden="" id="adminSettingsMessage"></div>
+<article class="admin-panel admin-settings-panel">
+<div aria-label="設定タブ" class="admin-settings-tabs" role="tablist">
+<button aria-selected="true" class="admin-settings-tab is-active" data-settings-tab="general" role="tab" type="button">全般</button>
+<button aria-selected="false" class="admin-settings-tab" data-settings-tab="security" role="tab" type="button">セキュリティ</button>
+<button aria-selected="false" class="admin-settings-tab" data-settings-tab="smtp" role="tab" type="button">メール (SMTP)</button>
+<button aria-selected="false" class="admin-settings-tab" data-settings-tab="storage" role="tab" type="button">ストレージ</button>
+<button aria-selected="false" class="admin-settings-tab" data-settings-tab="integrity" role="tab" type="button">整合性チェック</button>
+</div>
+<div class="admin-settings-panel__head">
+<div>
+<h2 class="admin-panel__title" id="adminSettingsPanelTitle">全般</h2>
+<p class="admin-panel__meta" id="adminSettingsPanelDescription">サイト名や画像モーダルの既定値を管理します。</p>
+</div>
+<div class="admin-settings-save-state" id="adminSettingsSaveState">読み込み中…</div>
+</div>
+<div class="admin-settings-panel__body">
+<form class="admin-settings-form" data-settings-form="general" id="adminSettingsFormGeneral" novalidate="">
+<div class="admin-settings-grid">
+<label class="admin-settings-field">
+<span>サイト名</span>
+<input class="app-input" id="adminSettingsGeneralSiteName" maxlength="120" type="text"/>
+</label>
+<label class="admin-settings-field">
+<span>ギャラリーキー</span>
+<input class="app-input" id="adminSettingsGeneralGalleryKey" maxlength="64" type="text"/>
+</label>
+<label class="admin-settings-field admin-settings-field--full">
+<span>Deleted User 表示名</span>
+<input class="app-input" id="adminSettingsGeneralDeletedUserDisplayName" maxlength="120" type="text"/>
+</label>
+<label class="admin-settings-field">
+<span>画像クリック時の既定挙動</span>
+<select class="app-select" id="adminSettingsGeneralImageOpenBehavior">
+<option value="modal">モーダル表示</option>
+<option value="new_tab">別タブ表示</option>
+</select>
+</label>
+<label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+<input class="app-switch__input" id="adminSettingsGeneralBackdropClose" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="app-switch__label">画像モーダルで背景クリックを既定で許可する</span>
+</label>
+<label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+<input class="app-switch__input" id="adminSettingsGeneralMetaBarPinned" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="app-switch__label">画像モーダルのメタ情報バーを既定で常時表示する</span>
+</label>
+</div>
+</form>
+<form class="admin-settings-form" data-settings-form="security" hidden="" id="adminSettingsFormSecurity" novalidate="">
+<div class="admin-settings-grid">
+<label class="admin-settings-field">
+<span>最小パスワード長</span>
+<input class="app-input" id="adminSettingsSecurityPasswordMinLength" max="128" min="8" type="number"/>
+</label>
+<label class="admin-settings-field">
+<span>10分あたりのログイン試行上限</span>
+<input class="app-input" id="adminSettingsSecurityLoginRateLimit" max="1000" min="1" type="number"/>
+</label>
+<label class="admin-settings-field">
+<span>セッションアイドルタイムアウト (分)</span>
+<input class="app-input" id="adminSettingsSecuritySessionIdleTimeout" max="10080" min="5" type="number"/>
+</label>
+<label class="admin-settings-field admin-settings-field--switch app-switch">
+<input class="app-switch__input" id="adminSettingsSecurityRequireUppercase" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="app-switch__label">大文字を必須にする</span>
+</label>
+<label class="admin-settings-field admin-settings-field--switch app-switch">
+<input class="app-switch__input" id="adminSettingsSecurityRequireLowercase" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="app-switch__label">小文字を必須にする</span>
+</label>
+<label class="admin-settings-field admin-settings-field--switch app-switch">
+<input class="app-switch__input" id="adminSettingsSecurityRequireNumber" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="app-switch__label">数字を必須にする</span>
+</label>
+<label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+<input class="app-switch__input" id="adminSettingsSecurityAdmin2faRecommended" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="app-switch__label">管理者に 2FA 有効化を推奨する</span>
+</label>
+</div>
+</form>
+<form class="admin-settings-form" data-settings-form="smtp" hidden="" id="adminSettingsFormSmtp" novalidate="">
+<div class="admin-settings-grid">
+<label class="admin-settings-field">
+<span>SMTP ホスト</span>
+<input class="app-input" id="adminSettingsSmtpHost" maxlength="255" type="text"/>
+</label>
+<label class="admin-settings-field">
+<span>ポート</span>
+<input class="app-input" id="adminSettingsSmtpPort" max="65535" min="1" type="number"/>
+</label>
+<label class="admin-settings-field admin-settings-field--full">
+<span>送信元メールアドレス</span>
+<input class="app-input" id="adminSettingsSmtpFromEmail" maxlength="255" type="email"/>
+</label>
+<label class="admin-settings-field admin-settings-field--full">
+<span>送信元表示名</span>
+<input class="app-input" id="adminSettingsSmtpFromName" maxlength="255" type="text"/>
+</label>
+<label class="admin-settings-field admin-settings-field--switch admin-settings-field--full app-switch">
+<input class="app-switch__input" id="adminSettingsSmtpUseStarttls" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="app-switch__label">STARTTLS を使用する</span>
+</label>
+</div>
+</form>
+<form class="admin-settings-form admin-settings-form--storage" data-settings-form="storage" hidden="" id="adminSettingsFormStorage" novalidate="">
+<section aria-labelledby="adminStorageConfigTitle" class="admin-storage-pane admin-storage-pane--config">
+<div class="admin-storage-pane__head admin-storage-pane__head--config">
+<div>
+<h3 class="admin-storage-pane__title" id="adminStorageConfigTitle">参照パスとアップロード制限</h3>
+<p class="admin-storage-pane__meta">source_root / storage_root / original_cache_root と、アップロード上限をここで管理します。</p>
+</div>
+</div>
+<div class="admin-storage-pane__body admin-storage-pane__body--config">
+<div class="admin-settings-grid">
+<label class="admin-settings-field admin-settings-field--full">
+<span>source_root</span>
+<input class="app-input" id="adminSettingsStorageSourceRoot" maxlength="500" type="text"/>
+</label>
+<label class="admin-settings-field admin-settings-field--full">
+<span>storage_root</span>
+<input class="app-input" id="adminSettingsStorageStorageRoot" maxlength="500" type="text"/>
+</label>
+<label class="admin-settings-field admin-settings-field--full">
+<span>original_cache_root</span>
+<input class="app-input" id="adminSettingsStorageOriginalCacheRoot" maxlength="500" type="text"/>
+</label>
+<label class="admin-settings-field">
+<span>アップロード可能ファイル数</span>
+<input class="app-input" id="adminSettingsStorageMaxUploadFiles" max="1000" min="1" type="number"/>
+</label>
+<label class="admin-settings-field">
+<span>最大アップロードサイズ (MB)</span>
+<input class="app-input" id="adminSettingsStorageMaxUploadSizeMb" max="10240" min="1" type="number"/>
+</label>
+</div>
+</div>
+</section>
+<section aria-labelledby="adminStorageUsageTitle" class="admin-storage-pane admin-storage-pane--usage">
+<div class="admin-storage-pane__head admin-storage-pane__head--usage">
+<div class="admin-storage-overview__heading">
+<h3 class="admin-storage-overview__title" id="adminStorageUsageTitle">ディレクトリ使用状況</h3>
+<p class="admin-storage-overview__meta">保存済みの source_root / storage_root / original_cache_root を基準に、ディレクトリサイズと配置先ファイルシステムの使用率を表示します。</p>
+</div>
+<div class="admin-storage-overview__actions">
+<span class="admin-storage-overview__timestamp">最終取得: <strong id="adminStorageUsageGeneratedAt">-</strong></span>
+<label class="admin-storage-refresh-interval" for="adminStorageUsageRefreshInterval">
+<span>自動更新</span>
+<select aria-label="ストレージ使用状況の自動更新間隔" class="app-select app-select--compact" id="adminStorageUsageRefreshInterval">
+<option value="0">手動のみ</option>
+<option value="60000">1分</option>
+<option value="180000">3分</option>
+<option value="300000">5分</option>
+<option value="600000">10分</option>
+<option value="900000">15分</option>
+<option value="1800000">30分</option>
+</select>
+</label>
+<button class="app-button app-button--secondary" id="adminStorageUsageRefreshButton" type="button">使用状況を再取得</button>
+</div>
+</div>
+<div class="admin-storage-pane__body admin-storage-pane__body--usage">
+<div class="admin-page-message" hidden="" id="adminStorageUsageMessage"></div>
+<div class="admin-storage-loading" id="adminStorageUsageLoading">使用状況を読み込みます…</div>
+<div class="admin-storage-overview__content" hidden="" id="adminStorageUsageContent">
+<article class="admin-storage-summary-card">
+<div class="admin-storage-summary-card__chart">
+<div aria-hidden="true" class="admin-storage-ring" id="adminStoragePrimaryRing">
+<span class="admin-storage-ring__value" id="adminStoragePrimaryUsagePercent">-%</span>
+</div>
+</div>
+<div class="admin-storage-summary-card__body">
+<span class="admin-storage-summary-card__eyebrow">メイン表示</span>
+<h4 class="admin-storage-summary-card__title" id="adminStoragePrimaryLabel">storage_root</h4>
+<p class="admin-storage-summary-card__path" id="adminStoragePrimaryPath">使用状況を取得するとここに表示します。</p>
+<div class="admin-storage-summary-card__metrics">
+<div class="admin-storage-summary-card__metric">
+<span>ディレクトリサイズ</span>
+<strong id="adminStoragePrimaryDirectorySize">-</strong>
+</div>
+<div class="admin-storage-summary-card__metric">
+<span>使用中 / 総容量</span>
+<strong id="adminStoragePrimaryFilesystemUsage">-</strong>
+</div>
+<div class="admin-storage-summary-card__metric">
+<span>空き容量</span>
+<strong id="adminStoragePrimaryFilesystemFree">-</strong>
+</div>
+</div>
+</div>
+</article>
+<div class="admin-storage-card-grid" id="adminStorageUsageCards"></div>
+</div>
+</div>
+</section>
+</form>
+<form class="admin-settings-form admin-integrity-form" data-settings-form="integrity" hidden="" id="adminSettingsFormIntegrity" novalidate="">
+<div class="admin-integrity-stack">
+<section class="admin-integrity-section admin-integrity-section--hero">
+<label class="admin-integrity-hero" for="adminSettingsIntegrityEnabled">
+<div class="admin-integrity-hero__content">
+<span class="admin-integrity-hero__eyebrow">定期実行</span>
+<span class="admin-integrity-hero__title">整合性チェックを有効にする</span>
+<span class="admin-integrity-hero__description">source / DB / 派生物 / 色情報の整合を定期確認します。無効の間は定期実行されませんが、設定値は保存できます。</span>
+</div>
+<span class="admin-integrity-hero__toggle app-switch">
+<input class="app-switch__input" id="adminSettingsIntegrityEnabled" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__control"></span>
+<span class="admin-integrity-hero__toggle-text">有効</span>
+</span>
+</label>
+<div aria-live="polite" class="admin-integrity-summary" id="adminIntegrityScheduleSummary"></div>
+</section>
+<section class="admin-integrity-section">
+<div class="admin-integrity-section__head">
+<h3 class="admin-integrity-section__title">実行ルール</h3>
+<p class="admin-integrity-section__meta">実行方法を選ぶと、必要な入力欄だけ表示します。</p>
+</div>
+<div class="admin-settings-grid admin-settings-grid--integrity-primary">
+<label class="admin-settings-field">
+<span>実行周期</span>
+<select class="app-select" id="adminSettingsIntegrityScheduleType">
+<option value="daily">毎日</option>
+<option value="every_n_days">n日ごと</option>
+<option value="weekly">曜日指定</option>
+</select>
+<small class="admin-settings-field__help" id="adminIntegrityScheduleHelp">毎日、指定した時刻に 1 回実行します。</small>
+</label>
+<label class="admin-settings-field">
+<span>実行時刻</span>
+<input class="app-input" id="adminSettingsIntegrityRunAt" step="60" type="time"/>
+<small class="admin-settings-field__help">24時間表記で設定します。</small>
+</label>
+</div>
+<label class="admin-settings-field admin-integrity-dependent-field" hidden="" id="adminIntegrityIntervalField">
+<span>n日ごとの日数</span>
+<input class="app-input" id="adminSettingsIntegrityIntervalDays" max="365" min="1" type="number"/>
+<small class="admin-settings-field__help">例: 3 を指定すると 3 日ごとに実行します。</small>
+</label>
+<div class="admin-settings-field admin-settings-field--full admin-integrity-dependent-field" hidden="" id="adminIntegrityWeeklyField">
+<span>曜日指定</span>
+<p class="admin-settings-field__help admin-settings-field__help--block" id="adminIntegrityWeeklyHelp">曜日指定を選んだときだけ使用します。</p>
+<div aria-label="整合性チェックの曜日指定" class="admin-integrity-weekday-grid" role="group">
+<label class="admin-integrity-weekday-chip">
+<input name="adminSettingsIntegrityWeeklyDays" type="checkbox" value="mon"/>
+<span>月</span>
+</label>
+<label class="admin-integrity-weekday-chip">
+<input name="adminSettingsIntegrityWeeklyDays" type="checkbox" value="tue"/>
+<span>火</span>
+</label>
+<label class="admin-integrity-weekday-chip">
+<input name="adminSettingsIntegrityWeeklyDays" type="checkbox" value="wed"/>
+<span>水</span>
+</label>
+<label class="admin-integrity-weekday-chip">
+<input name="adminSettingsIntegrityWeeklyDays" type="checkbox" value="thu"/>
+<span>木</span>
+</label>
+<label class="admin-integrity-weekday-chip">
+<input name="adminSettingsIntegrityWeeklyDays" type="checkbox" value="fri"/>
+<span>金</span>
+</label>
+<label class="admin-integrity-weekday-chip">
+<input name="adminSettingsIntegrityWeeklyDays" type="checkbox" value="sat"/>
+<span>土</span>
+</label>
+<label class="admin-integrity-weekday-chip">
+<input name="adminSettingsIntegrityWeeklyDays" type="checkbox" value="sun"/>
+<span>日</span>
+</label>
+</div>
+</div>
+</section>
+<section class="admin-integrity-section admin-integrity-section--secondary">
+<div class="admin-integrity-section__head">
+<h3 class="admin-integrity-section__title">レポート保持</h3>
+<p class="admin-integrity-section__meta">レポート保存期間と運用メモです。</p>
+</div>
+<div class="admin-settings-grid admin-settings-grid--integrity-secondary">
+<label class="admin-settings-field">
+<span>レポート保持日数</span>
+<input class="app-input" id="adminSettingsIntegrityReportRetentionDays" max="3650" min="1" type="number"/>
+<small class="admin-settings-field__help">古い JSON レポートを整理する際の目安です。</small>
+</label>
+<div class="admin-integrity-note-card">
+<div class="admin-integrity-note-card__title">運用メモ</div>
+<p class="admin-panel__meta">手動実行はダッシュボードから予約します。実際の定期起動は dispatcher を systemd timer などで定期実行する想定です。</p>
+</div>
+</div>
+</section>
+</div>
+</form>
+</div>
+<div class="admin-settings-footer">
+<div class="admin-settings-updated-meta" id="adminSettingsUpdatedMeta">-</div>
+<button class="app-button app-button--primary" id="adminSettingsApplyButton" type="button">適用</button>
+</div>
+</article>
+</section>
+</main>
+</div>
+</section>
+<div aria-live="polite" class="app-modal-root" id="appModalRoot">
+<button aria-label="閉じる" class="app-global-close" hidden="" id="appGlobalClose" type="button">×</button>
+<section class="app-modal-layer" data-modal-id="user-info" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="user-info"></div>
+<div aria-labelledby="userInfoTitle" aria-modal="true" class="app-modal-dialog shell-user-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="userInfoTitle">ユーザー情報</h2>
+<div class="app-modal-header-actions">
+<button class="shell-header-link" data-modal-open="settings" type="button">設定</button>
+<button class="shell-header-link" data-modal-open="help" type="button">ヘルプ</button>
+<button class="shell-header-link" data-modal-open="credits" type="button">クレジット</button>
+</div>
+</div>
+<div class="app-modal-body">
+<section class="shell-user-card" id="shellUserCard">
+<div class="shell-user-card__guest-overlay" hidden="" id="shellGuestOverlay">
+<button class="app-button app-button--primary" id="shellLoginButton" type="button">ログイン</button>
+</div>
+<div class="shell-user-card__content">
+<div class="shell-user-card__profile">
+<div aria-hidden="true" class="shell-user-card__avatar"></div>
+<div class="shell-user-card__identity">
+<div class="shell-user-card__name-row">
+<div class="shell-user-card__display-name" id="shellUserDisplayName">-</div>
+<button aria-label="アカウント設定" class="app-icon-button shell-pen-button" data-modal-open="account" hidden="" id="shellAccountEditButton" type="button">
+<span aria-hidden="true" class="shell-pen-icon"></span>
+</button>
+</div>
+<div class="shell-user-card__subline" id="shellUserKey">-</div>
+</div>
+</div>
+<dl class="app-definition-list">
+<div class="app-definition-list__row">
+<dt>メールアドレス</dt>
+<dd id="shellUserEmail">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>登録日時</dt>
+<dd id="shellUserCreatedAt">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>2段階認証</dt>
+<dd id="shellUserTwoFactor">-</dd>
+</div>
+<div class="app-definition-list__row" hidden="" id="shellUserRoleRow">
+<dt>ロール</dt>
+<dd id="shellUserRole">-</dd>
+</div>
+</dl>
+<p class="shell-inline-warning" hidden="" id="shellUploadDisabledMessage">
+                現在、画像投稿は無効化されています。
+              </p>
+<div class="app-button-row">
+<button class="app-button" data-modal-open="account" hidden="" id="shellAccountOpenButton" type="button">
+                  アカウント設定
+                </button>
+<a class="app-link-button" hidden="" href="/gallery/admin" id="shellAdminLink">
+                  管理画面へ
+                </a>
+</div>
+</div>
+</section>
+</div>
+<div class="app-modal-footer app-modal-footer--end" hidden="" id="shellUserFooter">
+<button class="app-button app-button--ghost" id="shellLogoutAllButton" type="button">全端末ログアウト</button>
+<button class="app-button app-button--danger" id="shellLogoutButton" type="button">ログアウト</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="settings" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="settings"></div>
+<div aria-labelledby="settingsTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="settingsTitle">設定</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">言語</span>
+<select class="app-select" id="shellSettingLanguage">
+<option value="ja">日本語</option>
+<option value="en">English</option>
+</select>
+</label>
+<label class="app-field">
+<span class="app-field__label">カラーテーマ</span>
+<select class="app-select" id="shellSettingTheme">
+<option value="system">システム</option>
+<option value="dark">ダーク</option>
+<option value="light">ライト</option>
+</select>
+</label>
+<label class="app-field">
+<span class="app-field__label">画像クリック時の挙動</span>
+<select class="app-select" id="shellSettingImageOpenBehavior">
+<option value="modal">モーダルで表示</option>
+<option value="new_tab">別タブで表示</option>
+</select>
+</label>
+<label class="app-field app-field--switch app-switch">
+<input class="app-switch__input" id="shellSettingImageBackdropClose" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__track">
+<span class="app-switch__thumb"></span>
+</span>
+<span class="app-switch__label">画像モーダルの背景クリックで閉じる</span>
+</label>
+<label class="app-field app-field--switch app-switch">
+<input class="app-switch__input" id="shellSettingImageMetaPinned" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__track">
+<span class="app-switch__thumb"></span>
+</span>
+<span class="app-switch__label">画像モーダルのメタ情報バーを常時表示する</span>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="settings" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="help" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="help"></div>
+<div aria-labelledby="helpTitle" aria-modal="true" class="app-modal-dialog app-modal-dialog--scroll" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="helpTitle">ヘルプ</h2>
+</div>
+<div class="app-modal-body">
+<div class="shell-empty-block"></div>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="help" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="credits" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="credits"></div>
+<div aria-labelledby="creditsTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="creditsTitle">クレジット</h2>
+</div>
+<div class="app-modal-body">
+<dl class="app-definition-list">
+<div class="app-definition-list__row">
+<dt>サービス名</dt>
+<dd>Felixxsv Gallery</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>作成者</dt>
+<dd id="shellCreditAuthor">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>使用技術</dt>
+<dd id="shellCreditStack">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>ライセンス</dt>
+<dd id="shellCreditLicense">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>更新日</dt>
+<dd id="shellCreditUpdatedAt">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>バージョン</dt>
+<dd id="shellCreditVersion">-</dd>
+</div>
+</dl>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="credits" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="account" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="account"></div>
+<div aria-labelledby="accountTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="accountTitle">アカウント設定</h2>
+</div>
+<div class="app-modal-body">
+<dl class="app-definition-list">
+<div class="app-definition-list__row">
+<dt>表示名</dt>
+<dd id="shellAccountDisplayName">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>user_key</dt>
+<dd id="shellAccountUserKey">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>メールアドレス</dt>
+<dd id="shellAccountEmail">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>登録日時</dt>
+<dd id="shellAccountCreatedAt">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>2段階認証</dt>
+<dd id="shellAccountTwoFactor">-</dd>
+</div>
+</dl>
+<div class="shell-account-actions">
+<button class="app-button" data-modal-open="email" id="shellEmailActionButton" type="button">メールアドレス変更</button>
+<button class="app-button" data-modal-open="password" id="shellPasswordActionButton" type="button">パスワード変更</button>
+<button class="app-button" id="shellTwoFactorEnableButton" type="button">2段階認証を有効化</button>
+<button class="app-button" hidden="" id="shellTwoFactorDisableOpenButton" type="button">2段階認証を無効化</button>
+</div>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="account" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="email" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="email"></div>
+<div aria-labelledby="emailTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="emailTitle">メールアドレス変更</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">メールアドレス</span>
+<input autocomplete="email" class="app-input" id="shellEmailInput" type="email"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellEmailSaveButton" type="button">保存</button>
+<button class="app-button app-button--ghost" data-modal-close="email" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="password" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="password"></div>
+<div aria-labelledby="passwordTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="passwordTitle">パスワード変更</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">現在のパスワード</span>
+<input autocomplete="current-password" class="app-input" id="shellCurrentPasswordInput" type="password"/>
+</label>
+<label class="app-field">
+<span class="app-field__label">新しいパスワード</span>
+<input autocomplete="new-password" class="app-input" id="shellNewPasswordInput" type="password"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellPasswordSaveButton" type="button">変更する</button>
+<button class="app-button app-button--ghost" data-modal-close="password" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="twofactor-setup" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="twofactor-setup"></div>
+<div aria-labelledby="twofactorSetupTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="twofactorSetupTitle">2段階認証の確認</h2>
+</div>
+<div class="app-modal-body">
+<p class="shell-inline-message" id="shellTwoFactorSetupMessage"></p>
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">確認コード</span>
+<input autocomplete="one-time-code" class="app-input" id="shellTwoFactorCodeInput" inputmode="numeric" maxlength="6" type="text"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellTwoFactorSetupConfirmButton" type="button">確認</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorSetupResendButton" type="button">再送</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorSetupCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="twofactor-disable" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="twofactor-disable"></div>
+<div aria-labelledby="twofactorDisableTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="twofactorDisableTitle">2段階認証の無効化</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<p class="app-form-message" id="shellTwoFactorDisableMessage">確認コードを送信します。</p>
+<label class="app-field">
+<span class="app-field__label">確認コード</span>
+<input autocomplete="one-time-code" class="app-input" id="shellTwoFactorDisableCodeInput" inputmode="numeric" type="text"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--danger" id="shellTwoFactorDisableConfirmButton" type="button">無効化する</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorDisableResendButton" type="button">再送</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorDisableCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="twofactor-action-confirm" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
+<div aria-labelledby="twofactorActionConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="twofactorActionConfirmTitle">確認</h2>
+</div>
+<div class="app-modal-body">
+<p class="app-form-message" id="shellTwoFactorActionConfirmMessage">本当に実行しますか？</p>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellTwoFactorActionConfirmApproveButton" type="button">実行する</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorActionConfirmCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="admin-discard-confirm" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
+<div aria-labelledby="adminDiscardConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="adminDiscardConfirmTitle">確認</h2>
+</div>
+<div class="app-modal-body">
+<p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--danger" id="adminDiscardConfirmApproveButton" type="button">破棄して移動</button>
+<button class="app-button app-button--ghost" id="adminDiscardConfirmCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section>
+<section class="app-modal-layer" data-modal-id="admin-settings-apply-confirm" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="admin-settings-apply-confirm"></div>
+<div aria-labelledby="adminSettingsApplyConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="adminSettingsApplyConfirmTitle">設定を適用しますか？</h2>
+</div>
+<div class="app-modal-body">
+<p id="adminSettingsApplyConfirmMessage">現在の変更を適用します。よろしいですか？</p>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="adminSettingsApplyConfirmApprove" type="button">適用</button>
+<button class="app-button app-button--ghost" id="adminSettingsApplyConfirmCancel" type="button">キャンセル</button>
+</div>
+</div>
+</section>
+</div>
+<script src="/gallery/assets/js/components/admin-layout.js" type="module"></script>
+<script src="/gallery/assets/js/admin/settings.js" type="module"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ import { createI18n } from "../core/i18n.js";
 import { createImageModalController } from "../core/image-modal.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
+import { initUserShell } from "./user-shell.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
@@ -200,6 +201,8 @@ export async function initAdminLayout() {
     pageDescription: byId("adminPageDescription"),
     headerUserName: byId("adminHeaderUserName"),
     headerUserKey: byId("adminHeaderUserKey"),
+    headerSidebarToggle: byId("adminHeaderSidebarToggle"),
+    homeLink: byId("adminHomeLink"),
     sidebar: byId("adminSidebar"),
     sidebarToggle: byId("adminSidebarToggle"),
     navList: byId("adminSidebarNav"),
@@ -311,6 +314,23 @@ export async function initAdminLayout() {
 
   app.dirtyGuard = dirtyGuard;
   app.sidebar = sidebar;
+  initUserShell(app);
+
+  refs.headerSidebarToggle?.addEventListener("click", () => {
+    app.sidebar?.toggle?.();
+  });
+
+  refs.homeLink?.addEventListener("click", async (event) => {
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const href = refs.homeLink.getAttribute("href") || "/gallery/";
+    event.preventDefault();
+    const ok = await dirtyGuard.confirmIfNeeded("未保存の変更があります。破棄して移動しますか？");
+    if (!ok) return;
+    dirtyGuard.allowNextLeave();
+    window.location.assign(href);
+  });
 
   try {
     const sessionState = await app.session.load();

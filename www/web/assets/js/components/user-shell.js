@@ -266,7 +266,7 @@ export function initUserShell(app) {
 
     refs.uploadDisabled.hidden = user.upload_enabled !== false;
     refs.accountOpenButton.hidden = false;
-    refs.adminLink.hidden = !features.can_open_admin;
+    refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
     refs.userFooter.hidden = false;
   }
 

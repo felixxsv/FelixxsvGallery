@@ -1,259 +1,551 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>コンテンツ管理 - Felixxsv Gallery</title>
-  <link rel="stylesheet" href="/gallery/assets/css/common.css">
-  <link rel="stylesheet" href="/gallery/assets/css/components.css">
-  <link rel="stylesheet" href="/gallery/assets/css/admin-common.css">
-  <link rel="stylesheet" href="/gallery/assets/css/admin-content.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>コンテンツ管理 - Felixxsv Gallery</title>
+<link href="/gallery/assets/css/common.css" rel="stylesheet"/>
+<link href="/gallery/assets/css/components.css" rel="stylesheet"/>
+<link href="/gallery/assets/css/admin-common.css" rel="stylesheet"/>
+<link href="/gallery/assets/css/admin-content.css" rel="stylesheet"/>
 </head>
-<body
-  class="admin-page"
-  data-app-base="/gallery"
-  data-admin-page="content"
-  data-admin-description="公開状態変更、隔離、復元、削除状態管理を行います。"
->
-  <section id="adminLoadingState" class="admin-state-screen">
-    <div class="admin-state-card">
-      <h1 class="admin-state-card__title">管理画面を確認しています</h1>
-      <p class="admin-state-card__description">admin 権限の確認が完了するまで、管理画面本体は描画しません。</p>
-    </div>
-  </section>
+<body class="admin-page" data-admin-description="公開状態変更、隔離、復元、削除状態管理を行います。" data-admin-page="content" data-app-base="/gallery" data-hide-admin-link-in-shell="1">
+<section class="admin-state-screen" id="adminLoadingState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title">管理画面を確認しています</h1>
+<p class="admin-state-card__description">admin 権限の確認が完了するまで、管理画面本体は描画しません。</p>
+</div>
+</section>
+<section class="admin-state-screen" hidden="" id="adminNotFoundState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title">404</h1>
+<p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
+<div class="admin-state-card__actions">
+<a class="app-button app-button--primary" href="/gallery/">ホームへ戻る</a>
+</div>
+</div>
+</section>
+<section class="admin-state-screen" hidden="" id="adminErrorState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title">初期化に失敗しました</h1>
+<p class="admin-state-card__description">管理画面の初期化中にエラーが発生しました。</p>
+<div class="admin-state-card__actions">
+<button class="app-button app-button--primary" id="adminReloadButton" type="button">再読み込み</button>
+</div>
+</div>
+</section>
+<header class="app-site-header app-site-header--admin">
+<div class="app-site-header__inner">
+<div class="app-site-header__left">
+<button aria-expanded="true" aria-label="サイドバーを開閉" class="app-icon-button app-shell-toggle" id="adminHeaderSidebarToggle" type="button"><span aria-hidden="true">☰</span></button>
+<a aria-label="Felixxsv Gallery" class="app-site-logo" href="/gallery/" id="adminHomeLink">
+<span aria-hidden="true" class="app-site-logo__mark"></span>
+<span class="app-site-logo__label">Felixxsv Gallery</span>
+</a>
+</div>
+<div class="app-site-header__right">
+<button aria-label="ユーザー情報" class="app-icon-button" id="shellUserTrigger" type="button">
+<span aria-hidden="true" class="shell-user-icon shell-user-icon--guest" id="shellUserTriggerGuestIcon"></span>
+<span aria-hidden="true" class="shell-user-icon shell-user-icon--auth" hidden="" id="shellUserTriggerAuthIcon"></span>
+</button>
+</div>
+</div>
+</header><section class="admin-shell" hidden="" id="adminAppShell">
+<aside class="admin-sidebar" id="adminSidebar">
+<div class="admin-sidebar__header">
+<div class="admin-sidebar__brand">
+<div class="admin-sidebar__title">Felixxsv Gallery</div>
+<div class="admin-sidebar__subtitle">Admin Console</div>
+</div>
+<button aria-expanded="true" aria-label="サイドバーを折りたたむ" class="app-icon-button admin-sidebar__toggle" id="adminSidebarToggle" type="button">
+<span aria-hidden="true">⇔</span>
+</button>
+</div>
+<div class="admin-sidebar__scroll">
+<nav aria-label="管理画面ナビゲーション" class="admin-sidebar__nav" id="adminSidebarNav">
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="dashboard" href="/gallery/admin/"><span aria-hidden="true" class="admin-sidebar__icon">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="content" href="/gallery/admin/content/"><span aria-hidden="true" class="admin-sidebar__icon">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="users" href="/gallery/admin/users/"><span aria-hidden="true" class="admin-sidebar__icon">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="mail" href="/gallery/admin/mail/"><span aria-hidden="true" class="admin-sidebar__icon">✉</span><span class="admin-sidebar__label">メール配信</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="settings" href="/gallery/admin/settings/"><span aria-hidden="true" class="admin-sidebar__icon">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/"><span aria-hidden="true" class="admin-sidebar__icon">☰</span><span class="admin-sidebar__label">監査ログ</span></a>
+</nav>
+</div>
+<div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
+</aside>
+<div class="admin-shell__main">
+<header class="admin-topbar">
+<div class="admin-topbar__heading">
+<h1 class="admin-topbar__title" id="adminPageTitle">コンテンツ管理</h1>
+<p class="admin-topbar__description" id="adminPageDescription">公開状態変更、隔離、復元、削除状態管理を行います。</p>
+</div>
 
-  <section id="adminNotFoundState" class="admin-state-screen" hidden>
-    <div class="admin-state-card">
-      <h1 class="admin-state-card__title">404</h1>
-      <p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
-      <div class="admin-state-card__actions">
-        <a href="/gallery/" class="app-button app-button--primary">ホームへ戻る</a>
-      </div>
-    </div>
-  </section>
-
-  <section id="adminErrorState" class="admin-state-screen" hidden>
-    <div class="admin-state-card">
-      <h1 class="admin-state-card__title">初期化に失敗しました</h1>
-      <p class="admin-state-card__description">管理画面の初期化中にエラーが発生しました。</p>
-      <div class="admin-state-card__actions">
-        <button id="adminReloadButton" type="button" class="app-button app-button--primary">再読み込み</button>
-      </div>
-    </div>
-  </section>
-
-  <section id="adminAppShell" class="admin-shell" hidden>
-    <aside id="adminSidebar" class="admin-sidebar">
-      <div class="admin-sidebar__header">
-        <div class="admin-sidebar__brand">
-          <div class="admin-sidebar__title">Felixxsv Gallery</div>
-          <div class="admin-sidebar__subtitle">Admin Console</div>
-        </div>
-        <button id="adminSidebarToggle" class="app-icon-button admin-sidebar__toggle" type="button" aria-label="サイドバーを折りたたむ" aria-expanded="true">
-          <span aria-hidden="true">⇔</span>
-        </button>
-      </div>
-
-      <div class="admin-sidebar__scroll">
-        <nav id="adminSidebarNav" class="admin-sidebar__nav" aria-label="管理画面ナビゲーション">
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="dashboard" href="/gallery/admin/"><span class="admin-sidebar__icon" aria-hidden="true">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="content" href="/gallery/admin/content/"><span class="admin-sidebar__icon" aria-hidden="true">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="users" href="/gallery/admin/users/"><span class="admin-sidebar__icon" aria-hidden="true">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="mail" href="/gallery/admin/mail/"><span class="admin-sidebar__icon" aria-hidden="true">✉</span><span class="admin-sidebar__label">メール配信</span></a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="settings" href="/gallery/admin/settings/"><span class="admin-sidebar__icon" aria-hidden="true">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
-          <a class="admin-sidebar__link" data-admin-nav-link data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/"><span class="admin-sidebar__icon" aria-hidden="true">☰</span><span class="admin-sidebar__label">監査ログ</span></a>
-        </nav>
-      </div>
-
-      <div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
-    </aside>
-
-    <div class="admin-shell__main">
-      <header class="admin-topbar">
-        <div class="admin-topbar__heading">
-          <h1 id="adminPageTitle" class="admin-topbar__title">コンテンツ管理</h1>
-          <p id="adminPageDescription" class="admin-topbar__description">公開状態変更、隔離、復元、削除状態管理を行います。</p>
-        </div>
-
-        <div class="admin-topbar__meta">
-          <div class="admin-topbar__meta-label">ログイン中の管理者</div>
-          <div id="adminHeaderUserName" class="admin-topbar__meta-value">-</div>
-          <div id="adminHeaderUserKey" class="admin-topbar__meta-label">-</div>
-        </div>
-      </header>
-
-      <main class="admin-main-scroll">
-        <section class="admin-page-grid admin-page-grid--single">
-          <article class="admin-panel admin-content-panel">
-            <div class="admin-panel__header admin-content-toolbar">
-              <div>
-                <h2 class="admin-panel__title">コンテンツ一覧</h2>
-                <p class="admin-panel__meta">公開状態変更、隔離、復元、削除状態管理を行います。</p>
-              </div>
-              <div class="admin-content-toolbar__actions">
-                <button id="adminContentReloadButton" type="button" class="app-button app-button--ghost">再読込</button>
-              </div>
-            </div>
-
-            <div class="admin-content-filters">
-              <label class="admin-field">
-                <span class="admin-field__label">検索</span>
-                <input id="adminContentSearchInput" type="search" class="app-input" placeholder="タイトル / ALT / タグで検索">
-              </label>
-
-              <label class="admin-field">
-                <span class="admin-field__label">公開状態</span>
-                <select id="adminContentVisibilityFilter" class="app-select">
-                  <option value="">すべて</option>
-                  <option value="public">public</option>
-                  <option value="private">private</option>
-                </select>
-              </label>
-
-              <label class="admin-field">
-                <span class="admin-field__label">状態</span>
-                <select id="adminContentStatusFilter" class="app-select">
-                  <option value="">すべて</option>
-                  <option value="normal">normal</option>
-                  <option value="quarantined">quarantined</option>
-                  <option value="deleted">deleted</option>
-                </select>
-              </label>
-
-              <label class="admin-field">
-                <span class="admin-field__label">並び順</span>
-                <select id="adminContentSort" class="app-select">
-                  <option value="posted_desc">新しい順</option>
-                  <option value="posted_asc">古い順</option>
-                  <option value="likes_desc">いいね順</option>
-                  <option value="views_desc">閲覧数順</option>
-                  <option value="title_asc">タイトル昇順</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="admin-content-summary-row">
-              <div id="adminContentSummary" class="admin-panel__meta">-</div>
-            </div>
-
-            <div class="admin-table-wrap">
-              <table class="admin-table admin-content-table">
-                <thead>
-                  <tr>
-                    <th>画像</th>
-                    <th>タイトル / 投稿者</th>
-                    <th>公開</th>
-                    <th>状態</th>
-                    <th>いいね</th>
-                    <th>閲覧</th>
-                    <th>投稿日</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody id="adminContentTableBody">
-                  <tr>
-                    <td colspan="8" class="admin-content-table__empty">読み込み中です。</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="admin-table-pager">
-              <button id="adminContentPrevPage" type="button" class="app-button app-button--ghost">前へ</button>
-              <span id="adminContentPageInfo" class="admin-table-pager__info">-</span>
-              <button id="adminContentNextPage" type="button" class="app-button app-button--ghost">次へ</button>
-            </div>
-          </article>
-        </section>
-      </main>
-    </div>
-  </section>
-
-  <div id="appModalRoot" class="app-modal-root" aria-live="polite">
-    <button id="appGlobalClose" class="app-global-close" type="button" aria-label="閉じる" hidden>×</button>
-
-    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-discard-confirm" hidden>
-      <div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDiscardConfirmTitle" tabindex="-1">
-        <div class="app-modal-header">
-          <h2 id="adminDiscardConfirmTitle" class="app-modal-title">確認</h2>
-        </div>
-        <div class="app-modal-body">
-          <p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
-        </div>
-        <div class="app-modal-footer app-modal-footer--end">
-          <button id="adminDiscardConfirmApproveButton" type="button" class="app-button app-button--danger">破棄して移動</button>
-          <button id="adminDiscardConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-content-detail" hidden>
-      <div class="app-modal-backdrop" data-modal-backdrop="admin-content-detail"></div>
-      <div class="app-modal-dialog app-modal-dialog--wide" role="dialog" aria-modal="true" aria-labelledby="adminContentDetailTitle" tabindex="-1">
-        <div class="app-modal-header">
-          <h2 id="adminContentDetailTitle" class="app-modal-title">コンテンツ詳細</h2>
-        </div>
-        <div class="app-modal-body">
-          <div class="admin-content-detail">
-            <div class="admin-content-detail__preview-wrap">
-              <img id="adminContentDetailPreview" class="admin-content-detail__preview" alt="preview">
-            </div>
-            <div class="admin-content-detail__meta">
-              <div class="admin-content-detail__headline">
-                <div>
-                  <div id="adminContentDetailName" class="admin-content-detail__title">-</div>
-                  <div id="adminContentDetailSubline" class="admin-content-detail__subline">-</div>
-                </div>
-              </div>
-              <dl class="admin-content-detail__grid">
-                <div><dt>タイトル</dt><dd id="adminContentDetailFieldTitle">-</dd></div>
-                <div><dt>ALT</dt><dd id="adminContentDetailFieldAlt">-</dd></div>
-                <div><dt>タグ</dt><dd id="adminContentDetailFieldTags">-</dd></div>
-                <div><dt>投稿日</dt><dd id="adminContentDetailFieldPostedAt">-</dd></div>
-                <div><dt>撮影日</dt><dd id="adminContentDetailFieldShotAt">-</dd></div>
-                <div><dt>データ容量</dt><dd id="adminContentDetailFieldFileSize">-</dd></div>
-                <div><dt>画像サイズ</dt><dd id="adminContentDetailFieldDimensions">-</dd></div>
-                <div><dt>いいね数</dt><dd id="adminContentDetailFieldLikes">-</dd></div>
-                <div><dt>閲覧数</dt><dd id="adminContentDetailFieldViews">-</dd></div>
-                <div><dt>カラータグ</dt><dd id="adminContentDetailFieldColors">-</dd></div>
-                <div><dt>公開状態</dt><dd id="adminContentDetailFieldVisibility">-</dd></div>
-                <div><dt>状態</dt><dd id="adminContentDetailFieldStatus">-</dd></div>
-                <div class="admin-content-detail__admin-only"><dt>ファイル名</dt><dd id="adminContentDetailFieldFileName">-</dd></div>
-              </dl>
-            </div>
-          </div>
-        </div>
-        <div class="app-modal-footer admin-content-detail__footer">
-          <button id="adminContentVisibilityButton" type="button" class="app-button app-button--ghost">公開状態切替</button>
-          <button id="adminContentQuarantineButton" type="button" class="app-button app-button--ghost">隔離</button>
-          <button id="adminContentRestoreButton" type="button" class="app-button app-button--ghost">復元</button>
-          <button id="adminContentDeleteButton" type="button" class="app-button app-button--danger">削除状態にする</button>
-          <button id="adminContentDetailCloseButton" type="button" class="app-button app-button--primary">閉じる</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="app-modal-layer" data-modal-layer data-modal-id="admin-content-action-confirm" hidden>
-      <div class="app-modal-backdrop" data-modal-backdrop="admin-content-action-confirm"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminContentActionConfirmTitle" tabindex="-1">
-        <div class="app-modal-header">
-          <h2 id="adminContentActionConfirmTitle" class="app-modal-title">確認</h2>
-        </div>
-        <div class="app-modal-body">
-          <p id="adminContentActionConfirmMessage">この操作を実行しますか？</p>
-        </div>
-        <div class="app-modal-footer app-modal-footer--end">
-          <button id="adminContentActionConfirmApprove" type="button" class="app-button app-button--primary">実行</button>
-          <button id="adminContentActionConfirmCancel" type="button" class="app-button app-button--ghost">キャンセル</button>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <div id="appToastRoot" class="app-toast-root" aria-live="polite"></div>
-
-  <script type="module" src="/gallery/assets/js/components/admin-layout.js"></script>
-  <script type="module" src="/gallery/assets/js/admin/content.js"></script>
+</header>
+<main class="admin-main-scroll">
+<section class="admin-page-grid admin-page-grid--single">
+<article class="admin-panel admin-content-panel">
+<div class="admin-panel__header admin-content-toolbar">
+<div>
+<h2 class="admin-panel__title">コンテンツ一覧</h2>
+<p class="admin-panel__meta">公開状態変更、隔離、復元、削除状態管理を行います。</p>
+</div>
+<div class="admin-content-toolbar__actions">
+<button class="app-button app-button--ghost" id="adminContentReloadButton" type="button">再読込</button>
+</div>
+</div>
+<div class="admin-content-filters">
+<label class="admin-field">
+<span class="admin-field__label">検索</span>
+<input class="app-input" id="adminContentSearchInput" placeholder="タイトル / ALT / タグで検索" type="search"/>
+</label>
+<label class="admin-field">
+<span class="admin-field__label">公開状態</span>
+<select class="app-select" id="adminContentVisibilityFilter">
+<option value="">すべて</option>
+<option value="public">public</option>
+<option value="private">private</option>
+</select>
+</label>
+<label class="admin-field">
+<span class="admin-field__label">状態</span>
+<select class="app-select" id="adminContentStatusFilter">
+<option value="">すべて</option>
+<option value="normal">normal</option>
+<option value="quarantined">quarantined</option>
+<option value="deleted">deleted</option>
+</select>
+</label>
+<label class="admin-field">
+<span class="admin-field__label">並び順</span>
+<select class="app-select" id="adminContentSort">
+<option value="posted_desc">新しい順</option>
+<option value="posted_asc">古い順</option>
+<option value="likes_desc">いいね順</option>
+<option value="views_desc">閲覧数順</option>
+<option value="title_asc">タイトル昇順</option>
+</select>
+</label>
+</div>
+<div class="admin-content-summary-row">
+<div class="admin-panel__meta" id="adminContentSummary">-</div>
+</div>
+<div class="admin-table-wrap">
+<table class="admin-table admin-content-table">
+<thead>
+<tr>
+<th>画像</th>
+<th>タイトル / 投稿者</th>
+<th>公開</th>
+<th>状態</th>
+<th>いいね</th>
+<th>閲覧</th>
+<th>投稿日</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="adminContentTableBody">
+<tr>
+<td class="admin-content-table__empty" colspan="8">読み込み中です。</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admin-table-pager">
+<button class="app-button app-button--ghost" id="adminContentPrevPage" type="button">前へ</button>
+<span class="admin-table-pager__info" id="adminContentPageInfo">-</span>
+<button class="app-button app-button--ghost" id="adminContentNextPage" type="button">次へ</button>
+</div>
+</article>
+</section>
+</main>
+</div>
+</section>
+<div aria-live="polite" class="app-modal-root" id="appModalRoot">
+<button aria-label="閉じる" class="app-global-close" hidden="" id="appGlobalClose" type="button">×</button>
+<section class="app-modal-layer" data-modal-id="user-info" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="user-info"></div>
+<div aria-labelledby="userInfoTitle" aria-modal="true" class="app-modal-dialog shell-user-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="userInfoTitle">ユーザー情報</h2>
+<div class="app-modal-header-actions">
+<button class="shell-header-link" data-modal-open="settings" type="button">設定</button>
+<button class="shell-header-link" data-modal-open="help" type="button">ヘルプ</button>
+<button class="shell-header-link" data-modal-open="credits" type="button">クレジット</button>
+</div>
+</div>
+<div class="app-modal-body">
+<section class="shell-user-card" id="shellUserCard">
+<div class="shell-user-card__guest-overlay" hidden="" id="shellGuestOverlay">
+<button class="app-button app-button--primary" id="shellLoginButton" type="button">ログイン</button>
+</div>
+<div class="shell-user-card__content">
+<div class="shell-user-card__profile">
+<div aria-hidden="true" class="shell-user-card__avatar"></div>
+<div class="shell-user-card__identity">
+<div class="shell-user-card__name-row">
+<div class="shell-user-card__display-name" id="shellUserDisplayName">-</div>
+<button aria-label="アカウント設定" class="app-icon-button shell-pen-button" data-modal-open="account" hidden="" id="shellAccountEditButton" type="button">
+<span aria-hidden="true" class="shell-pen-icon"></span>
+</button>
+</div>
+<div class="shell-user-card__subline" id="shellUserKey">-</div>
+</div>
+</div>
+<dl class="app-definition-list">
+<div class="app-definition-list__row">
+<dt>メールアドレス</dt>
+<dd id="shellUserEmail">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>登録日時</dt>
+<dd id="shellUserCreatedAt">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>2段階認証</dt>
+<dd id="shellUserTwoFactor">-</dd>
+</div>
+<div class="app-definition-list__row" hidden="" id="shellUserRoleRow">
+<dt>ロール</dt>
+<dd id="shellUserRole">-</dd>
+</div>
+</dl>
+<p class="shell-inline-warning" hidden="" id="shellUploadDisabledMessage">
+                現在、画像投稿は無効化されています。
+              </p>
+<div class="app-button-row">
+<button class="app-button" data-modal-open="account" hidden="" id="shellAccountOpenButton" type="button">
+                  アカウント設定
+                </button>
+<a class="app-link-button" hidden="" href="/gallery/admin" id="shellAdminLink">
+                  管理画面へ
+                </a>
+</div>
+</div>
+</section>
+</div>
+<div class="app-modal-footer app-modal-footer--end" hidden="" id="shellUserFooter">
+<button class="app-button app-button--ghost" id="shellLogoutAllButton" type="button">全端末ログアウト</button>
+<button class="app-button app-button--danger" id="shellLogoutButton" type="button">ログアウト</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="settings" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="settings"></div>
+<div aria-labelledby="settingsTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="settingsTitle">設定</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">言語</span>
+<select class="app-select" id="shellSettingLanguage">
+<option value="ja">日本語</option>
+<option value="en">English</option>
+</select>
+</label>
+<label class="app-field">
+<span class="app-field__label">カラーテーマ</span>
+<select class="app-select" id="shellSettingTheme">
+<option value="system">システム</option>
+<option value="dark">ダーク</option>
+<option value="light">ライト</option>
+</select>
+</label>
+<label class="app-field">
+<span class="app-field__label">画像クリック時の挙動</span>
+<select class="app-select" id="shellSettingImageOpenBehavior">
+<option value="modal">モーダルで表示</option>
+<option value="new_tab">別タブで表示</option>
+</select>
+</label>
+<label class="app-field app-field--switch app-switch">
+<input class="app-switch__input" id="shellSettingImageBackdropClose" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__track">
+<span class="app-switch__thumb"></span>
+</span>
+<span class="app-switch__label">画像モーダルの背景クリックで閉じる</span>
+</label>
+<label class="app-field app-field--switch app-switch">
+<input class="app-switch__input" id="shellSettingImageMetaPinned" type="checkbox"/>
+<span aria-hidden="true" class="app-switch__track">
+<span class="app-switch__thumb"></span>
+</span>
+<span class="app-switch__label">画像モーダルのメタ情報バーを常時表示する</span>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="settings" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="help" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="help"></div>
+<div aria-labelledby="helpTitle" aria-modal="true" class="app-modal-dialog app-modal-dialog--scroll" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="helpTitle">ヘルプ</h2>
+</div>
+<div class="app-modal-body">
+<div class="shell-empty-block"></div>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="help" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="credits" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="credits"></div>
+<div aria-labelledby="creditsTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="creditsTitle">クレジット</h2>
+</div>
+<div class="app-modal-body">
+<dl class="app-definition-list">
+<div class="app-definition-list__row">
+<dt>サービス名</dt>
+<dd>Felixxsv Gallery</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>作成者</dt>
+<dd id="shellCreditAuthor">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>使用技術</dt>
+<dd id="shellCreditStack">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>ライセンス</dt>
+<dd id="shellCreditLicense">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>更新日</dt>
+<dd id="shellCreditUpdatedAt">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>バージョン</dt>
+<dd id="shellCreditVersion">-</dd>
+</div>
+</dl>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="credits" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="account" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="account"></div>
+<div aria-labelledby="accountTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="accountTitle">アカウント設定</h2>
+</div>
+<div class="app-modal-body">
+<dl class="app-definition-list">
+<div class="app-definition-list__row">
+<dt>表示名</dt>
+<dd id="shellAccountDisplayName">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>user_key</dt>
+<dd id="shellAccountUserKey">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>メールアドレス</dt>
+<dd id="shellAccountEmail">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>登録日時</dt>
+<dd id="shellAccountCreatedAt">-</dd>
+</div>
+<div class="app-definition-list__row">
+<dt>2段階認証</dt>
+<dd id="shellAccountTwoFactor">-</dd>
+</div>
+</dl>
+<div class="shell-account-actions">
+<button class="app-button" data-modal-open="email" id="shellEmailActionButton" type="button">メールアドレス変更</button>
+<button class="app-button" data-modal-open="password" id="shellPasswordActionButton" type="button">パスワード変更</button>
+<button class="app-button" id="shellTwoFactorEnableButton" type="button">2段階認証を有効化</button>
+<button class="app-button" hidden="" id="shellTwoFactorDisableOpenButton" type="button">2段階認証を無効化</button>
+</div>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" data-modal-close="account" type="button">閉じる</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="email" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="email"></div>
+<div aria-labelledby="emailTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="emailTitle">メールアドレス変更</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">メールアドレス</span>
+<input autocomplete="email" class="app-input" id="shellEmailInput" type="email"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellEmailSaveButton" type="button">保存</button>
+<button class="app-button app-button--ghost" data-modal-close="email" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="password" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="password"></div>
+<div aria-labelledby="passwordTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="passwordTitle">パスワード変更</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">現在のパスワード</span>
+<input autocomplete="current-password" class="app-input" id="shellCurrentPasswordInput" type="password"/>
+</label>
+<label class="app-field">
+<span class="app-field__label">新しいパスワード</span>
+<input autocomplete="new-password" class="app-input" id="shellNewPasswordInput" type="password"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellPasswordSaveButton" type="button">変更する</button>
+<button class="app-button app-button--ghost" data-modal-close="password" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="twofactor-setup" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="twofactor-setup"></div>
+<div aria-labelledby="twofactorSetupTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="twofactorSetupTitle">2段階認証の確認</h2>
+</div>
+<div class="app-modal-body">
+<p class="shell-inline-message" id="shellTwoFactorSetupMessage"></p>
+<form class="app-form-stack">
+<label class="app-field">
+<span class="app-field__label">確認コード</span>
+<input autocomplete="one-time-code" class="app-input" id="shellTwoFactorCodeInput" inputmode="numeric" maxlength="6" type="text"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellTwoFactorSetupConfirmButton" type="button">確認</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorSetupResendButton" type="button">再送</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorSetupCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="twofactor-disable" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="twofactor-disable"></div>
+<div aria-labelledby="twofactorDisableTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="twofactorDisableTitle">2段階認証の無効化</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack">
+<p class="app-form-message" id="shellTwoFactorDisableMessage">確認コードを送信します。</p>
+<label class="app-field">
+<span class="app-field__label">確認コード</span>
+<input autocomplete="one-time-code" class="app-input" id="shellTwoFactorDisableCodeInput" inputmode="numeric" type="text"/>
+</label>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--danger" id="shellTwoFactorDisableConfirmButton" type="button">無効化する</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorDisableResendButton" type="button">再送</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorDisableCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="twofactor-action-confirm" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
+<div aria-labelledby="twofactorActionConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="twofactorActionConfirmTitle">確認</h2>
+</div>
+<div class="app-modal-body">
+<p class="app-form-message" id="shellTwoFactorActionConfirmMessage">本当に実行しますか？</p>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="shellTwoFactorActionConfirmApproveButton" type="button">実行する</button>
+<button class="app-button app-button--ghost" id="shellTwoFactorActionConfirmCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section><section class="app-modal-layer" data-modal-id="admin-discard-confirm" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
+<div aria-labelledby="adminDiscardConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="adminDiscardConfirmTitle">確認</h2>
+</div>
+<div class="app-modal-body">
+<p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--danger" id="adminDiscardConfirmApproveButton" type="button">破棄して移動</button>
+<button class="app-button app-button--ghost" id="adminDiscardConfirmCancelButton" type="button">キャンセル</button>
+</div>
+</div>
+</section>
+<section class="app-modal-layer" data-modal-id="admin-content-detail" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="admin-content-detail"></div>
+<div aria-labelledby="adminContentDetailTitle" aria-modal="true" class="app-modal-dialog app-modal-dialog--wide" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="adminContentDetailTitle">コンテンツ詳細</h2>
+</div>
+<div class="app-modal-body">
+<div class="admin-content-detail">
+<div class="admin-content-detail__preview-wrap">
+<img alt="preview" class="admin-content-detail__preview" id="adminContentDetailPreview"/>
+</div>
+<div class="admin-content-detail__meta">
+<div class="admin-content-detail__headline">
+<div>
+<div class="admin-content-detail__title" id="adminContentDetailName">-</div>
+<div class="admin-content-detail__subline" id="adminContentDetailSubline">-</div>
+</div>
+</div>
+<dl class="admin-content-detail__grid">
+<div><dt>タイトル</dt><dd id="adminContentDetailFieldTitle">-</dd></div>
+<div><dt>ALT</dt><dd id="adminContentDetailFieldAlt">-</dd></div>
+<div><dt>タグ</dt><dd id="adminContentDetailFieldTags">-</dd></div>
+<div><dt>投稿日</dt><dd id="adminContentDetailFieldPostedAt">-</dd></div>
+<div><dt>撮影日</dt><dd id="adminContentDetailFieldShotAt">-</dd></div>
+<div><dt>データ容量</dt><dd id="adminContentDetailFieldFileSize">-</dd></div>
+<div><dt>画像サイズ</dt><dd id="adminContentDetailFieldDimensions">-</dd></div>
+<div><dt>いいね数</dt><dd id="adminContentDetailFieldLikes">-</dd></div>
+<div><dt>閲覧数</dt><dd id="adminContentDetailFieldViews">-</dd></div>
+<div><dt>カラータグ</dt><dd id="adminContentDetailFieldColors">-</dd></div>
+<div><dt>公開状態</dt><dd id="adminContentDetailFieldVisibility">-</dd></div>
+<div><dt>状態</dt><dd id="adminContentDetailFieldStatus">-</dd></div>
+<div class="admin-content-detail__admin-only"><dt>ファイル名</dt><dd id="adminContentDetailFieldFileName">-</dd></div>
+</dl>
+</div>
+</div>
+</div>
+<div class="app-modal-footer admin-content-detail__footer">
+<button class="app-button app-button--ghost" id="adminContentVisibilityButton" type="button">公開状態切替</button>
+<button class="app-button app-button--ghost" id="adminContentQuarantineButton" type="button">隔離</button>
+<button class="app-button app-button--ghost" id="adminContentRestoreButton" type="button">復元</button>
+<button class="app-button app-button--danger" id="adminContentDeleteButton" type="button">削除状態にする</button>
+<button class="app-button app-button--primary" id="adminContentDetailCloseButton" type="button">閉じる</button>
+</div>
+</div>
+</section>
+<section class="app-modal-layer" data-modal-id="admin-content-action-confirm" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="admin-content-action-confirm"></div>
+<div aria-labelledby="adminContentActionConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="adminContentActionConfirmTitle">確認</h2>
+</div>
+<div class="app-modal-body">
+<p id="adminContentActionConfirmMessage">この操作を実行しますか？</p>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--primary" id="adminContentActionConfirmApprove" type="button">実行</button>
+<button class="app-button app-button--ghost" id="adminContentActionConfirmCancel" type="button">キャンセル</button>
+</div>
+</div>
+</section>
+</div>
+<div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
+<script src="/gallery/assets/js/components/admin-layout.js" type="module"></script>
+<script src="/gallery/assets/js/admin/content.js" type="module"></script>
 </body>
 </html>
