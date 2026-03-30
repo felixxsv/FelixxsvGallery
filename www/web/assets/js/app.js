@@ -32,6 +32,7 @@ function createAppContext() {
   const modal = createModalManager({ root: modalRoot, closeButton: modalClose });
   const toast = createToastManager({ root: toastRoot });
   const imageModal = createImageModalController({ app: { api, appBase, settings, session, i18n, modal, toast } });
+
   return {
     api,
     appBase,
@@ -71,6 +72,7 @@ function createPresenceController(app) {
     if (!force && lastVisible === visible && now - lastSentAt < 5000) {
       return;
     }
+
     if (inflight && !force) {
       return inflight;
     }
@@ -88,12 +90,15 @@ function createPresenceController(app) {
       .then(async (response) => {
         const contentType = response.headers.get("content-type") || "";
         let payload = null;
+
         if (contentType.includes("application/json")) {
           payload = await response.json().catch(() => null);
         }
+
         if (!response.ok || (payload && payload.ok === false)) {
           throw new Error(payload?.error?.message || payload?.message || "presence update failed");
         }
+
         lastVisible = visible;
         lastSentAt = Date.now();
       })
@@ -121,6 +126,7 @@ function createPresenceController(app) {
       sendPresence(true, false, true);
       return;
     }
+
     scheduleHiddenPresence();
   }
 
@@ -147,6 +153,7 @@ function createPresenceController(app) {
 
   function startInterval() {
     if (intervalId !== null) return;
+
     intervalId = window.setInterval(() => {
       if (!currentVisibleState()) return;
       sendPresence(true);
@@ -163,6 +170,7 @@ function createPresenceController(app) {
   return {
     async start() {
       if (started) return;
+
       started = true;
       document.addEventListener("visibilitychange", handleVisibilityChange);
       window.addEventListener("pageshow", handlePageShow);
@@ -174,6 +182,7 @@ function createPresenceController(app) {
     },
     stop() {
       if (!started) return;
+
       started = false;
       clearHiddenTimer();
       stopInterval();
@@ -219,9 +228,9 @@ function writeHomeGridColumns(value) {
 }
 
 function initHomeGridColumns() {
-  const grid = byId("homeGalleryGrid");
-  const controls = byId("homeGridColumnsControls");
-  const buttons = Array.from(document.querySelectorAll("#homeGridColumnsControls [data-grid-cols]"));
+  const grid = byId("homeGalleryGrid") || document.querySelector(".home-gallery-grid");
+  const controls = byId("homeGridColumnsControls") || document.querySelector(".home-grid-columns");
+  const buttons = Array.from(document.querySelectorAll("[data-grid-cols]"));
   const media = window.matchMedia(`(max-width: ${HOME_GRID_COLUMNS_MOBILE_BREAKPOINT}px)`);
 
   if (!grid || !controls || buttons.length === 0) {
@@ -230,6 +239,7 @@ function initHomeGridColumns() {
 
   function setButtonState(columns, isMobile) {
     controls.hidden = isMobile;
+
     for (const button of buttons) {
       const value = normalizeHomeGridColumns(button.dataset.gridCols);
       const active = !isMobile && value === columns;
@@ -242,6 +252,7 @@ function initHomeGridColumns() {
   function apply(columns) {
     const isMobile = media.matches;
     const resolved = isMobile ? 1 : normalizeHomeGridColumns(columns);
+
     grid.dataset.gridCols = String(resolved);
     grid.style.setProperty("--home-grid-columns", String(resolved));
     setButtonState(resolved, isMobile);
@@ -371,6 +382,7 @@ async function bootstrap() {
 
   try {
     const sessionState = await app.session.load();
+
     if (sessionState.authenticated) {
       app.presence = createPresenceController(app);
       await app.presence.start();
@@ -381,8 +393,8 @@ async function bootstrap() {
 
   if (app.page === "home") {
     initPublicSidebar();
-    initHomeGridColumns();
     initHomePage(app);
+    initHomeGridColumns();
   }
 }
 

@@ -316,6 +316,10 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.home-gallery-grid[data-grid-cols="1"] .home-gallery-card__media {
+  height: 276px;
+}
+
 .home-gallery-card__image {
   width: 100%;
   height: 100%;
@@ -418,17 +422,12 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 }
 
 @media (max-width: 720px) {
-  .home-toolbar,
-  .home-pagination,
-  .home-status {
+  .home-status,
+  .home-pagination {
     align-items: stretch;
   }
 
-  .home-toolbar__group {
-    width: 100%;
-  }
-
   .home-gallery-card__media {
-    height: 220px;
+    height: 240px;
   }
 }
