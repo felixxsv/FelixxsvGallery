@@ -14,6 +14,10 @@ const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
 const HOME_SIDEBAR_COLLAPSED_KEY = "gallery.home.sidebar.collapsed";
 const HOME_SIDEBAR_INIT_KEY = "gallery.home.sidebar.init.v2";
+const HOME_GRID_COLUMNS_KEY = "gallery.home.gridColumns";
+const HOME_GRID_COLUMNS_DEFAULT = 3;
+const HOME_GRID_COLUMNS_ALLOWED = [1, 2, 3, 4];
+const HOME_GRID_COLUMNS_MOBILE_BREAKPOINT = 980;
 
 function createAppContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
@@ -193,6 +197,83 @@ function ensureHomeSidebarDefaultExpanded() {
   }
 }
 
+function normalizeHomeGridColumns(value) {
+  const num = Number(value);
+  return HOME_GRID_COLUMNS_ALLOWED.includes(num) ? num : HOME_GRID_COLUMNS_DEFAULT;
+}
+
+function readHomeGridColumns() {
+  try {
+    return normalizeHomeGridColumns(window.localStorage.getItem(HOME_GRID_COLUMNS_KEY));
+  } catch {
+    return HOME_GRID_COLUMNS_DEFAULT;
+  }
+}
+
+function writeHomeGridColumns(value) {
+  try {
+    window.localStorage.setItem(HOME_GRID_COLUMNS_KEY, String(normalizeHomeGridColumns(value)));
+  } catch {
+    return;
+  }
+}
+
+function initHomeGridColumns() {
+  const grid = byId("homeGalleryGrid");
+  const controls = byId("homeGridColumnsControls");
+  const buttons = Array.from(document.querySelectorAll("#homeGridColumnsControls [data-grid-cols]"));
+  const media = window.matchMedia(`(max-width: ${HOME_GRID_COLUMNS_MOBILE_BREAKPOINT}px)`);
+
+  if (!grid || !controls || buttons.length === 0) {
+    return;
+  }
+
+  function setButtonState(columns, isMobile) {
+    controls.hidden = isMobile;
+    for (const button of buttons) {
+      const value = normalizeHomeGridColumns(button.dataset.gridCols);
+      const active = !isMobile && value === columns;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+      button.hidden = isMobile;
+    }
+  }
+
+  function apply(columns) {
+    const isMobile = media.matches;
+    const resolved = isMobile ? 1 : normalizeHomeGridColumns(columns);
+    grid.dataset.gridCols = String(resolved);
+    grid.style.setProperty("--home-grid-columns", String(resolved));
+    setButtonState(resolved, isMobile);
+  }
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      if (media.matches) return;
+      const value = normalizeHomeGridColumns(button.dataset.gridCols);
+      writeHomeGridColumns(value);
+      apply(value);
+    });
+  }
+
+  const handleMediaChange = () => {
+    apply(readHomeGridColumns());
+  };
+
+  if (typeof media.addEventListener === "function") {
+    media.addEventListener("change", handleMediaChange);
+  } else if (typeof media.addListener === "function") {
+    media.addListener(handleMediaChange);
+  }
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== HOME_GRID_COLUMNS_KEY) return;
+    apply(readHomeGridColumns());
+  });
+
+  apply(readHomeGridColumns());
+}
+
 function initPublicSidebar() {
   const root = byId("homeSidebar");
   const toggleButton = byId("homeSidebarToggle");
@@ -300,6 +381,7 @@ async function bootstrap() {
 
   if (app.page === "home") {
     initPublicSidebar();
+    initHomeGridColumns();
     initHomePage(app);
   }
 }
