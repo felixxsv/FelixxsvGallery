@@ -596,95 +596,49 @@ padding: var(--space-4);
 }
 }
 
-.app-site-header__center {
-  flex: 1 1 420px;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* header alignment overrides */
+.app-site-header__inner {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: 16px;
 }
 
-.app-site-search {
-  width: min(100%, 520px);
+.app-site-header__left {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.app-site-header__center {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 720px;
+}
+
+.app-site-header__center--search {
+  margin-left: 14px;
+}
+
+.app-site-header__search {
+  width: 100%;
   margin: 0;
 }
 
-.app-shell-toggle {
+.app-site-header__right {
+  margin-left: auto;
   flex: 0 0 auto;
+  min-width: 0;
 }
 
-.shell-user-icon {
-  display: inline-flex;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  position: relative;
-}
-
-.shell-user-icon::before,
-.shell-user-icon::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background: currentColor;
-}
-
-.shell-user-icon::before {
-  top: 1px;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-}
-
-.shell-user-icon::after {
-  bottom: 1px;
-  width: 14px;
-  height: 8px;
-  border-radius: 8px 8px 6px 6px;
-}
-
-.app-site-header--admin {
-  border-bottom-color: color-mix(in srgb, var(--color-border) 90%, transparent);
-}
-
-@media (max-width: 900px) {
+@media (max-width: 820px) {
   .app-site-header__inner {
-    width: min(100% - 20px, var(--container-max));
-    gap: var(--space-3);
+    padding-inline: 10px;
+    gap: 10px;
   }
 
-  .app-site-header__center {
-    flex: 1 1 auto;
-  }
-
-  .app-site-logo__label {
+  .app-site-header__center--search {
     display: none;
-  }
-}
-
-@media (max-width: 720px) {
-  .app-site-header__inner {
-    min-height: auto;
-    height: auto;
-    padding: 10px 0;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .app-site-header__left,
-  .app-site-header__right {
-    flex: 0 0 auto;
-  }
-
-  .app-site-header__center {
-    order: 3;
-    width: 100%;
-    flex-basis: 100%;
-    justify-content: stretch;
-  }
-
-  .app-site-search {
-    width: 100%;
   }
 }

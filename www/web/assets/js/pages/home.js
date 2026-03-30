@@ -1,5 +1,9 @@
 import { byId } from "../core/dom.js";
 
+const GRID_COLS_STORAGE_KEY = "gallery.home.gridCols";
+const MOBILE_GRID_MEDIA = "(max-width: 820px)";
+const DEFAULT_GRID_COLS = 3;
+
 function textOrDash(value) {
   if (value === undefined || value === null || value === "") {
     return "-";
@@ -39,32 +43,57 @@ function normalizeImageUrl(image) {
     image.image_url,
     image.url,
   ];
+
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== "string") {
       continue;
     }
     return withAppBase(candidate);
   }
+
   if (image.id !== undefined && image.id !== null) {
     return withAppBase(`/media/original/${image.id}`);
   }
+
   return "";
 }
 
 function extractListPayload(payload) {
   const root = payload?.data ?? payload;
+
   if (Array.isArray(root)) {
-    return { items: root, page: 1, perPage: root.length, total: root.length, hasNext: false };
+    return {
+      items: root,
+      page: 1,
+      perPage: root.length,
+      total: root.length,
+      hasNext: false,
+    };
   }
+
   if (!root || typeof root !== "object") {
-    return { items: [], page: 1, perPage: 24, total: 0, hasNext: false };
+    return {
+      items: [],
+      page: 1,
+      perPage: 24,
+      total: 0,
+      hasNext: false,
+    };
   }
+
   const items = root.items || root.images || root.records || root.results || [];
   const page = Number(root.page || root.current_page || 1);
   const perPage = Number(root.per_page || root.perPage || items.length || 24);
   const total = Number(root.total || root.total_count || items.length || 0);
   const hasNext = root.has_next ?? (page * perPage < total);
-  return { items: Array.isArray(items) ? items : [], page, perPage, total, hasNext: Boolean(hasNext) };
+
+  return {
+    items: Array.isArray(items) ? items : [],
+    page,
+    perPage,
+    total,
+    hasNext: Boolean(hasNext),
+  };
 }
 
 function buildPublicDetail(image) {
@@ -89,6 +118,26 @@ function buildPublicDetail(image) {
   };
 }
 
+function readStoredGridCols() {
+  try {
+    const value = Number(window.localStorage.getItem(GRID_COLS_STORAGE_KEY) || DEFAULT_GRID_COLS);
+    if ([1, 2, 3, 4].includes(value)) {
+      return value;
+    }
+  } catch {
+    return DEFAULT_GRID_COLS;
+  }
+  return DEFAULT_GRID_COLS;
+}
+
+function writeStoredGridCols(value) {
+  try {
+    window.localStorage.setItem(GRID_COLS_STORAGE_KEY, String(value));
+  } catch {
+    return;
+  }
+}
+
 export function initHomePage(app) {
   const refs = {
     searchInput: byId("homeSearchInput"),
@@ -104,17 +153,21 @@ export function initHomePage(app) {
     prevPageButton: byId("homePrevPageButton"),
     nextPageButton: byId("homeNextPageButton"),
     cardTemplate: byId("homeImageCardTemplate"),
+    gridControls: byId("homeGridColumnsControls"),
   };
+
+  const gridMedia = window.matchMedia(MOBILE_GRID_MEDIA);
 
   const state = {
     page: 1,
-    perPage: Number(refs.perPageSelect.value || 24),
-    sort: refs.sortSelect.value || "latest",
+    perPage: Number(refs.perPageSelect?.value || 24),
+    sort: refs.sortSelect?.value || "latest",
     q: "",
     total: 0,
     hasNext: false,
     debounceTimer: null,
     items: [],
+    gridCols: readStoredGridCols(),
   };
 
   function setLoading(loading) {
@@ -132,6 +185,28 @@ export function initHomePage(app) {
 
   function setGridVisible(visible) {
     refs.galleryGrid.hidden = !visible;
+  }
+
+  function effectiveGridCols() {
+    return gridMedia.matches ? 1 : state.gridCols;
+  }
+
+  function syncGridColumnsUi() {
+    const cols = effectiveGridCols();
+    refs.galleryGrid.dataset.gridCols = String(cols);
+
+    if (!refs.gridControls) {
+      return;
+    }
+
+    refs.gridControls.hidden = gridMedia.matches;
+
+    const buttons = refs.gridControls.querySelectorAll("[data-grid-cols]");
+    for (const button of buttons) {
+      const active = Number(button.dataset.gridCols || 0) === cols;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
   }
 
   function updateStatus() {
@@ -176,6 +251,7 @@ export function initHomePage(app) {
 
   function renderItems(items) {
     refs.galleryGrid.textContent = "";
+
     if (!items.length) {
       setGridVisible(false);
       setEmpty(true);
@@ -186,7 +262,6 @@ export function initHomePage(app) {
     items.forEach((item, index) => {
       fragment.appendChild(createCard(item, index));
     });
-
     refs.galleryGrid.appendChild(fragment);
     setGridVisible(true);
     setEmpty(false);
@@ -220,6 +295,7 @@ export function initHomePage(app) {
         per_page: String(state.perPage),
         sort: state.sort,
       });
+
       if (state.q) {
         query.set("q", state.q);
       }
@@ -230,6 +306,7 @@ export function initHomePage(app) {
       state.total = Number(list.total || 0);
       state.hasNext = Boolean(list.hasNext);
       renderItems(list.items);
+      syncGridColumnsUi();
       updateStatus();
     } catch (error) {
       setGridVisible(false);
@@ -261,28 +338,38 @@ export function initHomePage(app) {
     openImageFromCard(index);
   });
 
-  refs.searchInput.addEventListener("input", scheduleSearch);
-  refs.sortSelect.addEventListener("change", () => {
+  refs.gridControls?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-grid-cols]");
+    if (!button) return;
+    const cols = Number(button.dataset.gridCols || 0);
+    if (![1, 2, 3, 4].includes(cols)) return;
+    state.gridCols = cols;
+    writeStoredGridCols(cols);
+    syncGridColumnsUi();
+  });
+
+  refs.searchInput?.addEventListener("input", scheduleSearch);
+  refs.sortSelect?.addEventListener("change", () => {
     state.page = 1;
     state.sort = refs.sortSelect.value;
     load();
   });
-  refs.perPageSelect.addEventListener("change", () => {
+  refs.perPageSelect?.addEventListener("change", () => {
     state.page = 1;
     state.perPage = Number(refs.perPageSelect.value || 24);
     load();
   });
-  refs.reloadButton.addEventListener("click", () => {
+  refs.reloadButton?.addEventListener("click", () => {
     load();
   });
-  refs.prevPageButton.addEventListener("click", () => {
+  refs.prevPageButton?.addEventListener("click", () => {
     if (state.page <= 1) {
       return;
     }
     state.page -= 1;
     load();
   });
-  refs.nextPageButton.addEventListener("click", () => {
+  refs.nextPageButton?.addEventListener("click", () => {
     if (!state.hasNext) {
       return;
     }
@@ -290,5 +377,10 @@ export function initHomePage(app) {
     load();
   });
 
+  gridMedia.addEventListener?.("change", () => {
+    syncGridColumnsUi();
+  });
+
+  syncGridColumnsUi();
   load();
 }
