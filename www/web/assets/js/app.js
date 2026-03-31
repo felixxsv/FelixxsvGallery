@@ -18,6 +18,8 @@ const HOME_GRID_COLUMNS_KEY = "gallery.home.gridColumns";
 const HOME_GRID_COLUMNS_DEFAULT = 3;
 const HOME_GRID_COLUMNS_ALLOWED = [1, 2, 3, 4];
 const HOME_GRID_COLUMNS_MOBILE_BREAKPOINT = 980;
+const HOME_SIDEBAR_ANIMATION_MS = 180;
+const HOME_SIDEBAR_REVEAL_DELAY_MS = HOME_SIDEBAR_ANIMATION_MS + 20;
 
 function createAppContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
@@ -293,6 +295,15 @@ function initPublicSidebar() {
   if (!root || !toggleButton || !layout) return;
 
   const edgePeekPx = 44;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let revealTimerId = null;
+
+  function clearRevealTimer() {
+    if (revealTimerId !== null) {
+      window.clearTimeout(revealTimerId);
+      revealTimerId = null;
+    }
+  }
 
   function readStoredState() {
     try {
@@ -310,7 +321,27 @@ function initPublicSidebar() {
     }
   }
 
-  function applyState(collapsed) {
+  function updateToggleUi(collapsed) {
+    toggleButton.setAttribute("aria-expanded", String(!collapsed));
+    toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
+
+    const icon = toggleButton.querySelector("span");
+    if (icon) {
+      icon.textContent = "❯";
+    }
+  }
+
+  function finishExpandedContent() {
+    root.classList.remove("is-content-hidden");
+
+    if (closeButton) {
+      closeButton.hidden = false;
+    }
+  }
+
+  function applyState(collapsed, { animate = false } = {}) {
+    clearRevealTimer();
+
     root.classList.toggle("is-collapsed", collapsed);
     layout.classList.toggle("is-sidebar-collapsed", collapsed);
     document.body.classList.toggle("is-home-sidebar-collapsed", collapsed);
@@ -319,19 +350,42 @@ function initPublicSidebar() {
       document.body.classList.remove("is-home-sidebar-edge-peek");
     }
 
-    toggleButton.setAttribute("aria-expanded", String(!collapsed));
-    toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
+    updateToggleUi(collapsed);
 
-    const icon = toggleButton.querySelector("span");
-    if (icon) {
-      icon.textContent = "❯";
+    if (collapsed) {
+      root.classList.add("is-content-hidden");
+
+      if (closeButton) {
+        closeButton.hidden = true;
+      }
+
+      writeStoredState(true);
+      return;
     }
+
+    const shouldAnimate = animate && !prefersReducedMotion.matches;
+
+    if (!shouldAnimate) {
+      finishExpandedContent();
+      writeStoredState(false);
+      return;
+    }
+
+    root.classList.add("is-content-hidden");
 
     if (closeButton) {
-      closeButton.hidden = collapsed;
+      closeButton.hidden = true;
     }
 
-    writeStoredState(collapsed);
+    revealTimerId = window.setTimeout(() => {
+      revealTimerId = null;
+      if (root.classList.contains("is-collapsed")) {
+        return;
+      }
+      finishExpandedContent();
+    }, HOME_SIDEBAR_REVEAL_DELAY_MS);
+
+    writeStoredState(false);
   }
 
   function isCollapsed() {
@@ -351,11 +405,11 @@ function initPublicSidebar() {
   ensureHomeSidebarDefaultExpanded();
 
   toggleButton.addEventListener("click", () => {
-    applyState(!isCollapsed());
+    applyState(!isCollapsed(), { animate: true });
   });
 
   closeButton?.addEventListener("click", () => {
-    applyState(true);
+    applyState(true, { animate: true });
   });
 
   window.addEventListener("mousemove", (event) => {
