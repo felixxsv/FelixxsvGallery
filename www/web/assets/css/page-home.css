@@ -1,8 +1,11 @@
 body[data-page="home"] {
   --header-height: 64px;
+  --home-sidebar-width: 296px;
 }
 
 .home-page {
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
   padding: 0 0 20px;
 }
 
@@ -18,7 +21,9 @@ body[data-page="home"] {
 
 .home-shell-layout {
   display: grid;
-  grid-template-columns: 296px minmax(0, 1fr);
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
+  grid-template-columns: var(--home-sidebar-width) minmax(0, 1fr);
   gap: 0;
   align-items: start;
   width: 100%;
@@ -35,16 +40,20 @@ body[data-page="home"] {
 }
 
 .home-sidebar {
-  position: sticky;
+  position: fixed;
   top: var(--header-height);
+  left: 0;
   display: flex;
   flex-direction: column;
+  width: var(--home-sidebar-width);
   height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.8));
   box-shadow: none;
   overflow: visible;
+  z-index: 80;
   transition: width 180ms ease, border-color 180ms ease, padding 180ms ease;
 }
 
@@ -171,6 +180,10 @@ body[data-page="home"] {
 }
 
 .app-shell-toggle {
+  position: fixed;
+  top: calc(var(--header-height) + 18px);
+  left: 0;
+  z-index: 90;
   transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
 
@@ -180,9 +193,6 @@ body:not(.is-home-sidebar-collapsed) .app-shell-toggle {
 }
 
 body.is-home-sidebar-collapsed .app-shell-toggle {
-  position: fixed;
-  top: calc(var(--header-height) + 18px);
-  left: 0;
   width: 30px;
   height: 72px;
   padding: 0;
@@ -193,7 +203,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle {
   transform: translateX(-12px);
   opacity: 0;
   pointer-events: none;
-  z-index: 40;
+  z-index: 90;
 }
 
 body.is-home-sidebar-collapsed .app-shell-toggle span {
@@ -395,6 +405,8 @@ body.is-home-sidebar-collapsed.is-home-sidebar-edge-peek .app-shell-toggle, body
   .home-sidebar {
     position: static;
     top: auto;
+    left: auto;
+    width: auto;
     height: auto;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
