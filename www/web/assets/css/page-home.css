@@ -1,8 +1,14 @@
 body[data-page="home"] {
+  --header-height: 64px;
   --home-sidebar-width: 296px;
+  --home-content-inline-start: 20px;
+  --home-content-inline-end: 12px;
+  --home-sidebar-content-gap: 20px;
 }
 
 .home-page {
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
   padding: 0 0 20px;
 }
 
@@ -17,21 +23,20 @@ body[data-page="home"] {
 }
 
 .home-shell-layout {
-  display: grid;
-  grid-template-columns: var(--home-sidebar-width) minmax(0, 1fr);
-  gap: 0;
-  align-items: start;
+  position: relative;
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
   width: 100%;
-  transition: grid-template-columns 180ms ease;
-}
-
-.home-shell-layout.is-sidebar-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .home-shell-layout__content {
   min-width: 0;
-  padding: 14px 12px 0 20px;
+  padding: 8px var(--home-content-inline-end) 0 calc(var(--home-sidebar-width) + var(--home-sidebar-content-gap));
+  transition: padding-left 180ms ease;
+}
+
+.home-shell-layout.is-sidebar-collapsed .home-shell-layout__content {
+  padding-left: var(--home-content-inline-start);
 }
 
 .home-sidebar {
@@ -42,6 +47,7 @@ body[data-page="home"] {
   flex-direction: column;
   width: var(--home-sidebar-width);
   height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.8));
@@ -161,6 +167,7 @@ body[data-page="home"] {
   padding: 0;
   border-right-color: transparent;
   background: transparent;
+  overflow: hidden;
 }
 
 .home-sidebar.is-collapsed .home-sidebar__body,
@@ -188,6 +195,7 @@ body[data-page="home"] {
 body:not(.is-home-sidebar-collapsed) .app-shell-toggle {
   opacity: 0;
   pointer-events: none;
+  transform: translateX(-12px);
 }
 
 body.is-home-sidebar-collapsed .app-shell-toggle {
@@ -201,6 +209,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle {
   transform: translateX(-12px);
   opacity: 0;
   pointer-events: none;
+  z-index: 90;
 }
 
 body.is-home-sidebar-collapsed .app-shell-toggle span {
@@ -388,14 +397,11 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   }
 
   .home-shell-layout {
-    grid-template-columns: 1fr;
+    min-height: 0;
   }
 
-  .home-shell-layout.is-sidebar-collapsed {
-    grid-template-columns: 1fr;
-  }
-
-  .home-shell-layout__content {
+  .home-shell-layout__content,
+  .home-shell-layout.is-sidebar-collapsed .home-shell-layout__content {
     padding: 12px 0 0;
   }
 
