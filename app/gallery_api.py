@@ -25,7 +25,7 @@ from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_s
 
 
 def clamp_per_page(n: int) -> int:
-    return n if n in (50, 100, 150, 200) else 100
+    return n if n in (30, 60, 90, 120) else 90
 
 
 def parse_csv_strs(s: str | None) -> list[str]:
@@ -55,7 +55,7 @@ def parse_csv_ints(s: str | None) -> list[int]:
 
 
 def clamp_per_page(n: int) -> int:
-    return n if n in (50, 100, 150, 200) else 100
+    return n if n in (30, 60, 90, 120) else 90
 
 
 def parse_csv_strs(s: str | None) -> list[str]:
@@ -357,7 +357,7 @@ def palette():
 @app.get("/api/images")
 def list_images(
     page: int = Query(1, ge=1),
-    per_page: int = Query(100, ge=1),
+    per_page: int = Query(90, ge=1),
     sort: str = Query("latest"),
     q: str | None = None,
     tags_any: str | None = None,

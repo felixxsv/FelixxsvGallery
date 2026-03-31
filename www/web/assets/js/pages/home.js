@@ -3,6 +3,7 @@ import { byId } from "../core/dom.js";
 const GRID_COLS_STORAGE_KEY = "gallery.home.gridCols";
 const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
+const DEFAULT_ROW_COUNT = 30;
 
 function textOrDash(value) {
   if (value === undefined || value === null || value === "") {
@@ -75,7 +76,7 @@ function extractListPayload(payload) {
     return {
       items: [],
       page: 1,
-      perPage: 24,
+      perPage: DEFAULT_ROW_COUNT * DEFAULT_GRID_COLS,
       total: 0,
       hasNext: false,
     };
@@ -83,7 +84,7 @@ function extractListPayload(payload) {
 
   const items = root.items || root.images || root.records || root.results || [];
   const page = Number(root.page || root.current_page || 1);
-  const perPage = Number(root.per_page || root.perPage || items.length || 24);
+  const perPage = Number(root.per_page || root.perPage || items.length || DEFAULT_ROW_COUNT * DEFAULT_GRID_COLS);
   const total = Number(root.total || root.total_count || items.length || 0);
   const hasNext = root.has_next ?? (page * perPage < total);
 
@@ -138,6 +139,21 @@ function writeStoredGridCols(value) {
   }
 }
 
+function readSelectedRowCount(select) {
+  const value = Number(select?.value || DEFAULT_ROW_COUNT);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : DEFAULT_ROW_COUNT;
+}
+
+function maxPageFor(total, perPage) {
+  if (!Number.isFinite(total) || total <= 0) {
+    return 1;
+  }
+  if (!Number.isFinite(perPage) || perPage <= 0) {
+    return 1;
+  }
+  return Math.max(1, Math.ceil(total / perPage));
+}
+
 export function initHomePage(app) {
   const refs = {
     searchInput: byId("homeSearchInput"),
@@ -160,7 +176,8 @@ export function initHomePage(app) {
 
   const state = {
     page: 1,
-    perPage: Number(refs.perPageSelect?.value || 24),
+    rowCount: readSelectedRowCount(refs.perPageSelect),
+    perPage: 0,
     sort: refs.sortSelect?.value || "latest",
     q: "",
     total: 0,
@@ -191,6 +208,10 @@ export function initHomePage(app) {
     return gridMedia.matches ? 1 : state.gridCols;
   }
 
+  function computePerPage() {
+    return state.rowCount * effectiveGridCols();
+  }
+
   function syncGridColumnsUi() {
     const cols = effectiveGridCols();
     refs.galleryGrid.dataset.gridCols = String(cols);
@@ -207,6 +228,20 @@ export function initHomePage(app) {
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", String(active));
     }
+  }
+
+  function applyLayoutPageSize({ preserveAnchor = false } = {}) {
+    const nextPerPage = computePerPage();
+    const previousPerPage = state.perPage > 0 ? state.perPage : nextPerPage;
+
+    if (state.perPage === nextPerPage) {
+      return false;
+    }
+
+    const anchorIndex = preserveAnchor ? Math.max(0, (state.page - 1) * previousPerPage) : 0;
+    state.perPage = nextPerPage;
+    state.page = Math.min(maxPageFor(state.total, nextPerPage), Math.floor(anchorIndex / nextPerPage) + 1);
+    return true;
   }
 
   function updateStatus() {
@@ -284,7 +319,7 @@ export function initHomePage(app) {
     });
   }
 
-  async function load() {
+  async function load({ retryIfPageOverflow = true } = {}) {
     setLoading(true);
     setError("");
     setEmpty(false);
@@ -292,7 +327,7 @@ export function initHomePage(app) {
     try {
       const query = new URLSearchParams({
         page: String(state.page),
-        per_page: String(state.perPage),
+        per_page: String(state.perPage || computePerPage()),
         sort: state.sort,
       });
 
@@ -302,9 +337,24 @@ export function initHomePage(app) {
 
       const payload = await app.api.get(`/api/images?${query.toString()}`);
       const list = extractListPayload(payload);
+      const actualPerPage = Number(list.perPage || state.perPage || computePerPage());
+      const actualTotal = Number(list.total || 0);
+      const actualPage = Number(list.page || state.page || 1);
+
+      if (!list.items.length && actualTotal > 0 && actualPage > 1 && retryIfPageOverflow) {
+        state.perPage = actualPerPage;
+        state.total = actualTotal;
+        state.page = maxPageFor(actualTotal, actualPerPage);
+        await load({ retryIfPageOverflow: false });
+        return;
+      }
+
+      state.page = actualPage;
+      state.perPage = actualPerPage;
       state.items = list.items;
-      state.total = Number(list.total || 0);
-      state.hasNext = Boolean(list.hasNext);
+      state.total = actualTotal;
+      state.hasNext = Boolean(list.hasNext ?? (state.page * state.perPage < state.total));
+
       renderItems(list.items);
       syncGridColumnsUi();
       updateStatus();
@@ -342,10 +392,12 @@ export function initHomePage(app) {
     const button = event.target.closest("[data-grid-cols]");
     if (!button) return;
     const cols = Number(button.dataset.gridCols || 0);
-    if (![1, 2, 3, 4].includes(cols)) return;
+    if (![1, 2, 3, 4].includes(cols) || state.gridCols === cols) return;
     state.gridCols = cols;
     writeStoredGridCols(cols);
+    applyLayoutPageSize({ preserveAnchor: true });
     syncGridColumnsUi();
+    load();
   });
 
   refs.searchInput?.addEventListener("input", scheduleSearch);
@@ -356,7 +408,8 @@ export function initHomePage(app) {
   });
   refs.perPageSelect?.addEventListener("change", () => {
     state.page = 1;
-    state.perPage = Number(refs.perPageSelect.value || 24);
+    state.rowCount = readSelectedRowCount(refs.perPageSelect);
+    applyLayoutPageSize();
     load();
   });
   refs.reloadButton?.addEventListener("click", () => {
@@ -378,9 +431,12 @@ export function initHomePage(app) {
   });
 
   gridMedia.addEventListener?.("change", () => {
+    applyLayoutPageSize({ preserveAnchor: true });
     syncGridColumnsUi();
+    load();
   });
 
+  applyLayoutPageSize();
   syncGridColumnsUi();
   load();
 }
