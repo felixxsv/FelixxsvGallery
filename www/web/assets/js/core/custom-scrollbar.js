@@ -102,7 +102,9 @@ function createController(target, options = {}) {
   }
 
   function updateNow() {
-    if (destroyed) return;
+    if (destroyed) {
+      return;
+    }
 
     const metrics = getMetrics();
     state.viewportSize = metrics.viewportSize;
@@ -133,7 +135,10 @@ function createController(target, options = {}) {
   }
 
   function scheduleUpdate() {
-    if (rafId) return;
+    if (rafId) {
+      return;
+    }
+
     rafId = window.requestAnimationFrame(() => {
       rafId = 0;
       updateNow();
@@ -142,16 +147,19 @@ function createController(target, options = {}) {
 
   function setScrollTop(nextValue) {
     const value = clamp(nextValue, 0, state.maxScroll);
+
     if (kind === "window") {
       window.scrollTo({ top: value, behavior: "auto" });
       return;
     }
+
     target.scrollTop = value;
   }
 
   function handleTrackPointerDown(event) {
-    if (event.target === thumb) return;
-    if (state.maxScroll <= 0) return;
+    if (event.target === thumb || state.maxScroll <= 0) {
+      return;
+    }
 
     event.preventDefault();
 
@@ -164,7 +172,9 @@ function createController(target, options = {}) {
   }
 
   function handleThumbPointerDown(event) {
-    if (state.maxScroll <= 0) return;
+    if (state.maxScroll <= 0) {
+      return;
+    }
 
     event.preventDefault();
 
@@ -173,13 +183,16 @@ function createController(target, options = {}) {
     state.dragStartScrollTop = kind === "window" ? getWindowScroller().scrollTop : target.scrollTop;
 
     document.body.classList.add("is-custom-scrollbar-dragging");
+
     if (thumb.setPointerCapture) {
       thumb.setPointerCapture(event.pointerId);
     }
   }
 
   function handlePointerMove(event) {
-    if (state.dragPointerId !== event.pointerId || state.maxThumbOffset <= 0) return;
+    if (state.dragPointerId !== event.pointerId || state.maxThumbOffset <= 0) {
+      return;
+    }
 
     const delta = event.clientY - state.dragStartClientY;
     const ratio = state.maxScroll / state.maxThumbOffset;
@@ -189,8 +202,13 @@ function createController(target, options = {}) {
   }
 
   function finishDrag(event) {
-    if (state.dragPointerId === null) return;
-    if (event && event.pointerId !== state.dragPointerId) return;
+    if (state.dragPointerId === null) {
+      return;
+    }
+
+    if (event && event.pointerId !== state.dragPointerId) {
+      return;
+    }
 
     state.dragPointerId = null;
     document.body.classList.remove("is-custom-scrollbar-dragging");
@@ -214,9 +232,13 @@ function createController(target, options = {}) {
     window.addEventListener("pointercancel", finishDrag);
 
     if (typeof ResizeObserver === "function") {
-      resizeObserver = new ResizeObserver(() => scheduleUpdate());
+      resizeObserver = new ResizeObserver(() => {
+        scheduleUpdate();
+      });
+
       if (kind === "window") {
         resizeObserver.observe(document.documentElement);
+
         if (document.body) {
           resizeObserver.observe(document.body);
         }
@@ -226,8 +248,12 @@ function createController(target, options = {}) {
     }
 
     if (typeof MutationObserver === "function") {
-      mutationObserver = new MutationObserver(() => scheduleUpdate());
+      mutationObserver = new MutationObserver(() => {
+        scheduleUpdate();
+      });
+
       const observeTarget = kind === "window" ? document.body : target;
+
       if (observeTarget) {
         mutationObserver.observe(observeTarget, {
           childList: true,
@@ -268,6 +294,7 @@ function createController(target, options = {}) {
     if (resizeObserver) {
       resizeObserver.disconnect();
     }
+
     if (mutationObserver) {
       mutationObserver.disconnect();
     }
@@ -292,7 +319,9 @@ function createManager() {
   }
 
   function register(target, options = {}) {
-    if (!target && options.kind !== "window") return null;
+    if (!target && options.kind !== "window") {
+      return null;
+    }
 
     const kind = options.kind || "element";
     const key = getKey(target, kind);
@@ -313,20 +342,28 @@ function createManager() {
     const key = getKey(target, kind);
     const controller = controllers.get(key);
 
-    if (!controller) return;
+    if (!controller) {
+      return;
+    }
+
     controller.destroy();
     controllers.delete(key);
   }
 
   function updateAll() {
-    controllers.forEach((controller) => controller.update());
+    controllers.forEach((controller) => {
+      controller.update();
+    });
   }
 
   function ensure(targets = [], options = {}) {
     const items = Array.isArray(targets) ? targets : [targets];
 
     items.forEach((item) => {
-      if (!item && options.kind !== "window") return;
+      if (!item && options.kind !== "window") {
+        return;
+      }
+
       register(item, options);
     });
 
@@ -345,7 +382,28 @@ function getManager() {
   if (!window[GLOBAL_MANAGER_KEY]) {
     window[GLOBAL_MANAGER_KEY] = createManager();
   }
+
   return window[GLOBAL_MANAGER_KEY];
+}
+
+function uniqueElements(items) {
+  const result = [];
+  const seen = new Set();
+
+  items.forEach((item) => {
+    if (!item || seen.has(item)) {
+      return;
+    }
+
+    seen.add(item);
+    result.push(item);
+  });
+
+  return result;
+}
+
+function resolveElementsFromSelectors(selectors = []) {
+  return selectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
 }
 
 function normalizeEnsureArg(targetOrOptions, maybeOptions) {
@@ -356,10 +414,28 @@ function normalizeEnsureArg(targetOrOptions, maybeOptions) {
     !("nodeType" in targetOrOptions) &&
     !("kind" in (maybeOptions || {}))
   ) {
+    const selectors = Array.isArray(targetOrOptions.selectors) ? targetOrOptions.selectors : [];
+    const directTargets = [];
+
+    if (targetOrOptions.element) {
+      directTargets.push(targetOrOptions.element);
+    }
+
+    if (Array.isArray(targetOrOptions.elements)) {
+      directTargets.push(...targetOrOptions.elements);
+    }
+
+    if (Array.isArray(targetOrOptions.targets)) {
+      directTargets.push(...targetOrOptions.targets);
+    }
+
     return {
-      targets: targetOrOptions.targets || targetOrOptions.elements || targetOrOptions.element || [],
+      includeWindow: Boolean(targetOrOptions.includeWindow),
+      targets: uniqueElements([
+        ...directTargets,
+        ...resolveElementsFromSelectors(selectors)
+      ]),
       options: {
-        kind: targetOrOptions.kind,
         minThumbSize: targetOrOptions.minThumbSize,
         trackPadding: targetOrOptions.trackPadding,
         trackWidth: targetOrOptions.trackWidth,
@@ -369,6 +445,7 @@ function normalizeEnsureArg(targetOrOptions, maybeOptions) {
   }
 
   return {
+    includeWindow: false,
     targets: targetOrOptions,
     options: maybeOptions || {}
   };
@@ -392,7 +469,20 @@ export function updateCustomScrollbars() {
 
 export function ensureCustomScrollbars(targetOrOptions, maybeOptions) {
   const normalized = normalizeEnsureArg(targetOrOptions, maybeOptions);
-  return getManager().ensure(normalized.targets, normalized.options);
+
+  if (normalized.includeWindow) {
+    getManager().register(null, {
+      ...normalized.options,
+      kind: "window"
+    });
+  }
+
+  getManager().ensure(normalized.targets, {
+    ...normalized.options,
+    kind: normalized.options.kind || "element"
+  });
+
+  return getManager();
 }
 
 export default {
