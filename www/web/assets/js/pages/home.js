@@ -505,7 +505,8 @@ export function initHomePage(app) {
       button.hidden = false;
     });
 
-    clearSingleSelect(refs.shortcutList, "[data-ui-shortcut]");
+    const shortcutDefault = refs.shortcutList?.querySelector("[data-default]") || null;
+    activateSingleSelectButton(refs.shortcutList, shortcutDefault, "[data-ui-shortcut]");
     refs.tagSearchInput.value = "";
     setDateInputs("shot", "", "");
     setDateInputs("posted", "", "");
@@ -844,11 +845,7 @@ export function initHomePage(app) {
         return;
       }
 
-      if (alreadyActive) {
-        clearSingleSelect(refs.shortcutList, "[data-ui-shortcut]");
-      } else {
-        activateSingleSelectButton(refs.shortcutList, button, "[data-ui-shortcut]");
-      }
+      activateSingleSelectButton(refs.shortcutList, button, "[data-ui-shortcut]");
 
       if (shortcut === "random") {
         state.randomSeed = createRandomSeed();
