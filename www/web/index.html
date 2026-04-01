@@ -38,8 +38,9 @@
       </div>
 
       <div class="app-site-header__center app-site-header__center--search">
-        <label class="app-field app-site-header__search">
+        <label class="app-field app-site-header__search home-search-field">
           <span class="app-visually-hidden">検索</span>
+          <span class="home-search-field__icon" aria-hidden="true"></span>
           <input
             id="homeSearchInput"
             class="app-input"
@@ -82,6 +83,7 @@
         <h2 class="home-sidebar__section-title">ギャラリーショートカット</h2>
       </div>
       <div class="home-sidebar__shortcut-list" data-ui-shortcut-list id="homeShortcutList">
+        <button type="button" class="home-sidebar__shortcut is-active" data-ui-shortcut data-default aria-pressed="true">すべて</button>
         <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="current_month" aria-pressed="false">今月の投稿</button>
         <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="favorites" aria-pressed="false">お気に入り</button>
         <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="random" aria-pressed="false">ランダム</button>
@@ -102,8 +104,9 @@
             <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
           </div>
         </div>
-        <label class="app-field">
+        <label class="app-field home-search-field home-search-field--sidebar">
           <span class="app-visually-hidden">タグ検索</span>
+          <span class="home-search-field__icon" aria-hidden="true"></span>
           <input id="homeTagSearchInput" class="app-input" type="search" placeholder="タグを絞り込み" autocomplete="off">
         </label>
         <div id="homeTagChipList" class="home-filter-chip-list" data-ui-chip-list="tags"></div>
