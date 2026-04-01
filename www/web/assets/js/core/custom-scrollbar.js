@@ -3,6 +3,7 @@ const DEFAULT_MIN_THUMB_SIZE = 36;
 const DEFAULT_TRACK_PADDING = 8;
 const DEFAULT_TRACK_WIDTH = 6;
 const DEFAULT_EDGE_OFFSET = 4;
+const DEFAULT_HIDE_DELAY = 1000;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -33,6 +34,7 @@ function createController(target, options = {}) {
   const trackPadding = options.trackPadding || DEFAULT_TRACK_PADDING;
   const trackWidth = options.trackWidth || DEFAULT_TRACK_WIDTH;
   const edgeOffset = options.edgeOffset || DEFAULT_EDGE_OFFSET;
+  const hideDelay = options.hideDelay || DEFAULT_HIDE_DELAY;
 
   const state = {
     dragPointerId: null,
@@ -42,13 +44,50 @@ function createController(target, options = {}) {
     contentSize: 0,
     maxScroll: 0,
     thumbSize: 0,
-    maxThumbOffset: 0
+    maxThumbOffset: 0,
+    hideTimerId: 0,
+    isVisible: false
   };
 
   let resizeObserver = null;
   let mutationObserver = null;
   let rafId = 0;
   let destroyed = false;
+
+  function clearHideTimer() {
+    if (!state.hideTimerId) {
+      return;
+    }
+
+    window.clearTimeout(state.hideTimerId);
+    state.hideTimerId = 0;
+  }
+
+  function show() {
+    clearHideTimer();
+    state.isVisible = true;
+    track.classList.remove("is-hidden");
+  }
+
+  function hide() {
+    clearHideTimer();
+    state.isVisible = false;
+    track.classList.add("is-hidden");
+  }
+
+  function scheduleHide() {
+    clearHideTimer();
+
+    if (state.dragPointerId !== null) {
+      return;
+    }
+
+    state.hideTimerId = window.setTimeout(() => {
+      state.hideTimerId = 0;
+      state.isVisible = false;
+      track.classList.add("is-hidden");
+    }, hideDelay);
+  }
 
   function getMetrics() {
     if (kind === "window") {
@@ -97,10 +136,6 @@ function createController(target, options = {}) {
     };
   }
 
-  function hide() {
-    track.classList.add("is-hidden");
-  }
-
   function updateNow() {
     if (destroyed) {
       return;
@@ -131,7 +166,9 @@ function createController(target, options = {}) {
     thumb.style.height = `${Math.round(state.thumbSize)}px`;
     thumb.style.transform = `translateY(${Math.round(thumbOffset)}px)`;
 
-    track.classList.remove("is-hidden");
+    if (state.isVisible) {
+      track.classList.remove("is-hidden");
+    }
   }
 
   function scheduleUpdate() {
@@ -145,6 +182,12 @@ function createController(target, options = {}) {
     });
   }
 
+  function showForInteraction() {
+    show();
+    scheduleUpdate();
+    scheduleHide();
+  }
+
   function setScrollTop(nextValue) {
     const value = clamp(nextValue, 0, state.maxScroll);
 
@@ -156,12 +199,17 @@ function createController(target, options = {}) {
     target.scrollTop = value;
   }
 
+  function handleScroll() {
+    showForInteraction();
+  }
+
   function handleTrackPointerDown(event) {
     if (event.target === thumb || state.maxScroll <= 0) {
       return;
     }
 
     event.preventDefault();
+    show();
 
     const bounds = track.getBoundingClientRect();
     const offset = clamp(event.clientY - bounds.top - state.thumbSize / 2, 0, state.maxThumbOffset);
@@ -169,6 +217,7 @@ function createController(target, options = {}) {
 
     setScrollTop(ratio * state.maxScroll);
     scheduleUpdate();
+    scheduleHide();
   }
 
   function handleThumbPointerDown(event) {
@@ -177,6 +226,7 @@ function createController(target, options = {}) {
     }
 
     event.preventDefault();
+    show();
 
     state.dragPointerId = event.pointerId;
     state.dragStartClientY = event.clientY;
@@ -198,6 +248,7 @@ function createController(target, options = {}) {
     const ratio = state.maxScroll / state.maxThumbOffset;
 
     setScrollTop(state.dragStartScrollTop + delta * ratio);
+    show();
     scheduleUpdate();
   }
 
@@ -212,15 +263,16 @@ function createController(target, options = {}) {
 
     state.dragPointerId = null;
     document.body.classList.remove("is-custom-scrollbar-dragging");
+    scheduleHide();
   }
 
   function attach() {
     if (kind === "window") {
       document.documentElement.classList.add("app-custom-scrollbar-window");
-      window.addEventListener("scroll", scheduleUpdate, { passive: true });
+      window.addEventListener("scroll", handleScroll, { passive: true });
     } else {
       target.classList.add("app-custom-scrollbar-target");
-      target.addEventListener("scroll", scheduleUpdate, { passive: true });
+      target.addEventListener("scroll", handleScroll, { passive: true });
     }
 
     window.addEventListener("resize", scheduleUpdate, { passive: true });
@@ -264,7 +316,7 @@ function createController(target, options = {}) {
       }
     }
 
-    scheduleUpdate();
+    updateNow();
   }
 
   function destroy() {
@@ -275,12 +327,14 @@ function createController(target, options = {}) {
       rafId = 0;
     }
 
+    clearHideTimer();
+
     if (kind === "window") {
       document.documentElement.classList.remove("app-custom-scrollbar-window");
-      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("scroll", handleScroll);
     } else if (target) {
       target.classList.remove("app-custom-scrollbar-target");
-      target.removeEventListener("scroll", scheduleUpdate);
+      target.removeEventListener("scroll", handleScroll);
     }
 
     window.removeEventListener("resize", scheduleUpdate);
@@ -439,7 +493,8 @@ function normalizeEnsureArg(targetOrOptions, maybeOptions) {
         minThumbSize: targetOrOptions.minThumbSize,
         trackPadding: targetOrOptions.trackPadding,
         trackWidth: targetOrOptions.trackWidth,
-        edgeOffset: targetOrOptions.edgeOffset
+        edgeOffset: targetOrOptions.edgeOffset,
+        hideDelay: targetOrOptions.hideDelay
       }
     };
   }
