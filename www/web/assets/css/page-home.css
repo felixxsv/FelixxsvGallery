@@ -277,10 +277,33 @@ body[data-page="home"] {
   pointer-events: none;
 }
 
+.home-search-field__icon::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+
+.home-search-field__icon::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  width: 7px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: rotate(45deg);
+  transform-origin: center;
+}
+
 .home-search-field__icon svg {
-  display: block;
-  width: 16px;
-  height: 16px;
+  display: none;
 }
 
 .home-search-field .app-input {
@@ -320,9 +343,21 @@ body[data-page="home"] {
   height: 14px;
 }
 
+.home-search-field--sidebar .home-search-field__icon::before {
+  top: 1px;
+  left: 1px;
+  width: 9px;
+  height: 9px;
+}
+
+.home-search-field--sidebar .home-search-field__icon::after {
+  right: 0;
+  bottom: 1px;
+  width: 6px;
+}
+
 .home-search-field--sidebar .home-search-field__icon svg {
-  width: 14px;
-  height: 14px;
+  display: none;
 }
 
 .home-filter-chip-list {
