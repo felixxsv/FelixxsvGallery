@@ -139,10 +139,6 @@ function writeStoredGridCols(value) {
   }
 }
 
-function readSelectedRowCount(select) {
-  const value = Number(select?.value || DEFAULT_ROW_COUNT);
-  return Number.isFinite(value) && value > 0 ? Math.floor(value) : DEFAULT_ROW_COUNT;
-}
 
 function maxPageFor(total, perPage) {
   if (!Number.isFinite(total) || total <= 0) {
@@ -158,8 +154,6 @@ export function initHomePage(app) {
   const refs = {
     searchInput: byId("homeSearchInput"),
     sortSelect: byId("homeSortSelect"),
-    perPageSelect: byId("homePerPageSelect"),
-    reloadButton: byId("homeReloadButton"),
     statusText: byId("homeStatusText"),
     loadingState: byId("homeLoadingState"),
     errorState: byId("homeErrorState"),
@@ -170,13 +164,15 @@ export function initHomePage(app) {
     nextPageButton: byId("homeNextPageButton"),
     cardTemplate: byId("homeImageCardTemplate"),
     gridControls: byId("homeGridColumnsControls"),
+    clearFiltersButton: byId("homeClearFiltersButton"),
+    tagSearchInput: byId("homeTagSearchInput"),
   };
 
   const gridMedia = window.matchMedia(MOBILE_GRID_MEDIA);
 
   const state = {
     page: 1,
-    rowCount: readSelectedRowCount(refs.perPageSelect),
+    rowCount: DEFAULT_ROW_COUNT,
     perPage: 0,
     sort: refs.sortSelect?.value || "latest",
     q: "",
@@ -242,6 +238,92 @@ export function initHomePage(app) {
     state.perPage = nextPerPage;
     state.page = Math.min(maxPageFor(state.total, nextPerPage), Math.floor(anchorIndex / nextPerPage) + 1);
     return true;
+  }
+
+
+  function activateSingleSelectButton(container, button) {
+    if (!container || !button) {
+      return;
+    }
+    const buttons = container.querySelectorAll("[data-ui-segment-button], [data-ui-option], [data-ui-shortcut]");
+    for (const item of buttons) {
+      const active = item === button;
+      item.classList.toggle("is-active", active);
+      item.setAttribute("aria-pressed", String(active));
+    }
+  }
+
+  function resetUiOnlyFilters() {
+    document.querySelectorAll("[data-ui-segment], [data-ui-option-group], [data-ui-shortcut-list]").forEach((container) => {
+      const defaultButton = container.querySelector("[data-default]") || container.querySelector("[data-ui-segment-button], [data-ui-option], [data-ui-shortcut]");
+      activateSingleSelectButton(container, defaultButton);
+    });
+
+    document.querySelectorAll("[data-ui-chip], [data-ui-color]").forEach((button) => {
+      button.classList.remove("is-active");
+      button.setAttribute("aria-pressed", "false");
+      button.hidden = false;
+    });
+
+    if (refs.tagSearchInput) {
+      refs.tagSearchInput.value = "";
+    }
+
+    [byId("homeShotDateFrom"), byId("homeShotDateTo"), byId("homePostedDateFrom"), byId("homePostedDateTo")].forEach((input) => {
+      if (input) {
+        input.value = "";
+      }
+    });
+  }
+
+  function initSidebarDraftUi() {
+    document.querySelectorAll("[data-ui-segment], [data-ui-option-group], [data-ui-shortcut-list]").forEach((container) => {
+      container.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-ui-segment-button], [data-ui-option], [data-ui-shortcut]");
+        if (!button || !container.contains(button)) {
+          return;
+        }
+        activateSingleSelectButton(container, button);
+      });
+    });
+
+    document.querySelectorAll("[data-ui-chip-list]").forEach((container) => {
+      container.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-ui-chip]");
+        if (!button || !container.contains(button)) {
+          return;
+        }
+        const next = button.getAttribute("aria-pressed") !== "true";
+        button.classList.toggle("is-active", next);
+        button.setAttribute("aria-pressed", String(next));
+      });
+    });
+
+    document.querySelectorAll("[data-ui-color-list]").forEach((container) => {
+      container.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-ui-color]");
+        if (!button || !container.contains(button)) {
+          return;
+        }
+        const next = button.getAttribute("aria-pressed") !== "true";
+        button.classList.toggle("is-active", next);
+        button.setAttribute("aria-pressed", String(next));
+      });
+    });
+
+    refs.tagSearchInput?.addEventListener("input", () => {
+      const needle = refs.tagSearchInput.value.trim().toLowerCase();
+      document.querySelectorAll("[data-ui-chip-list='tags'] [data-ui-chip]").forEach((button) => {
+        const visible = !needle || button.textContent.toLowerCase().includes(needle);
+        button.hidden = !visible;
+      });
+    });
+
+    refs.clearFiltersButton?.addEventListener("click", () => {
+      resetUiOnlyFilters();
+    });
+
+    resetUiOnlyFilters();
   }
 
   function updateStatus() {
@@ -406,15 +488,6 @@ export function initHomePage(app) {
     state.sort = refs.sortSelect.value;
     load();
   });
-  refs.perPageSelect?.addEventListener("change", () => {
-    state.page = 1;
-    state.rowCount = readSelectedRowCount(refs.perPageSelect);
-    applyLayoutPageSize();
-    load();
-  });
-  refs.reloadButton?.addEventListener("click", () => {
-    load();
-  });
   refs.prevPageButton?.addEventListener("click", () => {
     if (state.page <= 1) {
       return;
@@ -436,6 +509,7 @@ export function initHomePage(app) {
     load();
   });
 
+  initSidebarDraftUi();
   applyLayoutPageSize();
   syncGridColumnsUi();
   load();
