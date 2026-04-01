@@ -1,4 +1,5 @@
 import { qsa } from "./dom.js";
+import { ensureCustomScrollbars } from "./custom-scrollbar.js";
 
 const DEFAULT_STORAGE_KEY = "gallery.admin.sidebar.collapsed";
 const ADMIN_SIDEBAR_ANIMATION_MS = 180;
@@ -17,6 +18,7 @@ export function initSidebar({ root, toggleButton, storageKey = DEFAULT_STORAGE_K
   }
 
   const shell = root.closest(".admin-shell");
+  ensureCustomScrollbars({ includeWindow: true, selectors: [".admin-sidebar__scroll", ".admin-main-scroll"] });
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let revealTimerId = null;
 

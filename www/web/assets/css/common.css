@@ -80,9 +80,6 @@ html {
   min-height: 100%;
   font-size: 16px;
   color-scheme: dark;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 :root[data-theme="light"] html {
@@ -100,38 +97,59 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
+html.app-custom-scrollbar-window,
+html.app-custom-scrollbar-window body,
+.app-custom-scrollbar-target {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: var(--scrollbar-thumb);
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-thumb:active {
-  background: var(--scrollbar-thumb-active);
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-button {
+html.app-custom-scrollbar-window::-webkit-scrollbar,
+html.app-custom-scrollbar-window body::-webkit-scrollbar,
+.app-custom-scrollbar-target::-webkit-scrollbar {
+  width: 0;
+  height: 0;
   display: none;
 }
 
-*::-webkit-scrollbar-corner {
+body.is-custom-scrollbar-dragging {
+  user-select: none;
+  cursor: ns-resize;
+}
+
+.app-custom-scrollbar {
+  position: fixed;
+  z-index: 1400;
+  border-radius: 999px;
   background: transparent;
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.app-custom-scrollbar.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-custom-scrollbar__thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 36px;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 18px rgba(15, 23, 42, 0.24);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-custom-scrollbar:hover .app-custom-scrollbar__thumb,
+.app-custom-scrollbar__thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.app-custom-scrollbar__thumb:active {
+  background: var(--scrollbar-thumb-active);
 }
 
 img,

@@ -9,6 +9,7 @@ import { createI18n } from "./core/i18n.js";
 import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js";
 import { initHomePage } from "./pages/home.js";
+import { ensureCustomScrollbars } from "./core/custom-scrollbar.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
@@ -433,6 +434,7 @@ async function bootstrap() {
   window.App = app;
   app.theme.init();
   initUserShell(app);
+  ensureCustomScrollbars({ includeWindow: true, selectors: [".home-sidebar__body"] });
 
   try {
     const sessionState = await app.session.load();
