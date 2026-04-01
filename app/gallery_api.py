@@ -237,22 +237,54 @@ def build_color_filter_sql(colors_any: list[int], colors_all: list[int]) -> tupl
     return " AND " + " AND ".join(clauses), params
 
 
-def build_date_filter_sql(date_from: str | None, date_to: str | None) -> tuple[str, list]:
+def build_date_filter_sql(column_sql: str, date_from: str | None, date_to: str | None) -> tuple[str, list]:
     clauses: list[str] = []
     params: list = []
 
     if date_from:
-        clauses.append("i.shot_at >= %s")
+        clauses.append(f"{column_sql} >= %s")
         params.append(f"{date_from} 00:00:00")
 
     if date_to:
-        clauses.append("i.shot_at < DATE_ADD(%s, INTERVAL 1 DAY)")
+        clauses.append(f"{column_sql} < DATE_ADD(%s, INTERVAL 1 DAY)")
         params.append(date_to)
 
     if not clauses:
         return "", []
 
     return " AND " + " AND ".join(clauses), params
+
+
+def build_gallery_date_filters(
+    shot_date_from: str | None,
+    shot_date_to: str | None,
+    posted_date_from: str | None,
+    posted_date_to: str | None,
+) -> tuple[str, list]:
+    shot_sql, shot_params = build_date_filter_sql("i.shot_at", shot_date_from, shot_date_to)
+    posted_sql, posted_params = build_date_filter_sql("i.created_at", posted_date_from, posted_date_to)
+    return f"{shot_sql}{posted_sql}", [*shot_params, *posted_params]
+
+
+def month_start_and_next(now_local: datetime) -> tuple[str, str]:
+    month_start = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start.month == 12:
+        next_month = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month = month_start.replace(month=month_start.month + 1)
+    return month_start.strftime("%Y-%m-%d %H:%M:%S"), next_month.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def build_shortcut_filter_sql(shortcut: str | None, now_local: datetime) -> tuple[str, list]:
+    key = str(shortcut or "").strip().lower()
+    if key in ("", "latest", "favorites"):
+        return "", []
+
+    if key in ("current_month", "this_month"):
+        start_at, next_at = month_start_and_next(now_local)
+        return " AND i.created_at >= %s AND i.created_at < %s", [start_at, next_at]
+
+    return "", []
 
 
 def _table_cols(conn: pymysql.Connection, table: str) -> set[str]:
@@ -364,8 +396,12 @@ def list_images(
     tags_all: str | None = None,
     colors_any: str | None = None,
     colors_all: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
+    shot_date_from: str | None = None,
+    shot_date_to: str | None = None,
+    posted_date_from: str | None = None,
+    posted_date_to: str | None = None,
+    shortcut: str | None = None,
+    random_seed: str | None = None,
 ):
     per_page = clamp_per_page(per_page)
     offset = (page - 1) * per_page
@@ -377,19 +413,30 @@ def list_images(
 
     tag_sql, tag_params = build_tag_filter_sql(GALLERY, tags_any_list, tags_all_list)
     color_sql, color_params = build_color_filter_sql(colors_any_list, colors_all_list)
-    date_sql, date_params = build_date_filter_sql(date_from, date_to)
+    date_sql, date_params = build_gallery_date_filters(
+        shot_date_from,
+        shot_date_to,
+        posted_date_from,
+        posted_date_to,
+    )
     text_sql, text_params = build_text_search_sql(GALLERY, q)
+    shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF))
 
-    where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}"
-    where_extra_params = [*tag_params, *color_params, *date_params, *text_params]
+    where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}"
+    where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
 
     sort_key = (sort or "latest").lower()
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+    order_params: list = []
 
     if sort_key == "popular":
         order_sql = "ORDER BY COALESCE(st.view_count,0) DESC, i.shot_at DESC"
     elif sort_key == "oldest":
         order_sql = "ORDER BY i.shot_at ASC"
+    elif sort_key == "random":
+        seed = str(random_seed or "").strip() or _now_local_naive(CONF).strftime("%Y%m%d")
+        order_sql = "ORDER BY SHA2(CONCAT(%s, ':', i.id), 256)"
+        order_params.append(seed)
     else:
         order_sql = "ORDER BY i.shot_at DESC"
 
@@ -404,9 +451,10 @@ WHERE i.gallery=%s AND i.is_public=1
 
     sql_list = f"""
 SELECT
-  i.id, i.shot_at, i.title, i.alt, i.width, i.height, i.format,
+  i.id, i.shot_at, i.created_at, i.title, i.alt, i.width, i.height, i.format,
   i.thumb_path_480, i.thumb_path_960, i.preview_path,
-  COALESCE(st.view_count,0) AS view_count
+  COALESCE(st.view_count,0) AS view_count,
+  i.like_count
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
@@ -422,7 +470,7 @@ LIMIT %s OFFSET %s
             cur.execute(sql_count, [GALLERY, GALLERY, *where_extra_params])
             total = int(cur.fetchone()["COUNT(*)"])
 
-            cur.execute(sql_list, [GALLERY, GALLERY, *where_extra_params, per_page, offset])
+            cur.execute(sql_list, [GALLERY, GALLERY, *where_extra_params, *order_params, per_page, offset])
             items = cur.fetchall()
 
         pages = (total + per_page - 1) // per_page
@@ -493,6 +541,91 @@ ORDER BY rank_no ASC
             img["colors"] = cur.fetchall()
 
         return img
+    finally:
+        conn.close()
+
+
+
+
+@app.get("/api/image-archives")
+def list_image_archives(
+    kind: str = Query("shot"),
+    q: str | None = None,
+    tags_any: str | None = None,
+    tags_all: str | None = None,
+    colors_any: str | None = None,
+    colors_all: str | None = None,
+    shot_date_from: str | None = None,
+    shot_date_to: str | None = None,
+    posted_date_from: str | None = None,
+    posted_date_to: str | None = None,
+    shortcut: str | None = None,
+):
+    archive_kind = str(kind or "shot").strip().lower()
+    if archive_kind not in ("shot", "posted"):
+        raise HTTPException(status_code=400, detail="invalid kind")
+
+    tags_any_list = parse_csv_strs(tags_any)
+    tags_all_list = parse_csv_strs(tags_all)
+    colors_any_list = parse_csv_ints(colors_any)
+    colors_all_list = parse_csv_ints(colors_all)
+
+    tag_sql, tag_params = build_tag_filter_sql(GALLERY, tags_any_list, tags_all_list)
+    color_sql, color_params = build_color_filter_sql(colors_any_list, colors_all_list)
+    text_sql, text_params = build_text_search_sql(GALLERY, q)
+    shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF))
+
+    shot_from = shot_date_from if archive_kind != "shot" else None
+    shot_to = shot_date_to if archive_kind != "shot" else None
+    posted_from = posted_date_from if archive_kind != "posted" else None
+    posted_to = posted_date_to if archive_kind != "posted" else None
+    date_sql, date_params = build_gallery_date_filters(shot_from, shot_to, posted_from, posted_to)
+
+    where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}"
+    where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
+
+    target_column = "i.created_at" if archive_kind == "posted" else "i.shot_at"
+
+    sql = f"""
+SELECT
+  YEAR({target_column}) AS y,
+  MONTH({target_column}) AS m,
+  COUNT(*) AS c
+FROM images i
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+WHERE i.gallery=%s AND i.is_public=1 AND {target_column} IS NOT NULL
+{where_extra_sql}
+GROUP BY YEAR({target_column}), MONTH({target_column})
+ORDER BY YEAR({target_column}) DESC, MONTH({target_column}) DESC
+"""
+
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql, [GALLERY, GALLERY, *where_extra_params])
+            rows = cur.fetchall()
+
+        grouped: list[dict] = []
+        current_year = None
+        current_months: list[dict] = []
+
+        for row in rows:
+            year = int(row["y"])
+            month = int(row["m"])
+            count = int(row["c"])
+
+            if current_year != year:
+                if current_year is not None:
+                    grouped.append({"year": current_year, "months": current_months})
+                current_year = year
+                current_months = []
+
+            current_months.append({"month": month, "count": count})
+
+        if current_year is not None:
+            grouped.append({"year": current_year, "months": current_months})
+
+        return {"kind": archive_kind, "items": grouped}
     finally:
         conn.close()
 

@@ -38,13 +38,8 @@
       </div>
 
       <div class="app-site-header__center app-site-header__center--search">
-        <label class="app-field app-site-header__search home-search-field">
+        <label class="app-field app-site-header__search">
           <span class="app-visually-hidden">検索</span>
-          <span class="home-search-field__icon" aria-hidden="true">
-            <svg viewBox="0 0 20 20" focusable="false" aria-hidden="true">
-              <path d="M8.75 3.5a5.25 5.25 0 1 0 0 10.5a5.25 5.25 0 0 0 0-10.5Zm0-1.5a6.75 6.75 0 1 1 4.244 12l3.503 3.503a.75.75 0 1 1-1.06 1.06l-3.503-3.503A6.75 6.75 0 0 1 8.75 2Z" fill="currentColor"/>
-            </svg>
-          </span>
           <input
             id="homeSearchInput"
             class="app-input"
@@ -86,10 +81,10 @@
       <div class="home-sidebar__section-heading">
         <h2 class="home-sidebar__section-title">ギャラリーショートカット</h2>
       </div>
-      <div class="home-sidebar__shortcut-list" data-ui-shortcut-list>
-        <button type="button" class="home-sidebar__shortcut is-active" data-ui-shortcut aria-pressed="true">今月の投稿</button>
-        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut aria-pressed="false">お気に入り</button>
-        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut aria-pressed="false">ランダム</button>
+      <div class="home-sidebar__shortcut-list" data-ui-shortcut-list id="homeShortcutList">
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="current_month" aria-pressed="false">今月の投稿</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="favorites" aria-pressed="false">お気に入り</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="random" aria-pressed="false">ランダム</button>
       </div>
     </section>
 
@@ -102,58 +97,39 @@
       <div class="home-filter-block">
         <div class="home-filter-block__header">
           <h3 class="home-filter-block__title">タグ</h3>
-          <div class="home-segmented" data-ui-segment>
-            <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default aria-pressed="true">OR</button>
-            <button type="button" class="home-segmented__button" data-ui-segment-button aria-pressed="false">AND</button>
+          <div class="home-segmented" data-ui-segment data-filter-mode="tags">
+            <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-mode="or" aria-pressed="true">OR</button>
+            <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
           </div>
         </div>
-        <label class="app-field home-search-field home-search-field--sidebar">
+        <label class="app-field">
           <span class="app-visually-hidden">タグ検索</span>
-          <span class="home-search-field__icon" aria-hidden="true">
-            <svg viewBox="0 0 20 20" focusable="false" aria-hidden="true">
-              <path d="M8.75 3.5a5.25 5.25 0 1 0 0 10.5a5.25 5.25 0 0 0 0-10.5Zm0-1.5a6.75 6.75 0 1 1 4.244 12l3.503 3.503a.75.75 0 1 1-1.06 1.06l-3.503-3.503A6.75 6.75 0 0 1 8.75 2Z" fill="currentColor"/>
-            </svg>
-          </span>
           <input id="homeTagSearchInput" class="app-input" type="search" placeholder="タグを絞り込み" autocomplete="off">
         </label>
-        <div class="home-filter-chip-list" data-ui-chip-list="tags">
-          <button type="button" class="home-filter-chip" data-ui-chip aria-pressed="false">portrait</button>
-          <button type="button" class="home-filter-chip" data-ui-chip aria-pressed="false">night</button>
-          <button type="button" class="home-filter-chip" data-ui-chip aria-pressed="false">street</button>
-          <button type="button" class="home-filter-chip" data-ui-chip aria-pressed="false">travel</button>
-          <button type="button" class="home-filter-chip" data-ui-chip aria-pressed="false">landscape</button>
-          <button type="button" class="home-filter-chip" data-ui-chip aria-pressed="false">indoor</button>
-        </div>
+        <div id="homeTagChipList" class="home-filter-chip-list" data-ui-chip-list="tags"></div>
       </div>
 
       <div class="home-filter-block">
         <div class="home-filter-block__header">
           <h3 class="home-filter-block__title">カラータグ</h3>
-          <div class="home-segmented" data-ui-segment>
-            <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default aria-pressed="true">OR</button>
-            <button type="button" class="home-segmented__button" data-ui-segment-button aria-pressed="false">AND</button>
+          <div class="home-segmented" data-ui-segment data-filter-mode="colors">
+            <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-mode="or" aria-pressed="true">OR</button>
+            <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
           </div>
         </div>
-        <div class="home-filter-color-list" data-ui-color-list>
-          <button type="button" class="home-filter-color" data-ui-color aria-pressed="false" style="--filter-color:#60a5fa" aria-label="Blue"></button>
-          <button type="button" class="home-filter-color" data-ui-color aria-pressed="false" style="--filter-color:#f472b6" aria-label="Pink"></button>
-          <button type="button" class="home-filter-color" data-ui-color aria-pressed="false" style="--filter-color:#fbbf24" aria-label="Amber"></button>
-          <button type="button" class="home-filter-color" data-ui-color aria-pressed="false" style="--filter-color:#34d399" aria-label="Green"></button>
-          <button type="button" class="home-filter-color" data-ui-color aria-pressed="false" style="--filter-color:#f87171" aria-label="Red"></button>
-          <button type="button" class="home-filter-color" data-ui-color aria-pressed="false" style="--filter-color:#c084fc" aria-label="Purple"></button>
-        </div>
+        <div id="homeColorList" class="home-filter-color-list" data-ui-color-list></div>
       </div>
 
       <div class="home-filter-block">
         <div class="home-filter-block__header">
           <h3 class="home-filter-block__title">撮影日</h3>
-          <div class="home-filter-preset-list" data-ui-option-group>
-            <button type="button" class="home-filter-preset is-active" data-ui-option data-default aria-pressed="true">指定なし</button>
-            <button type="button" class="home-filter-preset" data-ui-option aria-pressed="false">今月</button>
-            <button type="button" class="home-filter-preset" data-ui-option aria-pressed="false">今年</button>
+          <div class="home-filter-preset-list" data-ui-option-group data-date-presets="shot">
+            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true">指定なし</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false">今月</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false">今年</button>
           </div>
         </div>
-        <div class="home-filter-date-grid">
+        <div class="home-filter-date-grid" data-date-grid="shot">
           <label class="app-field">
             <span class="app-visually-hidden">撮影日の開始日</span>
             <input id="homeShotDateFrom" class="app-input" type="date">
@@ -168,13 +144,13 @@
       <div class="home-filter-block">
         <div class="home-filter-block__header">
           <h3 class="home-filter-block__title">投稿日</h3>
-          <div class="home-filter-preset-list" data-ui-option-group>
-            <button type="button" class="home-filter-preset is-active" data-ui-option data-default aria-pressed="true">指定なし</button>
-            <button type="button" class="home-filter-preset" data-ui-option aria-pressed="false">今月</button>
-            <button type="button" class="home-filter-preset" data-ui-option aria-pressed="false">今年</button>
+          <div class="home-filter-preset-list" data-ui-option-group data-date-presets="posted">
+            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true">指定なし</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false">今月</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false">今年</button>
           </div>
         </div>
-        <div class="home-filter-date-grid">
+        <div class="home-filter-date-grid" data-date-grid="posted">
           <label class="app-field">
             <span class="app-visually-hidden">投稿日の開始日</span>
             <input id="homePostedDateFrom" class="app-input" type="date">
@@ -190,29 +166,13 @@
     <section class="home-sidebar__section">
       <div class="home-sidebar__section-heading">
         <h2 class="home-sidebar__section-title">日付アーカイブ</h2>
-        <div class="home-segmented" data-ui-segment>
-          <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default aria-pressed="true">撮影日</button>
-          <button type="button" class="home-segmented__button" data-ui-segment-button aria-pressed="false">投稿日</button>
+        <div class="home-segmented" data-ui-segment id="homeArchiveKindSegment">
+          <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-archive-kind="shot" aria-pressed="true">撮影日</button>
+          <button type="button" class="home-segmented__button" data-ui-segment-button data-archive-kind="posted" aria-pressed="false">投稿日</button>
         </div>
       </div>
 
-      <div class="home-archive-list">
-        <details class="home-archive-year" open>
-          <summary class="home-archive-year__summary">2026</summary>
-          <div class="home-archive-months" data-ui-option-group>
-            <button type="button" class="home-archive-month is-active" data-ui-option data-default aria-pressed="true">3</button>
-            <button type="button" class="home-archive-month" data-ui-option aria-pressed="false">2</button>
-            <button type="button" class="home-archive-month" data-ui-option aria-pressed="false">1</button>
-          </div>
-        </details>
-
-        <details class="home-archive-year">
-          <summary class="home-archive-year__summary">2025</summary>
-          <div class="home-archive-months" data-ui-option-group>
-            <button type="button" class="home-archive-month is-active" data-ui-option data-default aria-pressed="true">12</button>
-          </div>
-        </details>
-      </div>
+      <div id="homeArchiveList" class="home-archive-list"></div>
     </section>
   </div>
 </aside>
