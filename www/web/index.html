@@ -38,8 +38,13 @@
       </div>
 
       <div class="app-site-header__center app-site-header__center--search">
-        <label class="app-field app-site-header__search">
+        <label class="app-field app-site-header__search home-search-field">
           <span class="app-visually-hidden">検索</span>
+          <span class="home-search-field__icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" focusable="false" aria-hidden="true">
+              <path d="M8.75 3.5a5.25 5.25 0 1 0 0 10.5a5.25 5.25 0 0 0 0-10.5Zm0-1.5a6.75 6.75 0 1 1 4.244 12l3.503 3.503a.75.75 0 1 1-1.06 1.06l-3.503-3.503A6.75 6.75 0 0 1 8.75 2Z" fill="currentColor"/>
+            </svg>
+          </span>
           <input
             id="homeSearchInput"
             class="app-input"
@@ -102,8 +107,13 @@
             <button type="button" class="home-segmented__button" data-ui-segment-button aria-pressed="false">AND</button>
           </div>
         </div>
-        <label class="app-field">
+        <label class="app-field home-search-field home-search-field--sidebar">
           <span class="app-visually-hidden">タグ検索</span>
+          <span class="home-search-field__icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" focusable="false" aria-hidden="true">
+              <path d="M8.75 3.5a5.25 5.25 0 1 0 0 10.5a5.25 5.25 0 0 0 0-10.5Zm0-1.5a6.75 6.75 0 1 1 4.244 12l3.503 3.503a.75.75 0 1 1-1.06 1.06l-3.503-3.503A6.75 6.75 0 0 1 8.75 2Z" fill="currentColor"/>
+            </svg>
+          </span>
           <input id="homeTagSearchInput" class="app-input" type="search" placeholder="タグを絞り込み" autocomplete="off">
         </label>
         <div class="home-filter-chip-list" data-ui-chip-list="tags">
