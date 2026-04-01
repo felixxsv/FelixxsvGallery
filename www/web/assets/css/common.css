@@ -139,7 +139,7 @@ body.is-custom-scrollbar-dragging {
   min-height: 36px;
   border-radius: 999px;
   background: var(--scrollbar-thumb);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 18px rgba(15, 23, 42, 0.24);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 6px 14px rgba(15, 23, 42, 0.2);
   transition: background-color 160ms ease, box-shadow 160ms ease;
 }
 

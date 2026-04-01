@@ -1,7 +1,7 @@
 const GLOBAL_MANAGER_KEY = "__galleryCustomScrollbarManager__";
 const DEFAULT_MIN_THUMB_SIZE = 36;
 const DEFAULT_TRACK_PADDING = 8;
-const DEFAULT_TRACK_WIDTH = 12;
+const DEFAULT_TRACK_WIDTH = 6;
 const DEFAULT_EDGE_OFFSET = 4;
 
 function clamp(value, min, max) {
@@ -262,7 +262,6 @@ function createController(target, options = {}) {
 
     resizeObserver?.disconnect();
     mutationObserver?.disconnect();
-
     finishDrag();
     track.remove();
   }
@@ -270,103 +269,71 @@ function createController(target, options = {}) {
   attach();
 
   return {
-    scheduleUpdate,
+    update: scheduleUpdate,
     destroy
   };
 }
 
 function createManager() {
-  const selectors = new Set();
   const controllers = new Map();
-  let windowController = null;
-  let wantsWindow = false;
-  let mutationObserver = null;
-  let rafId = 0;
 
-  function scheduleScan() {
-    if (rafId) return;
-    rafId = window.requestAnimationFrame(() => {
-      rafId = 0;
-      scan();
-    });
+  function getKey(target, kind) {
+    return kind === "window" ? "__window__" : target;
   }
 
-  function ensureWindowController() {
-    if (!wantsWindow || windowController) {
-      return;
+  function register(target, options = {}) {
+    if (!target && options.kind !== "window") return null;
+    const kind = options.kind || "element";
+    const key = getKey(target, kind);
+    const existing = controllers.get(key);
+
+    if (existing) {
+      existing.update();
+      return existing;
     }
-    windowController = createController(window, { kind: "window" });
+
+    const controller = createController(target, options);
+    controllers.set(key, controller);
+    return controller;
   }
 
-  function scan() {
-    ensureWindowController();
+  function unregister(target, options = {}) {
+    const kind = options.kind || "element";
+    const key = getKey(target, kind);
+    const controller = controllers.get(key);
 
-    for (const selector of selectors) {
-      document.querySelectorAll(selector).forEach((element) => {
-        if (controllers.has(element)) {
-          controllers.get(element)?.scheduleUpdate();
-          return;
-        }
-        controllers.set(element, createController(element));
-      });
-    }
-
-    for (const [element, controller] of Array.from(controllers.entries())) {
-      if (!element.isConnected) {
-        controller.destroy();
-        controllers.delete(element);
-        continue;
-      }
-      controller.scheduleUpdate();
-    }
-
-    windowController?.scheduleUpdate();
+    if (!controller) return;
+    controller.destroy();
+    controllers.delete(key);
   }
 
-  function startObserver() {
-    if (mutationObserver || !document.body) {
-      return;
-    }
-
-    mutationObserver = new MutationObserver(() => {
-      scheduleScan();
-    });
-
-    mutationObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true
-    });
+  function updateAll() {
+    controllers.forEach((controller) => controller.update());
   }
 
   return {
-    register({ includeWindow = false, selectors: nextSelectors = [] } = {}) {
-      if (includeWindow) {
-        wantsWindow = true;
-      }
-
-      nextSelectors.forEach((selector) => {
-        if (selector) {
-          selectors.add(selector);
-        }
-      });
-
-      startObserver();
-      scheduleScan();
-
-      return {
-        refresh() {
-          scheduleScan();
-        }
-      };
-    }
+    register,
+    unregister,
+    updateAll
   };
 }
 
-export function ensureCustomScrollbars(options = {}) {
+export function getCustomScrollbarManager() {
   if (!window[GLOBAL_MANAGER_KEY]) {
     window[GLOBAL_MANAGER_KEY] = createManager();
   }
 
-  return window[GLOBAL_MANAGER_KEY].register(options);
+  return window[GLOBAL_MANAGER_KEY];
+}
+
+export function registerCustomScrollbar(target, options = {}) {
+  return getCustomScrollbarManager().register(target, options);
+}
+
+export function unregisterCustomScrollbar(target, options = {}) {
+  return getCustomScrollbarManager().unregister(target, options);
+}
+
+export function updateCustomScrollbars() {
+  getCustomScrollbarManager().updateAll();
 }
