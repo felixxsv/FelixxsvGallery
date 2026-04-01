@@ -57,7 +57,7 @@ function createController(target, options = {}) {
       const contentSize = Math.max(
         scroller.scrollHeight,
         document.documentElement.scrollHeight,
-        document.body?.scrollHeight || 0
+        document.body ? document.body.scrollHeight : 0
       );
       const scrollTop = scroller.scrollTop;
 
@@ -72,7 +72,7 @@ function createController(target, options = {}) {
       };
     }
 
-    if (!target.isConnected) {
+    if (!target || !target.isConnected) {
       return {
         visible: false,
         top: 0,
@@ -173,7 +173,9 @@ function createController(target, options = {}) {
     state.dragStartScrollTop = kind === "window" ? getWindowScroller().scrollTop : target.scrollTop;
 
     document.body.classList.add("is-custom-scrollbar-dragging");
-    thumb.setPointerCapture?.(event.pointerId);
+    if (thumb.setPointerCapture) {
+      thumb.setPointerCapture(event.pointerId);
+    }
   }
 
   function handlePointerMove(event) {
@@ -225,12 +227,15 @@ function createController(target, options = {}) {
 
     if (typeof MutationObserver === "function") {
       mutationObserver = new MutationObserver(() => scheduleUpdate());
-      mutationObserver.observe(kind === "window" ? document.body : target, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-        attributes: true
-      });
+      const observeTarget = kind === "window" ? document.body : target;
+      if (observeTarget) {
+        mutationObserver.observe(observeTarget, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true
+        });
+      }
     }
 
     scheduleUpdate();
@@ -247,7 +252,7 @@ function createController(target, options = {}) {
     if (kind === "window") {
       document.documentElement.classList.remove("app-custom-scrollbar-window");
       window.removeEventListener("scroll", scheduleUpdate);
-    } else {
+    } else if (target) {
       target.classList.remove("app-custom-scrollbar-target");
       target.removeEventListener("scroll", scheduleUpdate);
     }
@@ -260,8 +265,13 @@ function createController(target, options = {}) {
     window.removeEventListener("pointerup", finishDrag);
     window.removeEventListener("pointercancel", finishDrag);
 
-    resizeObserver?.disconnect();
-    mutationObserver?.disconnect();
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+    }
+
     finishDrag();
     track.remove();
   }
@@ -283,6 +293,7 @@ function createManager() {
 
   function register(target, options = {}) {
     if (!target && options.kind !== "window") return null;
+
     const kind = options.kind || "element";
     const key = getKey(target, kind);
     const existing = controllers.get(key);
@@ -311,29 +322,83 @@ function createManager() {
     controllers.forEach((controller) => controller.update());
   }
 
+  function ensure(targets = [], options = {}) {
+    const items = Array.isArray(targets) ? targets : [targets];
+
+    items.forEach((item) => {
+      if (!item && options.kind !== "window") return;
+      register(item, options);
+    });
+
+    updateAll();
+  }
+
   return {
     register,
     unregister,
-    updateAll
+    updateAll,
+    ensure
+  };
+}
+
+function getManager() {
+  if (!window[GLOBAL_MANAGER_KEY]) {
+    window[GLOBAL_MANAGER_KEY] = createManager();
+  }
+  return window[GLOBAL_MANAGER_KEY];
+}
+
+function normalizeEnsureArg(targetOrOptions, maybeOptions) {
+  if (
+    targetOrOptions &&
+    typeof targetOrOptions === "object" &&
+    !Array.isArray(targetOrOptions) &&
+    !("nodeType" in targetOrOptions) &&
+    !("kind" in (maybeOptions || {}))
+  ) {
+    return {
+      targets: targetOrOptions.targets || targetOrOptions.elements || targetOrOptions.element || [],
+      options: {
+        kind: targetOrOptions.kind,
+        minThumbSize: targetOrOptions.minThumbSize,
+        trackPadding: targetOrOptions.trackPadding,
+        trackWidth: targetOrOptions.trackWidth,
+        edgeOffset: targetOrOptions.edgeOffset
+      }
+    };
+  }
+
+  return {
+    targets: targetOrOptions,
+    options: maybeOptions || {}
   };
 }
 
 export function getCustomScrollbarManager() {
-  if (!window[GLOBAL_MANAGER_KEY]) {
-    window[GLOBAL_MANAGER_KEY] = createManager();
-  }
-
-  return window[GLOBAL_MANAGER_KEY];
+  return getManager();
 }
 
 export function registerCustomScrollbar(target, options = {}) {
-  return getCustomScrollbarManager().register(target, options);
+  return getManager().register(target, options);
 }
 
 export function unregisterCustomScrollbar(target, options = {}) {
-  return getCustomScrollbarManager().unregister(target, options);
+  return getManager().unregister(target, options);
 }
 
 export function updateCustomScrollbars() {
-  getCustomScrollbarManager().updateAll();
+  return getManager().updateAll();
 }
+
+export function ensureCustomScrollbars(targetOrOptions, maybeOptions) {
+  const normalized = normalizeEnsureArg(targetOrOptions, maybeOptions);
+  return getManager().ensure(normalized.targets, normalized.options);
+}
+
+export default {
+  getCustomScrollbarManager,
+  registerCustomScrollbar,
+  unregisterCustomScrollbar,
+  updateCustomScrollbars,
+  ensureCustomScrollbars
+};
