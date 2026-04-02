@@ -277,12 +277,15 @@ def month_start_and_next(now_local: datetime) -> tuple[str, str]:
 
 def build_shortcut_filter_sql(shortcut: str | None, now_local: datetime) -> tuple[str, list]:
     key = str(shortcut or "").strip().lower()
-    if key in ("", "latest", "favorites"):
+    if key in ("", "latest", "all", "random"):
         return "", []
 
     if key in ("current_month", "this_month"):
         start_at, next_at = month_start_and_next(now_local)
         return " AND i.created_at >= %s AND i.created_at < %s", [start_at, next_at]
+
+    if key == "favorites":
+        return " AND i.like_count > 0", []
 
     return "", []
 

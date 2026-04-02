@@ -428,7 +428,7 @@ export function initHomePage(app) {
       }
     }
 
-    if (includeShortcut && filters.shortcut && filters.shortcut !== "favorites") {
+    if (includeShortcut && filters.shortcut) {
       query.set("shortcut", filters.shortcut);
     }
   }
@@ -833,11 +833,6 @@ export function initHomePage(app) {
 
       const shortcut = button.dataset.shortcut || "";
       const alreadyActive = button.classList.contains("is-active");
-
-      if (shortcut === "favorites") {
-        refs.statusText.textContent = "お気に入りは後続対応予定です。";
-        return;
-      }
 
       if (shortcut === "random" && alreadyActive) {
         state.randomSeed = createRandomSeed();
