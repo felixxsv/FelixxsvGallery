@@ -716,6 +716,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   gap: 8px;
   padding: 34px 14px 14px;
   background: linear-gradient(180deg, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, 0.28) 28%, rgba(2, 6, 23, 0.82) 72%, rgba(2, 6, 23, 0.94) 100%);
+  pointer-events: none;
 }
 
 .home-gallery-card__title {
