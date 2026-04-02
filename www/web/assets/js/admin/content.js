@@ -62,6 +62,8 @@ function buildImageModalPayload(item) {
   };
 }
 
+const MAX_UPLOAD_FILES = 20;
+
 const state = {
   page: 1,
   perPage: 20,
@@ -74,7 +76,8 @@ const state = {
   items: [],
   currentContent: null,
   pendingConfirm: null,
-  filterTimer: null
+  filterTimer: null,
+  uploadSubmitting: false
 };
 
 function qs() {
@@ -228,6 +231,161 @@ function openImageModal(item) {
   );
 }
 
+function setUploadResult(message, kind = "") {
+  const box = byId("adminContentUploadResult");
+  if (!box) return;
+  box.textContent = message || "";
+  box.hidden = !message;
+  box.classList.toggle("is-error", kind === "error");
+  box.classList.toggle("is-success", kind === "success");
+}
+
+function renderUploadSelection() {
+  const input = byId("adminContentUploadFilesInput");
+  const summary = byId("adminContentUploadSummary");
+  const list = byId("adminContentUploadFileList");
+  const files = Array.from(input?.files || []);
+
+  if (!summary || !list) return;
+
+  list.innerHTML = "";
+  if (files.length === 0) {
+    summary.textContent = "ファイルが未選択です。";
+    list.hidden = true;
+    return;
+  }
+
+  const totalBytes = files.reduce((sum, file) => sum + Number(file?.size || 0), 0);
+  summary.textContent = `${files.length} 件 / 合計 ${formatBytes(totalBytes)} を選択中です。`;
+
+  for (const file of files) {
+    const li = document.createElement("li");
+    li.textContent = `${file.name} (${formatBytes(file.size)})`;
+    list.appendChild(li);
+  }
+
+  list.hidden = false;
+}
+
+function resetUploadForm() {
+  const form = byId("adminContentUploadForm");
+  if (form) form.reset();
+  renderUploadSelection();
+  setUploadResult("");
+  setUploadSubmitting(false);
+}
+
+function setUploadSubmitting(submitting) {
+  state.uploadSubmitting = Boolean(submitting);
+  const submit = byId("adminContentUploadSubmitButton");
+  const cancel = byId("adminContentUploadCancelButton");
+  const openButton = byId("adminContentUploadOpenButton");
+  if (submit) {
+    submit.disabled = state.uploadSubmitting;
+    submit.textContent = state.uploadSubmitting ? "投稿中..." : "投稿する";
+  }
+  if (cancel) cancel.disabled = state.uploadSubmitting;
+  if (openButton) openButton.disabled = state.uploadSubmitting;
+}
+
+async function uploadWithFormData(formData) {
+  const response = await fetch(`${window.AdminApp.appBase}/api/upload`, {
+    method: "POST",
+    credentials: "include",
+    body: formData
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+  let payload = null;
+  if (contentType.includes("application/json")) {
+    payload = await response.json().catch(() => null);
+  }
+
+  if (!response.ok || !payload || payload.ok === false) {
+    const message = payload?.error?.message || payload?.detail || payload?.message || "投稿に失敗しました。";
+    throw new Error(message);
+  }
+
+  return payload;
+}
+
+function buildDuplicateMessage(items) {
+  const duplicates = Array.isArray(items) ? items.filter((item) => item?.duplicate) : [];
+  if (duplicates.length === 0) {
+    return "重複画像が検出されたため、投稿は行われませんでした。";
+  }
+
+  const lines = duplicates.slice(0, 10).map((item) => {
+    const existingId = item?.existing_id ? `既存ID: ${item.existing_id}` : "既存ID: -";
+    return `- ${item?.filename || "(無名ファイル)"} / ${existingId}`;
+  });
+  if (duplicates.length > 10) {
+    lines.push(`- 他 ${duplicates.length - 10} 件`);
+  }
+
+  return [`重複画像が検出されたため、投稿は行われませんでした。`, ...lines].join("\n");
+}
+
+async function submitUpload() {
+  if (state.uploadSubmitting) return;
+
+  const title = byId("adminContentUploadTitleInput")?.value?.trim() || "";
+  const alt = byId("adminContentUploadAltInput")?.value || "";
+  const tags = byId("adminContentUploadTagsInput")?.value || "";
+  const visibility = byId("adminContentUploadVisibility")?.value || "true";
+  const fileInput = byId("adminContentUploadFilesInput");
+  const files = Array.from(fileInput?.files || []);
+
+  if (!title) {
+    setUploadResult("タイトルを入力してください。", "error");
+    return;
+  }
+  if (files.length === 0) {
+    setUploadResult("画像ファイルを選択してください。", "error");
+    return;
+  }
+  if (files.length > MAX_UPLOAD_FILES) {
+    setUploadResult(`画像は最大 ${MAX_UPLOAD_FILES} 枚までです。`, "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("title", title);
+  formData.append("alt", alt);
+  formData.append("tags", tags);
+  formData.append("is_public", visibility);
+  for (const file of files) {
+    formData.append("files", file);
+  }
+
+  setUploadResult("");
+  setUploadSubmitting(true);
+
+  try {
+    const payload = await uploadWithFormData(formData);
+    if (payload.has_duplicates) {
+      setUploadResult(buildDuplicateMessage(payload.items), "error");
+      window.AdminApp?.toast?.error?.("重複画像が検出されたため、投稿は行われませんでした。");
+      return;
+    }
+
+    const created = Number(payload.count || files.length || 0);
+    setUploadResult(`${created} 件の画像を投稿しました。`, "success");
+    window.AdminApp?.toast?.success?.(`${created} 件の画像を投稿しました。`);
+    state.page = 1;
+    await loadContents();
+    window.setTimeout(() => {
+      window.AdminApp?.modal?.close?.("admin-content-upload");
+      resetUploadForm();
+    }, 300);
+  } catch (error) {
+    setUploadResult(error?.message || "投稿に失敗しました。", "error");
+    window.AdminApp?.toast?.error?.(error?.message || "投稿に失敗しました。");
+  } finally {
+    setUploadSubmitting(false);
+  }
+}
+
 async function openActionConfirm(message, approveLabel = "実行") {
   byId("adminContentActionConfirmMessage").textContent = message;
   byId("adminContentActionConfirmApprove").textContent = approveLabel;
@@ -361,6 +519,27 @@ function bindTableEvents() {
 }
 
 function bindModals() {
+  byId("adminContentUploadOpenButton")?.addEventListener("click", () => {
+    setUploadResult("");
+    renderUploadSelection();
+    window.AdminApp.modal.open("admin-content-upload");
+  });
+  byId("adminContentUploadCancelButton")?.addEventListener("click", () => {
+    if (state.uploadSubmitting) return;
+    window.AdminApp.modal.close("admin-content-upload");
+    resetUploadForm();
+  });
+  byId("adminContentUploadFilesInput")?.addEventListener("change", () => {
+    renderUploadSelection();
+    setUploadResult("");
+  });
+  byId("adminContentUploadSubmitButton")?.addEventListener("click", () => {
+    submitUpload();
+  });
+  byId("adminContentUploadForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitUpload();
+  });
   byId("adminContentDetailCloseButton")?.addEventListener("click", () => {
     window.AdminApp.modal.close("admin-content-detail");
     state.currentContent = null;
@@ -387,6 +566,8 @@ async function initPage() {
   bindFilters();
   bindTableEvents();
   bindModals();
+  renderUploadSelection();
+  resetUploadForm();
   await loadContents();
 }
 

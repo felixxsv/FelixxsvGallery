@@ -85,6 +85,7 @@
 <p class="admin-panel__meta">公開状態変更、隔離、復元、削除状態管理を行います。</p>
 </div>
 <div class="admin-content-toolbar__actions">
+<button class="app-button app-button--primary" id="adminContentUploadOpenButton" type="button">新規投稿</button>
 <button class="app-button app-button--ghost" id="adminContentReloadButton" type="button">再読込</button>
 </div>
 </div>
@@ -477,6 +478,53 @@
 </div>
 </div>
 </section>
+<section class="app-modal-layer" data-modal-id="admin-content-upload" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="admin-content-upload"></div>
+<div aria-labelledby="adminContentUploadTitle" aria-modal="true" class="app-modal-dialog app-modal-dialog--wide" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="adminContentUploadTitle">新規投稿</h2>
+</div>
+<div class="app-modal-body">
+<form class="app-form-stack admin-content-upload" id="adminContentUploadForm">
+<div class="admin-content-upload__grid">
+<label class="app-field">
+<span class="app-field__label">タイトル</span>
+<input class="app-input" id="adminContentUploadTitleInput" name="title" placeholder="タイトルを入力" required type="text"/>
+</label>
+<label class="app-field">
+<span class="app-field__label">公開状態</span>
+<select class="app-select" id="adminContentUploadVisibility" name="is_public">
+<option value="true">public</option>
+<option value="false">private</option>
+</select>
+</label>
+</div>
+<label class="app-field">
+<span class="app-field__label">説明文(ALT)</span>
+<textarea class="app-input admin-content-upload__textarea" id="adminContentUploadAltInput" name="alt" placeholder="説明文を入力"></textarea>
+</label>
+<label class="app-field">
+<span class="app-field__label">タグ</span>
+<input class="app-input" id="adminContentUploadTagsInput" name="tags" placeholder="例: VRChat, 夜景, フレンド" type="text"/>
+<span class="app-field__hint">カンマ区切りで入力します。</span>
+</label>
+<label class="app-field">
+<span class="app-field__label">画像ファイル</span>
+<input accept="image/png,image/jpeg,image/webp" class="app-input" id="adminContentUploadFilesInput" multiple name="files" required type="file"/>
+<span class="app-field__hint">PNG / JPG / WEBP、最大20枚です。1回の投稿でまとめて送信します。</span>
+</label>
+<div class="admin-content-upload__summary" id="adminContentUploadSummary">ファイルが未選択です。</div>
+<ul class="admin-content-upload__file-list" id="adminContentUploadFileList" hidden></ul>
+<div class="admin-content-upload__result" hidden id="adminContentUploadResult"></div>
+</form>
+</div>
+<div class="app-modal-footer admin-content-upload__footer">
+<button class="app-button app-button--ghost" id="adminContentUploadCancelButton" type="button">キャンセル</button>
+<button class="app-button app-button--primary" id="adminContentUploadSubmitButton" type="button">投稿する</button>
+</div>
+</div>
+</section>
+
 <section class="app-modal-layer" data-modal-id="admin-content-detail" data-modal-layer="" hidden="">
 <div class="app-modal-backdrop" data-modal-backdrop="admin-content-detail"></div>
 <div aria-labelledby="adminContentDetailTitle" aria-modal="true" class="app-modal-dialog app-modal-dialog--wide" role="dialog" tabindex="-1">

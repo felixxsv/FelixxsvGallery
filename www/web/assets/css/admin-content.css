@@ -289,3 +289,80 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
     grid-template-columns: 1fr;
   }
 }
+
+
+.admin-content-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-content-upload__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 12px;
+}
+
+.admin-content-upload__textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.admin-content-upload__summary {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.84);
+  font-size: 13px;
+}
+
+.admin-content-upload__file-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(255,255,255,0.78);
+  font-size: 13px;
+}
+
+.admin-content-upload__file-list li {
+  min-width: 0;
+  word-break: break-all;
+}
+
+.admin-content-upload__result {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.88);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.admin-content-upload__result.is-error {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(127, 29, 29, 0.26);
+}
+
+.admin-content-upload__result.is-success {
+  border-color: rgba(74, 222, 128, 0.32);
+  background: rgba(20, 83, 45, 0.26);
+}
+
+.admin-content-upload__footer {
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .admin-content-upload__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-content-upload__file-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
