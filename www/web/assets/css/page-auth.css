@@ -1,0 +1,33 @@
+.auth{
+  width:min(520px,92vw);
+  margin:0 auto;
+  padding:22px 0 28px;
+}
+
+.authcard{
+  padding:18px;
+}
+
+.authtabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.authtabs .btn{
+  height:40px;
+  padding:0 14px;
+}
+
+.authpane{
+  display:none;
+}
+
+.authpane.is-on{
+  display:block;
+}
+
+.authbtn{
+  width:100%;
+  margin-top:14px;
+}
