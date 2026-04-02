@@ -633,10 +633,13 @@ export function initHomePage(app) {
     const selectedKey = state.archiveSelected[kind];
     const fragment = document.createDocumentFragment();
 
-    groups.forEach((group, index) => {
+    groups.forEach((group) => {
       const details = document.createElement("details");
       details.className = "home-archive-year";
-      details.open = index === 0;
+      const hasSelectedMonth = Array.isArray(group.months)
+        ? group.months.some((monthInfo) => monthKey(Number(group.year), Number(monthInfo.month)) === selectedKey)
+        : false;
+      details.open = Boolean(selectedKey && hasSelectedMonth);
 
       const summary = document.createElement("summary");
       summary.className = "home-archive-year__summary";
