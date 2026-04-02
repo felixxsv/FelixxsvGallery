@@ -170,10 +170,11 @@ body.is-image-modal-open {
 }
 
 .image-modal__stat {
-  min-width: 64px;
+  min-width: 32px;
   text-align: right;
   color: rgba(255, 255, 255, 0.88);
   font-size: 14px;
+  font-weight: 700;
 }
 
 .image-modal__action {
@@ -185,6 +186,22 @@ body.is-image-modal-open {
   color: #ffffff;
   font-size: 18px;
   cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+}
+
+.image-modal__action:hover {
+  transform: translateY(-1px);
+}
+
+.image-modal__action--like.is-active {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(127, 29, 29, 0.72);
+  color: #fecaca;
+}
+
+.image-modal__action--like.is-pending {
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .image-modal__slider {

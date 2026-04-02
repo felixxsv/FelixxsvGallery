@@ -71,6 +71,8 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
   const body = overlay.querySelector(".image-detail-modal__body");
   const closeButton = overlay.querySelector(".image-detail-modal__close");
 
+  let currentDetail = null;
+
   function close() {
     if (overlay.hidden) return;
     overlay.hidden = true;
@@ -102,7 +104,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     }).join("")}</div>`;
   }
 
-  function open(detail) {
+  function render(detail) {
     const sessionData = app?.session?.getState?.()?.data || {};
     const currentUser = sessionData.user || sessionData || {};
     const isAdmin = currentUser.role === "admin";
@@ -166,6 +168,11 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       : "";
 
     body.innerHTML = `${userBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
+  }
+
+  function open(detail) {
+    currentDetail = detail || {};
+    render(currentDetail);
     overlay.hidden = false;
     if (typeof onOpen === "function") {
       onOpen();
@@ -173,8 +180,16 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     overlay.querySelector(".image-detail-modal__dialog")?.focus();
   }
 
+  function update(detail) {
+    currentDetail = detail || currentDetail || {};
+    if (overlay.hidden) {
+      return;
+    }
+    render(currentDetail);
+  }
+
   closeButton.addEventListener("click", close);
   overlay.querySelector(".image-detail-modal__backdrop")?.addEventListener("click", close);
 
-  return { open, close, isOpen: () => !overlay.hidden };
+  return { open, update, close, isOpen: () => !overlay.hidden };
 }

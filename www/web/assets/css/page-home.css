@@ -713,10 +713,9 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   position: absolute;
   inset: auto 0 0 0;
   display: grid;
-  gap: 4px;
+  gap: 8px;
   padding: 34px 14px 14px;
   background: linear-gradient(180deg, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, 0.28) 28%, rgba(2, 6, 23, 0.82) 72%, rgba(2, 6, 23, 0.94) 100%);
-  pointer-events: none;
 }
 
 .home-gallery-card__title {
@@ -731,6 +730,64 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   font-size: 0.8rem;
   word-break: break-word;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.home-gallery-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-gallery-card__meta {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.home-gallery-card__like {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 62px;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(8, 15, 30, 0.72);
+  color: rgba(248, 250, 252, 0.92);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.home-gallery-card__like:hover {
+  transform: translateY(-1px);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.home-gallery-card__like.is-active {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(127, 29, 29, 0.72);
+  color: #fecaca;
+}
+
+.home-gallery-card__like.is-pending {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.home-gallery-card__like-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.home-gallery-card__like-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .home-pagination {

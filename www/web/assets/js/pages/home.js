@@ -1,4 +1,3 @@
-import { ApiError } from "../core/api.js";
 import { byId } from "../core/dom.js";
 
 const GRID_COLS_STORAGE_KEY = "gallery.home.gridCols";
@@ -189,6 +188,7 @@ function buildPublicDetail(image) {
     posted_at: image.created_at || image.posted_at || image.shot_at || null,
     shot_at: image.shot_at || null,
     like_count: Number(image.like_count || 0),
+    viewer_liked: Boolean(image.viewer_liked),
     view_count: Number(image.view_count || 0),
     tags: Array.isArray(image.tags) ? image.tags : [],
     color_tags: Array.isArray(image.color_tags) ? image.color_tags : [],
@@ -228,6 +228,42 @@ function createRandomSeed() {
     return window.crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isViewerLiked(image) {
+  return Boolean(image?.viewer_liked);
+}
+
+function normalizeLikeCount(value) {
+  const count = Number(value || 0);
+  return Number.isFinite(count) && count >= 0 ? count : 0;
+}
+
+function likeButtonLabel(liked) {
+  return liked ? "いいねを取り消す" : "いいねする";
+}
+
+function applyLikeButtonState(button, iconNode, countNode, image, pending = false) {
+  if (!button) {
+    return;
+  }
+
+  const liked = isViewerLiked(image);
+  const count = normalizeLikeCount(image?.like_count);
+
+  button.classList.toggle("is-active", liked);
+  button.classList.toggle("is-pending", pending);
+  button.setAttribute("aria-pressed", String(liked));
+  button.setAttribute("aria-label", likeButtonLabel(liked));
+  button.disabled = pending;
+
+  if (iconNode) {
+    iconNode.textContent = liked ? "♥" : "♡";
+  }
+
+  if (countNode) {
+    countNode.textContent = String(count);
+  }
 }
 
 function activateSingleSelectButton(container, button, selector = "[data-ui-segment-button], [data-ui-option], [data-ui-shortcut]") {
@@ -302,6 +338,7 @@ export function initHomePage(app) {
       shot: null,
       posted: null,
     },
+    pendingLikeIds: new Set(),
   };
 
   function setLoading(loading) {
@@ -432,10 +469,6 @@ export function initHomePage(app) {
     if (includeShortcut && filters.shortcut) {
       query.set("shortcut", filters.shortcut);
     }
-  }
-
-  function isAuthenticated() {
-    return Boolean(app?.session?.getState?.().authenticated);
   }
 
   function setDateInputs(kind, from, to) {
@@ -635,6 +668,9 @@ export function initHomePage(app) {
     const emptyNode = fragment.querySelector("[data-card-empty]");
     const titleNode = fragment.querySelector("[data-card-title]");
     const metaNode = fragment.querySelector("[data-card-meta]");
+    const likeButton = fragment.querySelector("[data-action='toggle-like']");
+    const likeIcon = fragment.querySelector("[data-card-like-icon]");
+    const likeCount = fragment.querySelector("[data-card-like-count]");
     const imageUrl = normalizeImageUrl(image);
 
     article.dataset.imageIndex = String(index);
@@ -655,6 +691,7 @@ export function initHomePage(app) {
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
     metaNode.textContent = textOrDash(image.shot_at || image.created_at || image.date || "");
+    applyLikeButtonState(likeButton, likeIcon, likeCount, image, state.pendingLikeIds.has(String(image.id ?? "")));
     return article;
   }
 
@@ -676,6 +713,134 @@ export function initHomePage(app) {
     setEmpty(false);
   }
 
+
+  function getItemById(imageId) {
+    return state.items.find((item) => Number(item.id) === Number(imageId)) || null;
+  }
+
+  function syncCardLikeState(imageId) {
+    const item = getItemById(imageId);
+    if (!item) {
+      return;
+    }
+
+    refs.galleryGrid.querySelectorAll(`.home-gallery-card[data-image-id="${CSS.escape(String(imageId))}"]`).forEach((article) => {
+      const button = article.querySelector("[data-action='toggle-like']");
+      const iconNode = article.querySelector("[data-card-like-icon]");
+      const countNode = article.querySelector("[data-card-like-count]");
+      applyLikeButtonState(button, iconNode, countNode, item, state.pendingLikeIds.has(String(imageId)));
+    });
+  }
+
+  function syncImageLikeState(imageId, nextState = {}) {
+    const item = getItemById(imageId);
+    if (!item) {
+      return null;
+    }
+
+    if (nextState.viewer_liked !== undefined) {
+      item.viewer_liked = Boolean(nextState.viewer_liked);
+    }
+
+    if (nextState.like_count !== undefined) {
+      item.like_count = normalizeLikeCount(nextState.like_count);
+    }
+
+    syncCardLikeState(imageId);
+
+    if (typeof app.imageModal?.updateLikeState === "function") {
+      app.imageModal.updateLikeState(imageId, {
+        viewer_liked: item.viewer_liked,
+        like_count: item.like_count,
+      });
+    }
+
+    return item;
+  }
+
+  async function fetchImageDetail(item) {
+    if (!item?.id) {
+      return buildPublicDetail(item || {});
+    }
+
+    try {
+      const payload = await app.api.get(`/api/images/${item.id}`);
+      const detail = {
+        ...item,
+        ...(payload?.data ?? payload ?? {}),
+      };
+      return buildPublicDetail(detail);
+    } catch {
+      return buildPublicDetail(item);
+    }
+  }
+
+  function requireLikeAuth() {
+    const sessionState = app.session?.getState?.() || { authenticated: false };
+    if (sessionState.authenticated) {
+      return true;
+    }
+    app.toast.error("いいね機能はログイン後に利用できます。");
+    return false;
+  }
+
+  async function toggleLikeById(imageId) {
+    const item = getItemById(imageId);
+    if (!item) {
+      return;
+    }
+
+    if (!requireLikeAuth()) {
+      return;
+    }
+
+    const key = String(imageId);
+    if (state.pendingLikeIds.has(key)) {
+      return;
+    }
+
+    const nextLiked = !isViewerLiked(item);
+    const nextCount = Math.max(0, normalizeLikeCount(item.like_count) + (nextLiked ? 1 : -1));
+
+    state.pendingLikeIds.add(key);
+    syncCardLikeState(imageId);
+    if (typeof app.imageModal?.setLikePending === "function") {
+      app.imageModal.setLikePending(imageId, true);
+    }
+
+    const previousState = {
+      viewer_liked: Boolean(item.viewer_liked),
+      like_count: normalizeLikeCount(item.like_count),
+    };
+
+    syncImageLikeState(imageId, { viewer_liked: nextLiked, like_count: nextCount });
+
+    try {
+      const payload = nextLiked
+        ? await app.api.post(`/api/images/${imageId}/like`, {})
+        : await app.api.delete(`/api/images/${imageId}/like`, {});
+
+      const responseState = payload?.data ?? payload ?? {};
+      syncImageLikeState(imageId, {
+        viewer_liked: responseState.viewer_liked ?? nextLiked,
+        like_count: responseState.like_count ?? nextCount,
+      });
+
+      if (getFilterSnapshot().shortcut === "favorites" && !Boolean(responseState.viewer_liked ?? nextLiked)) {
+        await reloadFromFilters();
+      }
+    } catch (error) {
+      syncImageLikeState(imageId, previousState);
+      app.toast.error(error.message || "いいねの更新に失敗しました。");
+    } finally {
+      state.pendingLikeIds.delete(key);
+      syncCardLikeState(imageId);
+      if (typeof app.imageModal?.setLikePending === "function") {
+        app.imageModal.setLikePending(imageId, false);
+      }
+    }
+  }
+
   async function openImageFromCard(index) {
     const item = state.items[index];
     if (!item) {
@@ -686,12 +851,19 @@ export function initHomePage(app) {
       ...item,
       preview_url: normalizeImageUrl(item),
       original_url: normalizeImageUrl(item),
-      detailLoader: async () => buildPublicDetail(item),
+      viewer_liked: Boolean(item.viewer_liked),
+      detailLoader: async () => fetchImageDetail(item),
     };
 
     app.imageModal.openByPreference(payload, {
       detail: buildPublicDetail(item),
-      detailLoader: async () => buildPublicDetail(item),
+      detailLoader: async () => fetchImageDetail(item),
+      onLikeChange(nextState) {
+        syncImageLikeState(item.id, nextState || {});
+        if (getFilterSnapshot().shortcut === "favorites" && !Boolean(nextState?.viewer_liked)) {
+          reloadFromFilters();
+        }
+      },
     });
   }
 
@@ -770,24 +942,11 @@ export function initHomePage(app) {
       syncGridColumnsUi();
       updateStatus();
     } catch (error) {
-      const activeShortcut = readActiveButton(refs.shortcutList, "[data-ui-shortcut]")?.dataset.shortcut || "";
-
-      if (error instanceof ApiError && error.status === 401 && activeShortcut === "favorites") {
-        const message = "ログインするとお気に入りを表示できます。";
-        const defaultShortcut = refs.shortcutList?.querySelector("[data-default]") || null;
-        activateSingleSelectButton(refs.shortcutList, defaultShortcut, "[data-ui-shortcut]");
-        setGridVisible(false);
-        setEmpty(state.items.length === 0);
-        setError("");
-        refs.statusText.textContent = message;
-        app.toast.error(message);
-      } else {
-        setGridVisible(false);
-        setEmpty(false);
-        setError(error.message || "画像一覧の取得に失敗しました。");
-        refs.statusText.textContent = "画像一覧を取得できませんでした。";
-        app.toast.error(error.message || "画像一覧の取得に失敗しました。");
-      }
+      setGridVisible(false);
+      setEmpty(false);
+      setError(error.message || "画像一覧の取得に失敗しました。");
+      refs.statusText.textContent = "画像一覧を取得できませんでした。";
+      app.toast.error(error.message || "画像一覧の取得に失敗しました。");
     } finally {
       setLoading(false);
     }
@@ -852,10 +1011,7 @@ export function initHomePage(app) {
       const shortcut = button.dataset.shortcut || "";
       const alreadyActive = button.classList.contains("is-active");
 
-      if (shortcut === "favorites" && !isAuthenticated()) {
-        const message = "ログインするとお気に入りを表示できます。";
-        refs.statusText.textContent = message;
-        app.toast.error(message);
+      if (shortcut === "favorites" && !requireLikeAuth()) {
         return;
       }
 
@@ -976,6 +1132,18 @@ export function initHomePage(app) {
   }
 
   refs.galleryGrid.addEventListener("click", (event) => {
+    const likeButton = event.target.closest("[data-action='toggle-like']");
+    if (likeButton && refs.galleryGrid.contains(likeButton)) {
+      const article = likeButton.closest(".home-gallery-card");
+      const imageId = Number(article?.dataset.imageId || 0);
+      if (imageId) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleLikeById(imageId);
+      }
+      return;
+    }
+
     const link = event.target.closest("[data-action='open-image']");
     if (!link) {
       return;

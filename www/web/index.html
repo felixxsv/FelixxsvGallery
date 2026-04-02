@@ -599,7 +599,13 @@
       </a>
       <div class="home-gallery-card__body">
         <div class="home-gallery-card__title" data-card-title></div>
-        <div class="home-gallery-card__meta" data-card-meta></div>
+        <div class="home-gallery-card__footer">
+          <div class="home-gallery-card__meta" data-card-meta></div>
+          <button type="button" class="home-gallery-card__like" data-action="toggle-like" aria-label="いいね" aria-pressed="false">
+            <span class="home-gallery-card__like-icon" data-card-like-icon aria-hidden="true">♡</span>
+            <span class="home-gallery-card__like-count" data-card-like-count>0</span>
+          </button>
+        </div>
       </div>
     </article>
   </template>

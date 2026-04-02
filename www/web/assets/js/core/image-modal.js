@@ -41,6 +41,11 @@ function formatCompactCount(value) {
   return `${(n / 1_000_000_000).toFixed(n >= 10_000_000_000 ? 0 : 1).replace(".0", "")}B`;
 }
 
+function normalizeLikeCount(value) {
+  const count = Number(value || 0);
+  return Number.isFinite(count) && count >= 0 ? count : 0;
+}
+
 function withAppBase(path) {
   const appBase = document.body.dataset.appBase || "/gallery";
   if (!path) return "";
@@ -59,24 +64,22 @@ function normalizePayload(item, options = {}) {
   normalized.alt = item?.alt || item?.title || "";
   normalized.preview_url = withAppBase(
     item?.original_url ||
-    item?.preview_url ||
-    item?.preview_path ||
-    item?.thumb_path_960 ||
-    item?.thumb_path_480 ||
-    item?.thumb_path ||
-    item?.image_url ||
-    item?.url ||
-    (normalized.image_id ? `/media/original/${normalized.image_id}` : "")
+      item?.preview_url ||
+      item?.preview_path ||
+      item?.thumb_path_960 ||
+      item?.thumb_path_480 ||
+      item?.thumb_path ||
+      item?.image_url ||
+      item?.url ||
+      (normalized.image_id ? `/media/original/${normalized.image_id}` : "")
   );
   normalized.original_url = withAppBase(
-    item?.original_url ||
-    item?.image_url ||
-    item?.url ||
-    (normalized.image_id ? `/media/original/${normalized.image_id}` : normalized.preview_url)
+    item?.original_url || item?.image_url || item?.url || (normalized.image_id ? `/media/original/${normalized.image_id}` : normalized.preview_url)
   );
   normalized.posted_at = item?.posted_at || item?.created_at || item?.shot_at || null;
   normalized.shot_at = item?.shot_at || null;
-  normalized.like_count = Number(item?.like_count || 0);
+  normalized.like_count = normalizeLikeCount(item?.like_count || 0);
+  normalized.viewer_liked = Boolean(item?.viewer_liked);
   normalized.view_count = Number(item?.view_count || 0);
   normalized.user = item?.user || {
     display_name: item?.uploader_display_name || item?.display_name || "投稿者不明",
@@ -121,7 +124,8 @@ export function createImageModalController({ app, body = document.body } = {}) {
           </div>
         </div>
         <div class="image-modal__actions">
-          <span class="image-modal__stat">♥ <span class="image-modal__like-count">0</span></span>
+          <button type="button" class="image-modal__action image-modal__action--like" data-action="like" aria-label="いいねする" aria-pressed="false">♡</button>
+          <span class="image-modal__stat"><span class="image-modal__like-count">0</span></span>
           <button type="button" class="image-modal__action image-modal__action--ghost" data-action="new-tab" aria-label="別タブで表示">↗</button>
           <button type="button" class="image-modal__action image-modal__action--ghost" data-action="detail" aria-label="詳細">…</button>
         </div>
@@ -140,11 +144,15 @@ export function createImageModalController({ app, body = document.body } = {}) {
   const postedAtNode = root.querySelector(".image-modal__posted-at");
   const userAvatarNode = root.querySelector(".image-modal__user-avatar");
   const userTextNode = root.querySelector(".image-modal__user-text");
+  const likeButton = root.querySelector("[data-action='like']");
   const likeCountNode = root.querySelector(".image-modal__like-count");
 
   const state = {
     current: null,
     detailCache: null,
+    detailOpen: false,
+    onLikeChange: null,
+    likePending: false,
     zoom: 100,
     offsetX: 0,
     offsetY: 0,
@@ -156,7 +164,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
     hideTimer: null,
     controlsVisible: true,
     cursorVisible: true,
-    detailOpen: false,
   };
 
   function syncDetailStateClass() {
@@ -257,6 +264,18 @@ export function createImageModalController({ app, body = document.body } = {}) {
     }, 2200);
   }
 
+  function syncLikeUi() {
+    const current = state.current || {};
+    const liked = Boolean(current.viewer_liked);
+    likeButton.classList.toggle("is-active", liked);
+    likeButton.classList.toggle("is-pending", state.likePending);
+    likeButton.disabled = state.likePending;
+    likeButton.setAttribute("aria-pressed", String(liked));
+    likeButton.setAttribute("aria-label", liked ? "いいねを取り消す" : "いいねする");
+    likeButton.textContent = liked ? "♥" : "♡";
+    likeCountNode.textContent = formatCompactCount(current.like_count || 0);
+  }
+
   function populateFooter() {
     const item = state.current || {};
     titleNode.textContent = item.title || "タイトル未設定";
@@ -269,11 +288,34 @@ export function createImageModalController({ app, body = document.body } = {}) {
       userAvatarNode.textContent = (user.display_name || "?").slice(0, 1);
     }
     userTextNode.textContent = `${textOrDash(user.display_name)} / @${textOrDash(user.user_key)}`;
-    likeCountNode.textContent = formatCompactCount(item.like_count || 0);
+    syncLikeUi();
   }
 
   function bodyLock(lock) {
     body.classList.toggle("is-image-modal-open", lock);
+  }
+
+  function applyLikeState(nextState = {}) {
+    if (!state.current) {
+      return;
+    }
+
+    if (nextState.viewer_liked !== undefined) {
+      state.current.viewer_liked = Boolean(nextState.viewer_liked);
+    }
+    if (nextState.like_count !== undefined) {
+      state.current.like_count = normalizeLikeCount(nextState.like_count);
+    }
+    if (state.detailCache) {
+      if (nextState.viewer_liked !== undefined) {
+        state.detailCache.viewer_liked = Boolean(nextState.viewer_liked);
+      }
+      if (nextState.like_count !== undefined) {
+        state.detailCache.like_count = normalizeLikeCount(nextState.like_count);
+      }
+      detailModal.update(state.detailCache);
+    }
+    syncLikeUi();
   }
 
   async function openDetail() {
@@ -292,9 +334,61 @@ export function createImageModalController({ app, body = document.body } = {}) {
     detailModal.open(state.detailCache || normalizePayload(state.current));
   }
 
+  async function toggleLike() {
+    if (!state.current?.image_id) {
+      return;
+    }
+
+    const sessionState = app.session?.getState?.() || { authenticated: false };
+    if (!sessionState.authenticated) {
+      app.toast.error("いいね機能はログイン後に利用できます。");
+      return;
+    }
+
+    if (state.likePending) {
+      return;
+    }
+
+    state.likePending = true;
+    syncLikeUi();
+
+    const imageId = Number(state.current.image_id);
+    const nextLiked = !Boolean(state.current.viewer_liked);
+    const nextCount = Math.max(0, normalizeLikeCount(state.current.like_count) + (nextLiked ? 1 : -1));
+    const previous = {
+      viewer_liked: Boolean(state.current.viewer_liked),
+      like_count: normalizeLikeCount(state.current.like_count),
+    };
+
+    applyLikeState({ viewer_liked: nextLiked, like_count: nextCount });
+
+    try {
+      const payload = nextLiked
+        ? await app.api.post(`/api/images/${imageId}/like`, {})
+        : await app.api.delete(`/api/images/${imageId}/like`, {});
+      const responseState = payload?.data ?? payload ?? {};
+      const resolved = {
+        viewer_liked: responseState.viewer_liked ?? nextLiked,
+        like_count: responseState.like_count ?? nextCount,
+      };
+      applyLikeState(resolved);
+      if (typeof state.onLikeChange === "function") {
+        state.onLikeChange({ image_id: imageId, ...resolved });
+      }
+    } catch (error) {
+      applyLikeState(previous);
+      app.toast.error(error.message || "いいねの更新に失敗しました。");
+    } finally {
+      state.likePending = false;
+      syncLikeUi();
+    }
+  }
+
   function open(payload, options = {}) {
     state.current = normalizePayload(payload, options);
-    state.detailCache = options.detail || null;
+    state.detailCache = options.detail ? normalizePayload(options.detail, { detailLoader: options.detailLoader || state.current.detailLoader }) : null;
+    state.onLikeChange = typeof options.onLikeChange === "function" ? options.onLikeChange : null;
+    state.likePending = false;
     state.detailOpen = false;
     syncDetailStateClass();
     image.src = state.current.preview_url;
@@ -317,6 +411,8 @@ export function createImageModalController({ app, body = document.body } = {}) {
     bodyLock(false);
     state.current = null;
     state.detailCache = null;
+    state.onLikeChange = null;
+    state.likePending = false;
     resetView();
     root.classList.remove("is-controls-visible", "is-cursor-visible");
   }
@@ -449,10 +545,27 @@ export function createImageModalController({ app, body = document.body } = {}) {
     openDetail();
   });
 
+  likeButton.addEventListener("click", () => {
+    toggleLike();
+  });
+
   return {
     open,
     close,
     isOpen: () => !root.hidden,
+    setLikePending(imageId, pending) {
+      if (!state.current || Number(state.current.image_id) !== Number(imageId)) {
+        return;
+      }
+      state.likePending = Boolean(pending);
+      syncLikeUi();
+    },
+    updateLikeState(imageId, nextState = {}) {
+      if (!state.current || Number(state.current.image_id) !== Number(imageId)) {
+        return;
+      }
+      applyLikeState(nextState);
+    },
     openByPreference(payload, options = {}) {
       if (app.settings.getImageOpenBehavior() === "new_tab") {
         const normalized = normalizePayload(payload, options);
