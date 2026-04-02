@@ -200,8 +200,6 @@ function buildPublicDetail(image) {
       user_key: image.uploader_user_key || image.user_key || "-",
       avatar_url: withAppBase(image.uploader_avatar_url || image.uploader_avatar_path || image.avatar_url || ""),
     },
-    preview_url: normalizeImageUrl(image),
-    original_url: normalizeImageUrl(image),
   };
 }
 
@@ -241,6 +239,24 @@ function normalizeLikeCount(value) {
   return Number.isFinite(count) && count >= 0 ? count : 0;
 }
 
+function formatCount(value) {
+  return normalizeLikeCount(value).toLocaleString("ja-JP");
+}
+
+function formatCompactCount(value) {
+  const count = normalizeLikeCount(value);
+  if (count < 1000) {
+    return String(count);
+  }
+  if (count < 1_000_000) {
+    return `${(count / 1000).toFixed(count >= 10_000 ? 0 : 1).replace(".0", "")}K`;
+  }
+  if (count < 1_000_000_000) {
+    return `${(count / 1_000_000).toFixed(count >= 10_000_000 ? 0 : 1).replace(".0", "")}M`;
+  }
+  return `${(count / 1_000_000_000).toFixed(count >= 10_000_000_000 ? 0 : 1).replace(".0", "")}B`;
+}
+
 function likeButtonLabel(liked) {
   return liked ? "いいねを取り消す" : "いいねする";
 }
@@ -257,6 +273,7 @@ function applyLikeButtonState(button, iconNode, countNode, image, pending = fals
   button.classList.toggle("is-pending", pending);
   button.setAttribute("aria-pressed", String(liked));
   button.setAttribute("aria-label", likeButtonLabel(liked));
+  button.setAttribute("title", `いいね ${formatCount(count)}件`);
   button.disabled = pending;
 
   if (iconNode) {
@@ -264,7 +281,8 @@ function applyLikeButtonState(button, iconNode, countNode, image, pending = fals
   }
 
   if (countNode) {
-    countNode.textContent = String(count);
+    countNode.textContent = formatCompactCount(count);
+    countNode.dataset.countRaw = formatCount(count);
   }
 }
 
