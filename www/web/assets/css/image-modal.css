@@ -318,6 +318,70 @@ body.is-image-modal-open {
   padding: 20px;
 }
 
+
+.image-detail-modal__section--preview {
+  padding: 0;
+  overflow: hidden;
+}
+
+.image-detail-modal__preview-button {
+  display: grid;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.image-detail-modal__preview-button.is-static {
+  cursor: default;
+}
+
+.image-detail-modal__preview-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.image-detail-modal__preview-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-detail-modal__preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.image-detail-modal__preview-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.image-detail-modal__preview-hint {
+  color: rgba(236, 242, 255, 0.72);
+  font-size: 13px;
+}
+
+.image-detail-modal__preview-button:hover .image-detail-modal__preview-meta {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.image-detail-modal__preview-button:focus-visible {
+  outline: 2px solid rgba(125, 211, 252, 0.9);
+  outline-offset: -2px;
+}
+
 .image-detail-modal__section {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
@@ -423,6 +487,11 @@ body.is-image-modal-open {
 
   .image-modal__actions {
     justify-content: flex-end;
+  }
+
+  .image-detail-modal__preview-meta {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .image-detail-modal__row {

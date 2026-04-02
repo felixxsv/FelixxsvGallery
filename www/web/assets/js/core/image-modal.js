@@ -188,6 +188,12 @@ export function createImageModalController({ app, body = document.body } = {}) {
       updateControlsVisibility(true);
       scheduleAutoHide();
     },
+    onPreviewOpen() {
+      detailModal.close();
+      updateControlsVisibility(true);
+      scheduleAutoHide();
+      viewport.focus?.();
+    },
   });
 
   function applyTransform() {

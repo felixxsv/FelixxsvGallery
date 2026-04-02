@@ -52,7 +52,7 @@ function normalizeColorTag(item) {
   return { label: String(label), swatch: String(swatch) };
 }
 
-export function createImageDetailModal({ host, app, onOpen = null, onClose = null, onLikeToggle = null }) {
+export function createImageDetailModal({ host, app, onOpen = null, onClose = null, onLikeToggle = null, onPreviewOpen = null }) {
   const overlay = document.createElement("section");
   overlay.className = "image-detail-modal";
   overlay.hidden = true;
@@ -128,12 +128,49 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     }).join("")}</div>`;
   }
 
+
+  function handlePreviewOpen() {
+    if (!currentDetail) {
+      return;
+    }
+    if (typeof onPreviewOpen === "function") {
+      onPreviewOpen(currentDetail);
+    }
+  }
+
+  function renderPreview(detail) {
+    const previewUrl = detail.original_url || detail.preview_url || "";
+    if (!previewUrl) {
+      return "";
+    }
+
+    const buttonAttrs = typeof onPreviewOpen === "function"
+      ? ' type="button" class="image-detail-modal__preview-button" data-detail-preview-open="" aria-label="画像モーダルで表示"'
+      : ' type="button" class="image-detail-modal__preview-button is-static" disabled aria-hidden="true" tabindex="-1"';
+
+    return `
+      <section class="image-detail-modal__section image-detail-modal__section--preview">
+        <button${buttonAttrs}>
+          <span class="image-detail-modal__preview-media">
+            <img class="image-detail-modal__preview-image" src="${escapeHtml(previewUrl)}" alt="${escapeHtml(detail.alt || detail.title || "画像プレビュー")}">
+          </span>
+          <span class="image-detail-modal__preview-meta">
+            <span class="image-detail-modal__preview-label">画像プレビュー</span>
+            <span class="image-detail-modal__preview-hint">クリックで画像表示へ戻る</span>
+          </span>
+        </button>
+      </section>
+    `;
+  }
+
   function render(detail) {
     const sessionData = app?.session?.getState?.()?.data || {};
     const currentUser = sessionData.user || sessionData || {};
     const isAdmin = currentUser.role === "admin";
     const user = detail.user || {};
     const adminMeta = detail.admin_meta || {};
+
+    const previewBlock = renderPreview(detail);
 
     const userBlock = `
       <section class="image-detail-modal__section">
@@ -191,7 +228,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       `
       : "";
 
-    body.innerHTML = `${userBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
+    body.innerHTML = `${previewBlock}${userBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
     syncLikeUi();
   }
 
@@ -228,6 +265,13 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     }
   });
   overlay.querySelector(".image-detail-modal__backdrop")?.addEventListener("click", close);
+  body.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-detail-preview-open]");
+    if (!button) {
+      return;
+    }
+    handlePreviewOpen();
+  });
 
   return { open, update, close, isOpen: () => !overlay.hidden, setLikePending };
 }

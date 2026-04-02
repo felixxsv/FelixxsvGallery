@@ -200,6 +200,8 @@ function buildPublicDetail(image) {
       user_key: image.uploader_user_key || image.user_key || "-",
       avatar_url: withAppBase(image.uploader_avatar_url || image.uploader_avatar_path || image.avatar_url || ""),
     },
+    preview_url: normalizeImageUrl(image),
+    original_url: normalizeImageUrl(image),
   };
 }
 
