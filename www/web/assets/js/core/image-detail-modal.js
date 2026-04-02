@@ -151,8 +151,10 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     return `
       <section class="image-detail-modal__section image-detail-modal__section--preview">
         <button${buttonAttrs}>
-          <span class="image-detail-modal__preview-media">
-            <img class="image-detail-modal__preview-image" src="${escapeHtml(previewUrl)}" alt="${escapeHtml(detail.alt || detail.title || "画像プレビュー")}">
+          <span class="image-detail-modal__preview-frame">
+            <span class="image-detail-modal__preview-media">
+              <img class="image-detail-modal__preview-image" src="${escapeHtml(previewUrl)}" alt="${escapeHtml(detail.alt || detail.title || "画像プレビュー")}">
+            </span>
           </span>
           <span class="image-detail-modal__preview-meta">
             <span class="image-detail-modal__preview-label">画像プレビュー</span>
@@ -173,7 +175,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     const previewBlock = renderPreview(detail);
 
     const userBlock = `
-      <section class="image-detail-modal__section">
+      <section class="image-detail-modal__section image-detail-modal__section--user">
         <h3 class="image-detail-modal__section-title">投稿ユーザー</h3>
         <div class="image-detail-modal__user">
           ${user.avatar_url ? `<img class="image-detail-modal__avatar" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
@@ -184,6 +186,10 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
         </div>
       </section>
     `;
+
+    const heroBlock = previewBlock
+      ? `<div class="image-detail-modal__hero">${previewBlock}${userBlock}</div>`
+      : userBlock;
 
     const infoBlock = `
       <section class="image-detail-modal__section">
@@ -228,7 +234,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       `
       : "";
 
-    body.innerHTML = `${previewBlock}${userBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
+    body.innerHTML = `${heroBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
     syncLikeUi();
   }
 
