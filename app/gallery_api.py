@@ -930,6 +930,9 @@ def upload_images(
 
             palette = load_palette_from_conf(CONF)
             cset = load_settings_from_conf(CONF)
+            has_content_tables = _table_exists(conn, "gallery_contents") and _table_exists(conn, "gallery_content_images")
+            content_cols = _table_cols(conn, "gallery_contents") if has_content_tables else set()
+            content_image_cols = _table_cols(conn, "gallery_content_images") if has_content_tables else set()
 
             conn.autocommit(False)
 
@@ -1099,9 +1102,69 @@ def upload_images(
                         }
                     )
 
+                content_id = None
+                if has_content_tables and created_items:
+                    first_item = created_items[0]
+                    first_staged = staged[0] if staged else None
+                    content_cols_list = ["gallery", "title"]
+                    content_vals = [GALLERY, t]
+
+                    if "alt" in content_cols:
+                        content_cols_list.append("alt")
+                        content_vals.append(str(alt or ""))
+                    if "shot_at" in content_cols:
+                        content_cols_list.append("shot_at")
+                        content_vals.append(first_staged["shot_at"] if first_staged else _now_local_naive(CONF))
+                    if "is_public" in content_cols:
+                        content_cols_list.append("is_public")
+                        content_vals.append(1 if is_pub else 0)
+                    if "uploader_user_id" in content_cols and u is not None:
+                        content_cols_list.append("uploader_user_id")
+                        content_vals.append(int(u["id"]))
+                    if "thumbnail_image_id" in content_cols:
+                        content_cols_list.append("thumbnail_image_id")
+                        content_vals.append(int(first_item["image_id"]))
+                    if "image_count" in content_cols:
+                        content_cols_list.append("image_count")
+                        content_vals.append(int(len(created_items)))
+
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            f"INSERT INTO gallery_contents ({', '.join(content_cols_list)}) VALUES ({', '.join(['%s'] * len(content_cols_list))})",
+                            content_vals,
+                        )
+                        cur.execute("SELECT LAST_INSERT_ID() AS id")
+                        content_id = int(cur.fetchone()["id"])
+
+                    map_cols_base = ["content_id", "image_id"]
+                    for idx, item in enumerate(created_items):
+                        map_cols_list = list(map_cols_base)
+                        map_vals = [content_id, int(item["image_id"])]
+                        if "sort_order" in content_image_cols:
+                            map_cols_list.append("sort_order")
+                            map_vals.append(idx + 1)
+                        if "is_thumbnail" in content_image_cols:
+                            map_cols_list.append("is_thumbnail")
+                            map_vals.append(1 if idx == 0 else 0)
+                        with conn.cursor() as cur:
+                            cur.execute(
+                                f"INSERT INTO gallery_content_images ({', '.join(map_cols_list)}) VALUES ({', '.join(['%s'] * len(map_cols_list))})",
+                                map_vals,
+                            )
+                        item["content_id"] = content_id
+                        item["content_key"] = f"c-{content_id}"
+
                 conn.commit()
                 conn.autocommit(True)
-                return {"ok": True, "has_duplicates": False, "count": len(created_items), "items": created_items}
+                return {
+                    "ok": True,
+                    "has_duplicates": False,
+                    "count": len(created_items),
+                    "items": created_items,
+                    "content_created": bool(has_content_tables and created_items),
+                    "content_id": content_id,
+                    "content_key": f"c-{content_id}" if content_id else None,
+                }
 
             except Exception as e:
                 try:
