@@ -72,6 +72,45 @@ body.is-image-modal-open {
   transform: translateY(-8px);
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
+.image-modal__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  margin-top: -26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 18, 28, 0.65);
+  color: #ffffff;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+}
+
+.image-modal__nav:hover {
+  background: rgba(20, 28, 42, 0.82);
+}
+
+.image-modal__nav:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.image-modal__nav--prev {
+  left: 24px;
+  transform: translateX(-8px);
+}
+
+.image-modal__nav--next {
+  right: 24px;
+  transform: translateX(8px);
+}
+
 
 .image-modal__footer {
   position: absolute;
@@ -119,6 +158,21 @@ body.is-image-modal-open {
   transform: translateY(0);
 }
 
+.image-modal.is-controls-visible .image-modal__nav,
+.image-modal.is-detail-open .image-modal__nav {
+  opacity: 1;
+}
+
+.image-modal.is-controls-visible .image-modal__nav--prev,
+.image-modal.is-detail-open .image-modal__nav--prev {
+  transform: translateX(0);
+}
+
+.image-modal.is-controls-visible .image-modal__nav--next,
+.image-modal.is-detail-open .image-modal__nav--next {
+  transform: translateX(0);
+}
+
 .image-modal__meta {
   min-width: 0;
 }
@@ -138,6 +192,14 @@ body.is-image-modal-open {
   color: rgba(236, 242, 255, 0.88);
   font-size: 13px;
 }
+.image-modal__pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(236, 242, 255, 0.88);
+  font-weight: 700;
+}
+
 
 .image-modal__user {
   display: inline-flex;

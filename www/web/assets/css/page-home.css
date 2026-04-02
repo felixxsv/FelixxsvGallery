@@ -708,6 +708,53 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   height: 100%;
   color: rgba(226, 232, 240, 0.5);
 }
+.home-gallery-card__badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  min-width: 42px;
+  height: 28px;
+  padding: 0 10px 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  border-radius: 999px;
+  background: rgba(8, 15, 30, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  font-size: 0.76rem;
+  font-weight: 700;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.home-gallery-card__badge::before,
+.home-gallery-card__badge::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.08);
+  left: 10px;
+}
+
+.home-gallery-card__badge::before {
+  transform: translate(-3px, 1px);
+  opacity: 0.56;
+}
+
+.home-gallery-card__badge::after {
+  transform: translate(0, -1px);
+}
+
+.home-gallery-card__badge-count {
+  margin-left: 12px;
+}
+
 
 .home-gallery-card__body {
   position: absolute;

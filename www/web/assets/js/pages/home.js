@@ -694,10 +694,14 @@ export function initHomePage(app) {
     const likeButton = fragment.querySelector("[data-action='toggle-like']");
     const likeIcon = fragment.querySelector("[data-card-like-icon]");
     const likeCount = fragment.querySelector("[data-card-like-count]");
+    const badge = fragment.querySelector("[data-card-badge]");
+    const badgeCount = fragment.querySelector("[data-card-image-count]");
     const imageUrl = normalizeImageUrl(image);
+    const imageCount = Math.max(1, Number(image.image_count || 1));
 
     article.dataset.imageIndex = String(index);
-    article.dataset.imageId = String(image.id ?? "");
+    article.dataset.imageId = String(image.thumbnail_image_id ?? image.id ?? "");
+    article.dataset.contentId = String(image.content_id ?? `i-${image.id ?? ""}`);
 
     if (imageUrl) {
       link.href = imageUrl;
@@ -710,6 +714,12 @@ export function initHomePage(app) {
       link.href = "#";
       imageNode.hidden = true;
       emptyNode.hidden = false;
+    }
+
+    if (badge && badgeCount) {
+      badge.hidden = imageCount <= 1;
+      badgeCount.textContent = String(imageCount);
+      badge.setAttribute("aria-label", `画像 ${imageCount} 枚`);
     }
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
@@ -864,26 +874,116 @@ export function initHomePage(app) {
     }
   }
 
+  async function fetchContentDetail(item) {
+    if (!item?.content_id) {
+      return {
+        content_id: `i-${item?.id ?? ""}`,
+        title: item?.title || "タイトル未設定",
+        alt: item?.alt || "",
+        image_count: 1,
+        thumbnail_image_id: item?.id ?? null,
+        images: [
+          {
+            ...item,
+            image_id: item?.id ?? null,
+            id: item?.id ?? null,
+            preview_url: normalizeImageUrl(item || {}),
+            original_url: item?.id ? withAppBase(`/media/original/${item.id}`) : normalizeImageUrl(item || {}),
+            viewer_liked: Boolean(item?.viewer_liked),
+            detailLoader: async () => fetchImageDetail(item),
+          },
+        ],
+      };
+    }
+
+    try {
+      const payload = await app.api.get(`/api/contents/${encodeURIComponent(item.content_id)}`);
+      const detailRoot = payload?.data ?? payload ?? {};
+      const contentTitle = detailRoot.title || item.title || "タイトル未設定";
+      const contentAlt = detailRoot.alt ?? item.alt ?? "";
+      const imagesSource = Array.isArray(detailRoot.images) && detailRoot.images.length ? detailRoot.images : [item];
+      const images = imagesSource.map((image, imageIndex) => {
+        const imageId = image.image_id ?? image.id ?? null;
+        const merged = {
+          ...item,
+          ...image,
+          id: imageId,
+          image_id: imageId,
+          title: contentTitle,
+          alt: contentAlt,
+          posted_at: image.posted_at || image.created_at || detailRoot.created_at || item.created_at || item.shot_at || null,
+          preview_url: normalizeImageUrl(image),
+          original_url: imageId ? withAppBase(`/media/original/${imageId}`) : normalizeImageUrl(image),
+          viewer_liked: Boolean(image.viewer_liked),
+        };
+        merged.detailLoader = async () => fetchImageDetail(merged);
+        merged.content_id = detailRoot.content_id || item.content_id || `i-${imageId ?? imageIndex}`;
+        return merged;
+      });
+
+      return {
+        ...detailRoot,
+        content_id: detailRoot.content_id || item.content_id || `i-${item.id ?? ""}`,
+        title: contentTitle,
+        alt: contentAlt,
+        image_count: Number(detailRoot.image_count || images.length || 1),
+        thumbnail_image_id: detailRoot.thumbnail_image_id ?? item.thumbnail_image_id ?? item.id ?? null,
+        images,
+      };
+    } catch {
+      return {
+        content_id: item.content_id || `i-${item.id ?? ""}`,
+        title: item.title || "タイトル未設定",
+        alt: item.alt || "",
+        image_count: Number(item.image_count || 1),
+        thumbnail_image_id: item.thumbnail_image_id ?? item.id ?? null,
+        images: [
+          {
+            ...item,
+            image_id: item.id ?? null,
+            id: item.id ?? null,
+            preview_url: normalizeImageUrl(item),
+            original_url: item.id ? withAppBase(`/media/original/${item.id}`) : normalizeImageUrl(item),
+            viewer_liked: Boolean(item.viewer_liked),
+            detailLoader: async () => fetchImageDetail(item),
+          },
+        ],
+      };
+    }
+  }
+
   async function openImageFromCard(index) {
     const item = state.items[index];
     if (!item) {
       return;
     }
 
+    const contentDetail = await fetchContentDetail(item);
+    const images = Array.isArray(contentDetail.images) ? contentDetail.images : [];
+    const initialIndex = Math.max(0, images.findIndex((image) => Number(image.image_id ?? image.id) === Number(contentDetail.thumbnail_image_id ?? item.id)));
+
     const payload = {
       ...item,
-      preview_url: normalizeImageUrl(item),
-      original_url: normalizeImageUrl(item),
-      viewer_liked: Boolean(item.viewer_liked),
-      detailLoader: async () => fetchImageDetail(item),
+      ...contentDetail,
+      image_id: images[initialIndex]?.image_id ?? item.id ?? null,
+      preview_url: images[initialIndex]?.preview_url || normalizeImageUrl(item),
+      original_url: images[initialIndex]?.original_url || (item.id ? withAppBase(`/media/original/${item.id}`) : normalizeImageUrl(item)),
+      images,
+      currentIndex: initialIndex,
+      viewer_liked: Boolean(images[initialIndex]?.viewer_liked ?? item.viewer_liked),
+      detailLoader: images[initialIndex]?.detailLoader || (async () => fetchImageDetail(item)),
     };
 
     app.imageModal.openByPreference(payload, {
-      detail: buildPublicDetail(item),
-      detailLoader: async () => fetchImageDetail(item),
+      items: images,
+      currentIndex: initialIndex,
+      detail: buildPublicDetail(images[initialIndex] || item),
+      detailLoader: images[initialIndex]?.detailLoader || (async () => fetchImageDetail(item)),
       onLikeChange(nextState) {
-        syncImageLikeState(item.id, nextState || {});
-        if (getFilterSnapshot().shortcut === "favorites" && !Boolean(nextState?.viewer_liked)) {
+        if (nextState?.image_id) {
+          syncImageLikeState(nextState.image_id, nextState || {});
+        }
+        if (getFilterSnapshot().shortcut === "favorites") {
           reloadFromFilters();
         }
       },
@@ -905,7 +1005,7 @@ export function initHomePage(app) {
     });
 
     try {
-      const payload = await app.api.get(`/api/image-archives?${query.toString()}`);
+      const payload = await app.api.get(`/api/content-archives?${query.toString()}`);
       const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data?.items) ? payload.data.items : [];
       renderArchives(items, filters.archiveKind);
       syncArchiveSelectionFromInputs(filters.archiveKind);
@@ -941,7 +1041,7 @@ export function initHomePage(app) {
         query.set("random_seed", state.randomSeed);
       }
 
-      const payload = await app.api.get(`/api/images?${query.toString()}`);
+      const payload = await app.api.get(`/api/contents?${query.toString()}`);
       const list = extractListPayload(payload);
       const actualPerPage = Number(list.perPage || state.perPage || computePerPage());
       const actualTotal = Number(list.total || 0);

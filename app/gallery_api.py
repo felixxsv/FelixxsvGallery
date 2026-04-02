@@ -1172,3 +1172,484 @@ LIMIT 1
         shutil.copy2(src, dst)
 
     return FileResponse(str(dst))
+
+
+def _table_exists(conn: pymysql.Connection, table_name: str) -> bool:
+    with conn.cursor() as cur:
+        cur.execute("SHOW TABLES LIKE %s", (table_name,))
+        return cur.fetchone() is not None
+
+
+def _content_key_expr(image_alias: str = "i", mapping_alias: str = "gci") -> str:
+    return f"CASE WHEN {mapping_alias}.content_id IS NULL THEN CONCAT('i-', {image_alias}.id) ELSE CONCAT('c-', {mapping_alias}.content_id) END"
+
+
+def _content_sort_clause(sort_key: str) -> str:
+    key = (sort_key or "latest").lower()
+    if key == "popular":
+        return "ORDER BY view_count_sum DESC, content_shot_at DESC, content_created_at DESC, content_key DESC"
+    if key == "oldest":
+        return "ORDER BY content_shot_at ASC, content_created_at ASC, content_key ASC"
+    return "ORDER BY content_shot_at DESC, content_created_at DESC, content_key DESC"
+
+
+def _normalize_content_detail_item(item: dict, content_title: str | None, content_alt: str | None) -> dict:
+    return {
+        "image_id": int(item["image_id"]),
+        "id": int(item["image_id"]),
+        "title": content_title or item.get("title") or "タイトル未設定",
+        "alt": content_alt if content_alt is not None else (item.get("alt") or ""),
+        "shot_at": item.get("shot_at"),
+        "created_at": item.get("created_at"),
+        "posted_at": item.get("created_at") or item.get("shot_at"),
+        "preview_path": item.get("preview_path"),
+        "thumb_path_480": item.get("thumb_path_480"),
+        "thumb_path_960": item.get("thumb_path_960"),
+        "width": item.get("width"),
+        "height": item.get("height"),
+        "format": item.get("format"),
+        "like_count": int(item.get("like_count") or 0),
+        "viewer_liked": bool(item.get("viewer_liked")),
+        "view_count": int(item.get("view_count") or 0),
+        "sort_order": item.get("sort_order"),
+        "is_thumbnail": bool(item.get("is_thumbnail")),
+    }
+
+
+@app.get("/api/contents")
+def list_contents(
+    req: Request,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(90, ge=1),
+    sort: str = Query("latest"),
+    q: str | None = None,
+    tags_any: str | None = None,
+    tags_all: str | None = None,
+    colors_any: str | None = None,
+    colors_all: str | None = None,
+    shot_date_from: str | None = None,
+    shot_date_to: str | None = None,
+    posted_date_from: str | None = None,
+    posted_date_to: str | None = None,
+    shortcut: str | None = None,
+    random_seed: str | None = None,
+):
+    per_page = clamp_per_page(per_page)
+    offset = (page - 1) * per_page
+
+    conn = db_conn(CONF)
+    try:
+        if not (_table_exists(conn, "gallery_contents") and _table_exists(conn, "gallery_content_images")):
+            payload = list_images(
+                req=req,
+                page=page,
+                per_page=per_page,
+                sort=sort,
+                q=q,
+                tags_any=tags_any,
+                tags_all=tags_all,
+                colors_any=colors_any,
+                colors_all=colors_all,
+                shot_date_from=shot_date_from,
+                shot_date_to=shot_date_to,
+                posted_date_from=posted_date_from,
+                posted_date_to=posted_date_to,
+                shortcut=shortcut,
+                random_seed=random_seed,
+            )
+            items = []
+            for item in payload.get("items", []):
+                items.append({
+                    "content_id": f"i-{int(item['id'])}",
+                    "thumbnail_image_id": int(item["id"]),
+                    "image_count": 1,
+                    **item,
+                })
+            payload["items"] = items
+            return payload
+
+        current_user = _get_current_user(req)
+        viewer_user_id = int(current_user["id"]) if current_user else None
+        tags_any_list = parse_csv_strs(tags_any)
+        tags_all_list = parse_csv_strs(tags_all)
+        colors_any_list = parse_csv_ints(colors_any)
+        colors_all_list = parse_csv_ints(colors_all)
+
+        tag_sql, tag_params = build_tag_filter_sql(GALLERY, tags_any_list, tags_all_list)
+        color_sql, color_params = build_color_filter_sql(colors_any_list, colors_all_list)
+        date_sql, date_params = build_gallery_date_filters(
+            shot_date_from,
+            shot_date_to,
+            posted_date_from,
+            posted_date_to,
+        )
+        text_sql, text_params = build_text_search_sql(GALLERY, q)
+        shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF), viewer_user_id=viewer_user_id)
+        where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}"
+        where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
+        join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+        join_content = "LEFT JOIN gallery_content_images gci ON gci.image_id=i.id LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery"
+        content_key_expr = _content_key_expr("i", "gci")
+        sort_key = (sort or "latest").lower()
+
+        count_sql = f"""
+SELECT COUNT(*) AS c
+FROM (
+  SELECT {content_key_expr} AS content_key
+  FROM images i
+  JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+  {join_stats}
+  {join_content}
+  WHERE i.gallery=%s AND i.is_public=1
+  {where_extra_sql}
+  GROUP BY content_key
+) counted
+"""
+
+        order_seed = str(random_seed or "").strip() or _now_local_naive(CONF).strftime("%Y%m%d")
+        order_clause = _content_sort_clause(sort_key)
+        page_params: list = [GALLERY, GALLERY, *where_extra_params]
+        if sort_key == "random":
+            order_clause = "ORDER BY SHA2(CONCAT(%s, ':', content_key), 256)"
+            page_params.append(order_seed)
+
+        page_sql = f"""
+SELECT
+  {content_key_expr} AS content_key,
+  MAX(COALESCE(gc.shot_at, i.shot_at, i.created_at)) AS content_shot_at,
+  MAX(COALESCE(gc.created_at, i.created_at, i.shot_at)) AS content_created_at,
+  SUM(COALESCE(st.view_count, 0)) AS view_count_sum,
+  MAX(COALESCE(NULLIF(gc.title, ''), i.title, i.alt, CONCAT('image-', i.id))) AS content_title,
+  MAX(COALESCE(gc.alt, i.alt, '')) AS content_alt
+FROM images i
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+{join_stats}
+{join_content}
+WHERE i.gallery=%s AND i.is_public=1
+{where_extra_sql}
+GROUP BY content_key
+{order_clause}
+LIMIT %s OFFSET %s
+"""
+        page_params.extend([per_page, offset])
+
+        with conn.cursor() as cur:
+            cur.execute(count_sql, [GALLERY, GALLERY, *where_extra_params])
+            total = int((cur.fetchone() or {}).get("c") or 0)
+            cur.execute(page_sql, page_params)
+            rows = cur.fetchall()
+
+        content_keys = [str(row["content_key"]) for row in rows]
+        thumbs_by_key: dict[str, dict] = {}
+
+        if content_keys:
+            key_placeholders = ",".join(["%s"] * len(content_keys))
+            thumb_viewer_sql = "0 AS viewer_liked"
+            thumb_params: list = []
+            if viewer_user_id is not None:
+                thumb_viewer_sql = "EXISTS(SELECT 1 FROM image_likes il WHERE il.image_id=i.id AND il.user_id=%s) AS viewer_liked"
+                thumb_params.append(viewer_user_id)
+
+            thumb_sql = f"""
+SELECT *
+FROM (
+  SELECT
+    {content_key_expr} AS content_key,
+    i.id AS image_id,
+    i.shot_at,
+    i.created_at,
+    i.title,
+    i.alt,
+    i.width,
+    i.height,
+    i.format,
+    i.thumb_path_480,
+    i.thumb_path_960,
+    i.preview_path,
+    i.like_count,
+    {thumb_viewer_sql},
+    COUNT(*) OVER (PARTITION BY {content_key_expr}) AS image_count,
+    ROW_NUMBER() OVER (
+      PARTITION BY {content_key_expr}
+      ORDER BY
+        CASE WHEN gc.thumbnail_image_id=i.id THEN 0 ELSE 1 END,
+        CASE WHEN COALESCE(gci.is_thumbnail, 0)=1 THEN 0 ELSE 1 END,
+        CASE WHEN gci.sort_order IS NULL THEN 1 ELSE 0 END,
+        COALESCE(gci.sort_order, 2147483647),
+        i.id ASC
+    ) AS rn
+  FROM images i
+  JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+  LEFT JOIN gallery_content_images gci ON gci.image_id=i.id
+  LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery
+  WHERE i.gallery=%s AND i.is_public=1 AND {content_key_expr} IN ({key_placeholders})
+) picked
+WHERE picked.rn=1
+"""
+            thumb_exec = [*thumb_params, GALLERY, GALLERY, *content_keys]
+            with conn.cursor() as cur:
+                cur.execute(thumb_sql, thumb_exec)
+                for row in cur.fetchall():
+                    thumbs_by_key[str(row["content_key"])] = row
+
+        items: list[dict] = []
+        for row in rows:
+            content_key = str(row["content_key"])
+            thumb = thumbs_by_key.get(content_key)
+            if not thumb:
+                continue
+            items.append({
+                "content_id": content_key,
+                "thumbnail_image_id": int(thumb["image_id"]),
+                "id": int(thumb["image_id"]),
+                "image_count": int(thumb.get("image_count") or 1),
+                "title": row.get("content_title") or thumb.get("title") or thumb.get("alt") or f"image-{thumb['image_id']}",
+                "alt": row.get("content_alt") if row.get("content_alt") is not None else (thumb.get("alt") or ""),
+                "shot_at": row.get("content_shot_at") or thumb.get("shot_at"),
+                "created_at": row.get("content_created_at") or thumb.get("created_at"),
+                "width": thumb.get("width"),
+                "height": thumb.get("height"),
+                "format": thumb.get("format"),
+                "thumb_path_480": thumb.get("thumb_path_480"),
+                "thumb_path_960": thumb.get("thumb_path_960"),
+                "preview_path": thumb.get("preview_path"),
+                "like_count": int(thumb.get("like_count") or 0),
+                "viewer_liked": bool(thumb.get("viewer_liked")),
+                "view_count": int(row.get("view_count_sum") or 0),
+            })
+
+        pages = (total + per_page - 1) // per_page if total else 0
+        return {"page": page, "per_page": per_page, "pages": pages, "total": total, "items": items}
+    finally:
+        conn.close()
+
+
+@app.get("/api/content-archives")
+def list_content_archives(
+    req: Request,
+    kind: str = Query("shot"),
+    q: str | None = None,
+    tags_any: str | None = None,
+    tags_all: str | None = None,
+    colors_any: str | None = None,
+    colors_all: str | None = None,
+    shot_date_from: str | None = None,
+    shot_date_to: str | None = None,
+    posted_date_from: str | None = None,
+    posted_date_to: str | None = None,
+    shortcut: str | None = None,
+):
+    archive_kind = str(kind or "shot").strip().lower()
+    if archive_kind not in ("shot", "posted"):
+        raise HTTPException(status_code=400, detail="invalid kind")
+
+    conn = db_conn(CONF)
+    try:
+        if not (_table_exists(conn, "gallery_contents") and _table_exists(conn, "gallery_content_images")):
+            return list_image_archives(
+                req=req,
+                kind=archive_kind,
+                q=q,
+                tags_any=tags_any,
+                tags_all=tags_all,
+                colors_any=colors_any,
+                colors_all=colors_all,
+                shot_date_from=shot_date_from,
+                shot_date_to=shot_date_to,
+                posted_date_from=posted_date_from,
+                posted_date_to=posted_date_to,
+                shortcut=shortcut,
+            )
+
+        current_user = _get_current_user(req)
+        viewer_user_id = int(current_user["id"]) if current_user else None
+        tags_any_list = parse_csv_strs(tags_any)
+        tags_all_list = parse_csv_strs(tags_all)
+        colors_any_list = parse_csv_ints(colors_any)
+        colors_all_list = parse_csv_ints(colors_all)
+
+        tag_sql, tag_params = build_tag_filter_sql(GALLERY, tags_any_list, tags_all_list)
+        color_sql, color_params = build_color_filter_sql(colors_any_list, colors_all_list)
+        text_sql, text_params = build_text_search_sql(GALLERY, q)
+        shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF), viewer_user_id=viewer_user_id)
+
+        shot_from = shot_date_from if archive_kind != "shot" else None
+        shot_to = shot_date_to if archive_kind != "shot" else None
+        posted_from = posted_date_from if archive_kind != "posted" else None
+        posted_to = posted_date_to if archive_kind != "posted" else None
+        date_sql, date_params = build_gallery_date_filters(shot_from, shot_to, posted_from, posted_to)
+
+        where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}"
+        where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
+        join_content = "LEFT JOIN gallery_content_images gci ON gci.image_id=i.id LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery"
+        content_key_expr = _content_key_expr("i", "gci")
+        target_expr = "MAX(COALESCE(gc.created_at, i.created_at, i.shot_at))" if archive_kind == "posted" else "MAX(COALESCE(gc.shot_at, i.shot_at, i.created_at))"
+
+        sql = f"""
+SELECT archive_year, archive_month, COUNT(*) AS c
+FROM (
+  SELECT
+    {content_key_expr} AS content_key,
+    YEAR({target_expr}) AS archive_year,
+    MONTH({target_expr}) AS archive_month
+  FROM images i
+  JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+  {join_content}
+  WHERE i.gallery=%s AND i.is_public=1
+  {where_extra_sql}
+  GROUP BY content_key
+) content_archives
+WHERE archive_year IS NOT NULL AND archive_month IS NOT NULL
+GROUP BY archive_year, archive_month
+ORDER BY archive_year DESC, archive_month DESC
+"""
+
+        with conn.cursor() as cur:
+            cur.execute(sql, [GALLERY, GALLERY, *where_extra_params])
+            rows = cur.fetchall()
+
+        grouped: list[dict] = []
+        current_year = None
+        current_months: list[dict] = []
+        for row in rows:
+            year = int(row["archive_year"])
+            month = int(row["archive_month"])
+            count = int(row["c"])
+            if current_year != year:
+                if current_year is not None:
+                    grouped.append({"year": current_year, "months": current_months})
+                current_year = year
+                current_months = []
+            current_months.append({"month": month, "count": count})
+        if current_year is not None:
+            grouped.append({"year": current_year, "months": current_months})
+        return {"kind": archive_kind, "items": grouped}
+    finally:
+        conn.close()
+
+
+@app.get("/api/contents/{content_key}")
+def get_content(content_key: str, req: Request):
+    key = str(content_key or "").strip().lower()
+    if key.startswith("i-"):
+        image_id = int(key[2:])
+        detail = get_image(image_id=image_id, req=req)
+        detail["content_id"] = key
+        detail["image_count"] = 1
+        detail["thumbnail_image_id"] = image_id
+        detail["images"] = [
+            {
+                "image_id": image_id,
+                "id": image_id,
+                "title": detail.get("title") or "タイトル未設定",
+                "alt": detail.get("alt") or "",
+                "shot_at": detail.get("shot_at"),
+                "created_at": detail.get("created_at") or detail.get("posted_at") or detail.get("shot_at"),
+                "posted_at": detail.get("created_at") or detail.get("posted_at") or detail.get("shot_at"),
+                "preview_path": detail.get("preview_path"),
+                "thumb_path_480": detail.get("thumb_path_480"),
+                "thumb_path_960": detail.get("thumb_path_960"),
+                "width": detail.get("width"),
+                "height": detail.get("height"),
+                "format": detail.get("format"),
+                "like_count": int(detail.get("like_count") or 0),
+                "viewer_liked": bool(detail.get("viewer_liked")),
+                "view_count": int(detail.get("view_count") or 0),
+                "sort_order": 1,
+                "is_thumbnail": True,
+            }
+        ]
+        return detail
+
+    if not key.startswith("c-"):
+        raise HTTPException(status_code=400, detail="invalid content key")
+
+    try:
+        content_id = int(key[2:])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid content key")
+
+    current_user = _get_current_user(req)
+    viewer_user_id = int(current_user["id"]) if current_user else None
+    viewer_liked_sql = "0 AS viewer_liked"
+    viewer_liked_params: list = []
+    if viewer_user_id is not None:
+        viewer_liked_sql = "EXISTS(SELECT 1 FROM image_likes il WHERE il.image_id=i.id AND il.user_id=%s) AS viewer_liked"
+        viewer_liked_params.append(viewer_user_id)
+
+    conn = db_conn(CONF)
+    try:
+        if not (_table_exists(conn, "gallery_contents") and _table_exists(conn, "gallery_content_images")):
+            raise HTTPException(status_code=404, detail="not found")
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+SELECT id, gallery, title, alt, shot_at, created_at, updated_at, thumbnail_image_id, image_count
+FROM gallery_contents
+WHERE gallery=%s AND id=%s
+LIMIT 1
+""",
+                (GALLERY, content_id),
+            )
+            content_row = cur.fetchone()
+            if not content_row:
+                raise HTTPException(status_code=404, detail="not found")
+
+            cur.execute(
+                f"""
+SELECT
+  i.id AS image_id,
+  i.title,
+  i.alt,
+  i.shot_at,
+  i.created_at,
+  i.width,
+  i.height,
+  i.format,
+  i.thumb_path_480,
+  i.thumb_path_960,
+  i.preview_path,
+  i.like_count,
+  COALESCE(st.view_count,0) AS view_count,
+  {viewer_liked_sql},
+  gci.sort_order,
+  COALESCE(gci.is_thumbnail, 0) AS is_thumbnail
+FROM gallery_content_images gci
+JOIN images i ON i.id=gci.image_id AND i.gallery=%s AND i.is_public=1
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+LEFT JOIN image_stats st ON st.image_id=i.id
+WHERE gci.content_id=%s
+ORDER BY
+  CASE WHEN %s IS NOT NULL AND %s = i.id THEN 0 ELSE 1 END,
+  CASE WHEN COALESCE(gci.is_thumbnail, 0)=1 THEN 0 ELSE 1 END,
+  CASE WHEN gci.sort_order IS NULL THEN 1 ELSE 0 END,
+  COALESCE(gci.sort_order, 2147483647),
+  i.id ASC
+""",
+                [*viewer_liked_params, GALLERY, GALLERY, content_id, content_row.get("thumbnail_image_id"), content_row.get("thumbnail_image_id")],
+            )
+            image_rows = cur.fetchall()
+
+        if not image_rows:
+            raise HTTPException(status_code=404, detail="not found")
+
+        images = [_normalize_content_detail_item(row, content_row.get("title"), content_row.get("alt")) for row in image_rows]
+        thumbnail_image_id = int(images[0]["image_id"])
+        primary = images[0]
+        return {
+            "content_id": key,
+            "id": content_id,
+            "title": content_row.get("title") or primary.get("title") or "タイトル未設定",
+            "alt": content_row.get("alt") if content_row.get("alt") is not None else (primary.get("alt") or ""),
+            "shot_at": content_row.get("shot_at") or primary.get("shot_at"),
+            "created_at": content_row.get("created_at") or primary.get("created_at"),
+            "posted_at": content_row.get("created_at") or primary.get("created_at"),
+            "thumbnail_image_id": thumbnail_image_id,
+            "image_count": len(images),
+            "like_count": int(primary.get("like_count") or 0),
+            "viewer_liked": bool(primary.get("viewer_liked")),
+            "images": images,
+        }
+    finally:
+        conn.close()

@@ -63,8 +63,8 @@ function normalizePayload(item, options = {}) {
   normalized.title = item?.title || item?.alt || "タイトル未設定";
   normalized.alt = item?.alt || item?.title || "";
   normalized.preview_url = withAppBase(
-    item?.original_url ||
-      item?.preview_url ||
+    item?.preview_url ||
+      item?.original_url ||
       item?.preview_path ||
       item?.thumb_path_960 ||
       item?.thumb_path_480 ||
@@ -96,6 +96,17 @@ function normalizePayload(item, options = {}) {
   return normalized;
 }
 
+function normalizeItems(payload, options = {}) {
+  const rawItems = Array.isArray(options.items)
+    ? options.items
+    : Array.isArray(payload?.images)
+      ? payload.images
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : [payload];
+  return rawItems.map((item) => normalizePayload(item, { detailLoader: item?.detailLoader || options.detailLoader || payload?.detailLoader }));
+}
+
 export function createImageModalController({ app, body = document.body } = {}) {
   ensureStylesheet(app.appBase);
 
@@ -104,8 +115,10 @@ export function createImageModalController({ app, body = document.body } = {}) {
   root.hidden = true;
   root.innerHTML = `
     <div class="image-modal__backdrop"></div>
-    <div class="image-modal__viewport">
+    <div class="image-modal__viewport" tabindex="-1">
       <button type="button" class="image-modal__close" aria-label="閉じる">×</button>
+      <button type="button" class="image-modal__nav image-modal__nav--prev" data-action="prev" aria-label="前の画像">‹</button>
+      <button type="button" class="image-modal__nav image-modal__nav--next" data-action="next" aria-label="次の画像">›</button>
       <div class="image-modal__stage">
         <img class="image-modal__image" alt="">
       </div>
@@ -117,6 +130,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
           <div class="image-modal__title">-</div>
           <div class="image-modal__submeta">
             <span class="image-modal__posted-at">-</span>
+            <span class="image-modal__pager" hidden>
+              <span class="image-modal__pager-current">1</span>
+              <span class="image-modal__pager-separator">/</span>
+              <span class="image-modal__pager-total">1</span>
+            </span>
             <span class="image-modal__user">
               <span class="image-modal__user-avatar"></span>
               <span class="image-modal__user-text">-</span>
@@ -138,17 +156,24 @@ export function createImageModalController({ app, body = document.body } = {}) {
   const stage = root.querySelector(".image-modal__stage");
   const image = root.querySelector(".image-modal__image");
   const closeButton = root.querySelector(".image-modal__close");
+  const prevButton = root.querySelector("[data-action='prev']");
+  const nextButton = root.querySelector("[data-action='next']");
   const sliderWrap = root.querySelector(".image-modal__slider-wrap");
   const slider = root.querySelector(".image-modal__slider");
   const titleNode = root.querySelector(".image-modal__title");
   const postedAtNode = root.querySelector(".image-modal__posted-at");
+  const pagerNode = root.querySelector(".image-modal__pager");
+  const pagerCurrentNode = root.querySelector(".image-modal__pager-current");
+  const pagerTotalNode = root.querySelector(".image-modal__pager-total");
   const userAvatarNode = root.querySelector(".image-modal__user-avatar");
   const userTextNode = root.querySelector(".image-modal__user-text");
   const likeButton = root.querySelector("[data-action='like']");
   const likeCountNode = root.querySelector(".image-modal__like-count");
 
   const state = {
+    items: [],
     current: null,
+    currentIndex: 0,
     detailCache: null,
     detailOpen: false,
     onLikeChange: null,
@@ -195,6 +220,22 @@ export function createImageModalController({ app, body = document.body } = {}) {
       viewport.focus?.();
     },
   });
+
+  function currentItem() {
+    return state.items[state.currentIndex] || state.current || null;
+  }
+
+  function syncPagerUi() {
+    const total = state.items.length;
+    const multi = total > 1;
+    pagerNode.hidden = !multi;
+    prevButton.hidden = !multi;
+    nextButton.hidden = !multi;
+    prevButton.disabled = !multi || state.currentIndex <= 0;
+    nextButton.disabled = !multi || state.currentIndex >= total - 1;
+    pagerCurrentNode.textContent = String(Math.min(total, state.currentIndex + 1));
+    pagerTotalNode.textContent = String(total || 1);
+  }
 
   function applyTransform() {
     image.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom / 100})`;
@@ -274,7 +315,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
   }
 
   function syncLikeUi() {
-    const current = state.current || {};
+    const current = currentItem() || {};
     const liked = Boolean(current.viewer_liked);
     likeButton.classList.toggle("is-active", liked);
     likeButton.classList.toggle("is-pending", state.likePending);
@@ -287,7 +328,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
   }
 
   function populateFooter() {
-    const item = state.current || {};
+    const item = currentItem() || {};
     titleNode.textContent = item.title || "タイトル未設定";
     postedAtNode.textContent = formatDateTime(item.posted_at);
     const user = item.user || {};
@@ -298,6 +339,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
       userAvatarNode.textContent = (user.display_name || "?").slice(0, 1);
     }
     userTextNode.textContent = `${textOrDash(user.display_name)} / @${textOrDash(user.user_key)}`;
+    syncPagerUi();
     syncLikeUi();
   }
 
@@ -306,16 +348,22 @@ export function createImageModalController({ app, body = document.body } = {}) {
   }
 
   function applyLikeState(nextState = {}) {
-    if (!state.current) {
+    const current = currentItem();
+    if (!current) {
       return;
     }
 
     if (nextState.viewer_liked !== undefined) {
-      state.current.viewer_liked = Boolean(nextState.viewer_liked);
+      current.viewer_liked = Boolean(nextState.viewer_liked);
     }
     if (nextState.like_count !== undefined) {
-      state.current.like_count = normalizeLikeCount(nextState.like_count);
+      current.like_count = normalizeLikeCount(nextState.like_count);
     }
+
+    if (state.current) {
+      state.current = current;
+    }
+
     if (state.detailCache) {
       if (nextState.viewer_liked !== undefined) {
         state.detailCache.viewer_liked = Boolean(nextState.viewer_liked);
@@ -329,23 +377,25 @@ export function createImageModalController({ app, body = document.body } = {}) {
   }
 
   async function openDetail() {
-    if (!state.current) return;
-    if (!state.detailCache && typeof state.current.detailLoader === "function") {
+    const current = currentItem();
+    if (!current) return;
+    if (!state.detailCache && typeof current.detailLoader === "function") {
       try {
-        state.detailCache = normalizePayload(await state.current.detailLoader(state.current), {
-          detailLoader: state.current.detailLoader,
+        state.detailCache = normalizePayload(await current.detailLoader(current), {
+          detailLoader: current.detailLoader,
         });
       } catch {
-        state.detailCache = normalizePayload(state.current, {
-          detailLoader: state.current.detailLoader,
+        state.detailCache = normalizePayload(current, {
+          detailLoader: current.detailLoader,
         });
       }
     }
-    detailModal.open(state.detailCache || normalizePayload(state.current));
+    detailModal.open(state.detailCache || normalizePayload(current));
   }
 
   async function toggleLike() {
-    if (!state.current?.image_id) {
+    const current = currentItem();
+    if (!current?.image_id) {
       return;
     }
 
@@ -362,12 +412,12 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.likePending = true;
     syncLikeUi();
 
-    const imageId = Number(state.current.image_id);
-    const nextLiked = !Boolean(state.current.viewer_liked);
-    const nextCount = Math.max(0, normalizeLikeCount(state.current.like_count) + (nextLiked ? 1 : -1));
+    const imageId = Number(current.image_id);
+    const nextLiked = !Boolean(current.viewer_liked);
+    const nextCount = Math.max(0, normalizeLikeCount(current.like_count) + (nextLiked ? 1 : -1));
     const previous = {
-      viewer_liked: Boolean(state.current.viewer_liked),
-      like_count: normalizeLikeCount(state.current.like_count),
+      viewer_liked: Boolean(current.viewer_liked),
+      like_count: normalizeLikeCount(current.like_count),
     };
 
     applyLikeState({ viewer_liked: nextLiked, like_count: nextCount });
@@ -394,20 +444,53 @@ export function createImageModalController({ app, body = document.body } = {}) {
     }
   }
 
-  function open(payload, options = {}) {
-    state.current = normalizePayload(payload, options);
-    state.detailCache = options.detail ? normalizePayload(options.detail, { detailLoader: options.detailLoader || state.current.detailLoader }) : null;
-    state.onLikeChange = typeof options.onLikeChange === "function" ? options.onLikeChange : null;
+  function renderCurrentItem() {
+    const current = currentItem();
+    if (!current) {
+      return;
+    }
+    state.current = current;
+    state.detailCache = null;
     state.likePending = false;
-    state.detailOpen = false;
-    syncDetailStateClass();
-    image.src = state.current.preview_url;
-    image.alt = state.current.alt || state.current.title || "";
+    image.src = current.preview_url;
+    image.alt = current.alt || current.title || "";
     populateFooter();
     resetView();
+  }
+
+  function goToIndex(nextIndex) {
+    if (!state.items.length) {
+      return;
+    }
+    const clamped = Math.min(state.items.length - 1, Math.max(0, nextIndex));
+    if (clamped === state.currentIndex) {
+      return;
+    }
+    state.currentIndex = clamped;
+    if (detailModal.isOpen()) {
+      detailModal.close();
+    }
+    renderCurrentItem();
+    updateControlsVisibility(true);
+    scheduleAutoHide();
+  }
+
+  function open(payload, options = {}) {
+    state.items = normalizeItems(payload, options);
+    if (!state.items.length) {
+      state.items = [normalizePayload(payload, options)];
+    }
+    const initialIndexRaw = Number(options.currentIndex ?? payload?.currentIndex ?? 0);
+    state.currentIndex = Number.isFinite(initialIndexRaw) ? Math.min(state.items.length - 1, Math.max(0, initialIndexRaw)) : 0;
+    state.onLikeChange = typeof options.onLikeChange === "function" ? options.onLikeChange : null;
+    state.detailCache = options.detail ? normalizePayload(options.detail, { detailLoader: options.detailLoader || state.items[state.currentIndex]?.detailLoader }) : null;
+    state.detailOpen = false;
+    syncDetailStateClass();
+    renderCurrentItem();
     detailModal.close();
     root.hidden = false;
     bodyLock(true);
+    viewport.focus?.();
     updateControlsVisibility(true);
     scheduleAutoHide();
   }
@@ -419,7 +502,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
     syncDetailStateClass();
     root.hidden = true;
     bodyLock(false);
+    state.items = [];
     state.current = null;
+    state.currentIndex = 0;
     state.detailCache = null;
     state.onLikeChange = null;
     state.likePending = false;
@@ -474,6 +559,16 @@ export function createImageModalController({ app, body = document.body } = {}) {
     close();
   });
 
+  prevButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    goToIndex(state.currentIndex - 1);
+  });
+
+  nextButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    goToIndex(state.currentIndex + 1);
+  });
+
   root.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (detailModal.isOpen()) {
@@ -481,6 +576,21 @@ export function createImageModalController({ app, body = document.body } = {}) {
         return;
       }
       close();
+      return;
+    }
+    if (state.detailOpen) {
+      return;
+    }
+    if (event.key === "ArrowLeft") {
+      if (state.items.length > 1) {
+        goToIndex(state.currentIndex - 1);
+      }
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      if (state.items.length > 1) {
+        goToIndex(state.currentIndex + 1);
+      }
     }
   });
 
@@ -547,8 +657,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
   });
 
   viewport.querySelector("[data-action='new-tab']").addEventListener("click", () => {
-    if (!state.current?.original_url) return;
-    window.open(state.current.original_url, "_blank", "noopener,noreferrer");
+    const current = currentItem();
+    if (!current?.original_url) return;
+    window.open(current.original_url, "_blank", "noopener,noreferrer");
   });
 
   viewport.querySelector("[data-action='detail']").addEventListener("click", () => {
@@ -564,23 +675,36 @@ export function createImageModalController({ app, body = document.body } = {}) {
     close,
     isOpen: () => !root.hidden,
     setLikePending(imageId, pending) {
-      if (!state.current || Number(state.current.image_id) !== Number(imageId)) {
+      const current = currentItem();
+      if (!current || Number(current.image_id) !== Number(imageId)) {
         return;
       }
       state.likePending = Boolean(pending);
       syncLikeUi();
     },
     updateLikeState(imageId, nextState = {}) {
-      if (!state.current || Number(state.current.image_id) !== Number(imageId)) {
+      const matched = state.items.find((item) => Number(item.image_id) === Number(imageId));
+      if (!matched) {
         return;
       }
-      applyLikeState(nextState);
+      if (nextState.viewer_liked !== undefined) {
+        matched.viewer_liked = Boolean(nextState.viewer_liked);
+      }
+      if (nextState.like_count !== undefined) {
+        matched.like_count = normalizeLikeCount(nextState.like_count);
+      }
+      if (Number(currentItem()?.image_id) === Number(imageId)) {
+        applyLikeState(nextState);
+      }
     },
     openByPreference(payload, options = {}) {
       if (app.settings.getImageOpenBehavior() === "new_tab") {
-        const normalized = normalizePayload(payload, options);
-        if (normalized.original_url) {
-          window.open(normalized.original_url, "_blank", "noopener,noreferrer");
+        const items = normalizeItems(payload, options);
+        const initialIndexRaw = Number(options.currentIndex ?? payload?.currentIndex ?? 0);
+        const initialIndex = Number.isFinite(initialIndexRaw) ? Math.min(items.length - 1, Math.max(0, initialIndexRaw)) : 0;
+        const selected = items[initialIndex] || items[0] || normalizePayload(payload, options);
+        if (selected.original_url) {
+          window.open(selected.original_url, "_blank", "noopener,noreferrer");
           return;
         }
       }
