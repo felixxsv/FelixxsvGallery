@@ -174,29 +174,38 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
 
     const previewBlock = renderPreview(detail);
 
-    const userBlock = `
-      <section class="image-detail-modal__section image-detail-modal__section--user">
-        <h3 class="image-detail-modal__section-title">投稿ユーザー</h3>
-        <div class="image-detail-modal__user">
-          ${user.avatar_url ? `<img class="image-detail-modal__avatar" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
-          <div class="image-detail-modal__user-meta">
-            <div class="image-detail-modal__user-name">${escapeHtml(textOrDash(user.display_name))}</div>
-            <div class="image-detail-modal__user-id">@${escapeHtml(textOrDash(user.user_key))}</div>
+    const summaryBlock = `
+      <section class="image-detail-modal__section image-detail-modal__section--summary">
+        <div class="image-detail-modal__summary-group image-detail-modal__summary-group--user">
+          <div class="image-detail-modal__summary-label">ユーザー情報</div>
+          <div class="image-detail-modal__user image-detail-modal__user--compact">
+            ${user.avatar_url ? `<img class="image-detail-modal__avatar" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
+            <div class="image-detail-modal__user-meta">
+              <div class="image-detail-modal__user-name">${escapeHtml(textOrDash(user.display_name))}</div>
+              <div class="image-detail-modal__user-id">@${escapeHtml(textOrDash(user.user_key))}</div>
+            </div>
           </div>
+        </div>
+        <div class="image-detail-modal__summary-divider"></div>
+        <div class="image-detail-modal__summary-group">
+          <div class="image-detail-modal__summary-label">タイトル</div>
+          <div class="image-detail-modal__summary-value">${escapeHtml(textOrDash(detail.title))}</div>
+        </div>
+        <div class="image-detail-modal__summary-group">
+          <div class="image-detail-modal__summary-label">説明文 (ALT)</div>
+          <div class="image-detail-modal__summary-value image-detail-modal__summary-value--multiline">${escapeHtml(textOrDash(detail.alt))}</div>
         </div>
       </section>
     `;
 
     const heroBlock = previewBlock
-      ? `<div class="image-detail-modal__hero">${previewBlock}${userBlock}</div>`
-      : userBlock;
+      ? `<div class="image-detail-modal__hero">${previewBlock}${summaryBlock}</div>`
+      : summaryBlock;
 
     const infoBlock = `
       <section class="image-detail-modal__section">
         <h3 class="image-detail-modal__section-title">基本情報</h3>
         <dl class="image-detail-modal__list">
-          ${renderRow("タイトル", textOrDash(detail.title))}
-          ${renderRow("説明文 (ALT)", textOrDash(detail.alt))}
           ${renderRow("投稿日", formatDateTime(detail.posted_at))}
           ${renderRow("撮影日", formatDateTime(detail.shot_at))}
           ${renderRow("データ容量", formatBytes(detail.file_size_bytes))}
