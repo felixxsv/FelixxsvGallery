@@ -52,7 +52,7 @@ function normalizeColorTag(item) {
   return { label: String(label), swatch: String(swatch) };
 }
 
-export function createImageDetailModal({ host, app, onOpen = null, onClose = null }) {
+export function createImageDetailModal({ host, app, onOpen = null, onClose = null, onLikeToggle = null }) {
   const overlay = document.createElement("section");
   overlay.className = "image-detail-modal";
   overlay.hidden = true;
@@ -61,7 +61,13 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     <div class="image-detail-modal__dialog" role="dialog" aria-modal="true" aria-label="画像詳細" tabindex="-1">
       <div class="image-detail-modal__header">
         <h2 class="image-detail-modal__title">画像詳細</h2>
-        <button type="button" class="image-detail-modal__close" aria-label="詳細を閉じる">×</button>
+        <div class="image-detail-modal__header-actions">
+          <button type="button" class="image-detail-modal__like" aria-label="いいねする" aria-pressed="false">
+            <span class="image-detail-modal__like-icon" aria-hidden="true">♡</span>
+            <span class="image-detail-modal__like-count">0</span>
+          </button>
+          <button type="button" class="image-detail-modal__close" aria-label="詳細を閉じる">×</button>
+        </div>
       </div>
       <div class="image-detail-modal__body"></div>
     </div>
@@ -70,8 +76,26 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
 
   const body = overlay.querySelector(".image-detail-modal__body");
   const closeButton = overlay.querySelector(".image-detail-modal__close");
+  const likeButton = overlay.querySelector(".image-detail-modal__like");
+  const likeIcon = overlay.querySelector(".image-detail-modal__like-icon");
+  const likeCount = overlay.querySelector(".image-detail-modal__like-count");
 
   let currentDetail = null;
+  let likePending = false;
+
+  function syncLikeUi() {
+    const detail = currentDetail || {};
+    const authenticated = Boolean(app?.session?.getState?.()?.authenticated);
+    const liked = Boolean(detail.viewer_liked);
+    likeButton.classList.toggle("is-active", liked);
+    likeButton.classList.toggle("is-pending", likePending);
+    likeButton.disabled = likePending;
+    likeButton.hidden = !authenticated;
+    likeButton.setAttribute("aria-pressed", String(liked));
+    likeButton.setAttribute("aria-label", liked ? "いいねを取り消す" : "いいねする");
+    likeIcon.textContent = liked ? "♥" : "♡";
+    likeCount.textContent = formatCount(detail.like_count ?? 0);
+  }
 
   function close() {
     if (overlay.hidden) return;
@@ -168,10 +192,12 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       : "";
 
     body.innerHTML = `${userBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
+    syncLikeUi();
   }
 
   function open(detail) {
     currentDetail = detail || {};
+    likePending = false;
     render(currentDetail);
     overlay.hidden = false;
     if (typeof onOpen === "function") {
@@ -188,8 +214,20 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     render(currentDetail);
   }
 
+  function setLikePending(pending) {
+    likePending = Boolean(pending);
+    if (!overlay.hidden) {
+      syncLikeUi();
+    }
+  }
+
   closeButton.addEventListener("click", close);
+  likeButton.addEventListener("click", () => {
+    if (typeof onLikeToggle === "function") {
+      onLikeToggle();
+    }
+  });
   overlay.querySelector(".image-detail-modal__backdrop")?.addEventListener("click", close);
 
-  return { open, update, close, isOpen: () => !overlay.hidden };
+  return { open, update, close, isOpen: () => !overlay.hidden, setLikePending };
 }

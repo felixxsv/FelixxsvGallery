@@ -261,6 +261,47 @@ body.is-image-modal-open {
   color: #ffffff;
 }
 
+.image-detail-modal__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.image-detail-modal__like {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 74px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+
+.image-detail-modal__like:hover {
+  transform: translateY(-1px);
+}
+
+.image-detail-modal__like.is-active {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(127, 29, 29, 0.72);
+  color: #fecaca;
+}
+
+.image-detail-modal__like.is-pending {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.image-detail-modal__like-count {
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .image-detail-modal__close {
   width: 40px;
   height: 40px;

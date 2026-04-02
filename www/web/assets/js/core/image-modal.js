@@ -173,6 +173,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
   const detailModal = createImageDetailModal({
     host: viewport,
     app,
+    onLikeToggle() {
+      toggleLike();
+    },
     onOpen() {
       state.detailOpen = true;
       syncDetailStateClass();
@@ -274,6 +277,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     likeButton.setAttribute("aria-label", liked ? "いいねを取り消す" : "いいねする");
     likeButton.textContent = liked ? "♥" : "♡";
     likeCountNode.textContent = formatCompactCount(current.like_count || 0);
+    detailModal.setLikePending(state.likePending);
   }
 
   function populateFooter() {
