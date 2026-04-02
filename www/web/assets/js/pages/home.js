@@ -1,3 +1,4 @@
+import { ApiError } from "../core/api.js";
 import { byId } from "../core/dom.js";
 
 const GRID_COLS_STORAGE_KEY = "gallery.home.gridCols";
@@ -433,6 +434,10 @@ export function initHomePage(app) {
     }
   }
 
+  function isAuthenticated() {
+    return Boolean(app?.session?.getState?.().authenticated);
+  }
+
   function setDateInputs(kind, from, to) {
     const fromInput = kind === "shot" ? refs.shotDateFrom : refs.postedDateFrom;
     const toInput = kind === "shot" ? refs.shotDateTo : refs.postedDateTo;
@@ -765,11 +770,24 @@ export function initHomePage(app) {
       syncGridColumnsUi();
       updateStatus();
     } catch (error) {
-      setGridVisible(false);
-      setEmpty(false);
-      setError(error.message || "画像一覧の取得に失敗しました。");
-      refs.statusText.textContent = "画像一覧を取得できませんでした。";
-      app.toast.error(error.message || "画像一覧の取得に失敗しました。");
+      const activeShortcut = readActiveButton(refs.shortcutList, "[data-ui-shortcut]")?.dataset.shortcut || "";
+
+      if (error instanceof ApiError && error.status === 401 && activeShortcut === "favorites") {
+        const message = "ログインするとお気に入りを表示できます。";
+        const defaultShortcut = refs.shortcutList?.querySelector("[data-default]") || null;
+        activateSingleSelectButton(refs.shortcutList, defaultShortcut, "[data-ui-shortcut]");
+        setGridVisible(false);
+        setEmpty(state.items.length === 0);
+        setError("");
+        refs.statusText.textContent = message;
+        app.toast.error(message);
+      } else {
+        setGridVisible(false);
+        setEmpty(false);
+        setError(error.message || "画像一覧の取得に失敗しました。");
+        refs.statusText.textContent = "画像一覧を取得できませんでした。";
+        app.toast.error(error.message || "画像一覧の取得に失敗しました。");
+      }
     } finally {
       setLoading(false);
     }
@@ -833,6 +851,13 @@ export function initHomePage(app) {
 
       const shortcut = button.dataset.shortcut || "";
       const alreadyActive = button.classList.contains("is-active");
+
+      if (shortcut === "favorites" && !isAuthenticated()) {
+        const message = "ログインするとお気に入りを表示できます。";
+        refs.statusText.textContent = message;
+        app.toast.error(message);
+        return;
+      }
 
       if (shortcut === "random" && alreadyActive) {
         state.randomSeed = createRandomSeed();

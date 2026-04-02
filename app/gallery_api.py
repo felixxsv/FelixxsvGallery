@@ -21,6 +21,8 @@ from PIL import Image, UnidentifiedImageError
 from db import load_conf, db_conn
 from auth_router import router as auth_router
 from admin_router import router as admin_router
+from auth_security import DEFAULT_COOKIE_NAME
+from auth_service import get_current_user_by_session_token
 from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
 
 
@@ -275,19 +277,48 @@ def month_start_and_next(now_local: datetime) -> tuple[str, str]:
     return month_start.strftime("%Y-%m-%d %H:%M:%S"), next_month.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def build_shortcut_filter_sql(shortcut: str | None, now_local: datetime) -> tuple[str, list]:
+def build_shortcut_filter_sql(
+    shortcut: str | None,
+    now_local: datetime,
+    viewer_user_id: int | None = None,
+) -> tuple[str, list]:
     key = str(shortcut or "").strip().lower()
-    if key in ("", "latest", "all", "random"):
+    if key in ("", "latest"):
         return "", []
+
+    if key == "favorites":
+        if viewer_user_id is None:
+            raise HTTPException(status_code=401, detail="login required")
+        return " AND EXISTS (SELECT 1 FROM image_likes il WHERE il.image_id=i.id AND il.user_id=%s)", [viewer_user_id]
 
     if key in ("current_month", "this_month"):
         start_at, next_at = month_start_and_next(now_local)
         return " AND i.created_at >= %s AND i.created_at < %s", [start_at, next_at]
 
-    if key == "favorites":
-        return " AND i.like_count > 0", []
-
     return "", []
+
+
+def _get_current_user(req: Request | None) -> dict | None:
+    if req is None:
+        return None
+
+    session_token = (req.cookies.get(DEFAULT_COOKIE_NAME) or "").strip()
+    if not session_token:
+        return None
+
+    current = get_current_user_by_session_token(session_token=session_token)
+    if not current or not current.get("user"):
+        return None
+
+    user = current["user"]
+    return {
+        "id": int(user["id"]),
+        "user_key": user.get("user_key"),
+        "display_name": user.get("display_name"),
+        "role": user.get("role"),
+        "status": user.get("status"),
+        "can_upload": bool(user.get("upload_enabled")),
+    }
 
 
 def _table_cols(conn: pymysql.Connection, table: str) -> set[str]:
@@ -391,6 +422,7 @@ def palette():
 
 @app.get("/api/images")
 def list_images(
+    req: Request,
     page: int = Query(1, ge=1),
     per_page: int = Query(90, ge=1),
     sort: str = Query("latest"),
@@ -409,6 +441,9 @@ def list_images(
     per_page = clamp_per_page(per_page)
     offset = (page - 1) * per_page
 
+    current_user = _get_current_user(req)
+    viewer_user_id = int(current_user["id"]) if current_user else None
+
     tags_any_list = parse_csv_strs(tags_any)
     tags_all_list = parse_csv_strs(tags_all)
     colors_any_list = parse_csv_ints(colors_any)
@@ -423,7 +458,7 @@ def list_images(
         posted_date_to,
     )
     text_sql, text_params = build_text_search_sql(GALLERY, q)
-    shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF))
+    shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF), viewer_user_id=viewer_user_id)
 
     where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}"
     where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
@@ -431,6 +466,12 @@ def list_images(
     sort_key = (sort or "latest").lower()
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
     order_params: list = []
+    viewer_liked_sql = "0 AS viewer_liked"
+    viewer_liked_params: list = []
+
+    if viewer_user_id is not None:
+        viewer_liked_sql = "EXISTS(SELECT 1 FROM image_likes il WHERE il.image_id=i.id AND il.user_id=%s) AS viewer_liked"
+        viewer_liked_params.append(viewer_user_id)
 
     if sort_key == "popular":
         order_sql = "ORDER BY COALESCE(st.view_count,0) DESC, i.shot_at DESC"
@@ -457,7 +498,8 @@ SELECT
   i.id, i.shot_at, i.created_at, i.title, i.alt, i.width, i.height, i.format,
   i.thumb_path_480, i.thumb_path_960, i.preview_path,
   COALESCE(st.view_count,0) AS view_count,
-  i.like_count
+  i.like_count,
+  {viewer_liked_sql}
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
@@ -473,7 +515,7 @@ LIMIT %s OFFSET %s
             cur.execute(sql_count, [GALLERY, GALLERY, *where_extra_params])
             total = int(cur.fetchone()["COUNT(*)"])
 
-            cur.execute(sql_list, [GALLERY, GALLERY, *where_extra_params, *order_params, per_page, offset])
+            cur.execute(sql_list, [*viewer_liked_params, GALLERY, GALLERY, *where_extra_params, *order_params, per_page, offset])
             items = cur.fetchall()
 
         pages = (total + per_page - 1) // per_page
@@ -498,23 +540,33 @@ def inc_view(image_id: int):
 
 
 @app.get("/api/images/{image_id}")
-def get_image(image_id: int):
+def get_image(image_id: int, req: Request):
+    current_user = _get_current_user(req)
+    viewer_user_id = int(current_user["id"]) if current_user else None
+    viewer_liked_sql = "0 AS viewer_liked"
+    viewer_liked_params: list = []
+
+    if viewer_user_id is not None:
+        viewer_liked_sql = "EXISTS(SELECT 1 FROM image_likes il WHERE il.image_id=i.id AND il.user_id=%s) AS viewer_liked"
+        viewer_liked_params.append(viewer_user_id)
+
     conn = db_conn(CONF)
     try:
         with conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
 SELECT
   i.id, i.shot_at, i.title, i.alt, i.width, i.height, i.format,
   i.thumb_path_480, i.thumb_path_960, i.preview_path,
   COALESCE(st.view_count,0) AS view_count,
-  COALESCE(st.like_count,0) AS like_count,
-  COALESCE(st.x_like_count,0) AS x_like_count
+  i.like_count AS like_count,
+  COALESCE(st.x_like_count,0) AS x_like_count,
+  {viewer_liked_sql}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
 WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
 """,
-                (GALLERY, image_id),
+                [*viewer_liked_params, GALLERY, image_id],
             )
             img = cur.fetchone()
             if not img:
@@ -549,9 +601,84 @@ ORDER BY rank_no ASC
 
 
 
+def _get_image_like_count(conn: pymysql.Connection, image_id: int) -> int:
+    with conn.cursor() as cur:
+        cur.execute("SELECT like_count FROM images WHERE id=%s", (image_id,))
+        row = cur.fetchone()
+    return int((row or {}).get("like_count") or 0)
+
+
+@app.post("/api/images/{image_id}/like")
+def like_image(image_id: int, req: Request):
+    current_user = _get_current_user(req)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="login required")
+
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM images WHERE gallery=%s AND id=%s AND is_public=1",
+                (GALLERY, image_id),
+            )
+            image_row = cur.fetchone()
+            if not image_row:
+                raise HTTPException(status_code=404, detail="not found")
+
+            cur.execute(
+                "INSERT IGNORE INTO image_likes (image_id, user_id) VALUES (%s, %s)",
+                (image_id, int(current_user["id"])),
+            )
+            inserted = cur.rowcount > 0
+
+            if inserted:
+                cur.execute(
+                    "UPDATE images SET like_count = like_count + 1 WHERE id=%s",
+                    (image_id,),
+                )
+
+        return {"ok": True, "liked": True, "like_count": _get_image_like_count(conn, image_id)}
+    finally:
+        conn.close()
+
+
+@app.delete("/api/images/{image_id}/like")
+def unlike_image(image_id: int, req: Request):
+    current_user = _get_current_user(req)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="login required")
+
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM images WHERE gallery=%s AND id=%s AND is_public=1",
+                (GALLERY, image_id),
+            )
+            image_row = cur.fetchone()
+            if not image_row:
+                raise HTTPException(status_code=404, detail="not found")
+
+            cur.execute(
+                "DELETE FROM image_likes WHERE image_id=%s AND user_id=%s",
+                (image_id, int(current_user["id"])),
+            )
+            deleted = cur.rowcount > 0
+
+            if deleted:
+                cur.execute(
+                    "UPDATE images SET like_count = CASE WHEN like_count > 0 THEN like_count - 1 ELSE 0 END WHERE id=%s",
+                    (image_id,),
+                )
+
+        return {"ok": True, "liked": False, "like_count": _get_image_like_count(conn, image_id)}
+    finally:
+        conn.close()
+
 
 @app.get("/api/image-archives")
 def list_image_archives(
+    req: Request,
     kind: str = Query("shot"),
     q: str | None = None,
     tags_any: str | None = None,
@@ -568,6 +695,9 @@ def list_image_archives(
     if archive_kind not in ("shot", "posted"):
         raise HTTPException(status_code=400, detail="invalid kind")
 
+    current_user = _get_current_user(req)
+    viewer_user_id = int(current_user["id"]) if current_user else None
+
     tags_any_list = parse_csv_strs(tags_any)
     tags_all_list = parse_csv_strs(tags_all)
     colors_any_list = parse_csv_ints(colors_any)
@@ -576,7 +706,7 @@ def list_image_archives(
     tag_sql, tag_params = build_tag_filter_sql(GALLERY, tags_any_list, tags_all_list)
     color_sql, color_params = build_color_filter_sql(colors_any_list, colors_all_list)
     text_sql, text_params = build_text_search_sql(GALLERY, q)
-    shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF))
+    shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF), viewer_user_id=viewer_user_id)
 
     shot_from = shot_date_from if archive_kind != "shot" else None
     shot_to = shot_date_to if archive_kind != "shot" else None
