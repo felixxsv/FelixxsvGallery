@@ -716,6 +716,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   gap: 8px;
   padding: 34px 14px 14px;
   background: linear-gradient(180deg, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, 0.28) 28%, rgba(2, 6, 23, 0.82) 72%, rgba(2, 6, 23, 0.94) 100%);
+  pointer-events: none;
 }
 
 .home-gallery-card__title {
@@ -751,7 +752,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 68px;
+  min-width: 62px;
   height: 34px;
   padding: 0 11px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -760,7 +761,6 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   color: rgba(248, 250, 252, 0.92);
   cursor: pointer;
   pointer-events: auto;
-  flex: 0 0 auto;
   transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
@@ -786,12 +786,9 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 }
 
 .home-gallery-card__like-count {
-  min-width: 2.8ch;
-  text-align: right;
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
 }
 
 .home-pagination {
