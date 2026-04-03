@@ -6,7 +6,9 @@
   <title>Felixxsv Gallery</title>
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
   <link rel="stylesheet" href="/gallery/assets/css/components.css">
-  <link rel="stylesheet" href="/gallery/assets/css/page-home.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/home.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components/upload-modal.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components/toast.css">
 </head>
 <body
   class="app-page"
@@ -52,6 +54,7 @@
       </div>
 
       <div class="app-site-header__right">
+        <button id="shellHeaderUploadButton" class="app-button app-button--ghost app-upload-launch-button" type="button">アップロード</button>
         <button
           id="shellUserTrigger"
           class="app-icon-button"
@@ -295,6 +298,8 @@
               </p>
 
               <div class="app-button-row">
+                <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden>アップロード</button>
+
                 <button
                   id="shellAccountOpenButton"
                   type="button"

@@ -35,6 +35,7 @@ export function initUserShell(app) {
     roleRow: byId("shellUserRoleRow"),
     role: byId("shellUserRole"),
     uploadDisabled: byId("shellUploadDisabledMessage"),
+    uploadOpenButton: byId("shellUploadOpenButton"),
     accountOpenButton: byId("shellAccountOpenButton"),
     adminLink: byId("shellAdminLink"),
     userFooter: byId("shellUserFooter"),
@@ -237,6 +238,7 @@ export function initUserShell(app) {
       refs.roleRow.hidden = true;
       refs.role.textContent = "-";
       refs.uploadDisabled.hidden = true;
+      if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = true;
       refs.accountOpenButton.hidden = true;
       refs.adminLink.hidden = true;
       refs.userFooter.hidden = true;
@@ -264,7 +266,9 @@ export function initUserShell(app) {
       refs.role.textContent = "-";
     }
 
-    refs.uploadDisabled.hidden = user.upload_enabled !== false;
+    const uploadEnabled = user.upload_enabled !== false;
+    refs.uploadDisabled.hidden = uploadEnabled;
+    if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = !uploadEnabled;
     refs.accountOpenButton.hidden = false;
     refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
     refs.userFooter.hidden = false;

@@ -1,3 +1,5 @@
+import { createUploadModalController } from "../../components/upload-modal.js";
+
 function byId(id) {
   return document.getElementById(id);
 }
@@ -77,7 +79,8 @@ const state = {
   currentContent: null,
   pendingConfirm: null,
   filterTimer: null,
-  uploadSubmitting: false
+  uploadSubmitting: false,
+  uploadModalController: null
 };
 
 function qs() {
@@ -520,9 +523,13 @@ function bindTableEvents() {
 
 function bindModals() {
   byId("adminContentUploadOpenButton")?.addEventListener("click", () => {
-    setUploadResult("");
-    renderUploadSelection();
-    window.AdminApp.modal.open("admin-content-upload");
+    if (!state.uploadModalController) return;
+    state.uploadModalController.open({
+      onUploaded: async () => {
+        state.page = 1;
+        await loadContents();
+      }
+    });
   });
   byId("adminContentUploadCancelButton")?.addEventListener("click", () => {
     if (state.uploadSubmitting) return;
@@ -563,6 +570,7 @@ function bindModals() {
 }
 
 async function initPage() {
+  state.uploadModalController = createUploadModalController({ app: window.AdminApp, scope: "admin" });
   bindFilters();
   bindTableEvents();
   bindModals();

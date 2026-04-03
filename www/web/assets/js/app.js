@@ -8,6 +8,7 @@ import { createSessionStore } from "./core/session.js";
 import { createI18n } from "./core/i18n.js";
 import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js";
+import { createUploadModalController } from "./components/upload-modal.js";
 import { initHomePage } from "./pages/home.js";
 import { ensureCustomScrollbars } from "./core/custom-scrollbar.js";
 
@@ -46,6 +47,7 @@ function createAppContext() {
     modal,
     toast,
     imageModal,
+    uploadModal: null,
     page: document.body.dataset.page || "",
     presence: null
   };
@@ -435,6 +437,15 @@ async function bootstrap() {
   app.theme.init();
   initUserShell(app);
   ensureCustomScrollbars({ includeWindow: true, selectors: [".home-sidebar__body"] });
+
+  app.uploadModal = createUploadModalController({ app, scope: "public" });
+
+  const publicUploadTriggers = [byId("shellHeaderUploadButton"), byId("shellUploadOpenButton")].filter(Boolean);
+  for (const trigger of publicUploadTriggers) {
+    trigger.addEventListener("click", () => {
+      app.uploadModal?.open();
+    });
+  }
 
   try {
     const sessionState = await app.session.load();

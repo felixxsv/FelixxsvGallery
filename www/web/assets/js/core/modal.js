@@ -161,6 +161,10 @@ export function createModalManager({ root, closeButton, body = document.body } =
     closeTop,
     top,
     isOpen,
+    refresh() {
+      registerLayers();
+      refreshLayerOrder();
+    },
     getStack() {
       return [...stack];
     }
