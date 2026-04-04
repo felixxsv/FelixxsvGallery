@@ -760,6 +760,27 @@ LIMIT %s
         conn.close()
 
 
+@app.post("/api/check-hashes")
+async def check_hashes(req: Request):
+    body = await req.json()
+    hashes = [str(h) for h in (body.get("hashes") or []) if h]
+    if not hashes:
+        return {"duplicates": []}
+    uniq = sorted(set(hashes))
+    conn = db_conn(CONF)
+    try:
+        ph = ",".join(["%s"] * len(uniq))
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT content_hash FROM images WHERE gallery=%s AND content_hash IN ({ph})",
+                [GALLERY, *uniq],
+            )
+            found = {str(r["content_hash"]) for r in cur.fetchall()}
+        return {"duplicates": [h for h in hashes if h in found]}
+    finally:
+        conn.close()
+
+
 @app.post("/api/upload")
 def upload_images(
     req: Request,

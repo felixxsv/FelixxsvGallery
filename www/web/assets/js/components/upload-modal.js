@@ -374,7 +374,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const response = await fetch(`${app.appBase}/api/tags`, { credentials: "include" });
       if (!response.ok) return;
       const payload = await response.json().catch(() => null);
-      const tags = Array.isArray(payload?.tags) ? payload.tags : Array.isArray(payload) ? payload : [];
+      const tags = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.tags) ? payload.tags : [];
       state.tagPool = tags.map((t) => String(t?.name ?? t ?? "").trim()).filter(Boolean);
     } catch {
       // tag pool is optional
@@ -595,6 +595,31 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       }
     }));
     syncDuplicateFlags();
+    await checkServerDuplicates();
+  }
+
+  async function checkServerDuplicates() {
+    const hashes = state.items.map((item) => item.hash).filter((h) => h && !h.startsWith("error-"));
+    if (!hashes.length) return;
+    try {
+      const res = await fetch(`${app.appBase}/api/check-hashes`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hashes }),
+      });
+      if (!res.ok) return;
+      const payload = await res.json().catch(() => null);
+      const dupSet = new Set(Array.isArray(payload?.duplicates) ? payload.duplicates : []);
+      state.items.forEach((item) => {
+        if (item.hash && !item.hash.startsWith("error-")) {
+          item.serverDuplicate = dupSet.has(item.hash);
+        }
+      });
+      render();
+    } catch {
+      // server duplicate check is optional
+    }
   }
 
   function syncDuplicateFlags() {
