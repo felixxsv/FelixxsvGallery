@@ -1,4 +1,4 @@
-import { createUploadModalController } from "../components/upload-modal.js";
+import { createUploadModalController } from "../../components/upload-modal.js";
 
 function byId(id) {
   return document.getElementById(id);
