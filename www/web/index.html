@@ -108,12 +108,18 @@
             <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
           </div>
         </div>
-        <label class="app-field home-search-field home-search-field--sidebar">
-          <span class="app-visually-hidden">タグ検索</span>
-          <span class="home-search-field__icon" aria-hidden="true"></span>
-          <input id="homeTagSearchInput" class="app-input" type="search" placeholder="タグを絞り込み" autocomplete="off">
-        </label>
+        <div class="home-tag-search-wrap">
+          <label class="app-field home-search-field home-search-field--sidebar">
+            <span class="app-visually-hidden">タグ検索</span>
+            <span class="home-search-field__icon" aria-hidden="true"></span>
+            <input id="homeTagSearchInput" class="app-input" type="search" placeholder="タグを絞り込み" autocomplete="off">
+          </label>
+          <div id="homeTagSugPanel" class="home-tag-sug-panel" hidden>
+            <div id="homeTagSugList" class="home-tag-sug-list"></div>
+          </div>
+        </div>
         <div id="homeTagChipList" class="home-filter-chip-list" data-ui-chip-list="tags"></div>
+        <button id="homeTagMoreBtn" type="button" class="home-tag-more-btn">+more</button>
       </div>
 
       <div class="home-filter-block">

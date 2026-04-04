@@ -5,6 +5,23 @@ const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
 const DEFAULT_ROW_COUNT = 30;
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function highlightMatch(text, query) {
+  if (!query) return escapeHtml(text);
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return escapeHtml(text);
+  return (
+    escapeHtml(text.slice(0, idx)) +
+    `<mark class="home-tag-sug-mark">${escapeHtml(text.slice(idx, idx + query.length))}</mark>` +
+    escapeHtml(text.slice(idx + query.length))
+  );
+}
+
 function getTagLetterGroup(tag) {
   const first = (tag || "")[0] || "";
   const code = first.charCodeAt(0);
@@ -362,6 +379,9 @@ export function initHomePage(app) {
     gridControls: byId("homeGridColumnsControls"),
     clearFiltersButton: byId("homeClearFiltersButton"),
     tagSearchInput: byId("homeTagSearchInput"),
+    tagSugPanel: byId("homeTagSugPanel"),
+    tagSugList: byId("homeTagSugList"),
+    tagMoreBtn: byId("homeTagMoreBtn"),
     shortcutList: byId("homeShortcutList"),
     tagChipList: byId("homeTagChipList"),
     colorList: byId("homeColorList"),
@@ -393,6 +413,8 @@ export function initHomePage(app) {
       posted: null,
     },
     pendingLikeIds: new Set(),
+    tagPool: [],
+    tagBrowseMounted: false,
   };
 
   function setLoading(loading) {
@@ -611,39 +633,26 @@ export function initHomePage(app) {
     const selected = new Set(getSelectedValues("[data-ui-chip][aria-pressed='true']", "value"));
     refs.tagChipList.textContent = "";
 
-    const groups = buildTagChipGroups(items);
+    // Selected tags first, then rest in popularity order (API already returns by count DESC)
+    const sorted = [
+      ...items.filter((t) => selected.has(String(t.name || ""))),
+      ...items.filter((t) => !selected.has(String(t.name || ""))),
+    ];
+
     const fragment = document.createDocumentFragment();
-    for (const { header, items: groupItems } of groups) {
-      const section = document.createElement("div");
-      section.className = "home-tag-group";
-      section.dataset.tagGroup = header;
-
-      const hdr = document.createElement("div");
-      hdr.className = "home-tag-group__header";
-      hdr.textContent = header;
-      section.appendChild(hdr);
-
-      const row = document.createElement("div");
-      row.className = "home-tag-group__chips";
-      for (const item of groupItems) {
-        const name = String(item.name || "");
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "home-filter-chip";
-        button.dataset.uiChip = "";
-        button.dataset.value = name;
-        button.setAttribute("aria-pressed", selected.has(name) ? "true" : "false");
-        button.classList.toggle("is-active", selected.has(name));
-        button.textContent = name;
-        if (Number.isFinite(Number(item.c))) {
-          button.title = `${name} (${Number(item.c)}件)`;
-        }
-        row.appendChild(button);
-      }
-      section.appendChild(row);
-      fragment.appendChild(section);
+    for (const item of sorted) {
+      const name = String(item.name || "");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "home-filter-chip";
+      button.dataset.uiChip = "";
+      button.dataset.value = name;
+      button.setAttribute("aria-pressed", selected.has(name) ? "true" : "false");
+      button.classList.toggle("is-active", selected.has(name));
+      button.textContent = name;
+      button.title = Number.isFinite(Number(item.c)) ? `${name} (${Number(item.c)}件)` : name;
+      fragment.appendChild(button);
     }
-
     refs.tagChipList.appendChild(fragment);
   }
 
@@ -668,6 +677,194 @@ export function initHomePage(app) {
     }
 
     refs.colorList.appendChild(fragment);
+  }
+
+  // ── Tag suggestion & browse modal ─────────────────────────────────────────
+
+  function renderHomeSug(needle) {
+    if (!refs.tagSugList) return;
+    const q = (needle || "").trim().toLowerCase();
+    if (!q) {
+      if (refs.tagSugPanel) refs.tagSugPanel.hidden = true;
+      return;
+    }
+    const selected = new Set(getSelectedValues("[data-ui-chip][aria-pressed='true']", "value"));
+    const results = state.tagPool
+      .filter((t) => !selected.has(String(t.name || "")) && String(t.name || "").toLowerCase().includes(q))
+      .slice(0, 12);
+    refs.tagSugList.innerHTML = "";
+    for (const item of results) {
+      const name = String(item.name || "");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "home-tag-sug-item";
+      btn.dataset.tag = name;
+      btn.innerHTML = highlightMatch(name, q);
+      refs.tagSugList.appendChild(btn);
+    }
+    if (refs.tagSugPanel) refs.tagSugPanel.hidden = results.length === 0;
+  }
+
+  function closeHomeSug() {
+    if (refs.tagSugPanel) refs.tagSugPanel.hidden = true;
+  }
+
+  const HOME_TAG_BROWSE_ID = "home-tag-browse-modal";
+
+  function ensureHomeBrowseMounted() {
+    if (state.tagBrowseMounted) return;
+    const modalRoot = document.getElementById("appModalRoot");
+    if (!modalRoot) return;
+    if (!modalRoot.querySelector(`[data-modal-id="${HOME_TAG_BROWSE_ID}"]`)) {
+      const layer = document.createElement("section");
+      layer.className = "app-modal-layer";
+      layer.setAttribute("data-modal-layer", "");
+      layer.setAttribute("data-modal-id", HOME_TAG_BROWSE_ID);
+      layer.hidden = true;
+      layer.innerHTML = `
+        <div class="app-modal-backdrop" data-modal-backdrop="${HOME_TAG_BROWSE_ID}"></div>
+        <div class="app-modal-dialog app-modal-dialog--tag-browse" role="dialog" aria-modal="true" tabindex="-1">
+          <div class="app-modal-header">
+            <h2 class="app-modal-title">タグを選択</h2>
+            <button type="button" class="app-modal-close" id="homeTagBrowseClose" aria-label="閉じる">×</button>
+          </div>
+          <div class="app-modal-body tag-browse-modal">
+            <div class="tag-browse-modal__search-wrap">
+              <input id="homeTagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
+              <div class="tag-browse-modal__sug" id="homeTagBrowseSug" hidden>
+                <div class="tag-browse-modal__sug-list" id="homeTagBrowseSugList"></div>
+              </div>
+            </div>
+            <div id="homeTagBrowseList" class="tag-browse-modal__list"></div>
+          </div>
+        </div>
+      `;
+      modalRoot.appendChild(layer);
+    }
+    app.modal?.refresh?.();
+
+    const browseSearch = document.getElementById("homeTagBrowseSearch");
+    const browseSug = document.getElementById("homeTagBrowseSug");
+    const browseSugList = document.getElementById("homeTagBrowseSugList");
+    const browseList = document.getElementById("homeTagBrowseList");
+    const browseClose = document.getElementById("homeTagBrowseClose");
+    const browseBackdrop = modalRoot.querySelector(`[data-modal-backdrop="${HOME_TAG_BROWSE_ID}"]`);
+
+    function renderBrowseSug(q) {
+      if (!browseSugList) return;
+      const needle = (q || "").trim().toLowerCase();
+      if (!needle) { if (browseSug) browseSug.hidden = true; return; }
+      const selected = new Set(getSelectedValues("[data-ui-chip][aria-pressed='true']", "value"));
+      const results = state.tagPool
+        .filter((t) => String(t.name || "").toLowerCase().includes(needle))
+        .slice(0, 10);
+      browseSugList.innerHTML = "";
+      for (const item of results) {
+        const name = String(item.name || "");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `tag-browse-modal__sug-item${selected.has(name) ? " is-selected" : ""}`;
+        btn.dataset.tag = name;
+        btn.innerHTML = highlightMatch(name, needle);
+        browseSugList.appendChild(btn);
+      }
+      if (browseSug) browseSug.hidden = results.length === 0;
+    }
+
+    function renderBrowseList(q) {
+      if (!browseList) return;
+      const needle = (q || "").trim().toLowerCase();
+      const pool = needle
+        ? state.tagPool.filter((t) => String(t.name || "").toLowerCase().includes(needle))
+        : state.tagPool;
+      const sorted = [...pool].sort((a, b) =>
+        String(a.name || "").localeCompare(String(b.name || ""), ["ja", "en"], { sensitivity: "base" })
+      );
+      browseList.innerHTML = "";
+      if (!sorted.length) {
+        browseList.innerHTML = `<p class="tag-browse-modal__empty">タグが見つかりません</p>`;
+        return;
+      }
+      const groups = buildTagChipGroups(sorted);
+      const frag = document.createDocumentFragment();
+      for (const { header, items: groupItems } of groups) {
+        const section = document.createElement("div");
+        section.className = "tag-browse-modal__group";
+        const h = document.createElement("div");
+        h.className = "tag-browse-modal__group-header";
+        h.textContent = header;
+        section.appendChild(h);
+        const row = document.createElement("div");
+        row.className = "tag-browse-modal__group-tags";
+        const selected = new Set(getSelectedValues("[data-ui-chip][aria-pressed='true']", "value"));
+        for (const item of groupItems) {
+          const name = String(item.name || "");
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `tag-browse-modal__tag-btn${selected.has(name) ? " is-selected" : ""}`;
+          btn.dataset.tag = name;
+          btn.setAttribute("aria-pressed", selected.has(name) ? "true" : "false");
+          btn.innerHTML = needle ? highlightMatch(name, needle) : escapeHtml(name);
+          row.appendChild(btn);
+        }
+        section.appendChild(row);
+        frag.appendChild(section);
+      }
+      browseList.appendChild(frag);
+    }
+
+    function toggleBrowseTag(name) {
+      const chip = refs.tagChipList?.querySelector(`[data-ui-chip][data-value="${CSS.escape(name)}"]`);
+      if (chip) {
+        const next = chip.getAttribute("aria-pressed") !== "true";
+        chip.classList.toggle("is-active", next);
+        chip.setAttribute("aria-pressed", String(next));
+        renderTagChips(state.tagPool);
+        reloadFromFilters();
+      }
+    }
+
+    browseSearch?.addEventListener("input", () => {
+      const q = browseSearch.value || "";
+      renderBrowseSug(q);
+      renderBrowseList(q);
+    });
+    browseSugList?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-tag]");
+      if (!btn) return;
+      toggleBrowseTag(btn.dataset.tag);
+      renderBrowseList(browseSearch?.value || "");
+      renderBrowseSug(browseSearch?.value || "");
+    });
+    browseList?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-tag]");
+      if (!btn) return;
+      toggleBrowseTag(btn.dataset.tag);
+      renderBrowseList(browseSearch?.value || "");
+    });
+    browseClose?.addEventListener("click", () => app.modal?.close?.(HOME_TAG_BROWSE_ID));
+    browseBackdrop?.addEventListener("click", () => app.modal?.close?.(HOME_TAG_BROWSE_ID));
+
+    layer.dataset.browseReady = "1";
+    state.tagBrowseMounted = true;
+
+    // Save render functions on layer for reuse
+    layer._renderList = renderBrowseList;
+    layer._renderSug = renderBrowseSug;
+    const searchEl = browseSearch;
+    layer._open = () => {
+      if (searchEl) searchEl.value = "";
+      renderBrowseSug("");
+      renderBrowseList("");
+      app.modal?.open?.(HOME_TAG_BROWSE_ID);
+      setTimeout(() => searchEl?.focus(), 60);
+    };
+  }
+
+  function openHomeBrowseModal() {
+    ensureHomeBrowseMounted();
+    const layer = document.getElementById("appModalRoot")?.querySelector(`[data-modal-id="${HOME_TAG_BROWSE_ID}"]`);
+    if (layer?._open) layer._open();
   }
 
   function renderArchives(groups, kind) {
@@ -1142,12 +1339,14 @@ export function initHomePage(app) {
   async function hydrateSidebarOptions() {
     try {
       const [tagsPayload, palettePayload] = await Promise.all([
-        app.api.get("/api/tags?limit=200"),
+        app.api.get("/api/tags?limit=500"),
         app.api.get("/api/palette"),
       ]);
-      renderTagChips(Array.isArray(tagsPayload?.items) ? tagsPayload.items : []);
+      state.tagPool = Array.isArray(tagsPayload?.items) ? tagsPayload.items : [];
+      renderTagChips(state.tagPool);
       renderColorButtons(Array.isArray(palettePayload?.items) ? palettePayload.items : []);
     } catch {
+      state.tagPool = [];
       renderTagChips([]);
       renderColorButtons([]);
     }
@@ -1213,6 +1412,8 @@ export function initHomePage(app) {
       const next = button.getAttribute("aria-pressed") !== "true";
       button.classList.toggle("is-active", next);
       button.setAttribute("aria-pressed", String(next));
+      // Re-render to move selected to top
+      renderTagChips(state.tagPool);
       reloadFromFilters();
     });
 
@@ -1229,16 +1430,31 @@ export function initHomePage(app) {
 
     refs.tagSearchInput?.addEventListener("input", () => {
       const needle = refs.tagSearchInput.value.trim().toLowerCase();
-      refs.tagChipList?.querySelectorAll(".home-tag-group").forEach((group) => {
-        let anyVisible = false;
-        group.querySelectorAll("[data-ui-chip]").forEach((button) => {
-          const visible = !needle || button.dataset.value.toLowerCase().includes(needle);
-          button.hidden = !visible;
-          if (visible) anyVisible = true;
-        });
-        group.hidden = !anyVisible;
+      renderHomeSug(needle);
+      refs.tagChipList?.querySelectorAll("[data-ui-chip]").forEach((button) => {
+        const visible = !needle || button.dataset.value.toLowerCase().includes(needle);
+        button.hidden = !visible;
       });
     });
+    refs.tagSearchInput?.addEventListener("blur", () => {
+      setTimeout(() => closeHomeSug(), 160);
+    });
+    refs.tagSugList?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-tag]");
+      if (!btn) return;
+      const name = btn.dataset.tag;
+      // Activate the chip
+      const chip = refs.tagChipList?.querySelector(`[data-ui-chip][data-value="${CSS.escape(name)}"]`);
+      if (chip) {
+        chip.setAttribute("aria-pressed", "true");
+        chip.classList.add("is-active");
+      }
+      if (refs.tagSearchInput) refs.tagSearchInput.value = "";
+      closeHomeSug();
+      renderTagChips(state.tagPool);
+      reloadFromFilters();
+    });
+    refs.tagMoreBtn?.addEventListener("click", () => openHomeBrowseModal());
 
     refs.clearFiltersButton?.addEventListener("click", () => {
       resetUiOnlyFilters();
