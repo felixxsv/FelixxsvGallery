@@ -431,13 +431,16 @@ def search_suggest(q: str | None = None):
             )
             images = list(cur.fetchall())
             cur.execute(
-                "SELECT t.name, COUNT(it.image_id) AS cnt "
+                "SELECT t.name, COUNT(it.image_id) AS cnt, "
+                "  (SELECT i2.thumb_path_480 FROM image_tags it2 "
+                "   JOIN images i2 ON i2.id=it2.image_id AND i2.gallery=%s AND i2.is_public=1 "
+                "   WHERE it2.tag_id=t.id ORDER BY i2.like_count DESC LIMIT 1) AS thumb_path "
                 "FROM tags t "
                 "JOIN image_tags it ON it.tag_id=t.id "
                 "JOIN images i ON i.id=it.image_id AND i.gallery=%s AND i.is_public=1 "
                 "WHERE t.gallery=%s AND t.name LIKE %s ESCAPE '\\\\' "
                 "GROUP BY t.id, t.name ORDER BY cnt DESC LIMIT 5",
-                [GALLERY, GALLERY, like],
+                [GALLERY, GALLERY, GALLERY, like],
             )
             tags = list(cur.fetchall())
             cur.execute(
@@ -451,7 +454,7 @@ def search_suggest(q: str | None = None):
             users = list(cur.fetchall())
         return {
             "images": [{"id": r["id"], "title": r["title"], "thumb_path": r["thumb_path_480"]} for r in images],
-            "tags": [{"name": r["name"], "count": int(r["cnt"])} for r in tags],
+            "tags": [{"name": r["name"], "count": int(r["cnt"]), "thumb_path": r["thumb_path"]} for r in tags],
             "users": [{"user_key": r["user_key"], "display_name": r["display_name"]} for r in users],
         }
     finally:

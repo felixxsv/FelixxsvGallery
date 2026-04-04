@@ -774,7 +774,10 @@ export function initHomePage(app) {
         btn.className = "home-search-sug-item";
         btn.dataset.action = "sug-tag";
         btn.dataset.tag = tag.name || "";
-        btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(tag.name || "", q)}</span><span class="home-search-sug-item__sub">${escapeHtml(String(tag.count || 0))}</span>`;
+        const thumbHtml = tag.thumb_path
+          ? `<img class="home-search-sug-item__thumb" src="${escapeHtml(withAppBase(tag.thumb_path))}" alt="" loading="lazy">`
+          : `<span class="home-search-sug-item__thumb home-search-sug-item__thumb--tag">#</span>`;
+        btn.innerHTML = `${thumbHtml}<span class="home-search-sug-item__text">${highlightMatch(tag.name || "", q)}</span><span class="home-search-sug-item__sub">${escapeHtml(String(tag.count || 0))}</span>`;
         list.appendChild(btn);
       });
 
@@ -785,7 +788,11 @@ export function initHomePage(app) {
         btn.dataset.action = "sug-user";
         btn.dataset.userKey = user.user_key || "";
         btn.dataset.displayName = user.display_name || "";
-        btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(user.display_name || "", q)}</span><span class="home-search-sug-item__sub">@${escapeHtml(user.user_key || "")}</span>`;
+        const initial = escapeHtml((user.display_name || user.user_key || "?")[0].toUpperCase());
+        const avatarHtml = user.avatar_path
+          ? `<img class="home-search-sug-item__thumb home-search-sug-item__thumb--avatar" src="${escapeHtml(withAppBase(user.avatar_path))}" alt="">`
+          : `<span class="home-search-sug-item__thumb home-search-sug-item__thumb--avatar home-search-sug-item__thumb--initial">${initial}</span>`;
+        btn.innerHTML = `${avatarHtml}<span class="home-search-sug-item__text">${highlightMatch(user.display_name || "", q)}</span><span class="home-search-sug-item__sub">@${escapeHtml(user.user_key || "")}</span>`;
         list.appendChild(btn);
       });
     }
@@ -1824,12 +1831,16 @@ export function initHomePage(app) {
   };
 
   refs.searchInput?.addEventListener("input", () => {
-    scheduleSearch();
     scheduleSugFetch(refs.searchInput.value.trim(), desktopSugRefs);
   });
 
   refs.searchInput?.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeSearchSug(refs.searchSugPanel);
+    if (event.key === "Enter") {
+      closeSearchSug(refs.searchSugPanel);
+      reloadFromFilters();
+    } else if (event.key === "Escape") {
+      closeSearchSug(refs.searchSugPanel);
+    }
   });
 
   refs.searchInput?.addEventListener("blur", () => {

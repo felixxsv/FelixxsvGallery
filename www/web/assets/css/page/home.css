@@ -1109,6 +1109,31 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   background: var(--color-surface);
 }
 
+.home-search-sug-item__thumb--avatar {
+  border-radius: 999px;
+}
+
+.home-search-sug-item__thumb--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+.home-search-sug-item__thumb--tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  background: var(--color-surface-strong);
+}
+
 .home-search-sug-item__text {
   flex: 1 1 0;
   min-width: 0;
