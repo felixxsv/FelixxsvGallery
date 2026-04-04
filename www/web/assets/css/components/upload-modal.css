@@ -124,6 +124,18 @@
   gap: var(--space-2);
 }
 
+.upload-modal__strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.upload-modal__strip-hint {
+  font-size: 0.72rem;
+  color: var(--color-text-faint);
+}
+
 .upload-modal__strip-wrap {
   position: relative;
 }

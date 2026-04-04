@@ -131,7 +131,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     <div id="uploadModalDropzone" class="upload-modal__dropzone" tabindex="0" role="button" aria-label="画像を選択またはドラッグアンドドロップ">
                       <div class="upload-modal__dropzone-icon">↑</div>
                       <p class="upload-modal__dropzone-text">ドラッグ＆ドロップ / クリックで選択</p>
-                      <p class="upload-modal__dropzone-sub">.png .jpg .jpeg .webp / 最大50MB / 最大20枚</p>
+                      <p class="upload-modal__dropzone-sub">.png .jpg .jpeg .webp / 1枚50MBまで / 最大20枚</p>
                       <div class="upload-modal__dropzone-actions">
                         <button id="uploadModalFileSelectButton" type="button" class="app-button app-button--primary">ファイルを選択</button>
                       </div>
@@ -142,7 +142,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
                 <!-- 中段: 画像一覧 -->
                 <div class="upload-modal__strip-section">
-                  <div class="upload-modal__field-label">画像一覧</div>
+                  <div class="upload-modal__strip-header">
+                    <div class="upload-modal__field-label">画像一覧</div>
+                    <span class="upload-modal__strip-hint">ドラッグで並び替え可能</span>
+                  </div>
                   <div class="upload-modal__strip-wrap" id="uploadModalStripWrap">
                     <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--prev" id="uploadModalStripPrev" hidden aria-label="前へ">&#8249;</button>
                     <div id="uploadModalStrip" class="upload-modal__strip" aria-live="polite"></div>
@@ -721,8 +724,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     }
     const totalBytes = state.items.reduce((sum, item) => sum + Number(item.file?.size || 0), 0);
     const dupCount = state.items.filter((item) => item.duplicate || item.serverDuplicate).length;
-    const parts = [`${state.items.length} 枚`, `合計 ${formatBytes(totalBytes)}`];
-    if (dupCount > 0) parts.push(`DUP ${dupCount} 枚`);
+    const parts = [`${state.items.length}枚/${MAX_FILES}枚`, formatBytes(totalBytes)];
+    if (dupCount > 0) parts.push(`DUP ${dupCount}枚`);
     refs.summary.textContent = parts.join(" / ");
   }
 
@@ -963,9 +966,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const endStripDrag = () => {
       if (state.stripDragIndex < 0) return;
       const fromIndex = state.stripDragIndex;
-      let toIndex = state.stripInsertIndex;
-      // insertIndexはdragIndexを除いたリスト上の位置なので、元の配列インデックスに変換
-      if (toIndex > fromIndex) toIndex -= 1;
+      const toIndex = state.stripInsertIndex;
+      // toIndex は「dragIndex を除いたリストの挿入位置」で、
+      // moveItem が splice で削除してから挿入するため変換不要（そのまま使える）
 
       removeStripGhost();
       refs.strip.classList.remove("is-strip-dragging");
@@ -977,7 +980,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       if (toIndex !== fromIndex && toIndex >= 0) {
         moveItem(fromIndex, toIndex);
       } else {
-        renderStrip(); // キャンセル時は再描画してリセット
+        renderStrip();
       }
     };
 
