@@ -568,6 +568,14 @@
   gap: var(--space-3);
 }
 
+/* ── PC: top section height cap (no scroll) ────────────────────────────── */
+
+@media (min-width: 641px) {
+  .upload-modal__thumbnail-wrap {
+    max-height: 150px;
+  }
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
