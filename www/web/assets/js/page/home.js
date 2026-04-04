@@ -391,6 +391,33 @@ export function initHomePage(app) {
     postedDateTo: byId("homePostedDateTo"),
     archiveList: byId("homeArchiveList"),
     archiveKindSegment: byId("homeArchiveKindSegment"),
+    // Header search suggest
+    searchSugPanel: byId("homeSearchSugPanel"),
+    searchSugImages: byId("homeSearchSugImages"),
+    searchSugImagesList: byId("homeSearchSugImagesList"),
+    searchSugTags: byId("homeSearchSugTags"),
+    searchSugTagsList: byId("homeSearchSugTagsList"),
+    searchSugUsers: byId("homeSearchSugUsers"),
+    searchSugUsersList: byId("homeSearchSugUsersList"),
+    // Owner badge (desktop)
+    searchOwnerBadge: byId("homeSearchOwnerBadge"),
+    searchOwnerBadgeLabel: byId("homeSearchOwnerBadgeLabel"),
+    searchOwnerBadgeClear: byId("homeSearchOwnerBadgeClear"),
+    // Mobile toolbar + search modal
+    mobileSearchBtn: byId("homeMobileSearchBtn"),
+    mobileSearchModal: byId("homeMobileSearchModal"),
+    mobileSearchInput: byId("homeMobileSearchInput"),
+    mobileSearchClose: byId("homeMobileSearchClose"),
+    mobileSearchSugPanel: byId("homeMobileSearchSugPanel"),
+    mobileSearchSugImages: byId("homeMobileSearchSugImages"),
+    mobileSearchSugImagesList: byId("homeMobileSearchSugImagesList"),
+    mobileSearchSugTags: byId("homeMobileSearchSugTags"),
+    mobileSearchSugTagsList: byId("homeMobileSearchSugTagsList"),
+    mobileSearchSugUsers: byId("homeMobileSearchSugUsers"),
+    mobileSearchSugUsersList: byId("homeMobileSearchSugUsersList"),
+    mobileSearchOwnerBadge: byId("homeMobileSearchOwnerBadge"),
+    mobileSearchOwnerBadgeLabel: byId("homeMobileSearchOwnerBadgeLabel"),
+    mobileSearchOwnerBadgeClear: byId("homeMobileSearchOwnerBadgeClear"),
   };
 
   const gridMedia = window.matchMedia(MOBILE_GRID_MEDIA);
@@ -401,9 +428,12 @@ export function initHomePage(app) {
     perPage: 0,
     sort: refs.sortSelect?.value || "latest",
     q: "",
+    ownerUserKey: null,
+    ownerDisplayName: null,
     total: 0,
     hasNext: false,
     debounceTimer: null,
+    sugDebounceTimer: null,
     items: [],
     gridCols: readStoredGridCols(),
     randomSeed: createRandomSeed(),
@@ -489,6 +519,7 @@ export function initHomePage(app) {
 
     return {
       q: refs.searchInput?.value.trim() || "",
+      ownerUserKey: state.ownerUserKey || null,
       sort: refs.sortSelect?.value || "latest",
       shortcut: shortcutButton?.dataset.shortcut || null,
       tagsMode: tagsModeButton?.dataset.mode || "or",
@@ -512,6 +543,10 @@ export function initHomePage(app) {
 
     if (filters.q) {
       query.set("q", filters.q);
+    }
+
+    if (filters.ownerUserKey) {
+      query.set("owner_user_key", filters.ownerUserKey);
     }
 
     if (filters.tagsSelected.length) {
@@ -627,7 +662,187 @@ export function initHomePage(app) {
     clearArchiveSelection("shot");
     clearArchiveSelection("posted");
     state.randomSeed = createRandomSeed();
+    clearOwnerFilter();
   }
+
+  // ── Owner filter ────────────────────────────────────────────────────────
+
+  function clearOwnerFilter() {
+    state.ownerUserKey = null;
+    state.ownerDisplayName = null;
+    syncOwnerBadge();
+  }
+
+  function applyOwnerFilter(userKey, displayName) {
+    state.ownerUserKey = userKey;
+    state.ownerDisplayName = displayName || userKey;
+    syncOwnerBadge();
+    closeMobileSearchModal(false);
+    closeSearchSug(refs.searchSugPanel);
+    closeSearchSug(refs.mobileSearchSugPanel);
+    reloadFromFilters();
+  }
+
+  function syncOwnerBadge() {
+    const label = state.ownerDisplayName ? `@${state.ownerDisplayName}` : null;
+    for (const [badge, badgeLabel] of [
+      [refs.searchOwnerBadge, refs.searchOwnerBadgeLabel],
+      [refs.mobileSearchOwnerBadge, refs.mobileSearchOwnerBadgeLabel],
+    ]) {
+      if (!badge) continue;
+      badge.hidden = !label;
+      if (badgeLabel) badgeLabel.textContent = label || "";
+    }
+    // Adjust input padding to accommodate badge width dynamically
+    if (refs.searchOwnerBadge && refs.searchInput) {
+      if (label) {
+        const badgeWidth = refs.searchOwnerBadge.getBoundingClientRect().width || 0;
+        refs.searchInput.style.paddingLeft = `${36 + badgeWidth + 8}px`;
+      } else {
+        refs.searchInput.style.paddingLeft = "";
+      }
+    }
+  }
+
+  // ── Search suggest ───────────────────────────────────────────────────────
+
+  function closeSearchSug(panel) {
+    if (panel) panel.hidden = true;
+  }
+
+  function renderSearchSug(data, panelRefs) {
+    const { panel, imagesSection, imagesList, tagsSection, tagsList, usersSection, usersList } = panelRefs;
+    if (!panel) return;
+
+    const images = data?.images || [];
+    const tags = data?.tags || [];
+    const users = data?.users || [];
+
+    if (!images.length && !tags.length && !users.length) {
+      panel.hidden = true;
+      return;
+    }
+
+    if (imagesSection) {
+      imagesSection.hidden = !images.length;
+      if (imagesList) {
+        imagesList.textContent = "";
+        for (const img of images) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "home-search-sug-item";
+          btn.dataset.action = "sug-image";
+          btn.dataset.title = img.title || "";
+          if (img.thumb_path) {
+            const thumbUrl = withAppBase(img.thumb_path);
+            btn.innerHTML = `<img class="home-search-sug-item__thumb" src="${escapeHtml(thumbUrl)}" alt="" loading="lazy"><span class="home-search-sug-item__text">${highlightMatch(img.title || "", panel.dataset.query || "")}</span>`;
+          } else {
+            btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(img.title || "", panel.dataset.query || "")}</span>`;
+          }
+          imagesList.appendChild(btn);
+        }
+      }
+    }
+
+    if (tagsSection) {
+      tagsSection.hidden = !tags.length;
+      if (tagsList) {
+        tagsList.textContent = "";
+        for (const tag of tags) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "home-search-sug-item";
+          btn.dataset.action = "sug-tag";
+          btn.dataset.tag = tag.name || "";
+          btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(tag.name || "", panel.dataset.query || "")}</span><span class="home-search-sug-item__sub">${escapeHtml(String(tag.count || 0))}</span>`;
+          tagsList.appendChild(btn);
+        }
+      }
+    }
+
+    if (usersSection) {
+      usersSection.hidden = !users.length;
+      if (usersList) {
+        usersList.textContent = "";
+        for (const user of users) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "home-search-sug-item";
+          btn.dataset.action = "sug-user";
+          btn.dataset.userKey = user.user_key || "";
+          btn.dataset.displayName = user.display_name || "";
+          btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(user.display_name || "", panel.dataset.query || "")}</span><span class="home-search-sug-item__sub">@${escapeHtml(user.user_key || "")}</span>`;
+          usersList.appendChild(btn);
+        }
+      }
+    }
+
+    panel.hidden = false;
+  }
+
+  function handleSugClick(event, panelRefs) {
+    const btn = event.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === "sug-image") {
+      const title = btn.dataset.title || "";
+      if (refs.searchInput) refs.searchInput.value = title;
+      if (refs.mobileSearchInput) refs.mobileSearchInput.value = title;
+      closeSearchSug(panelRefs.panel);
+      closeMobileSearchModal(true);
+      reloadFromFilters();
+    } else if (action === "sug-tag") {
+      const tagName = btn.dataset.tag || "";
+      const chip = refs.tagChipList?.querySelector(`[data-ui-chip][data-value="${CSS.escape(tagName)}"]`);
+      if (chip) {
+        chip.classList.add("is-active");
+        chip.setAttribute("aria-pressed", "true");
+        renderTagChips(state.tagPool);
+      }
+      closeSearchSug(panelRefs.panel);
+      closeMobileSearchModal(true);
+      reloadFromFilters();
+    } else if (action === "sug-user") {
+      applyOwnerFilter(btn.dataset.userKey, btn.dataset.displayName);
+    }
+  }
+
+  function scheduleSugFetch(q, panelRefs) {
+    window.clearTimeout(state.sugDebounceTimer);
+    if (!q || q.length < 2) {
+      closeSearchSug(panelRefs.panel);
+      return;
+    }
+    state.sugDebounceTimer = window.setTimeout(async () => {
+      try {
+        const data = await app.api.get(`/api/search-suggest?q=${encodeURIComponent(q)}`);
+        if (panelRefs.panel) panelRefs.panel.dataset.query = q;
+        renderSearchSug(data, panelRefs);
+      } catch {
+        closeSearchSug(panelRefs.panel);
+      }
+    }, 250);
+  }
+
+  // ── Mobile search modal ─────────────────────────────────────────────────
+
+  function openMobileSearchModal() {
+    if (!refs.mobileSearchModal) return;
+    refs.mobileSearchModal.hidden = false;
+    syncOwnerBadge();
+    setTimeout(() => refs.mobileSearchInput?.focus(), 40);
+  }
+
+  function closeMobileSearchModal(executeSearch) {
+    if (!refs.mobileSearchModal) return;
+    refs.mobileSearchModal.hidden = true;
+    closeSearchSug(refs.mobileSearchSugPanel);
+    if (executeSearch && refs.mobileSearchInput && refs.searchInput) {
+      refs.searchInput.value = refs.mobileSearchInput.value;
+    }
+  }
+
+  // ── Tag chips ─────────────────────────────────────────────────────────────
 
   function renderTagChips(items) {
     const selected = new Set(getSelectedValues("[data-ui-chip][aria-pressed='true']", "value"));
@@ -1418,6 +1633,11 @@ export function initHomePage(app) {
       // Re-render to move selected to top
       renderTagChips(state.tagPool);
       reloadFromFilters();
+      // Sync browse modal selection state if it's currently open
+      if (app.modal?.isOpen?.(HOME_TAG_BROWSE_ID)) {
+        const layer = document.getElementById("appModalRoot")?.querySelector(`[data-modal-id="${HOME_TAG_BROWSE_ID}"]`);
+        layer?._renderList?.(layer.querySelector?.("#tagBrowseSearch")?.value || "");
+      }
     });
 
     refs.colorList?.addEventListener("click", (event) => {
@@ -1568,7 +1788,78 @@ export function initHomePage(app) {
     load();
   });
 
-  refs.searchInput?.addEventListener("input", scheduleSearch);
+  // ── Header search suggest ─────────────────────────────────────────────
+
+  const desktopSugRefs = {
+    panel: refs.searchSugPanel,
+    imagesSection: refs.searchSugImages,
+    imagesList: refs.searchSugImagesList,
+    tagsSection: refs.searchSugTags,
+    tagsList: refs.searchSugTagsList,
+    usersSection: refs.searchSugUsers,
+    usersList: refs.searchSugUsersList,
+  };
+
+  const mobileSugRefs = {
+    panel: refs.mobileSearchSugPanel,
+    imagesSection: refs.mobileSearchSugImages,
+    imagesList: refs.mobileSearchSugImagesList,
+    tagsSection: refs.mobileSearchSugTags,
+    tagsList: refs.mobileSearchSugTagsList,
+    usersSection: refs.mobileSearchSugUsers,
+    usersList: refs.mobileSearchSugUsersList,
+  };
+
+  refs.searchInput?.addEventListener("input", () => {
+    scheduleSearch();
+    scheduleSugFetch(refs.searchInput.value.trim(), desktopSugRefs);
+  });
+
+  refs.searchInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeSearchSug(refs.searchSugPanel);
+  });
+
+  refs.searchInput?.addEventListener("blur", () => {
+    window.setTimeout(() => closeSearchSug(refs.searchSugPanel), 150);
+  });
+
+  refs.searchSugPanel?.addEventListener("click", (event) => {
+    handleSugClick(event, desktopSugRefs);
+  });
+
+  refs.searchOwnerBadgeClear?.addEventListener("click", () => {
+    clearOwnerFilter();
+    reloadFromFilters();
+  });
+
+  // ── Mobile search modal ─────────────────────────────────────────────
+
+  refs.mobileSearchBtn?.addEventListener("click", () => openMobileSearchModal());
+
+  refs.mobileSearchClose?.addEventListener("click", () => closeMobileSearchModal(false));
+
+  refs.mobileSearchInput?.addEventListener("input", () => {
+    scheduleSugFetch(refs.mobileSearchInput.value.trim(), mobileSugRefs);
+  });
+
+  refs.mobileSearchInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      closeMobileSearchModal(true);
+      reloadFromFilters();
+    } else if (event.key === "Escape") {
+      closeMobileSearchModal(false);
+    }
+  });
+
+  refs.mobileSearchSugPanel?.addEventListener("click", (event) => {
+    handleSugClick(event, mobileSugRefs);
+  });
+
+  refs.mobileSearchOwnerBadgeClear?.addEventListener("click", () => {
+    clearOwnerFilter();
+    reloadFromFilters();
+  });
+
   refs.sortSelect?.addEventListener("change", () => {
     state.page = 1;
     load();

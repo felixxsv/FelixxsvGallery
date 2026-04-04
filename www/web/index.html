@@ -41,17 +41,37 @@
       </div>
 
       <div class="app-site-header__center app-site-header__center--search">
-        <label class="app-field app-site-header__search home-search-field">
-          <span class="app-visually-hidden">検索</span>
-          <span class="home-search-field__icon" aria-hidden="true"></span>
-          <input
-            id="homeSearchInput"
-            class="app-input"
-            type="search"
-            placeholder="タイトル / alt / タグを検索"
-            autocomplete="off"
-          >
-        </label>
+        <div class="home-header-search-wrap">
+          <div class="home-header-search-field app-site-header__search home-search-field">
+            <span class="app-visually-hidden">検索</span>
+            <span class="home-search-field__icon" aria-hidden="true"></span>
+            <div id="homeSearchOwnerBadge" class="home-search-owner-badge" hidden>
+              <span id="homeSearchOwnerBadgeLabel" class="home-search-owner-badge__label"></span>
+              <button type="button" id="homeSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="ユーザーフィルターを解除">×</button>
+            </div>
+            <input
+              id="homeSearchInput"
+              class="app-input home-header-search-input"
+              type="search"
+              placeholder="タイトル / alt / タグ / ユーザーを検索"
+              autocomplete="off"
+            >
+          </div>
+          <div id="homeSearchSugPanel" class="home-search-sug-panel" hidden>
+            <div id="homeSearchSugImages" class="home-search-sug-section" hidden>
+              <div class="home-search-sug-section__heading">画像</div>
+              <div id="homeSearchSugImagesList" class="home-search-sug-section__list"></div>
+            </div>
+            <div id="homeSearchSugTags" class="home-search-sug-section" hidden>
+              <div class="home-search-sug-section__heading">タグ</div>
+              <div id="homeSearchSugTagsList" class="home-search-sug-section__list"></div>
+            </div>
+            <div id="homeSearchSugUsers" class="home-search-sug-section" hidden>
+              <div class="home-search-sug-section__heading">ユーザー</div>
+              <div id="homeSearchSugUsersList" class="home-search-sug-section__list"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="app-site-header__right">
@@ -72,6 +92,7 @@
   <main class="home-page">
     <div class="app-container">
       <div id="homeShellLayout" class="home-shell-layout">
+        <div id="homeSidebarBackdrop" class="home-sidebar-backdrop" hidden></div>
         <aside id="homeSidebar" class="home-sidebar" aria-label="画像一覧のフィルター">
   <div class="home-sidebar__header">
     <div class="home-sidebar__brand">
@@ -191,6 +212,53 @@
 </aside>
 
         <div class="home-shell-layout__content">
+          <div class="home-mobile-toolbar" id="homeMobileToolbar">
+            <button type="button" id="homeMobileSearchBtn" class="home-mobile-toolbar__btn" aria-label="検索">
+              <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--search" aria-hidden="true"></span>
+              <span class="home-mobile-toolbar__label">検索</span>
+            </button>
+            <button type="button" id="homeMobileFilterBtn" class="home-mobile-toolbar__btn" aria-label="フィルター">
+              <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--filter" aria-hidden="true"></span>
+              <span class="home-mobile-toolbar__label">フィルター</span>
+            </button>
+          </div>
+
+          <div id="homeMobileSearchModal" class="home-mobile-search-modal" hidden>
+            <div class="home-mobile-search-modal__inner">
+              <div class="home-mobile-search-modal__header">
+                <div class="home-mobile-search-modal__field-wrap">
+                  <span class="home-search-field__icon" aria-hidden="true"></span>
+                  <div id="homeMobileSearchOwnerBadge" class="home-search-owner-badge" hidden>
+                    <span id="homeMobileSearchOwnerBadgeLabel" class="home-search-owner-badge__label"></span>
+                    <button type="button" id="homeMobileSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="ユーザーフィルターを解除">×</button>
+                  </div>
+                  <input
+                    id="homeMobileSearchInput"
+                    class="app-input home-mobile-search-modal__input"
+                    type="search"
+                    placeholder="タイトル / alt / タグ / ユーザーを検索"
+                    autocomplete="off"
+                  >
+                </div>
+                <button type="button" id="homeMobileSearchClose" class="home-mobile-search-modal__close app-icon-button" aria-label="検索を閉じる">×</button>
+              </div>
+              <div id="homeMobileSearchSugPanel" class="home-search-sug-panel home-search-sug-panel--mobile" hidden>
+                <div id="homeMobileSearchSugImages" class="home-search-sug-section" hidden>
+                  <div class="home-search-sug-section__heading">画像</div>
+                  <div id="homeMobileSearchSugImagesList" class="home-search-sug-section__list"></div>
+                </div>
+                <div id="homeMobileSearchSugTags" class="home-search-sug-section" hidden>
+                  <div class="home-search-sug-section__heading">タグ</div>
+                  <div id="homeMobileSearchSugTagsList" class="home-search-sug-section__list"></div>
+                </div>
+                <div id="homeMobileSearchSugUsers" class="home-search-sug-section" hidden>
+                  <div class="home-search-sug-section__heading">ユーザー</div>
+                  <div id="homeMobileSearchSugUsersList" class="home-search-sug-section__list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <section class="home-status" aria-live="polite">
   <div id="homeStatusText" class="home-status__text">読み込み待機中です。</div>
   <div class="home-status__actions">

@@ -390,6 +390,54 @@ def palette():
     return {"items": _palette_from_conf(CONF)}
 
 
+@app.get("/api/search-suggest")
+def search_suggest(q: str | None = None):
+    q_str = (q or "").strip()
+    if len(q_str) < 2:
+        return {"images": [], "tags": [], "users": []}
+    like = f"%{_escape_like(q_str)}%"
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT i.id, i.title, i.thumb_path_480 "
+                "FROM images i "
+                "JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0 "
+                "WHERE i.gallery=%s AND i.is_public=1 "
+                "AND (i.title LIKE %s ESCAPE '\\\\' OR i.alt LIKE %s ESCAPE '\\\\') "
+                "ORDER BY i.shot_at DESC LIMIT 4",
+                [GALLERY, GALLERY, like, like],
+            )
+            images = list(cur.fetchall())
+            cur.execute(
+                "SELECT t.name, COUNT(it.image_id) AS cnt "
+                "FROM tags t "
+                "JOIN image_tags it ON it.tag_id=t.id "
+                "JOIN images i ON i.id=it.image_id AND i.gallery=%s AND i.is_public=1 "
+                "WHERE t.gallery=%s AND t.name LIKE %s ESCAPE '\\\\' "
+                "GROUP BY t.id, t.name ORDER BY cnt DESC LIMIT 5",
+                [GALLERY, GALLERY, like],
+            )
+            tags = list(cur.fetchall())
+            cur.execute(
+                "SELECT DISTINCT u.user_key, u.display_name "
+                "FROM users u "
+                "JOIN images i ON i.owner_user_id=u.id AND i.gallery=%s AND i.is_public=1 "
+                "WHERE u.status='active' "
+                "AND (u.user_key LIKE %s ESCAPE '\\\\' OR u.display_name LIKE %s ESCAPE '\\\\') "
+                "LIMIT 3",
+                [GALLERY, like, like],
+            )
+            users = list(cur.fetchall())
+        return {
+            "images": [{"id": r["id"], "title": r["title"], "thumb_path": r["thumb_path_480"]} for r in images],
+            "tags": [{"name": r["name"], "count": int(r["cnt"])} for r in tags],
+            "users": [{"user_key": r["user_key"], "display_name": r["display_name"]} for r in users],
+        }
+    finally:
+        conn.close()
+
+
 @app.get("/api/images")
 def list_images(
     req: Request,
@@ -397,6 +445,7 @@ def list_images(
     per_page: int = Query(90, ge=1),
     sort: str = Query("latest"),
     q: str | None = None,
+    owner_user_key: str | None = None,
     tags_any: str | None = None,
     tags_all: str | None = None,
     colors_any: str | None = None,
@@ -430,8 +479,15 @@ def list_images(
     text_sql, text_params = build_text_search_sql(GALLERY, q)
     shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF), viewer_user_id=viewer_user_id)
 
-    where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}"
-    where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
+    owner_key_str = (owner_user_key or "").strip()
+    if owner_key_str and re.match(r'^[a-zA-Z0-9_-]{1,20}$', owner_key_str):
+        owner_sql = " AND EXISTS (SELECT 1 FROM users uu WHERE uu.id=i.owner_user_id AND uu.user_key=%s AND uu.status='active')"
+        owner_params: list = [owner_key_str]
+    else:
+        owner_sql, owner_params = "", []
+
+    where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}{owner_sql}"
+    where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params, *owner_params]
 
     sort_key = (sort or "latest").lower()
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
@@ -762,6 +818,9 @@ LIMIT %s
 
 @app.post("/api/check-hashes")
 async def check_hashes(req: Request):
+    u = _get_current_user(req)
+    if not u:
+        raise HTTPException(status_code=401, detail="login required")
     body = await req.json()
     hashes = [str(h) for h in (body.get("hashes") or []) if h]
     if not hashes:

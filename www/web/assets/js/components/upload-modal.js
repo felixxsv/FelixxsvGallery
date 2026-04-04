@@ -463,7 +463,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       refs.tagSugMore.hidden = !isQuick;
     }
 
-    const hasContent = filtered.length > 0 || isQuick;
+    const hasContent = filtered.length > 0 || (isQuick && state.tagPool.length > 0);
     if (refs.tagSug) refs.tagSug.hidden = !hasContent;
   }
 
@@ -853,7 +853,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const seen = new Map();
     for (const item of state.items) {
       item.duplicate = false;
-      item.serverDuplicate = false;
       item.duplicateExistingId = null;
     }
     for (const item of state.items) {
@@ -893,7 +892,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       accepted.push(file);
     }
 
-    if (incoming.length > remaining) {
+    if (accepted.length >= remaining && incoming.length > remaining) {
       app.toast?.warning?.(`画像は最大 ${MAX_FILES} 枚までです。先頭 ${remaining} 枚のみ追加しました。`);
     }
 

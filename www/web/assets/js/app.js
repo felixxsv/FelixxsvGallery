@@ -290,16 +290,25 @@ function initHomeGridColumns() {
   apply(readHomeGridColumns());
 }
 
+const HOME_MOBILE_BREAKPOINT = "(max-width: 768px)";
+
 function initPublicSidebar() {
   const root = byId("homeSidebar");
   const toggleButton = byId("homeSidebarToggle");
   const closeButton = byId("homeSidebarClose");
+  const backdrop = byId("homeSidebarBackdrop");
+  const mobileFilterBtn = byId("homeMobileFilterBtn");
   const layout = root?.closest(".home-shell-layout") || null;
   if (!root || !toggleButton || !layout) return;
 
+  const mobileMedia = window.matchMedia(HOME_MOBILE_BREAKPOINT);
   const edgePeekPx = 44;
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let revealTimerId = null;
+
+  function isMobile() {
+    return mobileMedia.matches;
+  }
 
   function clearRevealTimer() {
     if (revealTimerId !== null) {
@@ -324,6 +333,15 @@ function initPublicSidebar() {
     }
   }
 
+  function syncBackdrop(collapsed) {
+    if (!backdrop) return;
+    if (isMobile() && !collapsed) {
+      backdrop.hidden = false;
+    } else {
+      backdrop.hidden = true;
+    }
+  }
+
   function updateToggleUi(collapsed) {
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
     toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
@@ -331,6 +349,10 @@ function initPublicSidebar() {
     const icon = toggleButton.querySelector("span");
     if (icon) {
       icon.textContent = "❯";
+    }
+
+    if (mobileFilterBtn) {
+      mobileFilterBtn.classList.toggle("is-active", !collapsed);
     }
   }
 
@@ -353,6 +375,7 @@ function initPublicSidebar() {
       document.body.classList.remove("is-home-sidebar-edge-peek");
     }
 
+    syncBackdrop(collapsed);
     updateToggleUi(collapsed);
 
     if (collapsed) {
@@ -362,7 +385,10 @@ function initPublicSidebar() {
         closeButton.hidden = true;
       }
 
-      writeStoredState(true);
+      // On mobile, don't persist collapsed state (always resets to closed on load)
+      if (!isMobile()) {
+        writeStoredState(true);
+      }
       return;
     }
 
@@ -370,7 +396,7 @@ function initPublicSidebar() {
 
     if (!shouldAnimate) {
       finishExpandedContent();
-      writeStoredState(false);
+      if (!isMobile()) writeStoredState(false);
       return;
     }
 
@@ -388,7 +414,7 @@ function initPublicSidebar() {
       finishExpandedContent();
     }, HOME_SIDEBAR_REVEAL_DELAY_MS);
 
-    writeStoredState(false);
+    if (!isMobile()) writeStoredState(false);
   }
 
   function isCollapsed() {
@@ -396,6 +422,7 @@ function initPublicSidebar() {
   }
 
   function syncEdgePeek(clientX) {
+    if (isMobile()) return;
     if (!isCollapsed()) {
       document.body.classList.remove("is-home-sidebar-edge-peek");
       return;
@@ -405,7 +432,13 @@ function initPublicSidebar() {
     document.body.classList.toggle("is-home-sidebar-edge-peek", nearEdge);
   }
 
-  ensureHomeSidebarDefaultExpanded();
+  // On mobile: always start collapsed; on desktop: use stored preference
+  if (isMobile()) {
+    applyState(true);
+  } else {
+    ensureHomeSidebarDefaultExpanded();
+    applyState(readStoredState());
+  }
 
   toggleButton.addEventListener("click", () => {
     applyState(!isCollapsed(), { animate: true });
@@ -413,6 +446,14 @@ function initPublicSidebar() {
 
   closeButton?.addEventListener("click", () => {
     applyState(true, { animate: true });
+  });
+
+  backdrop?.addEventListener("click", () => {
+    applyState(true, { animate: true });
+  });
+
+  mobileFilterBtn?.addEventListener("click", () => {
+    applyState(!isCollapsed(), { animate: true });
   });
 
   window.addEventListener("mousemove", (event) => {
@@ -425,10 +466,18 @@ function initPublicSidebar() {
 
   window.addEventListener("storage", (event) => {
     if (event.key !== HOME_SIDEBAR_COLLAPSED_KEY) return;
-    applyState(readStoredState());
+    if (!isMobile()) applyState(readStoredState());
   });
 
-  applyState(readStoredState());
+  // When switching from mobile to desktop, restore stored state
+  mobileMedia.addEventListener("change", () => {
+    if (!isMobile()) {
+      backdrop.hidden = true;
+      applyState(readStoredState());
+    } else {
+      applyState(true);
+    }
+  });
 }
 
 async function bootstrap() {
