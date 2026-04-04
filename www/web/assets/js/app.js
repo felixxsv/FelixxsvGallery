@@ -9,7 +9,7 @@ import { createI18n } from "./core/i18n.js";
 import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js";
 import { createUploadModalController } from "./components/upload-modal.js";
-import { initHomePage } from "./pages/home.js";
+import { initHomePage } from "./page/home.js";
 import { ensureCustomScrollbars } from "./core/custom-scrollbar.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
