@@ -572,7 +572,12 @@
 
 @media (min-width: 641px) {
   .upload-modal__top {
-    height: 200px;
+    grid-template-rows: 200px;
+  }
+  .upload-modal__thumb-col,
+  .upload-modal__drop-col {
+    min-height: 0;
+    overflow: hidden;
   }
   .upload-modal__thumbnail-wrap {
     flex: 1;
