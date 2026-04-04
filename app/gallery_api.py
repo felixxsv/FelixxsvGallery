@@ -440,19 +440,15 @@ def search_suggest(q: str | None = None):
                 [GALLERY, GALLERY, like],
             )
             tags = list(cur.fetchall())
-            if _HAS_IMAGES_OWNER_USER_ID:
-                cur.execute(
-                    "SELECT DISTINCT u.user_key, u.display_name "
-                    "FROM users u "
-                    "JOIN images i ON i.owner_user_id=u.id AND i.gallery=%s AND i.is_public=1 "
-                    "WHERE u.status='active' "
-                    "AND (u.user_key LIKE %s ESCAPE '\\\\' OR u.display_name LIKE %s ESCAPE '\\\\') "
-                    "LIMIT 3",
-                    [GALLERY, like, like],
-                )
-                users = list(cur.fetchall())
-            else:
-                users = []
+            cur.execute(
+                "SELECT u.user_key, u.display_name "
+                "FROM users u "
+                "WHERE u.status='active' "
+                "AND (u.user_key LIKE %s ESCAPE '\\\\' OR u.display_name LIKE %s ESCAPE '\\\\') "
+                "LIMIT 3",
+                [like, like],
+            )
+            users = list(cur.fetchall())
         return {
             "images": [{"id": r["id"], "title": r["title"], "thumb_path": r["thumb_path_480"]} for r in images],
             "tags": [{"name": r["name"], "count": int(r["cnt"])} for r in tags],
