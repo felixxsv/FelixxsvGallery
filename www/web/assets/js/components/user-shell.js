@@ -54,14 +54,20 @@ export function initUserShell(app) {
     creditUpdatedAt: byId("shellCreditUpdatedAt"),
     creditVersion: byId("shellCreditVersion"),
 
-    accountDisplayName: byId("shellAccountDisplayName"),
-    accountUserKey: byId("shellAccountUserKey"),
     accountEmail: byId("shellAccountEmail"),
-    accountCreatedAt: byId("shellAccountCreatedAt"),
     accountTwoFactor: byId("shellAccountTwoFactor"),
     emailActionButton: byId("shellEmailActionButton"),
     twoFactorEnableButton: byId("shellTwoFactorEnableButton"),
     twoFactorDisableOpenButton: byId("shellTwoFactorDisableOpenButton"),
+
+    accountAvatar: byId("shellAccountAvatar"),
+    accountAvatarInitial: byId("shellAccountAvatarInitial"),
+    accountAvatarImg: byId("shellAccountAvatarImg"),
+    avatarFileInput: byId("shellAvatarFileInput"),
+    avatarDeleteButton: byId("shellAvatarDeleteButton"),
+    profileDisplayNameInput: byId("shellProfileDisplayNameInput"),
+    profileUserKeyInput: byId("shellProfileUserKeyInput"),
+    profileSaveButton: byId("shellProfileSaveButton"),
 
     emailTitle: byId("emailTitle"),
     emailInput: byId("shellEmailInput"),
@@ -283,12 +289,29 @@ export function initUserShell(app) {
     const twoFactor = getTwoFactor();
     const email = user.primary_email || "";
 
-    refs.accountDisplayName.textContent = user.display_name || "-";
-    refs.accountUserKey.textContent = user.user_key || "-";
+    // Avatar
+    const avatarUrl = user.avatar_url || null;
+    if (avatarUrl) {
+      refs.accountAvatarImg.src = avatarUrl + "?t=" + Date.now();
+      refs.accountAvatarImg.hidden = false;
+      refs.accountAvatarInitial.hidden = true;
+      refs.avatarDeleteButton.hidden = false;
+    } else {
+      refs.accountAvatarImg.hidden = true;
+      refs.accountAvatarImg.src = "";
+      refs.accountAvatarInitial.hidden = false;
+      refs.accountAvatarInitial.textContent = (user.display_name || user.user_key || "?")[0];
+      refs.avatarDeleteButton.hidden = true;
+    }
+
+    // Profile inputs
+    refs.profileDisplayNameInput.value = user.display_name || "";
+    refs.profileUserKeyInput.value = user.user_key || "";
+
+    // Security
     refs.accountEmail.textContent = email || "未登録";
-    refs.accountCreatedAt.textContent = formatDate(user.created_at);
     refs.accountTwoFactor.textContent = twoFactor.is_enabled ? "有効" : "無効";
-    refs.emailActionButton.textContent = email ? "メールアドレス変更" : "メールアドレス登録";
+    refs.emailActionButton.textContent = email ? "変更" : "登録";
     refs.twoFactorEnableButton.hidden = twoFactor.is_enabled;
     refs.twoFactorDisableOpenButton.hidden = !twoFactor.is_enabled;
   }
@@ -549,6 +572,80 @@ export function initUserShell(app) {
     refreshResendButtons();
   }
 
+  async function handleProfileSave() {
+    const displayName = refs.profileDisplayNameInput.value.trim();
+    const userKey = refs.profileUserKeyInput.value.trim();
+
+    if (!displayName) {
+      toast.error("表示名を入力してください。");
+      refs.profileDisplayNameInput.focus();
+      return;
+    }
+    if (!userKey) {
+      toast.error("ユーザーIDを入力してください。");
+      refs.profileUserKeyInput.focus();
+      return;
+    }
+
+    refs.profileSaveButton.disabled = true;
+    try {
+      await app.api.patch("/api/auth/profile", {
+        display_name: displayName,
+        user_key: userKey,
+      });
+      await refreshSession();
+      renderAccountModal();
+      renderUserCard();
+      toast.success("プロフィールを更新しました。");
+    } catch (error) {
+      const fieldErrors = error?.payload?.error?.field_errors || [];
+      if (fieldErrors.length > 0) {
+        toast.error(fieldErrors[0].message || error.message || "入力内容を確認してください。");
+      } else {
+        toast.error(error.message || "プロフィールの更新に失敗しました。");
+      }
+    } finally {
+      refs.profileSaveButton.disabled = false;
+    }
+  }
+
+  async function handleAvatarUpload(file) {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    refs.avatarFileInput.value = "";
+
+    try {
+      const result = await app.api.postForm("/api/auth/avatar", formData);
+      const avatarUrl = result?.data?.avatar_url || null;
+      if (avatarUrl) {
+        const user = getUser();
+        user.avatar_url = avatarUrl;
+      }
+      await refreshSession();
+      renderAccountModal();
+      renderUserCard();
+      toast.success("アイコンを更新しました。");
+    } catch (error) {
+      toast.error(error.message || "アイコンのアップロードに失敗しました。");
+    }
+  }
+
+  async function handleAvatarDelete() {
+    if (!window.confirm("アイコンを削除しますか？")) return;
+    try {
+      await app.api.delete("/api/auth/avatar");
+      await refreshSession();
+      renderAccountModal();
+      renderUserCard();
+      toast.success("アイコンを削除しました。");
+    } catch (error) {
+      toast.error(error.message || "アイコンの削除に失敗しました。");
+    }
+  }
+
   function handleEmailSave() {
     const email = refs.emailInput.value.trim();
     if (!email) {
@@ -578,6 +675,12 @@ export function initUserShell(app) {
     refs.logoutButton.addEventListener("click", handleLogout);
     refs.logoutAllButton.addEventListener("click", handleLogoutAll);
     refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
+    refs.profileSaveButton.addEventListener("click", handleProfileSave);
+    refs.avatarFileInput.addEventListener("change", () => {
+      const file = refs.avatarFileInput.files?.[0] || null;
+      if (file) handleAvatarUpload(file);
+    });
+    refs.avatarDeleteButton.addEventListener("click", handleAvatarDelete);
     refs.twoFactorEnableButton.addEventListener("click", handleTwoFactorEnable);
     refs.twoFactorSetupConfirmButton.addEventListener("click", handleTwoFactorSetupConfirm);
     refs.twoFactorSetupResendButton.addEventListener("click", handleTwoFactorSetupResend);

@@ -407,53 +407,63 @@
 
     <section class="app-modal-layer" data-modal-layer data-modal-id="settings" hidden>
       <div class="app-modal-backdrop" data-modal-backdrop="settings"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
         <div class="app-modal-header">
           <h2 id="settingsTitle" class="app-modal-title">設定</h2>
         </div>
         <div class="app-modal-body">
-          <form class="app-form-stack">
-            <label class="app-field">
-              <span class="app-field__label">言語</span>
-              <select id="shellSettingLanguage" class="app-select">
-                <option value="ja">日本語</option>
-                <option value="en">English</option>
-              </select>
-            </label>
 
-            <label class="app-field">
-              <span class="app-field__label">カラーテーマ</span>
-              <select id="shellSettingTheme" class="app-select">
-                <option value="system">システム</option>
-                <option value="dark">ダーク</option>
-                <option value="light">ライト</option>
-              </select>
-            </label>
+          <div class="shell-settings-group">
+            <h3 class="shell-settings-group__title">表示</h3>
+            <div class="app-form-stack">
+              <label class="app-field">
+                <span class="app-field__label">言語</span>
+                <select id="shellSettingLanguage" class="app-select">
+                  <option value="ja">日本語</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
 
-            <label class="app-field">
-              <span class="app-field__label">画像クリック時の挙動</span>
-              <select id="shellSettingImageOpenBehavior" class="app-select">
-                <option value="modal">モーダルで表示</option>
-                <option value="new_tab">別タブで表示</option>
-              </select>
-            </label>
+              <label class="app-field">
+                <span class="app-field__label">カラーテーマ</span>
+                <select id="shellSettingTheme" class="app-select">
+                  <option value="system">システム設定に合わせる</option>
+                  <option value="dark">ダーク</option>
+                  <option value="light">ライト</option>
+                </select>
+              </label>
+            </div>
+          </div>
 
-            <label class="app-field app-field--switch app-switch">
-              <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
-              <span class="app-switch__track" aria-hidden="true">
-                <span class="app-switch__thumb"></span>
-              </span>
-              <span class="app-switch__label">画像モーダルの背景クリックで閉じる</span>
-            </label>
+          <div class="shell-settings-group">
+            <h3 class="shell-settings-group__title">画像</h3>
+            <div class="app-form-stack">
+              <label class="app-field">
+                <span class="app-field__label">クリック時の挙動</span>
+                <select id="shellSettingImageOpenBehavior" class="app-select">
+                  <option value="modal">モーダルで表示</option>
+                  <option value="new_tab">別タブで表示</option>
+                </select>
+              </label>
 
-            <label class="app-field app-field--switch app-switch">
-              <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
-              <span class="app-switch__track" aria-hidden="true">
-                <span class="app-switch__thumb"></span>
-              </span>
-              <span class="app-switch__label">画像モーダルのメタ情報バーを常時表示する</span>
-            </label>
-          </form>
+              <label class="app-field app-field--switch app-switch">
+                <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
+                <span class="app-switch__track" aria-hidden="true">
+                  <span class="app-switch__thumb"></span>
+                </span>
+                <span class="app-switch__label">背景クリックでモーダルを閉じる</span>
+              </label>
+
+              <label class="app-field app-field--switch app-switch">
+                <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
+                <span class="app-switch__track" aria-hidden="true">
+                  <span class="app-switch__thumb"></span>
+                </span>
+                <span class="app-switch__label">メタ情報バーを常時表示する</span>
+              </label>
+            </div>
+          </div>
+
         </div>
         <div class="app-modal-footer app-modal-footer--end">
           <button type="button" class="app-button app-button--primary" data-modal-close="settings">閉じる</button>
@@ -518,43 +528,79 @@
 
     <section class="app-modal-layer" data-modal-layer data-modal-id="account" hidden>
       <div class="app-modal-backdrop" data-modal-backdrop="account"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="accountTitle" tabindex="-1">
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="accountTitle" class="app-modal-title">アカウント設定</h2>
+          <h2 id="accountTitle" class="app-modal-title">プロフィール編集</h2>
         </div>
         <div class="app-modal-body">
-          <dl class="app-definition-list">
-            <div class="app-definition-list__row">
-              <dt>表示名</dt>
-              <dd id="shellAccountDisplayName">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>user_key</dt>
-              <dd id="shellAccountUserKey">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>メールアドレス</dt>
-              <dd id="shellAccountEmail">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>登録日時</dt>
-              <dd id="shellAccountCreatedAt">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>2段階認証</dt>
-              <dd id="shellAccountTwoFactor">-</dd>
-            </div>
-          </dl>
 
-          <div class="shell-account-actions">
-            <button id="shellEmailActionButton" type="button" class="app-button" data-modal-open="email">メールアドレス変更</button>
-            <button id="shellPasswordActionButton" type="button" class="app-button" data-modal-open="password">パスワード変更</button>
-            <button id="shellTwoFactorEnableButton" type="button" class="app-button">2段階認証を有効化</button>
-            <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button" hidden>2段階認証を無効化</button>
+          <!-- Avatar section -->
+          <div class="shell-profile-avatar-section">
+            <div class="shell-profile-avatar-wrap">
+              <div id="shellAccountAvatar" class="shell-profile-avatar">
+                <span id="shellAccountAvatarInitial" class="shell-profile-avatar__initial"></span>
+                <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="アバター" hidden>
+              </div>
+              <div class="shell-profile-avatar-controls">
+                <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
+                  アイコンを変更
+                </label>
+                <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
+                <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden>
+                  削除
+                </button>
+              </div>
+            </div>
           </div>
+
+          <!-- Profile fields -->
+          <div class="shell-profile-fields app-form-stack">
+            <label class="app-field">
+              <span class="app-field__label">表示名</span>
+              <input id="shellProfileDisplayNameInput" class="app-input" type="text" autocomplete="name" maxlength="100" placeholder="例: Felix">
+            </label>
+            <label class="app-field">
+              <span class="app-field__label">ユーザーID</span>
+              <div class="shell-user-key-field">
+                <span class="shell-user-key-field__prefix">@</span>
+                <input id="shellProfileUserKeyInput" class="app-input shell-user-key-field__input" type="text" autocomplete="username" maxlength="20" placeholder="例: felix_x21">
+              </div>
+              <span class="app-field__hint">4〜20文字・英字始まり・英数字/アンダースコア/ハイフンのみ</span>
+            </label>
+          </div>
+
+          <!-- Security section -->
+          <div class="shell-security-section">
+            <h3 class="shell-security-section__title">セキュリティ</h3>
+            <div class="shell-security-list">
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label">メールアドレス</span>
+                  <span id="shellAccountEmail" class="shell-security-item__value">-</span>
+                </div>
+                <button id="shellEmailActionButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="email">変更</button>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label">パスワード</span>
+                </div>
+                <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password">変更</button>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label">2段階認証</span>
+                  <span id="shellAccountTwoFactor" class="shell-security-item__value">-</span>
+                </div>
+                <button id="shellTwoFactorEnableButton" type="button" class="app-button app-button--ghost app-button--small">有効化</button>
+                <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button app-button--ghost app-button--small" hidden>無効化</button>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--primary" data-modal-close="account">閉じる</button>
+        <div class="app-modal-footer">
+          <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary">保存</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="account">キャンセル</button>
         </div>
       </div>
     </section>

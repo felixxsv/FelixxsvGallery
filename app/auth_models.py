@@ -65,7 +65,7 @@ def get_user_by_id(conn, user_id: int) -> dict | None:
             user_key,
             display_name,
             email AS primary_email,
-            NULL AS avatar_path,
+            avatar_path,
             role,
             status,
             can_upload AS upload_enabled,
@@ -93,7 +93,7 @@ def get_user_by_user_key(conn, user_key: str) -> dict | None:
             user_key,
             display_name,
             email AS primary_email,
-            NULL AS avatar_path,
+            avatar_path,
             role,
             status,
             can_upload AS upload_enabled,
@@ -121,7 +121,7 @@ def get_user_by_primary_email(conn, email: str) -> dict | None:
             user_key,
             display_name,
             email AS primary_email,
-            NULL AS avatar_path,
+            avatar_path,
             role,
             status,
             can_upload AS upload_enabled,
@@ -192,7 +192,9 @@ def update_user_profile(
     user_id: int,
     display_name: str | None = None,
     primary_email: str | None = None,
+    user_key: str | None = None,
     avatar_path: str | None = None,
+    clear_avatar: bool = False,
 ) -> int:
     fields: list[str] = []
     params: list[Any] = []
@@ -203,6 +205,14 @@ def update_user_profile(
     if primary_email is not None:
         fields.append("email = %s")
         params.append(primary_email)
+    if user_key is not None:
+        fields.append("user_key = %s")
+        params.append(user_key)
+    if avatar_path is not None:
+        fields.append("avatar_path = %s")
+        params.append(avatar_path)
+    elif clear_avatar:
+        fields.append("avatar_path = NULL")
 
     if not fields:
         return 0

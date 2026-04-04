@@ -404,7 +404,7 @@ body {
   flex-direction: column;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--color-bg-elevated) 92%, transparent);
+  background: var(--color-bg-elevated);
   box-shadow: var(--shadow-3);
   overflow: hidden;
 }
@@ -422,6 +422,10 @@ body {
 .app-modal-footer {
   border-top: 1px solid var(--color-border);
   border-bottom: none;
+}
+
+.app-modal-footer--end {
+  justify-content: flex-end;
 }
 
 .app-modal-title {
@@ -792,6 +796,184 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+}
+
+/* Profile avatar section */
+.shell-profile-avatar-section {
+  display: flex;
+  justify-content: center;
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-5);
+}
+
+.shell-profile-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.shell-profile-avatar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
+  border: 2px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.shell-profile-avatar__initial {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+
+.shell-profile-avatar__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shell-profile-avatar-controls {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.shell-avatar-upload-label {
+  cursor: pointer;
+}
+
+.shell-avatar-delete-btn {
+  color: var(--color-danger, var(--color-warning));
+  border-color: transparent;
+}
+
+/* Profile fields */
+.shell-profile-fields {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shell-user-key-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+  transition: border-color 0.15s ease;
+}
+
+.shell-user-key-field:focus-within {
+  border-color: var(--color-primary);
+}
+
+.shell-user-key-field__prefix {
+  padding: 0 var(--space-3);
+  font-size: 0.95rem;
+  color: var(--color-text-faint);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.shell-user-key-field__input {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.shell-user-key-field__input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Security section */
+.shell-security-section {
+  margin-top: 0;
+}
+
+.shell-security-section__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.shell-security-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.shell-security-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shell-security-item:last-child {
+  border-bottom: none;
+}
+
+.shell-security-item__left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shell-security-item__label {
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+}
+
+.shell-security-item__value {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Settings groups */
+.shell-settings-group {
+  margin-bottom: var(--space-5);
+}
+
+.shell-settings-group:last-child {
+  margin-bottom: 0;
+}
+
+.shell-settings-group__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+  margin: 0 0 var(--space-4) 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
 
 @media (max-width: 720px) {

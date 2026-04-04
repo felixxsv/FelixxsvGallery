@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 import uuid
 
-from fastapi import APIRouter, Cookie, Query, Request
+from fastapi import APIRouter, Cookie, Query, Request, UploadFile, File
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
@@ -32,6 +32,9 @@ from auth_service import (
     logout_all_for_current_session,
     logout_by_session_token,
     update_current_session_presence,
+    update_profile_for_current_session,
+    update_avatar_for_current_session,
+    delete_avatar_for_current_session,
     start_registration,
     complete_registration,
     request_password_reset,
@@ -111,6 +114,11 @@ class TwoFactorDisableConfirmRequest(BaseModel):
 
 class PresenceRequest(BaseModel):
     visible: bool = True
+
+
+class ProfileUpdateRequest(BaseModel):
+    display_name: str | None = None
+    user_key: str | None = None
 
 
 def build_request_id() -> str:
@@ -367,6 +375,179 @@ async def me(
             http_status=500,
         )
         return response
+
+
+@router.patch("/profile")
+async def update_profile(
+    payload: ProfileUpdateRequest,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        result = update_profile_for_current_session(
+            session_token=gallery_session,
+            display_name=payload.display_name,
+            user_key=payload.user_key,
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="プロフィールの更新に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    import os
+    from pathlib import Path
+    from db import load_conf
+    request_id = build_request_id()
+    try:
+        conf_path = os.environ.get("GALLERY_CONF", str(Path(__file__).with_name("gallery.conf")))
+        conf = load_conf(conf_path)
+        storage_root = Path(conf.get("paths", {}).get("storage_root", "/data/felixxsv-gallery/www/storage"))
+        avatar_dir = storage_root / "avatars"
+        avatar_dir.mkdir(parents=True, exist_ok=True)
+
+        content_type = (file.content_type or "").lower()
+        allowed = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+        if content_type not in allowed:
+            return build_error_response(
+                request_id=request_id,
+                error_code="validation_error",
+                message="画像ファイル（JPEG・PNG・GIF・WebP）のみアップロードできます。",
+                http_status=400,
+            )
+
+        data = await file.read()
+        if len(data) > 5 * 1024 * 1024:
+            return build_error_response(
+                request_id=request_id,
+                error_code="validation_error",
+                message="ファイルサイズは5MB以下にしてください。",
+                http_status=400,
+            )
+
+        ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+        ext = ext_map.get(content_type, "jpg")
+
+        import tempfile
+        import shutil
+        from PIL import Image as PILImage
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}") as tmp:
+            tmp.write(data)
+            tmp_path = tmp.name
+
+        try:
+            with PILImage.open(tmp_path) as img:
+                img.verify()
+        except Exception:
+            os.unlink(tmp_path)
+            return build_error_response(
+                request_id=request_id,
+                error_code="validation_error",
+                message="有効な画像ファイルを選択してください。",
+                http_status=400,
+            )
+
+        # Resize and save as JPEG
+        with PILImage.open(tmp_path) as img:
+            img = img.convert("RGB")
+            img.thumbnail((256, 256))
+            # Use user_id as temp name - get it from session
+            import secrets
+            temp_name = secrets.token_hex(8)
+            out_path = avatar_dir / f"_{temp_name}.jpg"
+            img.save(str(out_path), "JPEG", quality=88)
+
+        os.unlink(tmp_path)
+
+        rel_path = f"avatars/{out_path.name}"
+        result = update_avatar_for_current_session(
+            session_token=gallery_session,
+            avatar_path=rel_path,
+        )
+
+        if result.get("ok"):
+            user_id = result.get("data", {}).get("user_id")
+            if user_id:
+                final_path = avatar_dir / f"{user_id}.jpg"
+                shutil.move(str(out_path), str(final_path))
+                rel_path = f"avatars/{user_id}.jpg"
+                result2 = update_avatar_for_current_session(
+                    session_token=gallery_session,
+                    avatar_path=rel_path,
+                )
+                if result2.get("ok"):
+                    result2["data"]["avatar_url"] = f"/api/auth/avatar/{user_id}"
+                    return _build_response_from_service_result(request_id, result2)
+            result["data"]["avatar_url"] = ""
+            return _build_response_from_service_result(request_id, result)
+        else:
+            if out_path.exists():
+                out_path.unlink()
+            return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="アイコンのアップロードに失敗しました。",
+            http_status=500,
+        )
+
+
+@router.delete("/avatar")
+async def remove_avatar(
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    import os
+    from pathlib import Path
+    from db import load_conf
+    request_id = build_request_id()
+    try:
+        result = delete_avatar_for_current_session(session_token=gallery_session)
+        if result.get("ok"):
+            conf_path = os.environ.get("GALLERY_CONF", str(Path(__file__).with_name("gallery.conf")))
+            conf = load_conf(conf_path)
+            storage_root = Path(conf.get("paths", {}).get("storage_root", "/data/felixxsv-gallery/www/storage"))
+            old_rel = result.get("data", {}).get("old_avatar_path")
+            if old_rel:
+                old_file = storage_root / old_rel
+                if old_file.exists():
+                    old_file.unlink()
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="アイコンの削除に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.get("/avatar/{user_id}")
+async def get_avatar(user_id: int):
+    import os
+    from pathlib import Path
+    from db import load_conf
+    from fastapi.responses import FileResponse, Response
+    request_id = build_request_id()
+    try:
+        conf_path = os.environ.get("GALLERY_CONF", str(Path(__file__).with_name("gallery.conf")))
+        conf = load_conf(conf_path)
+        storage_root = Path(conf.get("paths", {}).get("storage_root", "/data/felixxsv-gallery/www/storage"))
+        avatar_file = storage_root / "avatars" / f"{user_id}.jpg"
+        if not avatar_file.exists():
+            return Response(status_code=404)
+        return FileResponse(str(avatar_file), media_type="image/jpeg")
+    except Exception:
+        return Response(status_code=500)
 
 
 @router.post("/register")

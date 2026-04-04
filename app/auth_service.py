@@ -99,6 +99,8 @@ from auth_validators import (
     validate_verify_email_input,
     validate_verify_email_resend_input,
     validate_verify_status_query,
+    validate_display_name,
+    validate_user_key,
 )
 
 
@@ -3049,6 +3051,9 @@ def get_current_user_profile(
             created_at_text = _to_app_isoformat(created_at)
 
         can_open_admin = str(user.get("role") or "") == "admin"
+        avatar_path = user.get("avatar_path") or None
+        avatar_url = f"/api/auth/avatar/{user['id']}" if avatar_path else None
+
         return build_service_success(
             data={
                 "user": {
@@ -3056,6 +3061,7 @@ def get_current_user_profile(
                     "user_key": user["user_key"],
                     "display_name": user["display_name"],
                     "primary_email": user.get("primary_email"),
+                    "avatar_url": avatar_url,
                     "role": user.get("role"),
                     "upload_enabled": bool(user.get("upload_enabled")),
                     "is_email_verified": bool(user.get("is_email_verified")),
@@ -3083,6 +3089,203 @@ def get_current_user_profile(
     finally:
         _safe_close(conn)
 
+
+
+def update_profile_for_current_session(
+    session_token: str | None,
+    display_name: str | None,
+    user_key: str | None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    errors = []
+    validated_display_name = None
+    validated_user_key = None
+
+    if display_name is not None:
+        try:
+            validated_display_name = validate_display_name(display_name)
+        except AuthValidationError as exc:
+            errors.append({"field": exc.field, "code": exc.code, "message": exc.message})
+
+    if user_key is not None:
+        try:
+            validated_user_key = validate_user_key(user_key)
+        except AuthValidationError as exc:
+            errors.append({"field": exc.field, "code": exc.code, "message": exc.message})
+
+    if errors:
+        return build_service_error(
+            error_code="validation_error",
+            message="入力内容を確認してください。",
+            field_errors=errors,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        if validated_user_key is not None and validated_user_key != user["user_key"]:
+            existing = get_user_by_user_key(conn, validated_user_key)
+            if existing is not None and existing["id"] != user["id"]:
+                _safe_rollback(conn)
+                return build_service_error(
+                    error_code="user_key_unavailable",
+                    message="このユーザーIDは既に使用されています。",
+                    field_errors=[{"field": "user_key", "code": "user_key_unavailable", "message": "このユーザーIDは既に使用されています。"}],
+                )
+
+        update_user_profile(
+            conn=conn,
+            user_id=user["id"],
+            display_name=validated_display_name,
+            user_key=validated_user_key,
+        )
+        conn.commit()
+
+        return build_service_success(
+            data={},
+            message="プロフィールを更新しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="プロフィールの更新に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
+def update_avatar_for_current_session(
+    session_token: str | None,
+    avatar_path: str,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        update_user_profile(
+            conn=conn,
+            user_id=user["id"],
+            avatar_path=avatar_path,
+        )
+        conn.commit()
+
+        return build_service_success(
+            data={"avatar_path": avatar_path, "user_id": user["id"]},
+            message="アイコンを更新しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="アイコンの更新に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
+def delete_avatar_for_current_session(
+    session_token: str | None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        old_avatar = user.get("avatar_path")
+        update_user_profile(
+            conn=conn,
+            user_id=user["id"],
+            clear_avatar=True,
+        )
+        conn.commit()
+
+        return build_service_success(
+            data={"old_avatar_path": old_avatar, "user_id": user["id"]},
+            message="アイコンを削除しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="アイコンの削除に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
 
 
 def update_current_session_presence(
