@@ -60,8 +60,12 @@
 .upload-modal__thumbnail-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
+}
+
+.upload-modal__thumbnail-wrap.is-focal-active {
+  cursor: crosshair;
 }
 
 /* ── Thumbnail overlay (title + time) ──────────────────────────────────── */
@@ -326,13 +330,7 @@
 
 .upload-modal__file-input { display: none; }
 
-/* ── Focal point editor ────────────────────────────────────────────────── */
-
-.upload-modal__focal-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+/* ── Focal point editor (サムネイルボックスに統合) ─────────────────────── */
 
 .upload-modal__focal-header {
   display: flex;
@@ -372,32 +370,6 @@
   color: var(--color-primary);
 }
 
-.upload-modal__focal-card {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  cursor: crosshair;
-  user-select: none;
-}
-
-/* height by column count */
-.upload-modal__focal-card[data-cols="1"] { height: 276px; }
-.upload-modal__focal-card[data-cols="2"] { height: 184px; }
-.upload-modal__focal-card[data-cols="3"] { height: 184px; }
-.upload-modal__focal-card[data-cols="4"] { height: 184px; }
-
-.upload-modal__focal-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  pointer-events: none;
-  transition: object-position 0s; /* instant */
-}
-
 .upload-modal__focal-crosshair {
   position: absolute;
   width: 20px;
@@ -408,12 +380,6 @@
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: left 0s, top 0s;
-}
-
-.upload-modal__focal-hint {
-  font-size: 0.72rem;
-  color: var(--color-text-faint);
-  text-align: center;
 }
 
 /* ── Form fields ───────────────────────────────────────────────────────── */

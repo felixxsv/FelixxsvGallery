@@ -110,10 +110,19 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                 <!-- 上段: サムネイル + 画像追加 (1:1) -->
                 <div class="upload-modal__top">
                   <div class="upload-modal__thumb-col">
-                    <div class="upload-modal__field-label">サムネイル</div>
+                    <div class="upload-modal__focal-header">
+                      <span class="upload-modal__field-label">サムネイル / 表示位置</span>
+                      <div class="upload-modal__focal-cols" id="uploadModalFocalCols">
+                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="1">1</button>
+                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="2">2</button>
+                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="3">3</button>
+                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="4">4</button>
+                      </div>
+                    </div>
                     <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
                       <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
                       <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
+                      <div class="upload-modal__focal-crosshair" id="uploadModalFocalCrosshair" hidden></div>
                       <div class="upload-modal__thumb-overlay" id="uploadModalThumbOverlay" hidden>
                         <span class="upload-modal__thumb-overlay-title" id="uploadModalThumbTitle"></span>
                         <span class="upload-modal__thumb-overlay-time" id="uploadModalThumbTime"></span>
@@ -143,24 +152,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--next" id="uploadModalStripNext" hidden aria-label="次へ">&#8250;</button>
                   </div>
                   <div id="uploadModalSummary" class="upload-modal__summary">ファイルが未選択です。</div>
-                </div>
-
-                <!-- フォーカルポイントエディタ -->
-                <div class="upload-modal__focal-section" id="uploadModalFocalSection" hidden>
-                  <div class="upload-modal__focal-header">
-                    <span class="upload-modal__field-label">カードプレビュー / 表示位置</span>
-                    <div class="upload-modal__focal-cols" id="uploadModalFocalCols">
-                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="1">1</button>
-                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="2">2</button>
-                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="3">3</button>
-                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="4">4</button>
-                    </div>
-                  </div>
-                  <div class="upload-modal__focal-card" id="uploadModalFocalCard" data-cols="3">
-                    <img class="upload-modal__focal-img" id="uploadModalFocalImg" alt="focal preview">
-                    <div class="upload-modal__focal-crosshair" id="uploadModalFocalCrosshair"></div>
-                  </div>
-                  <div class="upload-modal__focal-hint">ドラッグして表示位置を調整</div>
                 </div>
 
                 <!-- 下段: フォーム -->
@@ -242,10 +233,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.stripNext = document.getElementById("uploadModalStripNext");
     refs.strip = document.getElementById("uploadModalStrip");
     refs.summary = document.getElementById("uploadModalSummary");
-    refs.focalSection = document.getElementById("uploadModalFocalSection");
     refs.focalCols = document.getElementById("uploadModalFocalCols");
-    refs.focalCard = document.getElementById("uploadModalFocalCard");
-    refs.focalImg = document.getElementById("uploadModalFocalImg");
     refs.focalCrosshair = document.getElementById("uploadModalFocalCrosshair");
     refs.titleInput = document.getElementById("uploadModalTitleInput");
     refs.titleCounter = document.getElementById("uploadModalTitleCounter");
@@ -300,22 +288,27 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function updateFocalDisplay() {
     const first = state.items[0];
-    if (!refs.focalSection) return;
-    refs.focalSection.hidden = !first;
-    if (!first) return;
+    const hasImage = Boolean(first);
 
-    if (refs.focalImg) refs.focalImg.src = first.objectUrl;
-    if (refs.focalCard) refs.focalCard.dataset.cols = String(state.focalCols);
-    applyFocalPosition();
-    updateFocalColButtons();
-  }
-
-  function applyFocalPosition() {
-    if (refs.focalImg) refs.focalImg.style.objectPosition = `${state.focalX}% ${state.focalY}%`;
-    if (refs.focalCard && refs.focalCrosshair) {
-      refs.focalCrosshair.style.left = `${state.focalX}%`;
-      refs.focalCrosshair.style.top = `${state.focalY}%`;
+    // サムネイル画像に focal position を反映
+    if (refs.thumbnailImage) {
+      refs.thumbnailImage.style.objectPosition = hasImage
+        ? `${state.focalX}% ${state.focalY}%`
+        : "";
     }
+    // クロスヘア表示
+    if (refs.focalCrosshair) {
+      refs.focalCrosshair.hidden = !hasImage;
+      if (hasImage) {
+        refs.focalCrosshair.style.left = `${state.focalX}%`;
+        refs.focalCrosshair.style.top = `${state.focalY}%`;
+      }
+    }
+    // ドラッグカーソル切り替え
+    if (refs.thumbnailWrap) {
+      refs.thumbnailWrap.classList.toggle("is-focal-active", hasImage);
+    }
+    updateFocalColButtons();
   }
 
   function updateFocalColButtons() {
@@ -326,12 +319,12 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   }
 
   function focalPointerToPercent(event) {
-    const rect = refs.focalCard.getBoundingClientRect();
+    const rect = refs.thumbnailWrap.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * 100;
     const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) * 100;
     state.focalX = Math.round(x * 10) / 10;
     state.focalY = Math.round(y * 10) / 10;
-    applyFocalPosition();
+    updateFocalDisplay();
   }
 
   // ── Tag pool ──────────────────────────────────────────────────────────────
@@ -957,19 +950,19 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       updateFocalColButtons();
     });
 
-    // Focal: drag to set position
-    refs.focalCard?.addEventListener("pointerdown", (event) => {
-      if (event.button !== 0) return;
+    // Focal: drag to set position (directly on thumbnail wrap)
+    refs.thumbnailWrap?.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || !state.items.length) return;
       state.focalDragging = true;
-      refs.focalCard.setPointerCapture(event.pointerId);
+      refs.thumbnailWrap.setPointerCapture(event.pointerId);
       focalPointerToPercent(event);
     });
-    refs.focalCard?.addEventListener("pointermove", (event) => {
+    refs.thumbnailWrap?.addEventListener("pointermove", (event) => {
       if (!state.focalDragging) return;
       focalPointerToPercent(event);
     });
-    refs.focalCard?.addEventListener("pointerup", () => { state.focalDragging = false; });
-    refs.focalCard?.addEventListener("pointercancel", () => { state.focalDragging = false; });
+    refs.thumbnailWrap?.addEventListener("pointerup", () => { state.focalDragging = false; });
+    refs.thumbnailWrap?.addEventListener("pointercancel", () => { state.focalDragging = false; });
 
     // Title counter
     refs.titleInput?.addEventListener("input", () => {
