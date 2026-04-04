@@ -72,7 +72,14 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     tagSugOpen: false,
     focalX: 50,
     focalY: 50,
-    focalDragging: false
+    focalDragging: false,
+    stripDragActive: false,
+    stripDragIndex: -1,
+    stripInsertIndex: -1,
+    stripPointerId: -1,
+    stripDragOffsetX: 0,
+    stripDragOffsetY: 0,
+    stripDragGhost: null
   };
 
   const refs = {};
@@ -259,6 +266,55 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.thumbOverlay.hidden = !hasInfo;
     if (refs.thumbTitle) refs.thumbTitle.textContent = title;
     if (refs.thumbTime) refs.thumbTime.textContent = time ? time.replace("T", " ") : "";
+  }
+
+  // ── Strip pointer drag ────────────────────────────────────────────────────
+
+  function createStripGhost(item, offsetX, offsetY) {
+    const ghost = document.createElement("div");
+    ghost.className = "upload-modal__strip-ghost";
+    const img = document.createElement("img");
+    img.src = item.objectUrl;
+    ghost.appendChild(img);
+    document.body.appendChild(ghost);
+    state.stripDragGhost = ghost;
+    state.stripDragOffsetX = offsetX;
+    state.stripDragOffsetY = offsetY;
+    return ghost;
+  }
+
+  function moveStripGhost(clientX, clientY) {
+    if (!state.stripDragGhost) return;
+    state.stripDragGhost.style.left = `${clientX - state.stripDragOffsetX}px`;
+    state.stripDragGhost.style.top = `${clientY - state.stripDragOffsetY}px`;
+  }
+
+  function removeStripGhost() {
+    state.stripDragGhost?.remove();
+    state.stripDragGhost = null;
+  }
+
+  function calcStripInsertIndex(clientX) {
+    const visibleItems = [...refs.strip.querySelectorAll(".upload-modal__strip-item")]
+      .filter(el => Number(el.dataset.index) !== state.stripDragIndex);
+    for (let i = 0; i < visibleItems.length; i++) {
+      const rect = visibleItems[i].getBoundingClientRect();
+      if (clientX < rect.left + rect.width / 2) return i;
+    }
+    return visibleItems.length;
+  }
+
+  function updateStripPlaceholder(insertIndex) {
+    refs.strip.querySelector(".upload-modal__strip-placeholder")?.remove();
+    const placeholder = document.createElement("div");
+    placeholder.className = "upload-modal__strip-placeholder";
+    const visibleItems = [...refs.strip.querySelectorAll(".upload-modal__strip-item")]
+      .filter(el => Number(el.dataset.index) !== state.stripDragIndex);
+    if (insertIndex >= visibleItems.length) {
+      refs.strip.appendChild(placeholder);
+    } else {
+      refs.strip.insertBefore(placeholder, visibleItems[insertIndex]);
+    }
   }
 
   // ── Strip arrows ──────────────────────────────────────────────────────────
@@ -503,6 +559,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.focalX = 50;
     state.focalY = 50;
     state.focalDragging = false;
+    removeStripGhost();
+    state.stripDragActive = false;
+    state.stripDragIndex = -1;
+    state.stripInsertIndex = -1;
+    state.stripPointerId = -1;
     if (refs.fileInput) refs.fileInput.value = "";
     if (refs.titleInput) refs.titleInput.value = "";
     if (refs.altInput) refs.altInput.value = "";
@@ -667,6 +728,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function renderStrip() {
     if (!refs.strip) return;
+    if (state.stripDragActive) return; // ドラッグ中は再描画しない
     refs.strip.innerHTML = "";
     if (!state.items.length) {
       const empty = createElement("div", {
@@ -681,10 +743,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const dup = item.duplicate || item.serverDuplicate;
       const card = createElement("div", {
         className: `upload-modal__strip-item${index === 0 ? " is-thumbnail" : ""}${dup ? " is-dup" : ""}`,
-        attributes: {
-          draggable: true,
-          "data-index": index
-        }
+        attributes: { "data-index": index }
       });
 
       card.innerHTML = `
@@ -862,37 +921,68 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       }
     });
 
-    // Strip: drag & drop reorder
-    refs.strip?.addEventListener("dragstart", (event) => {
-      const card = event.target.closest("[data-index]");
+    // Strip: pointer drag reorder
+    refs.strip?.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      if (event.target.closest("[data-action='remove']")) return;
+      const card = event.target.closest(".upload-modal__strip-item");
       if (!card) return;
-      state.dragIndex = Number(card.dataset.index ?? -1);
-      card.classList.add("is-dragging");
-      if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", String(state.dragIndex));
+      const index = Number(card.dataset.index ?? -1);
+      if (index < 0) return;
+      const rect = card.getBoundingClientRect();
+      state.stripDragIndex = index;
+      state.stripInsertIndex = index;
+      state.stripPointerId = event.pointerId;
+      state.stripDragOffsetX = event.clientX - rect.left;
+      state.stripDragOffsetY = event.clientY - rect.top;
+    });
+
+    refs.strip?.addEventListener("pointermove", (event) => {
+      if (state.stripDragIndex < 0) return;
+      if (!state.stripDragActive) {
+        // 初回移動でドラッグ開始
+        state.stripDragActive = true;
+        refs.strip.setPointerCapture(state.stripPointerId);
+        refs.strip.classList.add("is-strip-dragging");
+        const card = refs.strip.querySelector(`[data-index="${state.stripDragIndex}"]`);
+        card?.classList.add("is-dragging");
+        createStripGhost(
+          state.items[state.stripDragIndex],
+          state.stripDragOffsetX,
+          state.stripDragOffsetY
+        );
+      }
+      moveStripGhost(event.clientX, event.clientY);
+      const insertIndex = calcStripInsertIndex(event.clientX);
+      if (insertIndex !== state.stripInsertIndex) {
+        state.stripInsertIndex = insertIndex;
+        updateStripPlaceholder(insertIndex);
       }
     });
-    refs.strip?.addEventListener("dragend", (event) => {
-      event.target.closest("[data-index]")?.classList.remove("is-dragging");
-      state.dragIndex = -1;
-    });
-    refs.strip?.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      event.target.closest("[data-index]")?.classList.add("is-dragover");
-    });
-    refs.strip?.addEventListener("dragleave", (event) => {
-      event.target.closest("[data-index]")?.classList.remove("is-dragover");
-    });
-    refs.strip?.addEventListener("drop", (event) => {
-      event.preventDefault();
-      const card = event.target.closest("[data-index]");
-      if (!card) return;
-      card.classList.remove("is-dragover");
-      const dropIndex = Number(card.dataset.index ?? -1);
-      if (state.dragIndex >= 0 && dropIndex >= 0) moveItem(state.dragIndex, dropIndex);
-      state.dragIndex = -1;
-    });
+
+    const endStripDrag = () => {
+      if (state.stripDragIndex < 0) return;
+      const fromIndex = state.stripDragIndex;
+      let toIndex = state.stripInsertIndex;
+      // insertIndexはdragIndexを除いたリスト上の位置なので、元の配列インデックスに変換
+      if (toIndex > fromIndex) toIndex -= 1;
+
+      removeStripGhost();
+      refs.strip.classList.remove("is-strip-dragging");
+      state.stripDragActive = false;
+      state.stripDragIndex = -1;
+      state.stripInsertIndex = -1;
+      state.stripPointerId = -1;
+
+      if (toIndex !== fromIndex && toIndex >= 0) {
+        moveItem(fromIndex, toIndex);
+      } else {
+        renderStrip(); // キャンセル時は再描画してリセット
+      }
+    };
+
+    refs.strip?.addEventListener("pointerup", endStripDrag);
+    refs.strip?.addEventListener("pointercancel", endStripDrag);
 
     // Strip: mouse wheel horizontal scroll
     refs.strip?.addEventListener("wheel", (event) => {

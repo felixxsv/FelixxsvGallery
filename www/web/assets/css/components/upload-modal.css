@@ -65,6 +65,10 @@
   pointer-events: none; /* ドラッグイベントをwrapへ通す */
 }
 
+.upload-modal__thumbnail-wrap {
+  user-select: none; /* フォーカルドラッグ中のテキスト選択を防ぐ */
+}
+
 .upload-modal__thumbnail-wrap.is-focal-active {
   cursor: crosshair;
 }
@@ -152,6 +156,7 @@
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
+  user-select: none; /* ドラッグ中のテキスト選択を防ぐ */
   padding-bottom: var(--space-1);
   min-height: 90px;
   align-items: flex-start;
@@ -183,7 +188,46 @@
   user-select: none;
 }
 
-.upload-modal__strip-item.is-dragging { opacity: 0.4; }
+.upload-modal__strip-item.is-dragging {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.upload-modal__strip.is-strip-dragging { cursor: grabbing; }
+.upload-modal__strip.is-strip-dragging .upload-modal__strip-item { cursor: grabbing; }
+
+/* ドラッグゴースト（body直下、カーソル追従） */
+.upload-modal__strip-ghost {
+  position: fixed;
+  width: 112px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  opacity: 0.82;
+  pointer-events: none;
+  z-index: 9999;
+  transform: rotate(2deg) scale(1.06);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+}
+
+.upload-modal__strip-ghost img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ドロップ先インジケーター */
+.upload-modal__strip-placeholder {
+  width: 112px;
+  min-width: 112px;
+  aspect-ratio: 16 / 9;
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  flex-shrink: 0;
+  pointer-events: none;
+}
 
 .upload-modal__strip-item.is-dragover .upload-modal__strip-thumb {
   border-color: var(--color-primary);
