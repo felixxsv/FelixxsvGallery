@@ -414,7 +414,7 @@ def palette():
 @app.get("/api/search-suggest")
 def search_suggest(q: str | None = None):
     q_str = (q or "").strip()
-    if len(q_str) < 2:
+    if len(q_str) < 1:
         return {"images": [], "tags": [], "users": []}
     like = f"%{_escape_like(q_str)}%"
     conn = db_conn(CONF)

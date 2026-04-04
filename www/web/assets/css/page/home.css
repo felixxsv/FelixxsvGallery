@@ -1129,6 +1129,19 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   background: none;
 }
 
+.home-search-sug-empty {
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+}
+
+.home-search-sug-noresult {
+  padding: 12px 14px;
+  font-size: 0.84rem;
+  color: var(--color-text-faint);
+  text-align: center;
+}
+
 /* ── User filter badge ──────────────────────────────────────────────────── */
 
 .home-search-owner-badge {

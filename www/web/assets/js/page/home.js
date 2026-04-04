@@ -717,64 +717,77 @@ export function initHomePage(app) {
     const images = data?.images || [];
     const tags = data?.tags || [];
     const users = data?.users || [];
+    const q = panel.dataset.query || "";
+    const allEmpty = !images.length && !tags.length && !users.length;
 
-    if (!images.length && !tags.length && !users.length) {
-      panel.hidden = true;
-      return;
-    }
-
-    if (imagesSection) {
-      imagesSection.hidden = !images.length;
-      if (imagesList) {
-        imagesList.textContent = "";
-        for (const img of images) {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "home-search-sug-item";
-          btn.dataset.action = "sug-image";
-          btn.dataset.title = img.title || "";
-          if (img.thumb_path) {
-            const thumbUrl = withAppBase(img.thumb_path);
-            btn.innerHTML = `<img class="home-search-sug-item__thumb" src="${escapeHtml(thumbUrl)}" alt="" loading="lazy"><span class="home-search-sug-item__text">${highlightMatch(img.title || "", panel.dataset.query || "")}</span>`;
-          } else {
-            btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(img.title || "", panel.dataset.query || "")}</span>`;
-          }
-          imagesList.appendChild(btn);
-        }
+    function renderSection(section, list, items, renderItem) {
+      if (!section) return;
+      section.hidden = false;
+      if (!list) return;
+      list.textContent = "";
+      if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "home-search-sug-empty";
+        empty.textContent = "該当なし";
+        list.appendChild(empty);
+      } else {
+        for (const item of items) renderItem(list, item);
       }
     }
 
-    if (tagsSection) {
-      tagsSection.hidden = !tags.length;
-      if (tagsList) {
-        tagsList.textContent = "";
-        for (const tag of tags) {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "home-search-sug-item";
-          btn.dataset.action = "sug-tag";
-          btn.dataset.tag = tag.name || "";
-          btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(tag.name || "", panel.dataset.query || "")}</span><span class="home-search-sug-item__sub">${escapeHtml(String(tag.count || 0))}</span>`;
-          tagsList.appendChild(btn);
-        }
+    if (allEmpty) {
+      // Hide individual sections, show single "no results" message
+      if (imagesSection) imagesSection.hidden = true;
+      if (tagsSection) tagsSection.hidden = true;
+      if (usersSection) usersSection.hidden = true;
+      // Reuse imagesSection or create a fallback message inside panel
+      let noResult = panel.querySelector(".home-search-sug-noresult");
+      if (!noResult) {
+        noResult = document.createElement("div");
+        noResult.className = "home-search-sug-noresult";
+        panel.appendChild(noResult);
       }
-    }
+      noResult.hidden = false;
+      noResult.textContent = `「${q}」に一致する画像・タグ・ユーザーは見つかりませんでした。`;
+    } else {
+      const noResult = panel.querySelector(".home-search-sug-noresult");
+      if (noResult) noResult.hidden = true;
 
-    if (usersSection) {
-      usersSection.hidden = !users.length;
-      if (usersList) {
-        usersList.textContent = "";
-        for (const user of users) {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "home-search-sug-item";
-          btn.dataset.action = "sug-user";
-          btn.dataset.userKey = user.user_key || "";
-          btn.dataset.displayName = user.display_name || "";
-          btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(user.display_name || "", panel.dataset.query || "")}</span><span class="home-search-sug-item__sub">@${escapeHtml(user.user_key || "")}</span>`;
-          usersList.appendChild(btn);
+      renderSection(imagesSection, imagesList, images, (list, img) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "home-search-sug-item";
+        btn.dataset.action = "sug-image";
+        btn.dataset.title = img.title || "";
+        if (img.thumb_path) {
+          const thumbUrl = withAppBase(img.thumb_path);
+          btn.innerHTML = `<img class="home-search-sug-item__thumb" src="${escapeHtml(thumbUrl)}" alt="" loading="lazy"><span class="home-search-sug-item__text">${highlightMatch(img.title || "", q)}</span>`;
+        } else {
+          btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(img.title || "", q)}</span>`;
         }
-      }
+        list.appendChild(btn);
+      });
+
+      renderSection(tagsSection, tagsList, tags, (list, tag) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "home-search-sug-item";
+        btn.dataset.action = "sug-tag";
+        btn.dataset.tag = tag.name || "";
+        btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(tag.name || "", q)}</span><span class="home-search-sug-item__sub">${escapeHtml(String(tag.count || 0))}</span>`;
+        list.appendChild(btn);
+      });
+
+      renderSection(usersSection, usersList, users, (list, user) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "home-search-sug-item";
+        btn.dataset.action = "sug-user";
+        btn.dataset.userKey = user.user_key || "";
+        btn.dataset.displayName = user.display_name || "";
+        btn.innerHTML = `<span class="home-search-sug-item__text">${highlightMatch(user.display_name || "", q)}</span><span class="home-search-sug-item__sub">@${escapeHtml(user.user_key || "")}</span>`;
+        list.appendChild(btn);
+      });
     }
 
     panel.hidden = false;
@@ -809,7 +822,7 @@ export function initHomePage(app) {
 
   function scheduleSugFetch(q, panelRefs) {
     window.clearTimeout(state.sugDebounceTimer);
-    if (!q || q.length < 2) {
+    if (!q || q.length < 1) {
       closeSearchSug(panelRefs.panel);
       return;
     }
