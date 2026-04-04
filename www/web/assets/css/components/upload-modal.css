@@ -568,11 +568,16 @@
   gap: var(--space-3);
 }
 
-/* ── PC: top section height cap (no scroll) ────────────────────────────── */
+/* ── PC: top section fixed height (no scroll, both boxes equal size) ───── */
 
 @media (min-width: 641px) {
+  .upload-modal__top {
+    height: 200px;
+  }
   .upload-modal__thumbnail-wrap {
-    max-height: 150px;
+    flex: 1;
+    min-height: 0;
+    aspect-ratio: unset;
   }
 }
 
