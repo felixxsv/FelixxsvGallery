@@ -505,13 +505,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
               <h2 class="app-modal-title">タグを選択</h2>
               <button type="button" class="app-modal-close" id="tagBrowseClose" aria-label="閉じる">×</button>
             </div>
-            <div class="app-modal-body tag-browse-modal">
-              <div class="tag-browse-modal__search-wrap">
-                <input id="tagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
-                <div class="tag-browse-modal__sug" id="tagBrowseSug" hidden>
-                  <div class="tag-browse-modal__sug-list" id="tagBrowseSugList"></div>
-                </div>
+            <div class="tag-browse-modal__search-wrap">
+              <input id="tagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
+              <div class="tag-browse-modal__sug" id="tagBrowseSug" hidden>
+                <div class="tag-browse-modal__sug-list" id="tagBrowseSugList"></div>
               </div>
+            </div>
+            <div class="app-modal-body tag-browse-modal">
               <div id="tagBrowseList" class="tag-browse-modal__list"></div>
             </div>
           </div>

@@ -668,14 +668,14 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
 .tag-browse-modal__search-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  position: relative;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .tag-browse-modal__search {
@@ -683,10 +683,15 @@
 }
 
 .tag-browse-modal__sug {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: var(--space-4);
+  right: var(--space-4);
+  z-index: 10;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
   overflow-y: auto;
   max-height: calc(10 * 38px);
 }

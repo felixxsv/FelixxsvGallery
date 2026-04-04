@@ -728,13 +728,13 @@ export function initHomePage(app) {
             <h2 class="app-modal-title">タグを選択</h2>
             <button type="button" class="app-modal-close" id="homeTagBrowseClose" aria-label="閉じる">×</button>
           </div>
-          <div class="app-modal-body tag-browse-modal">
-            <div class="tag-browse-modal__search-wrap">
-              <input id="homeTagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
-              <div class="tag-browse-modal__sug" id="homeTagBrowseSug" hidden>
-                <div class="tag-browse-modal__sug-list" id="homeTagBrowseSugList"></div>
-              </div>
+          <div class="tag-browse-modal__search-wrap">
+            <input id="homeTagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
+            <div class="tag-browse-modal__sug" id="homeTagBrowseSug" hidden>
+              <div class="tag-browse-modal__sug-list" id="homeTagBrowseSugList"></div>
             </div>
+          </div>
+          <div class="app-modal-body tag-browse-modal">
             <div id="homeTagBrowseList" class="tag-browse-modal__list"></div>
           </div>
         </div>
