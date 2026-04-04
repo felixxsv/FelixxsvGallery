@@ -1,7 +1,7 @@
 /* ── Dialog override ───────────────────────────────────────────────────── */
 
 .app-modal-dialog--upload {
-  width: min(1160px, calc(100vw - 32px));
+  width: min(960px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   background: var(--color-bg-elevated); /* 透過なし */
 }
@@ -16,19 +16,10 @@
 /* ── Layout ────────────────────────────────────────────────────────────── */
 
 .upload-modal__layout {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  gap: var(--space-5);
-  padding: var(--space-5);
-  min-height: 0;
-}
-
-.upload-modal__left,
-.upload-modal__right {
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  padding: var(--space-5);
 }
 
 .upload-modal__field-label {
@@ -36,6 +27,22 @@
   font-weight: 700;
   color: var(--color-text-muted);
   letter-spacing: 0.02em;
+  margin-bottom: var(--space-1);
+}
+
+/* ── Top row: thumbnail + dropzone (1:1) ───────────────────────────────── */
+
+.upload-modal__top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.upload-modal__thumb-col,
+.upload-modal__drop-col {
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Thumbnail ─────────────────────────────────────────────────────────── */
@@ -70,6 +77,12 @@
 }
 
 /* ── Strip ─────────────────────────────────────────────────────────────── */
+
+.upload-modal__strip-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
 
 .upload-modal__strip {
   display: flex;
@@ -200,16 +213,16 @@
 .upload-modal__summary {
   font-size: 0.78rem;
   color: var(--color-text-faint);
-  text-align: center;
-  margin-top: auto;
 }
 
 /* ── Dropzone ──────────────────────────────────────────────────────────── */
 
 .upload-modal__dropzone {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   padding: var(--space-4);
   border: 1.5px dashed color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
@@ -253,6 +266,14 @@
 .upload-modal__dropzone-actions { margin-top: var(--space-1); }
 
 .upload-modal__file-input { display: none; }
+
+/* ── Form fields ───────────────────────────────────────────────────────── */
+
+.upload-modal__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
 
 /* ── Title with counter ────────────────────────────────────────────────── */
 
@@ -549,20 +570,6 @@
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
 
-@media (max-width: 960px) {
-  .app-modal-dialog--upload {
-    width: min(720px, calc(100vw - 24px));
-  }
-  .upload-modal__layout {
-    grid-template-columns: 1fr;
-    padding: var(--space-4);
-  }
-  .upload-modal__row {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
-}
-
 @media (max-width: 640px) {
   .app-modal-dialog--upload {
     width: calc(100vw - 16px);
@@ -570,6 +577,13 @@
   }
   .upload-modal__layout {
     padding: var(--space-3);
+    gap: var(--space-3);
+  }
+  .upload-modal__top {
+    grid-template-columns: 1fr;
+  }
+  .upload-modal__row {
+    grid-template-columns: 1fr;
     gap: var(--space-3);
   }
 }

@@ -101,28 +101,39 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
             </div>
             <div class="app-modal-body upload-modal">
               <div class="upload-modal__layout">
-                <section class="upload-modal__left">
-                  <div class="upload-modal__field-label">サムネイル</div>
-                  <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
-                    <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
-                    <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
+
+                <!-- 上段: サムネイル + 画像追加 (1:1) -->
+                <div class="upload-modal__top">
+                  <div class="upload-modal__thumb-col">
+                    <div class="upload-modal__field-label">サムネイル</div>
+                    <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
+                      <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
+                      <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
+                    </div>
                   </div>
+                  <div class="upload-modal__drop-col">
+                    <div class="upload-modal__field-label">画像追加</div>
+                    <div id="uploadModalDropzone" class="upload-modal__dropzone" tabindex="0" role="button" aria-label="画像を選択またはドラッグアンドドロップ">
+                      <div class="upload-modal__dropzone-icon">↑</div>
+                      <p class="upload-modal__dropzone-text">ドラッグ＆ドロップ / クリックで選択</p>
+                      <p class="upload-modal__dropzone-sub">.png .jpg .jpeg .webp / 最大50MB / 最大20枚</p>
+                      <div class="upload-modal__dropzone-actions">
+                        <button id="uploadModalFileSelectButton" type="button" class="app-button app-button--primary">ファイルを選択</button>
+                      </div>
+                      <input id="uploadModalFileInput" class="upload-modal__file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 中段: 画像一覧 -->
+                <div class="upload-modal__strip-section">
                   <div class="upload-modal__field-label">画像一覧</div>
                   <div id="uploadModalStrip" class="upload-modal__strip" aria-live="polite"></div>
                   <div id="uploadModalSummary" class="upload-modal__summary">ファイルが未選択です。</div>
-                </section>
-                <section class="upload-modal__right">
-                  <div class="upload-modal__field-label">画像追加</div>
-                  <div id="uploadModalDropzone" class="upload-modal__dropzone" tabindex="0" role="button" aria-label="画像を選択またはドラッグアンドドロップ">
-                    <div class="upload-modal__dropzone-icon">↑</div>
-                    <p class="upload-modal__dropzone-text">ドラッグ＆ドロップ / クリックで選択</p>
-                    <p class="upload-modal__dropzone-sub">.png .jpg .jpeg .webp / 最大50MB / 最大20枚</p>
-                    <div class="upload-modal__dropzone-actions">
-                      <button id="uploadModalFileSelectButton" type="button" class="app-button app-button--primary">ファイルを選択</button>
-                    </div>
-                    <input id="uploadModalFileInput" class="upload-modal__file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-                  </div>
+                </div>
 
+                <!-- 下段: フォーム -->
+                <div class="upload-modal__fields">
                   <label class="app-field">
                     <span class="app-field__label">タイトル <span class="upload-modal__required">*</span></span>
                     <div class="upload-modal__input-row">
@@ -166,7 +177,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                   </label>
 
                   <div id="uploadModalInlineMessage" class="upload-modal__inline-message" hidden></div>
-                </section>
+                </div>
+
               </div>
             </div>
             <div class="app-modal-footer upload-modal__footer">
