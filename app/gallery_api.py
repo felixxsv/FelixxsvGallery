@@ -380,6 +380,27 @@ CACHE_ROOT = Path(CONF["paths"]["original_cache_root"])
 STORAGE_ROOT = Path((CONF.get("paths") or {}).get("storage_root") or "/data/felixxsv-gallery/www/storage")
 
 
+def _check_column_exists(table: str, column: str) -> bool:
+    """Check whether a column exists in a table (used to handle pending migrations)."""
+    try:
+        conn = db_conn(CONF)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS "
+                "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME=%s",
+                [table, column],
+            )
+            return int((cur.fetchone() or {}).get("cnt", 0)) > 0
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+
+# Cache column-existence checks at startup to avoid per-request overhead
+_HAS_IMAGES_OWNER_USER_ID: bool = _check_column_exists("images", "owner_user_id")
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True}
@@ -419,16 +440,19 @@ def search_suggest(q: str | None = None):
                 [GALLERY, GALLERY, like],
             )
             tags = list(cur.fetchall())
-            cur.execute(
-                "SELECT DISTINCT u.user_key, u.display_name "
-                "FROM users u "
-                "JOIN images i ON i.owner_user_id=u.id AND i.gallery=%s AND i.is_public=1 "
-                "WHERE u.status='active' "
-                "AND (u.user_key LIKE %s ESCAPE '\\\\' OR u.display_name LIKE %s ESCAPE '\\\\') "
-                "LIMIT 3",
-                [GALLERY, like, like],
-            )
-            users = list(cur.fetchall())
+            if _HAS_IMAGES_OWNER_USER_ID:
+                cur.execute(
+                    "SELECT DISTINCT u.user_key, u.display_name "
+                    "FROM users u "
+                    "JOIN images i ON i.owner_user_id=u.id AND i.gallery=%s AND i.is_public=1 "
+                    "WHERE u.status='active' "
+                    "AND (u.user_key LIKE %s ESCAPE '\\\\' OR u.display_name LIKE %s ESCAPE '\\\\') "
+                    "LIMIT 3",
+                    [GALLERY, like, like],
+                )
+                users = list(cur.fetchall())
+            else:
+                users = []
         return {
             "images": [{"id": r["id"], "title": r["title"], "thumb_path": r["thumb_path_480"]} for r in images],
             "tags": [{"name": r["name"], "count": int(r["cnt"])} for r in tags],
@@ -480,7 +504,7 @@ def list_images(
     shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF), viewer_user_id=viewer_user_id)
 
     owner_key_str = (owner_user_key or "").strip()
-    if owner_key_str and re.match(r'^[a-zA-Z0-9_-]{1,20}$', owner_key_str):
+    if owner_key_str and re.match(r'^[a-zA-Z0-9_-]{1,20}$', owner_key_str) and _HAS_IMAGES_OWNER_USER_ID:
         owner_sql = " AND EXISTS (SELECT 1 FROM users uu WHERE uu.id=i.owner_user_id AND uu.user_key=%s AND uu.status='active')"
         owner_params: list = [owner_key_str]
     else:
