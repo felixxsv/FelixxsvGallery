@@ -187,7 +187,6 @@ def map_error_code_to_http_status(error_code: str) -> int:
         "email_not_available": 400,
         "already_enabled": 409,
         "not_enabled": 409,
-        "current_password_incorrect": 400,
     }
     return mapping.get(error_code, 400)
 

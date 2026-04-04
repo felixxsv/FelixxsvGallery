@@ -56,36 +56,6 @@ def parse_csv_ints(s: str | None) -> list[int]:
     return out
 
 
-def clamp_per_page(n: int) -> int:
-    return n if n in (30, 60, 90, 120) else 90
-
-
-def parse_csv_strs(s: str | None) -> list[str]:
-    if not s:
-        return []
-    out: list[str] = []
-    for x in s.split(","):
-        x = x.strip()
-        if x:
-            out.append(x)
-    return out
-
-
-def parse_csv_ints(s: str | None) -> list[int]:
-    if not s:
-        return []
-    out: list[int] = []
-    for x in s.split(","):
-        x = x.strip()
-        if not x:
-            continue
-        try:
-            out.append(int(x))
-        except ValueError:
-            continue
-    return out
-
-
 def ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
 
@@ -795,6 +765,7 @@ def upload_images(
     alt: str = Form(""),
     tags: str = Form(""),
     is_public: str = Form("true"),
+    shot_at: str = Form(""),
     files: list[UploadFile] = File(...),
 ):
     upload_requires_login = _upload_requires_login(CONF)
@@ -817,6 +788,17 @@ def upload_images(
     is_pub = str(is_public or "true").strip().lower() in ("1", "true", "yes", "on")
     tag_list = [x for x in parse_csv_strs(tags) if x]
 
+    # フロントから送られた shot_at を解析（datetime-local 形式: "YYYY-MM-DDTHH:MM:SS"）
+    shot_at_override: datetime | None = None
+    shot_at_str = str(shot_at or "").strip()
+    if shot_at_str:
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M"):
+            try:
+                shot_at_override = datetime.strptime(shot_at_str, fmt)
+                break
+            except ValueError:
+                continue
+
     conn = db_conn(CONF)
     try:
         src_cols = _table_cols(conn, "image_sources")
@@ -830,7 +812,7 @@ def upload_images(
         try:
             vr_re = re.compile(r"^VRChat_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})")
 
-            def parse_shot_at(name: str) -> datetime:
+            def parse_shot_at_from_name(name: str) -> datetime:
                 base = (name or "").split("/")[-1].split("\\")[-1]
                 m = vr_re.match(base)
                 if not m:
@@ -843,7 +825,8 @@ def upload_images(
 
             for idx, uf in enumerate(files):
                 name = uf.filename or f"file{idx}"
-                shot_at = parse_shot_at(name)
+                # フロントの手動入力を優先。未指定ならファイル名から自動取得
+                resolved_shot_at = shot_at_override if shot_at_override is not None else parse_shot_at_from_name(name)
 
                 ext = Path(name).suffix.lower().lstrip(".")
                 if ext not in ("png", "jpg", "jpeg", "webp"):
@@ -882,7 +865,7 @@ def upload_images(
                     {
                         "index": idx,
                         "filename": name,
-                        "shot_at": shot_at,
+                        "shot_at": resolved_shot_at,
                         "ext": ext,
                         "tmp_path": tmp_path,
                         "sha_hex": sha_hex,
