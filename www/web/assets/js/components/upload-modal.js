@@ -2,8 +2,12 @@ import { createElement } from "../core/dom.js";
 
 const MAX_FILES = 20;
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_TAGS = 20;
+const MAX_TAG_LENGTH = 30;
+const TITLE_MAX = 100;
 const ACCEPTED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const MODAL_ID = "upload-modal";
+const DRAFT_KEY = "gallery.upload.draft.v1";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -33,8 +37,7 @@ function buildAuthUrl(appBase) {
 }
 
 function extractExtension(filename) {
-  const ext = String(filename || "").split(".").pop()?.toLowerCase() || "";
-  return ext;
+  return String(filename || "").split(".").pop()?.toLowerCase() || "";
 }
 
 function parseVRChatShotAt(filename) {
@@ -51,6 +54,10 @@ async function computeFileHash(file) {
   return Array.from(new Uint8Array(digest)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
+function normalizeTag(str) {
+  return String(str || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export function createUploadModalController({ app, scope = "public" } = {}) {
   const state = {
     mounted: false,
@@ -59,7 +66,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     dragIndex: -1,
     shotAtAutoValue: "",
     shotAtDirty: false,
-    onUploaded: null
+    onUploaded: null,
+    tagState: [],
+    tagPool: [],
+    tagSugOpen: false
   };
 
   const refs = {};
@@ -92,20 +102,20 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
             <div class="app-modal-body upload-modal">
               <div class="upload-modal__layout">
                 <section class="upload-modal__left">
-                  <div class="upload-modal__field-title">サムネイル</div>
-                  <button type="button" class="upload-modal__thumbnail" id="uploadModalThumbnailButton">
+                  <div class="upload-modal__field-label">サムネイル</div>
+                  <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
                     <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
-                    <span id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">No image</span>
-                  </button>
-                  <div class="upload-modal__field-title">画像スクロール</div>
+                    <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
+                  </div>
+                  <div class="upload-modal__field-label">画像一覧</div>
                   <div id="uploadModalStrip" class="upload-modal__strip" aria-live="polite"></div>
                   <div id="uploadModalSummary" class="upload-modal__summary">ファイルが未選択です。</div>
                 </section>
                 <section class="upload-modal__right">
-                  <div class="upload-modal__field-title">画像アップロード</div>
+                  <div class="upload-modal__field-label">画像追加</div>
                   <div id="uploadModalDropzone" class="upload-modal__dropzone" tabindex="0" role="button" aria-label="画像を選択またはドラッグアンドドロップ">
-                    <div class="upload-modal__dropzone-mark">UPLOAD</div>
-                    <p class="upload-modal__dropzone-text">ここにドラッグ＆ドロップするか、クリックしてファイルを選択</p>
+                    <div class="upload-modal__dropzone-icon">↑</div>
+                    <p class="upload-modal__dropzone-text">ドラッグ＆ドロップ / クリックで選択</p>
                     <p class="upload-modal__dropzone-sub">.png .jpg .jpeg .webp / 最大50MB / 最大20枚</p>
                     <div class="upload-modal__dropzone-actions">
                       <button id="uploadModalFileSelectButton" type="button" class="app-button app-button--primary">ファイルを選択</button>
@@ -114,8 +124,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                   </div>
 
                   <label class="app-field">
-                    <span class="app-field__label">タイトル（必須）</span>
-                    <input id="uploadModalTitleInput" class="app-input" type="text" placeholder="タイトルを入力">
+                    <span class="app-field__label">タイトル <span class="upload-modal__required">*</span></span>
+                    <div class="upload-modal__input-row">
+                      <input id="uploadModalTitleInput" class="app-input" type="text" placeholder="タイトルを入力" maxlength="${TITLE_MAX}">
+                      <span id="uploadModalTitleCounter" class="upload-modal__counter">0/${TITLE_MAX}</span>
+                    </div>
                   </label>
 
                   <label class="app-field">
@@ -123,34 +136,45 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     <textarea id="uploadModalAltInput" class="app-input upload-modal__textarea" placeholder="説明文を入力"></textarea>
                   </label>
 
-                  <label class="app-field">
-                    <span class="app-field__label">撮影日時</span>
-                    <input id="uploadModalShotAtInput" class="app-input" type="datetime-local" step="1">
-                    <span class="app-field__hint">サムネイル画像のファイル名から自動入力します。取得できない場合は空欄のままで構いません。</span>
-                  </label>
+                  <div class="upload-modal__row">
+                    <label class="app-field">
+                      <span class="app-field__label">
+                        撮影日時
+                        <span id="uploadModalShotAtBadge" class="upload-modal__auto-badge" hidden>AUTO</span>
+                      </span>
+                      <input id="uploadModalShotAtInput" class="app-input" type="datetime-local" step="1">
+                    </label>
+                    <div class="app-field">
+                      <span class="app-field__label">タグ</span>
+                      <div class="upload-modal__tag-box" id="uploadModalTagBox">
+                        <div class="upload-modal__tag-scroll" id="uploadModalTagChips"></div>
+                        <input class="upload-modal__tag-input" id="uploadModalTagInput" type="text" placeholder="タグを追加…" autocomplete="off">
+                        <button type="button" class="upload-modal__tag-add" id="uploadModalTagAdd" aria-label="タグを追加">+</button>
+                        <div class="upload-modal__tag-sug" id="uploadModalTagSug" hidden>
+                          <div class="upload-modal__tag-sug-list" id="uploadModalTagSugList"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                  <label class="app-field">
-                    <span class="app-field__label">タグ</span>
-                    <input id="uploadModalTagsInput" class="app-input" type="text" placeholder="例: VRChat, 夜景, フレンド">
-                    <span class="app-field__hint">カンマ区切りで入力します。タグ検索モーダルと下書きは次段で接続します。</span>
-                  </label>
-
-                  <label class="app-field upload-modal__visibility-field">
-                    <span class="app-field__label">公開 / 非公開</span>
-                    <select id="uploadModalVisibilityInput" class="app-select">
-                      <option value="true">public</option>
-                      <option value="false">private</option>
-                    </select>
+                  <label class="upload-modal__vis-toggle" for="uploadModalVisInput">
+                    <input type="checkbox" class="upload-modal__vis-input" id="uploadModalVisInput" checked>
+                    <span class="upload-modal__vis-track">
+                      <span class="upload-modal__vis-thumb"></span>
+                    </span>
+                    <span class="upload-modal__vis-label" id="uploadModalVisLabel">公開</span>
                   </label>
 
                   <div id="uploadModalInlineMessage" class="upload-modal__inline-message" hidden></div>
                 </section>
               </div>
             </div>
-            <div class="app-modal-footer app-modal-footer--end">
-              <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost" hidden>下書き</button>
-              <button id="uploadModalCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-              <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">アップロード</button>
+            <div class="app-modal-footer upload-modal__footer">
+              <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">下書き保存</button>
+              <div class="upload-modal__footer-actions">
+                <button id="uploadModalCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+                <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">アップロード</button>
+              </div>
             </div>
           </div>
         `
@@ -164,24 +188,166 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.dropzone = document.getElementById("uploadModalDropzone");
     refs.fileInput = document.getElementById("uploadModalFileInput");
     refs.fileSelectButton = document.getElementById("uploadModalFileSelectButton");
-    refs.thumbnailButton = document.getElementById("uploadModalThumbnailButton");
+    refs.thumbnailWrap = document.getElementById("uploadModalThumbnailWrap");
     refs.thumbnailImage = document.getElementById("uploadModalThumbnailImage");
     refs.thumbnailEmpty = document.getElementById("uploadModalThumbnailEmpty");
     refs.strip = document.getElementById("uploadModalStrip");
     refs.summary = document.getElementById("uploadModalSummary");
     refs.titleInput = document.getElementById("uploadModalTitleInput");
+    refs.titleCounter = document.getElementById("uploadModalTitleCounter");
     refs.altInput = document.getElementById("uploadModalAltInput");
     refs.shotAtInput = document.getElementById("uploadModalShotAtInput");
-    refs.tagsInput = document.getElementById("uploadModalTagsInput");
-    refs.visibilityInput = document.getElementById("uploadModalVisibilityInput");
+    refs.shotAtBadge = document.getElementById("uploadModalShotAtBadge");
+    refs.tagBox = document.getElementById("uploadModalTagBox");
+    refs.tagChips = document.getElementById("uploadModalTagChips");
+    refs.tagInput = document.getElementById("uploadModalTagInput");
+    refs.tagAdd = document.getElementById("uploadModalTagAdd");
+    refs.tagSug = document.getElementById("uploadModalTagSug");
+    refs.tagSugList = document.getElementById("uploadModalTagSugList");
+    refs.visInput = document.getElementById("uploadModalVisInput");
+    refs.visLabel = document.getElementById("uploadModalVisLabel");
     refs.inlineMessage = document.getElementById("uploadModalInlineMessage");
     refs.cancelButton = document.getElementById("uploadModalCancelButton");
     refs.submitButton = document.getElementById("uploadModalSubmitButton");
     refs.draftButton = document.getElementById("uploadModalDraftButton");
 
     bindEvents();
+    loadTagPool();
     state.mounted = true;
     render();
+  }
+
+  // ── Tag pool ──────────────────────────────────────────────────────────────
+
+  async function loadTagPool() {
+    try {
+      const response = await fetch(`${app.appBase}/api/tags`, { credentials: "include" });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => null);
+      const tags = Array.isArray(payload?.tags) ? payload.tags : Array.isArray(payload) ? payload : [];
+      state.tagPool = tags.map((t) => String(t?.name ?? t ?? "").trim()).filter(Boolean);
+    } catch {
+      // tag pool is optional
+    }
+  }
+
+  // ── Tag management ────────────────────────────────────────────────────────
+
+  function addTag(str) {
+    const parts = String(str || "").split(/[,、\s]+/);
+    for (const part of parts) {
+      const tag = normalizeTag(part);
+      if (!tag || tag.length > MAX_TAG_LENGTH) continue;
+      if (state.tagState.includes(tag)) continue;
+      if (state.tagState.length >= MAX_TAGS) break;
+      state.tagState.push(tag);
+    }
+    if (refs.tagInput) refs.tagInput.value = "";
+    renderTagChips();
+    closeTagSug();
+  }
+
+  function removeTag(index) {
+    state.tagState.splice(index, 1);
+    renderTagChips();
+  }
+
+  function renderTagChips() {
+    if (!refs.tagChips) return;
+    refs.tagChips.innerHTML = "";
+    state.tagState.forEach((tag, i) => {
+      const chip = createElement("span", { className: "upload-modal__tag-chip" });
+      chip.innerHTML = `${escapeHtml(tag)}<button type="button" data-tag-index="${i}" aria-label="${escapeHtml(tag)}を削除">\u00d7</button>`;
+      refs.tagChips.appendChild(chip);
+    });
+  }
+
+  function renderTagSug() {
+    if (!refs.tagSugList) return;
+    const query = (refs.tagInput?.value || "").trim().toLowerCase();
+    const filtered = state.tagPool
+      .filter((t) => !state.tagState.includes(t) && (query === "" || t.includes(query)))
+      .slice(0, 30);
+    refs.tagSugList.innerHTML = "";
+    for (const tag of filtered) {
+      const btn = createElement("button", {
+        className: "upload-modal__tag-sug-item",
+        attributes: { type: "button", "data-tag": tag }
+      });
+      btn.textContent = tag;
+      refs.tagSugList.appendChild(btn);
+    }
+    if (refs.tagSug) refs.tagSug.hidden = filtered.length === 0;
+  }
+
+  function openTagSug() {
+    state.tagSugOpen = true;
+    renderTagSug();
+  }
+
+  function closeTagSug() {
+    state.tagSugOpen = false;
+    if (refs.tagSug) refs.tagSug.hidden = true;
+  }
+
+  // ── Draft ─────────────────────────────────────────────────────────────────
+
+  function saveDraft() {
+    const draft = {
+      title: refs.titleInput?.value || "",
+      alt: refs.altInput?.value || "",
+      shotAt: refs.shotAtInput?.value || "",
+      tags: [...state.tagState],
+      isPublic: refs.visInput?.checked ?? true,
+      savedAt: Date.now()
+    };
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
+    app.toast?.info?.("下書きを保存しました。");
+  }
+
+  function loadDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (refs.titleInput) refs.titleInput.value = draft.title || "";
+      if (refs.altInput) refs.altInput.value = draft.alt || "";
+      if (refs.shotAtInput && draft.shotAt) {
+        refs.shotAtInput.value = draft.shotAt;
+        state.shotAtDirty = true;
+      }
+      if (Array.isArray(draft.tags)) {
+        state.tagState = draft.tags.filter((t) => typeof t === "string" && t.trim());
+        renderTagChips();
+      }
+      if (refs.visInput) refs.visInput.checked = draft.isPublic !== false;
+      updateTitleCounter();
+      updateVisLabel();
+      updateShotAtBadge();
+    } catch {}
+  }
+
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  }
+
+  // ── UI helpers ────────────────────────────────────────────────────────────
+
+  function updateTitleCounter() {
+    if (!refs.titleCounter || !refs.titleInput) return;
+    const len = refs.titleInput.value.length;
+    refs.titleCounter.textContent = `${len}/${TITLE_MAX}`;
+    refs.titleCounter.classList.toggle("is-over", len > TITLE_MAX);
+  }
+
+  function updateVisLabel() {
+    if (!refs.visLabel || !refs.visInput) return;
+    refs.visLabel.textContent = refs.visInput.checked ? "公開" : "非公開";
+  }
+
+  function updateShotAtBadge() {
+    if (!refs.shotAtBadge) return;
+    refs.shotAtBadge.hidden = !state.shotAtAutoValue;
   }
 
   function setInlineMessage(message = "", kind = "") {
@@ -202,6 +368,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (refs.cancelButton) refs.cancelButton.disabled = state.uploading;
     if (refs.fileSelectButton) refs.fileSelectButton.disabled = state.uploading;
     if (refs.fileInput) refs.fileInput.disabled = state.uploading;
+    if (refs.draftButton) refs.draftButton.disabled = state.uploading;
   }
 
   function currentUser() {
@@ -214,7 +381,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       window.location.href = buildAuthUrl(app.appBase || "/gallery");
       return false;
     }
-
     const user = currentUser();
     if (scope === "public" && authenticated && user && user.upload_enabled === false) {
       app.toast?.warning?.("現在、画像投稿は無効化されています。");
@@ -225,9 +391,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function revokeUrls() {
     for (const item of state.items) {
-      if (item.objectUrl) {
-        URL.revokeObjectURL(item.objectUrl);
-      }
+      if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
     }
   }
 
@@ -239,16 +403,25 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.shotAtAutoValue = "";
     state.shotAtDirty = false;
     state.onUploaded = null;
+    state.tagState = [];
+    state.tagSugOpen = false;
     if (refs.fileInput) refs.fileInput.value = "";
     if (refs.titleInput) refs.titleInput.value = "";
     if (refs.altInput) refs.altInput.value = "";
     if (refs.shotAtInput) refs.shotAtInput.value = "";
-    if (refs.tagsInput) refs.tagsInput.value = "";
-    if (refs.visibilityInput) refs.visibilityInput.value = "true";
+    if (refs.tagInput) refs.tagInput.value = "";
+    if (refs.visInput) refs.visInput.checked = true;
+    renderTagChips();
+    closeTagSug();
+    updateTitleCounter();
+    updateVisLabel();
+    updateShotAtBadge();
     setInlineMessage("");
     setSubmitting(false);
     render();
   }
+
+  // ── File / hash logic ─────────────────────────────────────────────────────
 
   async function refreshHashes(items) {
     await Promise.all(items.map(async (item) => {
@@ -285,13 +458,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const incoming = Array.from(fileList || []);
     if (!incoming.length) return;
 
-    const accepted = [];
     const remaining = Math.max(0, MAX_FILES - state.items.length);
     if (remaining <= 0) {
       app.toast?.error?.(`画像は最大 ${MAX_FILES} 枚までです。`);
       return;
     }
 
+    const accepted = [];
     for (const file of incoming) {
       if (accepted.length >= remaining) break;
       const ext = extractExtension(file.name);
@@ -360,8 +533,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       state.shotAtDirty = false;
     }
     state.shotAtAutoValue = nextAuto;
+    updateShotAtBadge();
     renderThumbnail();
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   function renderThumbnail() {
     const first = state.items[0];
@@ -414,18 +590,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       });
 
       card.innerHTML = `
-        <button type="button" class="upload-modal__strip-thumb" data-action="thumbnail" data-index="${index}" aria-label="${escapeHtml(index === 0 ? "現在のサムネイル" : "サムネイルに設定")}">
+        <div class="upload-modal__strip-thumb" data-action="thumbnail" data-index="${index}" role="button" tabindex="0" aria-label="${escapeHtml(index === 0 ? "現在のサムネイル" : "サムネイルに設定")}">
           <img src="${escapeHtml(item.objectUrl)}" alt="${escapeHtml(item.file.name || "image")}">
-          ${index === 0 ? '<span class="upload-modal__strip-badge upload-modal__strip-badge--thumbnail">サムネイル</span>' : ""}
+          ${index === 0 ? '<span class="upload-modal__strip-badge upload-modal__strip-badge--thumbnail">THUMB</span>' : ""}
           ${dup ? '<span class="upload-modal__strip-badge upload-modal__strip-badge--dup">DUP</span>' : ""}
-        </button>
-        <div class="upload-modal__strip-meta">
-          <div class="upload-modal__strip-name">${escapeHtml(item.file.name || "(無名ファイル)")}</div>
-          <div class="upload-modal__strip-sub">${formatBytes(item.file.size)}</div>
+          <button type="button" class="upload-modal__strip-rm" data-action="remove" data-index="${index}" aria-label="削除">\u00d7</button>
         </div>
-        <div class="upload-modal__strip-actions">
-          <button type="button" class="app-button app-button--ghost upload-modal__mini-button" data-action="remove" data-index="${index}">削除</button>
-        </div>
+        <div class="upload-modal__strip-name">${escapeHtml(item.file.name || "(無名ファイル)")}</div>
       `;
       refs.strip.appendChild(card);
     });
@@ -436,6 +607,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     renderSummary();
     renderStrip();
   }
+
+  // ── Upload ────────────────────────────────────────────────────────────────
 
   function collectDuplicateMessageFromPayload(payload) {
     const items = Array.isArray(payload?.items) ? payload.items : [];
@@ -460,8 +633,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (state.uploading) return;
     const title = refs.titleInput?.value?.trim() || "";
     const alt = refs.altInput?.value || "";
-    const tags = refs.tagsInput?.value || "";
-    const isPublic = refs.visibilityInput?.value || "true";
+    const tags = state.tagState.join(",");
+    const isPublic = refs.visInput?.checked ? "true" : "false";
     const shotAt = refs.shotAtInput?.value || "";
 
     if (!title) {
@@ -490,9 +663,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     formData.append("alt", alt);
     formData.append("tags", tags);
     formData.append("is_public", isPublic);
-    if (shotAt) {
-      formData.append("shot_at", shotAt);
-    }
+    if (shotAt) formData.append("shot_at", shotAt);
     for (const item of state.items) {
       formData.append("files", item.file, item.file.name);
     }
@@ -523,6 +694,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const successMessage = createdCount > 0 ? `${createdCount} 枚の画像をアップロードしました。` : "アップロードが完了しました。";
       setInlineMessage(successMessage, "success");
       app.toast?.success?.(successMessage);
+      clearDraft();
       const uploadedCallback = state.onUploaded;
       close();
       if (typeof uploadedCallback === "function") {
@@ -537,16 +709,19 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     }
   }
 
+  // ── Events ────────────────────────────────────────────────────────────────
+
   function bindEvents() {
+    // File select
     refs.fileSelectButton?.addEventListener("click", () => refs.fileInput?.click());
     refs.fileInput?.addEventListener("change", async (event) => {
       await addFiles(event.target.files);
       event.target.value = "";
     });
 
+    // Dropzone
     refs.dropzone?.addEventListener("click", (event) => {
-      const button = event.target.closest("button");
-      if (button) return;
+      if (event.target.closest("button")) return;
       refs.fileInput?.click();
     });
     refs.dropzone?.addEventListener("keydown", (event) => {
@@ -570,10 +745,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       await addFiles(event.dataTransfer?.files || []);
     });
 
+    // Strip: click
     refs.strip?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-action]");
       if (!button) return;
-      const index = Number(button.dataset.index || -1);
+      const index = Number(button.dataset.index ?? -1);
       if (button.dataset.action === "remove") {
         removeItem(index);
         return;
@@ -583,59 +759,116 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       }
     });
 
+    // Strip: drag & drop reorder
     refs.strip?.addEventListener("dragstart", (event) => {
       const card = event.target.closest("[data-index]");
       if (!card) return;
-      state.dragIndex = Number(card.dataset.index || -1);
+      state.dragIndex = Number(card.dataset.index ?? -1);
       card.classList.add("is-dragging");
       if (event.dataTransfer) {
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", String(state.dragIndex));
       }
     });
-
     refs.strip?.addEventListener("dragend", (event) => {
       event.target.closest("[data-index]")?.classList.remove("is-dragging");
       state.dragIndex = -1;
     });
-
     refs.strip?.addEventListener("dragover", (event) => {
       event.preventDefault();
-      const card = event.target.closest("[data-index]");
-      if (!card) return;
-      card.classList.add("is-dragover");
+      event.target.closest("[data-index]")?.classList.add("is-dragover");
     });
-
     refs.strip?.addEventListener("dragleave", (event) => {
       event.target.closest("[data-index]")?.classList.remove("is-dragover");
     });
-
     refs.strip?.addEventListener("drop", (event) => {
       event.preventDefault();
       const card = event.target.closest("[data-index]");
       if (!card) return;
       card.classList.remove("is-dragover");
-      const dropIndex = Number(card.dataset.index || -1);
-      if (state.dragIndex >= 0 && dropIndex >= 0) {
-        moveItem(state.dragIndex, dropIndex);
-      }
+      const dropIndex = Number(card.dataset.index ?? -1);
+      if (state.dragIndex >= 0 && dropIndex >= 0) moveItem(state.dragIndex, dropIndex);
       state.dragIndex = -1;
     });
 
+    // Title counter
+    refs.titleInput?.addEventListener("input", () => updateTitleCounter());
+
+    // Shot_at manual edit
     refs.shotAtInput?.addEventListener("input", () => {
       state.shotAtDirty = true;
+      updateShotAtBadge();
     });
+
+    // Visibility toggle
+    refs.visInput?.addEventListener("change", () => updateVisLabel());
+
+    // Tag chips: remove
+    refs.tagChips?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-tag-index]");
+      if (!btn) return;
+      removeTag(Number(btn.dataset.tagIndex));
+    });
+
+    // Tag box: focus input when clicking box
+    refs.tagBox?.addEventListener("click", (event) => {
+      if (event.target === refs.tagBox || event.target === refs.tagChips) {
+        refs.tagInput?.focus();
+      }
+    });
+
+    // Tag input
+    refs.tagInput?.addEventListener("focus", () => openTagSug());
+    refs.tagInput?.addEventListener("blur", () => {
+      // Delay so suggestion item click can fire first
+      setTimeout(() => closeTagSug(), 160);
+    });
+    refs.tagInput?.addEventListener("input", () => {
+      if (state.tagSugOpen) renderTagSug();
+    });
+    refs.tagInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === "," || event.key === "、") {
+        event.preventDefault();
+        const val = refs.tagInput.value;
+        if (val.trim()) addTag(val);
+      } else if (event.key === "Escape") {
+        closeTagSug();
+      } else if (event.key === "Backspace" && !refs.tagInput.value && state.tagState.length > 0) {
+        removeTag(state.tagState.length - 1);
+      }
+    });
+
+    // Tag add button
+    refs.tagAdd?.addEventListener("click", () => {
+      const val = refs.tagInput?.value || "";
+      if (val.trim()) {
+        addTag(val);
+      } else {
+        openTagSug();
+      }
+    });
+
+    // Tag suggestion panel
+    refs.tagSugList?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-tag]");
+      if (!btn) return;
+      addTag(btn.dataset.tag);
+      refs.tagInput?.focus();
+    });
+
+    // Footer
+    refs.draftButton?.addEventListener("click", () => saveDraft());
     refs.cancelButton?.addEventListener("click", () => close());
     refs.submitButton?.addEventListener("click", () => submit());
-    refs.draftButton?.addEventListener("click", () => {
-      app.toast?.info?.("下書き機能は次段で接続します。");
-    });
   }
+
+  // ── Public API ────────────────────────────────────────────────────────────
 
   function open(options = {}) {
     ensureMounted();
     if (!canOpen()) return;
     state.onUploaded = options.onUploaded || null;
+    loadDraft();
     app.modal.open(MODAL_ID);
   }
 
