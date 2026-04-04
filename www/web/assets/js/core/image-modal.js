@@ -7,7 +7,7 @@ function ensureStylesheet(appBase) {
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = `${appBase}/assets/css/image-modal.css`;
+  link.href = `${appBase}/assets/css/components/image-modal.css`;
   document.head.appendChild(link);
 }
 
