@@ -362,6 +362,28 @@ body[data-page="home"] {
 
 .home-filter-chip-list {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-tag-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-tag-group__header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.home-tag-group__chips {
+  display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }

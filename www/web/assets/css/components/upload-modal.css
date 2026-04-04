@@ -669,7 +669,7 @@
 
 .app-modal-dialog--tag-browse {
   width: min(560px, calc(100vw - 32px));
-  max-height: calc(100vh - 80px);
+  max-height: min(640px, calc(100vh - 80px));
   display: flex;
   flex-direction: column;
 }
@@ -737,9 +737,30 @@
 
 .tag-browse-modal__list {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tag-browse-modal__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tag-browse-modal__group-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tag-browse-modal__group-tags {
+  display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  align-content: flex-start;
 }
 
 .tag-browse-modal__tag-btn {
@@ -785,8 +806,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  cursor: pointer;
   user-select: none;
+}
+
+.upload-modal__vis-switch {
+  display: inline-flex;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .upload-modal__vis-input {

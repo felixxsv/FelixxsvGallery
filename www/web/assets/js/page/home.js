@@ -5,6 +5,40 @@ const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
 const DEFAULT_ROW_COUNT = 30;
 
+function getTagLetterGroup(tag) {
+  const first = (tag || "")[0] || "";
+  const code = first.charCodeAt(0);
+  if (/[a-zA-Z]/.test(first)) return first.toUpperCase();
+  const h = (code >= 0x30A1 && code <= 0x30F6) ? code - 0x60 : code;
+  if (h >= 0x3041 && h <= 0x304A) return "あ";
+  if (h >= 0x304B && h <= 0x3054) return "か";
+  if (h >= 0x3055 && h <= 0x305E) return "さ";
+  if (h >= 0x305F && h <= 0x3069) return "た";
+  if (h >= 0x306A && h <= 0x306E) return "な";
+  if (h >= 0x306F && h <= 0x307D) return "は";
+  if (h >= 0x307E && h <= 0x3082) return "ま";
+  if (h >= 0x3083 && h <= 0x3088) return "や";
+  if (h >= 0x3089 && h <= 0x308D) return "ら";
+  if (h >= 0x308E && h <= 0x3093) return "わ";
+  return "#";
+}
+
+function buildTagChipGroups(items) {
+  const order = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").concat(
+    ["あ","か","さ","た","な","は","ま","や","ら","わ","#"]
+  );
+  const sorted = [...items].sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), ["ja", "en"], { sensitivity: "base" })
+  );
+  const map = new Map();
+  for (const item of sorted) {
+    const key = getTagLetterGroup(String(item.name || ""));
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+  }
+  return order.filter((k) => map.has(k)).map((k) => ({ header: k, items: map.get(k) }));
+}
+
 function textOrDash(value) {
   if (value === undefined || value === null || value === "") {
     return "-";
@@ -577,20 +611,37 @@ export function initHomePage(app) {
     const selected = new Set(getSelectedValues("[data-ui-chip][aria-pressed='true']", "value"));
     refs.tagChipList.textContent = "";
 
+    const groups = buildTagChipGroups(items);
     const fragment = document.createDocumentFragment();
-    for (const item of items) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "home-filter-chip";
-      button.dataset.uiChip = "";
-      button.dataset.value = String(item.name || "");
-      button.setAttribute("aria-pressed", selected.has(String(item.name || "")) ? "true" : "false");
-      button.classList.toggle("is-active", selected.has(String(item.name || "")));
-      button.textContent = String(item.name || "");
-      if (Number.isFinite(Number(item.c))) {
-        button.title = `${item.name} (${Number(item.c)}件)`;
+    for (const { header, items: groupItems } of groups) {
+      const section = document.createElement("div");
+      section.className = "home-tag-group";
+      section.dataset.tagGroup = header;
+
+      const hdr = document.createElement("div");
+      hdr.className = "home-tag-group__header";
+      hdr.textContent = header;
+      section.appendChild(hdr);
+
+      const row = document.createElement("div");
+      row.className = "home-tag-group__chips";
+      for (const item of groupItems) {
+        const name = String(item.name || "");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "home-filter-chip";
+        button.dataset.uiChip = "";
+        button.dataset.value = name;
+        button.setAttribute("aria-pressed", selected.has(name) ? "true" : "false");
+        button.classList.toggle("is-active", selected.has(name));
+        button.textContent = name;
+        if (Number.isFinite(Number(item.c))) {
+          button.title = `${name} (${Number(item.c)}件)`;
+        }
+        row.appendChild(button);
       }
-      fragment.appendChild(button);
+      section.appendChild(row);
+      fragment.appendChild(section);
     }
 
     refs.tagChipList.appendChild(fragment);
@@ -1178,9 +1229,14 @@ export function initHomePage(app) {
 
     refs.tagSearchInput?.addEventListener("input", () => {
       const needle = refs.tagSearchInput.value.trim().toLowerCase();
-      refs.tagChipList?.querySelectorAll("[data-ui-chip]").forEach((button) => {
-        const visible = !needle || button.textContent.toLowerCase().includes(needle);
-        button.hidden = !visible;
+      refs.tagChipList?.querySelectorAll(".home-tag-group").forEach((group) => {
+        let anyVisible = false;
+        group.querySelectorAll("[data-ui-chip]").forEach((button) => {
+          const visible = !needle || button.dataset.value.toLowerCase().includes(needle);
+          button.hidden = !visible;
+          if (visible) anyVisible = true;
+        });
+        group.hidden = !anyVisible;
       });
     });
 

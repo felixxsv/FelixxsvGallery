@@ -212,13 +212,15 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     </div>
                   </div>
 
-                  <label class="upload-modal__vis-toggle" for="uploadModalVisInput">
-                    <input type="checkbox" class="upload-modal__vis-input" id="uploadModalVisInput" checked>
-                    <span class="upload-modal__vis-track">
-                      <span class="upload-modal__vis-thumb"></span>
-                    </span>
+                  <div class="upload-modal__vis-toggle">
+                    <label class="upload-modal__vis-switch" for="uploadModalVisInput" aria-label="公開設定">
+                      <input type="checkbox" class="upload-modal__vis-input" id="uploadModalVisInput" checked>
+                      <span class="upload-modal__vis-track">
+                        <span class="upload-modal__vis-thumb"></span>
+                      </span>
+                    </label>
                     <span class="upload-modal__vis-label" id="uploadModalVisLabel">公開</span>
-                  </label>
+                  </div>
 
                   <div id="uploadModalInlineMessage" class="upload-modal__inline-message" hidden></div>
                 </div>
@@ -572,6 +574,42 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     return [...tags].sort((a, b) => a.localeCompare(b, ["ja", "en"], { sensitivity: "base" }));
   }
 
+  function getLetterGroup(tag) {
+    const first = tag[0] || "";
+    const code = first.charCodeAt(0);
+    if (/[a-zA-Z]/.test(first)) return first.toUpperCase();
+    // Katakana → convert to hiragana range
+    const h = (code >= 0x30A1 && code <= 0x30F6) ? code - 0x60 : code;
+    if (h >= 0x3041 && h <= 0x304A) return "あ";
+    if (h >= 0x304B && h <= 0x3054) return "か";
+    if (h >= 0x3055 && h <= 0x305E) return "さ";
+    if (h >= 0x305F && h <= 0x3069) return "た";
+    if (h >= 0x306A && h <= 0x306E) return "な";
+    if (h >= 0x306F && h <= 0x307D) return "は";
+    if (h >= 0x307E && h <= 0x3082) return "ま";
+    if (h >= 0x3083 && h <= 0x3088) return "や";
+    if (h >= 0x3089 && h <= 0x308D) return "ら";
+    if (h >= 0x308E && h <= 0x3093) return "わ";
+    return "#";
+  }
+
+  function buildTagGroups(tags) {
+    const order = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").concat(
+      ["あ","か","さ","た","な","は","ま","や","ら","わ","#"]
+    );
+    const map = new Map();
+    for (const tag of tags) {
+      const key = getLetterGroup(tag);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(tag);
+    }
+    const result = [];
+    for (const key of order) {
+      if (map.has(key)) result.push({ header: key, tags: map.get(key) });
+    }
+    return result;
+  }
+
   function renderTagBrowseSug(query) {
     if (!refs.tagBrowseSugList) return;
     const q = (query || "").trim().toLowerCase();
@@ -608,15 +646,25 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       return;
     }
 
+    const groups = buildTagGroups(sorted);
     const fragment = document.createDocumentFragment();
-    for (const tag of sorted) {
-      const selected = state.tagState.includes(tag);
-      const btn = createElement("button", {
-        className: `tag-browse-modal__tag-btn${selected ? " is-selected" : ""}`,
-        attributes: { type: "button", "data-tag": tag, "aria-pressed": selected ? "true" : "false" }
-      });
-      btn.innerHTML = q ? highlightMatch(tag, q) : escapeHtml(tag);
-      fragment.appendChild(btn);
+    for (const { header, tags } of groups) {
+      const section = createElement("div", { className: "tag-browse-modal__group" });
+      const h = createElement("div", { className: "tag-browse-modal__group-header" });
+      h.textContent = header;
+      section.appendChild(h);
+      const row = createElement("div", { className: "tag-browse-modal__group-tags" });
+      for (const tag of tags) {
+        const selected = state.tagState.includes(tag);
+        const btn = createElement("button", {
+          className: `tag-browse-modal__tag-btn${selected ? " is-selected" : ""}`,
+          attributes: { type: "button", "data-tag": tag, "aria-pressed": selected ? "true" : "false" }
+        });
+        btn.innerHTML = q ? highlightMatch(tag, q) : escapeHtml(tag);
+        row.appendChild(btn);
+      }
+      section.appendChild(row);
+      fragment.appendChild(section);
     }
     refs.tagBrowseList.appendChild(fragment);
   }
