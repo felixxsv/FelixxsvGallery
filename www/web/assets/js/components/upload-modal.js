@@ -7,7 +7,9 @@ const MAX_TAG_LENGTH = 30;
 const TITLE_MAX = 100;
 const ACCEPTED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const MODAL_ID = "upload-modal";
+const TAG_BROWSE_MODAL_ID = "tag-browse-modal";
 const DRAFT_KEY = "gallery.upload.draft.v1";
+const TAG_QUICK_LIMIT = 10;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -16,6 +18,18 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function highlightMatch(text, query) {
+  if (!query) return escapeHtml(text);
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(query.toLowerCase());
+  if (idx === -1) return escapeHtml(text);
+  return (
+    escapeHtml(text.slice(0, idx)) +
+    `<mark class="upload-modal__sug-mark">${escapeHtml(text.slice(idx, idx + query.length))}</mark>` +
+    escapeHtml(text.slice(idx + query.length))
+  );
 }
 
 function formatBytes(value) {
@@ -70,6 +84,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     tagState: [],
     tagPool: [],
     tagSugOpen: false,
+    tagSugMode: "input",
+    tagBrowseMounted: false,
+    tagBrowseQuery: "",
     focalX: 50,
     focalY: 50,
     focalDragging: false,
@@ -180,11 +197,16 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     <div class="app-field">
                       <span class="app-field__label">タグ</span>
                       <div class="upload-modal__tag-box" id="uploadModalTagBox">
+                        <div class="upload-modal__tag-input-row">
+                          <input class="upload-modal__tag-input" id="uploadModalTagInput" type="text" placeholder="タグを追加…" autocomplete="off">
+                          <button type="button" class="upload-modal__tag-add" id="uploadModalTagAdd" aria-label="タグを追加">+</button>
+                        </div>
                         <div class="upload-modal__tag-scroll" id="uploadModalTagChips"></div>
-                        <input class="upload-modal__tag-input" id="uploadModalTagInput" type="text" placeholder="タグを追加…" autocomplete="off">
-                        <button type="button" class="upload-modal__tag-add" id="uploadModalTagAdd" aria-label="タグを追加">+</button>
                         <div class="upload-modal__tag-sug" id="uploadModalTagSug" hidden>
                           <div class="upload-modal__tag-sug-list" id="uploadModalTagSugList"></div>
+                          <div class="upload-modal__tag-sug-more" id="uploadModalTagSugMore" hidden>
+                            <button type="button" class="upload-modal__tag-more-btn" id="uploadModalTagMoreBtn">+more</button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -245,6 +267,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.tagAdd = document.getElementById("uploadModalTagAdd");
     refs.tagSug = document.getElementById("uploadModalTagSug");
     refs.tagSugList = document.getElementById("uploadModalTagSugList");
+    refs.tagSugMore = document.getElementById("uploadModalTagSugMore");
+    refs.tagMoreBtn = document.getElementById("uploadModalTagMoreBtn");
     refs.visInput = document.getElementById("uploadModalVisInput");
     refs.visLabel = document.getElementById("uploadModalVisLabel");
     refs.inlineMessage = document.getElementById("uploadModalInlineMessage");
@@ -415,22 +439,42 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function renderTagSug() {
     if (!refs.tagSugList) return;
     const query = (refs.tagInput?.value || "").trim().toLowerCase();
-    const filtered = state.tagPool
-      .filter((t) => !state.tagState.includes(t) && (query === "" || t.includes(query)))
-      .slice(0, 30);
+    const isQuick = state.tagSugMode === "quick";
+
+    const available = state.tagPool.filter((t) => !state.tagState.includes(t));
+    let filtered;
+    if (isQuick) {
+      filtered = available.slice(0, TAG_QUICK_LIMIT);
+    } else {
+      filtered = available.filter((t) => query && t.toLowerCase().includes(query)).slice(0, 30);
+    }
+
     refs.tagSugList.innerHTML = "";
     for (const tag of filtered) {
       const btn = createElement("button", {
         className: "upload-modal__tag-sug-item",
         attributes: { type: "button", "data-tag": tag }
       });
-      btn.textContent = tag;
+      btn.innerHTML = isQuick ? escapeHtml(tag) : highlightMatch(tag, query);
       refs.tagSugList.appendChild(btn);
     }
-    if (refs.tagSug) refs.tagSug.hidden = filtered.length === 0;
+
+    if (refs.tagSugMore) {
+      refs.tagSugMore.hidden = !isQuick;
+    }
+
+    const hasContent = filtered.length > 0 || isQuick;
+    if (refs.tagSug) refs.tagSug.hidden = !hasContent;
   }
 
-  function openTagSug() {
+  function openTagSugQuick() {
+    state.tagSugMode = "quick";
+    state.tagSugOpen = true;
+    renderTagSug();
+  }
+
+  function openTagSugInput() {
+    state.tagSugMode = "input";
     state.tagSugOpen = true;
     renderTagSug();
   }
@@ -438,6 +482,143 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function closeTagSug() {
     state.tagSugOpen = false;
     if (refs.tagSug) refs.tagSug.hidden = true;
+  }
+
+  // ── Tag browse modal ──────────────────────────────────────────────────────
+
+  function ensureTagBrowseMounted() {
+    if (state.tagBrowseMounted) return;
+    const modalRoot = root();
+    if (!modalRoot) return;
+    if (!modalRoot.querySelector(`[data-modal-id="${TAG_BROWSE_MODAL_ID}"]`)) {
+      const layer = createElement("section", {
+        className: "app-modal-layer",
+        attributes: {
+          "data-modal-layer": true,
+          "data-modal-id": TAG_BROWSE_MODAL_ID,
+          hidden: true
+        },
+        html: `
+          <div class="app-modal-backdrop" data-modal-backdrop="${TAG_BROWSE_MODAL_ID}"></div>
+          <div class="app-modal-dialog app-modal-dialog--tag-browse" role="dialog" aria-modal="true" tabindex="-1">
+            <div class="app-modal-header">
+              <h2 class="app-modal-title">タグを選択</h2>
+              <button type="button" class="app-modal-close" id="tagBrowseClose" aria-label="閉じる">×</button>
+            </div>
+            <div class="app-modal-body tag-browse-modal">
+              <div class="tag-browse-modal__search-wrap">
+                <input id="tagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
+                <div class="tag-browse-modal__sug" id="tagBrowseSug" hidden>
+                  <div class="tag-browse-modal__sug-list" id="tagBrowseSugList"></div>
+                </div>
+              </div>
+              <div id="tagBrowseList" class="tag-browse-modal__list"></div>
+            </div>
+          </div>
+        `
+      });
+      modalRoot.appendChild(layer);
+    }
+    app.modal?.refresh?.();
+
+    refs.tagBrowseLayer = modalRoot.querySelector(`[data-modal-id="${TAG_BROWSE_MODAL_ID}"]`);
+    refs.tagBrowseSearch = document.getElementById("tagBrowseSearch");
+    refs.tagBrowseSug = document.getElementById("tagBrowseSug");
+    refs.tagBrowseSugList = document.getElementById("tagBrowseSugList");
+    refs.tagBrowseList = document.getElementById("tagBrowseList");
+    refs.tagBrowseClose = document.getElementById("tagBrowseClose");
+
+    refs.tagBrowseSearch?.addEventListener("input", () => {
+      const q = (refs.tagBrowseSearch.value || "").trim();
+      state.tagBrowseQuery = q;
+      renderTagBrowseSug(q);
+      renderTagBrowseList(q);
+    });
+    refs.tagBrowseSugList?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-tag]");
+      if (!btn) return;
+      addTag(btn.dataset.tag);
+      renderTagBrowseList(state.tagBrowseQuery);
+      renderTagBrowseSug(state.tagBrowseQuery);
+    });
+    refs.tagBrowseList?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-tag]");
+      if (!btn) return;
+      addTag(btn.dataset.tag);
+      renderTagBrowseList(state.tagBrowseQuery);
+    });
+    refs.tagBrowseClose?.addEventListener("click", () => closeTagBrowseModal());
+    refs.tagBrowseLayer?.querySelector(`[data-modal-backdrop="${TAG_BROWSE_MODAL_ID}"]`)
+      ?.addEventListener("click", () => closeTagBrowseModal());
+
+    state.tagBrowseMounted = true;
+  }
+
+  function openTagBrowseModal() {
+    ensureTagBrowseMounted();
+    state.tagBrowseQuery = "";
+    if (refs.tagBrowseSearch) refs.tagBrowseSearch.value = "";
+    renderTagBrowseSug("");
+    renderTagBrowseList("");
+    app.modal?.open?.(TAG_BROWSE_MODAL_ID);
+    setTimeout(() => refs.tagBrowseSearch?.focus(), 60);
+  }
+
+  function closeTagBrowseModal() {
+    app.modal?.close?.(TAG_BROWSE_MODAL_ID);
+  }
+
+  function sortTagsLocale(tags) {
+    return [...tags].sort((a, b) => a.localeCompare(b, ["ja", "en"], { sensitivity: "base" }));
+  }
+
+  function renderTagBrowseSug(query) {
+    if (!refs.tagBrowseSugList) return;
+    const q = (query || "").trim().toLowerCase();
+    if (!q) {
+      if (refs.tagBrowseSug) refs.tagBrowseSug.hidden = true;
+      return;
+    }
+    const results = state.tagPool
+      .filter((t) => !state.tagState.includes(t) && t.toLowerCase().includes(q))
+      .slice(0, 10);
+    refs.tagBrowseSugList.innerHTML = "";
+    for (const tag of results) {
+      const btn = createElement("button", {
+        className: "tag-browse-modal__sug-item",
+        attributes: { type: "button", "data-tag": tag }
+      });
+      btn.innerHTML = highlightMatch(tag, q);
+      refs.tagBrowseSugList.appendChild(btn);
+    }
+    if (refs.tagBrowseSug) refs.tagBrowseSug.hidden = results.length === 0;
+  }
+
+  function renderTagBrowseList(query) {
+    if (!refs.tagBrowseList) return;
+    const q = (query || "").trim().toLowerCase();
+    const pool = q
+      ? state.tagPool.filter((t) => t.toLowerCase().includes(q))
+      : state.tagPool;
+    const sorted = sortTagsLocale(pool);
+
+    refs.tagBrowseList.innerHTML = "";
+    if (!sorted.length) {
+      refs.tagBrowseList.innerHTML = `<p class="tag-browse-modal__empty">タグが見つかりません</p>`;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const tag of sorted) {
+      const selected = state.tagState.includes(tag);
+      const btn = createElement("button", {
+        className: `tag-browse-modal__tag-btn${selected ? " is-selected" : ""}`,
+        attributes: { type: "button", "data-tag": tag, "aria-pressed": selected ? "true" : "false" }
+      });
+      btn.innerHTML = q ? highlightMatch(tag, q) : escapeHtml(tag);
+      fragment.appendChild(btn);
+    }
+    refs.tagBrowseList.appendChild(fragment);
   }
 
   // ── Draft ─────────────────────────────────────────────────────────────────
@@ -1083,13 +1264,17 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     });
 
     // Tag input
-    refs.tagInput?.addEventListener("focus", () => openTagSug());
     refs.tagInput?.addEventListener("blur", () => {
       // Delay so suggestion item click can fire first
       setTimeout(() => closeTagSug(), 160);
     });
     refs.tagInput?.addEventListener("input", () => {
-      if (state.tagSugOpen) renderTagSug();
+      const val = (refs.tagInput.value || "").trim();
+      if (val.length >= 1) {
+        openTagSugInput();
+      } else {
+        closeTagSug();
+      }
     });
     refs.tagInput?.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === "," || event.key === "、") {
@@ -1109,7 +1294,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       if (val.trim()) {
         addTag(val);
       } else {
-        openTagSug();
+        if (state.tagSugOpen && state.tagSugMode === "quick") {
+          closeTagSug();
+        } else {
+          openTagSugQuick();
+        }
       }
     });
 
@@ -1119,6 +1308,12 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       if (!btn) return;
       addTag(btn.dataset.tag);
       refs.tagInput?.focus();
+    });
+
+    // +more button
+    refs.tagMoreBtn?.addEventListener("click", () => {
+      closeTagSug();
+      openTagBrowseModal();
     });
 
     // Footer
