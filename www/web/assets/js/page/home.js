@@ -708,6 +708,7 @@ export function initHomePage(app) {
       link.dataset.action = "open-image";
       imageNode.src = imageUrl;
       imageNode.alt = textOrDash(image.alt || image.title || "");
+      imageNode.style.objectPosition = `${image.focal_x ?? 50}% ${image.focal_y ?? 50}%`;
       imageNode.hidden = false;
       emptyNode.hidden = true;
     } else {

@@ -467,6 +467,7 @@ WHERE i.gallery=%s AND i.is_public=1
 SELECT
   i.id, i.shot_at, i.created_at, i.title, i.alt, i.width, i.height, i.format,
   i.thumb_path_480, i.thumb_path_960, i.preview_path,
+  COALESCE(i.focal_x, 50) AS focal_x, COALESCE(i.focal_y, 50) AS focal_y,
   COALESCE(st.view_count,0) AS view_count,
   i.like_count,
   {viewer_liked_sql}
@@ -528,6 +529,7 @@ def get_image(image_id: int, req: Request):
 SELECT
   i.id, i.shot_at, i.title, i.alt, i.width, i.height, i.format,
   i.thumb_path_480, i.thumb_path_960, i.preview_path,
+  COALESCE(i.focal_x, 50) AS focal_x, COALESCE(i.focal_y, 50) AS focal_y,
   COALESCE(st.view_count,0) AS view_count,
   i.like_count AS like_count,
   COALESCE(st.x_like_count,0) AS x_like_count,
@@ -766,6 +768,8 @@ def upload_images(
     tags: str = Form(""),
     is_public: str = Form("true"),
     shot_at: str = Form(""),
+    focal_x: float = Form(50.0),
+    focal_y: float = Form(50.0),
     files: list[UploadFile] = File(...),
 ):
     upload_requires_login = _upload_requires_login(CONF)
@@ -786,6 +790,8 @@ def upload_images(
         raise HTTPException(status_code=400, detail="too many files (max 20)")
 
     is_pub = str(is_public or "true").strip().lower() in ("1", "true", "yes", "on")
+    focal_x_val = max(0.0, min(100.0, float(focal_x if focal_x is not None else 50.0)))
+    focal_y_val = max(0.0, min(100.0, float(focal_y if focal_y is not None else 50.0)))
     tag_list = [x for x in parse_csv_strs(tags) if x]
 
     # フロントから送られた shot_at を解析（datetime-local 形式: "YYYY-MM-DDTHH:MM:SS"）
@@ -990,6 +996,14 @@ def upload_images(
                     if "is_public" in img_cols:
                         img_cols_list.append("is_public")
                         img_vals.append(1 if is_pub else 0)
+
+                    if "focal_x" in img_cols:
+                        img_cols_list.append("focal_x")
+                        img_vals.append(focal_x_val)
+
+                    if "focal_y" in img_cols:
+                        img_cols_list.append("focal_y")
+                        img_vals.append(focal_y_val)
 
                     if "uploader_user_id" in img_cols and u is not None:
                         img_cols_list.append("uploader_user_id")
@@ -1413,6 +1427,8 @@ FROM (
     i.thumb_path_960,
     i.preview_path,
     i.like_count,
+    COALESCE(i.focal_x, 50) AS focal_x,
+    COALESCE(i.focal_y, 50) AS focal_y,
     {thumb_viewer_sql},
     COUNT(*) OVER (PARTITION BY {content_key_expr}) AS image_count,
     ROW_NUMBER() OVER (
@@ -1462,6 +1478,8 @@ WHERE picked.rn=1
                 "like_count": int(thumb.get("like_count") or 0),
                 "viewer_liked": bool(thumb.get("viewer_liked")),
                 "view_count": int(row.get("view_count_sum") or 0),
+                "focal_x": float(thumb.get("focal_x") or 50),
+                "focal_y": float(thumb.get("focal_y") or 50),
             })
 
         pages = (total + per_page - 1) // per_page if total else 0

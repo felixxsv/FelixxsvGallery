@@ -8,6 +8,7 @@ const TITLE_MAX = 100;
 const ACCEPTED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const MODAL_ID = "upload-modal";
 const DRAFT_KEY = "gallery.upload.draft.v1";
+const GRID_COLS_KEY = "gallery.home.gridCols";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -69,7 +70,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     onUploaded: null,
     tagState: [],
     tagPool: [],
-    tagSugOpen: false
+    tagSugOpen: false,
+    focalX: 50,
+    focalY: 50,
+    focalCols: Math.min(4, Math.max(1, Number(localStorage.getItem(GRID_COLS_KEY)) || 3)),
+    focalDragging: false
   };
 
   const refs = {};
@@ -109,6 +114,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
                       <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
                       <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
+                      <div class="upload-modal__thumb-overlay" id="uploadModalThumbOverlay" hidden>
+                        <span class="upload-modal__thumb-overlay-title" id="uploadModalThumbTitle"></span>
+                        <span class="upload-modal__thumb-overlay-time" id="uploadModalThumbTime"></span>
+                      </div>
                     </div>
                   </div>
                   <div class="upload-modal__drop-col">
@@ -128,8 +137,30 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                 <!-- 中段: 画像一覧 -->
                 <div class="upload-modal__strip-section">
                   <div class="upload-modal__field-label">画像一覧</div>
-                  <div id="uploadModalStrip" class="upload-modal__strip" aria-live="polite"></div>
+                  <div class="upload-modal__strip-wrap" id="uploadModalStripWrap">
+                    <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--prev" id="uploadModalStripPrev" hidden aria-label="前へ">&#8249;</button>
+                    <div id="uploadModalStrip" class="upload-modal__strip" aria-live="polite"></div>
+                    <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--next" id="uploadModalStripNext" hidden aria-label="次へ">&#8250;</button>
+                  </div>
                   <div id="uploadModalSummary" class="upload-modal__summary">ファイルが未選択です。</div>
+                </div>
+
+                <!-- フォーカルポイントエディタ -->
+                <div class="upload-modal__focal-section" id="uploadModalFocalSection" hidden>
+                  <div class="upload-modal__focal-header">
+                    <span class="upload-modal__field-label">カードプレビュー / 表示位置</span>
+                    <div class="upload-modal__focal-cols" id="uploadModalFocalCols">
+                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="1">1</button>
+                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="2">2</button>
+                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="3">3</button>
+                      <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="4">4</button>
+                    </div>
+                  </div>
+                  <div class="upload-modal__focal-card" id="uploadModalFocalCard" data-cols="3">
+                    <img class="upload-modal__focal-img" id="uploadModalFocalImg" alt="focal preview">
+                    <div class="upload-modal__focal-crosshair" id="uploadModalFocalCrosshair"></div>
+                  </div>
+                  <div class="upload-modal__focal-hint">ドラッグして表示位置を調整</div>
                 </div>
 
                 <!-- 下段: フォーム -->
@@ -203,8 +234,19 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.thumbnailWrap = document.getElementById("uploadModalThumbnailWrap");
     refs.thumbnailImage = document.getElementById("uploadModalThumbnailImage");
     refs.thumbnailEmpty = document.getElementById("uploadModalThumbnailEmpty");
+    refs.thumbOverlay = document.getElementById("uploadModalThumbOverlay");
+    refs.thumbTitle = document.getElementById("uploadModalThumbTitle");
+    refs.thumbTime = document.getElementById("uploadModalThumbTime");
+    refs.stripWrap = document.getElementById("uploadModalStripWrap");
+    refs.stripPrev = document.getElementById("uploadModalStripPrev");
+    refs.stripNext = document.getElementById("uploadModalStripNext");
     refs.strip = document.getElementById("uploadModalStrip");
     refs.summary = document.getElementById("uploadModalSummary");
+    refs.focalSection = document.getElementById("uploadModalFocalSection");
+    refs.focalCols = document.getElementById("uploadModalFocalCols");
+    refs.focalCard = document.getElementById("uploadModalFocalCard");
+    refs.focalImg = document.getElementById("uploadModalFocalImg");
+    refs.focalCrosshair = document.getElementById("uploadModalFocalCrosshair");
     refs.titleInput = document.getElementById("uploadModalTitleInput");
     refs.titleCounter = document.getElementById("uploadModalTitleCounter");
     refs.altInput = document.getElementById("uploadModalAltInput");
@@ -227,6 +269,69 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     loadTagPool();
     state.mounted = true;
     render();
+  }
+
+  // ── Thumbnail overlay ─────────────────────────────────────────────────────
+
+  function updateThumbOverlay() {
+    if (!refs.thumbOverlay) return;
+    const title = refs.titleInput?.value?.trim() || "";
+    const time = refs.shotAtInput?.value || "";
+    const hasImage = state.items.length > 0;
+    const hasInfo = hasImage && title;
+    refs.thumbOverlay.hidden = !hasInfo;
+    if (refs.thumbTitle) refs.thumbTitle.textContent = title;
+    if (refs.thumbTime) refs.thumbTime.textContent = time ? time.replace("T", " ") : "";
+  }
+
+  // ── Strip arrows ──────────────────────────────────────────────────────────
+
+  function updateStripArrows() {
+    const strip = refs.strip;
+    if (!strip || !refs.stripPrev || !refs.stripNext) return;
+    const { scrollLeft, scrollWidth, clientWidth } = strip;
+    const atStart = scrollLeft <= 2;
+    const atEnd = scrollLeft + clientWidth >= scrollWidth - 2;
+    refs.stripPrev.hidden = atStart;
+    refs.stripNext.hidden = atEnd;
+  }
+
+  // ── Focal point ───────────────────────────────────────────────────────────
+
+  function updateFocalDisplay() {
+    const first = state.items[0];
+    if (!refs.focalSection) return;
+    refs.focalSection.hidden = !first;
+    if (!first) return;
+
+    if (refs.focalImg) refs.focalImg.src = first.objectUrl;
+    if (refs.focalCard) refs.focalCard.dataset.cols = String(state.focalCols);
+    applyFocalPosition();
+    updateFocalColButtons();
+  }
+
+  function applyFocalPosition() {
+    if (refs.focalImg) refs.focalImg.style.objectPosition = `${state.focalX}% ${state.focalY}%`;
+    if (refs.focalCard && refs.focalCrosshair) {
+      refs.focalCrosshair.style.left = `${state.focalX}%`;
+      refs.focalCrosshair.style.top = `${state.focalY}%`;
+    }
+  }
+
+  function updateFocalColButtons() {
+    if (!refs.focalCols) return;
+    refs.focalCols.querySelectorAll("[data-focal-cols]").forEach((btn) => {
+      btn.classList.toggle("is-active", Number(btn.dataset.focalCols) === state.focalCols);
+    });
+  }
+
+  function focalPointerToPercent(event) {
+    const rect = refs.focalCard.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * 100;
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) * 100;
+    state.focalX = Math.round(x * 10) / 10;
+    state.focalY = Math.round(y * 10) / 10;
+    applyFocalPosition();
   }
 
   // ── Tag pool ──────────────────────────────────────────────────────────────
@@ -311,6 +416,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       shotAt: refs.shotAtInput?.value || "",
       tags: [...state.tagState],
       isPublic: refs.visInput?.checked ?? true,
+      focalX: state.focalX,
+      focalY: state.focalY,
       savedAt: Date.now()
     };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
@@ -328,6 +435,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         refs.shotAtInput.value = draft.shotAt;
         state.shotAtDirty = true;
       }
+      if (typeof draft.focalX === "number") state.focalX = draft.focalX;
+      if (typeof draft.focalY === "number") state.focalY = draft.focalY;
       if (Array.isArray(draft.tags)) {
         state.tagState = draft.tags.filter((t) => typeof t === "string" && t.trim());
         renderTagChips();
@@ -417,6 +526,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.onUploaded = null;
     state.tagState = [];
     state.tagSugOpen = false;
+    state.focalX = 50;
+    state.focalY = 50;
+    state.focalDragging = false;
     if (refs.fileInput) refs.fileInput.value = "";
     if (refs.titleInput) refs.titleInput.value = "";
     if (refs.altInput) refs.altInput.value = "";
@@ -618,6 +730,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     renderThumbnail();
     renderSummary();
     renderStrip();
+    updateThumbOverlay();
+    updateStripArrows();
+    updateFocalDisplay();
   }
 
   // ── Upload ────────────────────────────────────────────────────────────────
@@ -676,6 +791,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     formData.append("tags", tags);
     formData.append("is_public", isPublic);
     if (shotAt) formData.append("shot_at", shotAt);
+    formData.append("focal_x", String(state.focalX));
+    formData.append("focal_y", String(state.focalY));
     for (const item of state.items) {
       formData.append("files", item.file, item.file.name);
     }
@@ -803,13 +920,68 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       state.dragIndex = -1;
     });
 
+    // Strip: mouse wheel horizontal scroll
+    refs.strip?.addEventListener("wheel", (event) => {
+      if (event.deltaY === 0) return;
+      event.preventDefault();
+      refs.strip.scrollLeft += event.deltaY;
+      updateStripArrows();
+    }, { passive: false });
+
+    // Strip: scroll → update arrows
+    refs.strip?.addEventListener("scroll", () => updateStripArrows(), { passive: true });
+
+    // Strip: hover → show/hide arrows
+    refs.stripWrap?.addEventListener("mouseenter", () => updateStripArrows());
+    refs.stripWrap?.addEventListener("mouseleave", () => {
+      if (refs.stripPrev) refs.stripPrev.hidden = true;
+      if (refs.stripNext) refs.stripNext.hidden = true;
+    });
+
+    // Strip: arrow buttons
+    refs.stripPrev?.addEventListener("click", () => {
+      refs.strip.scrollBy({ left: -120, behavior: "smooth" });
+    });
+    refs.stripNext?.addEventListener("click", () => {
+      refs.strip.scrollBy({ left: 120, behavior: "smooth" });
+    });
+
+    // Focal: column buttons
+    refs.focalCols?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-focal-cols]");
+      if (!btn) return;
+      const cols = Number(btn.dataset.focalCols);
+      if (![1, 2, 3, 4].includes(cols)) return;
+      state.focalCols = cols;
+      if (refs.focalCard) refs.focalCard.dataset.cols = String(cols);
+      updateFocalColButtons();
+    });
+
+    // Focal: drag to set position
+    refs.focalCard?.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      state.focalDragging = true;
+      refs.focalCard.setPointerCapture(event.pointerId);
+      focalPointerToPercent(event);
+    });
+    refs.focalCard?.addEventListener("pointermove", (event) => {
+      if (!state.focalDragging) return;
+      focalPointerToPercent(event);
+    });
+    refs.focalCard?.addEventListener("pointerup", () => { state.focalDragging = false; });
+    refs.focalCard?.addEventListener("pointercancel", () => { state.focalDragging = false; });
+
     // Title counter
-    refs.titleInput?.addEventListener("input", () => updateTitleCounter());
+    refs.titleInput?.addEventListener("input", () => {
+      updateTitleCounter();
+      updateThumbOverlay();
+    });
 
     // Shot_at manual edit
     refs.shotAtInput?.addEventListener("input", () => {
       state.shotAtDirty = true;
       updateShotAtBadge();
+      updateThumbOverlay();
     });
 
     // Visibility toggle
