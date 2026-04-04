@@ -659,9 +659,15 @@
 
 .app-modal-dialog--tag-browse {
   width: min(560px, calc(100vw - 32px));
-  max-height: min(640px, calc(100vh - 80px));
+  /* 画面サイズに合わせた固定高さ。コンテンツ量で変わらない */
+  height: min(680px, calc(100dvh - 64px));
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* サジェストをダイアログ内にクリップ */
+}
+
+.app-modal-dialog--tag-browse .app-modal-header {
+  flex-shrink: 0;
 }
 
 .app-modal-dialog--tag-browse .app-modal-body {
@@ -676,6 +682,8 @@
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
+  /* z-index context so sug overlays body */
+  z-index: 1;
 }
 
 .tag-browse-modal__search {
@@ -684,16 +692,18 @@
 
 .tag-browse-modal__sug {
   position: absolute;
-  top: calc(100% - 1px);
+  top: 100%;
   left: var(--space-4);
   right: var(--space-4);
-  z-index: 10;
+  /* 画面高さからヘッダー・検索バーの高さを引いた分を最大高さに */
+  max-height: calc(min(680px, 100dvh - 64px) - 130px);
+  z-index: 20;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: var(--color-bg-elevated);
   box-shadow: var(--shadow-2);
   overflow-y: auto;
-  max-height: calc(10 * 38px);
 }
 
 .tag-browse-modal__sug-list {
