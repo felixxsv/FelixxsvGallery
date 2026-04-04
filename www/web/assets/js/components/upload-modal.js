@@ -197,11 +197,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     <div class="app-field">
                       <span class="app-field__label">タグ</span>
                       <div class="upload-modal__tag-box" id="uploadModalTagBox">
-                        <div class="upload-modal__tag-input-row">
-                          <input class="upload-modal__tag-input" id="uploadModalTagInput" type="text" placeholder="タグを追加…" autocomplete="off">
-                          <button type="button" class="upload-modal__tag-add" id="uploadModalTagAdd" aria-label="タグを追加">+</button>
-                        </div>
                         <div class="upload-modal__tag-scroll" id="uploadModalTagChips"></div>
+                        <input class="upload-modal__tag-input" id="uploadModalTagInput" type="text" placeholder="タグを追加…" autocomplete="off">
+                        <button type="button" class="upload-modal__tag-add" id="uploadModalTagAdd" aria-label="タグを追加">+</button>
                         <div class="upload-modal__tag-sug" id="uploadModalTagSug" hidden>
                           <div class="upload-modal__tag-sug-list" id="uploadModalTagSugList"></div>
                           <div class="upload-modal__tag-sug-more" id="uploadModalTagSugMore" hidden>

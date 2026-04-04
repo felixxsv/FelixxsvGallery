@@ -70,6 +70,47 @@
   }
 }
 
+/* ── Global scrollbar theming ───────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Custom scrollbar targets hide native scrollbars (overrides above) */
+html.app-custom-scrollbar-window,
+html.app-custom-scrollbar-window body,
+.app-custom-scrollbar-target {
+  scrollbar-width: none !important;
+}
+
 *,
 *::before,
 *::after {
@@ -97,12 +138,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-html.app-custom-scrollbar-window,
-html.app-custom-scrollbar-window body,
-.app-custom-scrollbar-target {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
 
 html.app-custom-scrollbar-window::-webkit-scrollbar,
 html.app-custom-scrollbar-window body::-webkit-scrollbar,

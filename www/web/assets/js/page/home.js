@@ -743,6 +743,9 @@ export function initHomePage(app) {
     }
     app.modal?.refresh?.();
 
+    const layer = modalRoot.querySelector(`[data-modal-id="${HOME_TAG_BROWSE_ID}"]`);
+    if (!layer) return;
+
     const browseSearch = document.getElementById("homeTagBrowseSearch");
     const browseSug = document.getElementById("homeTagBrowseSug");
     const browseSugList = document.getElementById("homeTagBrowseSugList");
@@ -1431,10 +1434,6 @@ export function initHomePage(app) {
     refs.tagSearchInput?.addEventListener("input", () => {
       const needle = refs.tagSearchInput.value.trim().toLowerCase();
       renderHomeSug(needle);
-      refs.tagChipList?.querySelectorAll("[data-ui-chip]").forEach((button) => {
-        const visible = !needle || button.dataset.value.toLowerCase().includes(needle);
-        button.hidden = !visible;
-      });
     });
     refs.tagSearchInput?.addEventListener("blur", () => {
       setTimeout(() => closeHomeSug(), 160);
