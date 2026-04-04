@@ -1,4 +1,4 @@
-import { createApiClient } from "../core/api.js";
+import { createApiClient } from "../../core/api.js";
 
 const appBase = document.body.dataset.appBase || "/gallery";
 const api = createApiClient({ baseUrl: appBase });
