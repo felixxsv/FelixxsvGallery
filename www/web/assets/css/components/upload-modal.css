@@ -62,6 +62,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none; /* ドラッグイベントをwrapへ通す */
 }
 
 .upload-modal__thumbnail-wrap.is-focal-active {
@@ -331,44 +332,6 @@
 .upload-modal__file-input { display: none; }
 
 /* ── Focal point editor (サムネイルボックスに統合) ─────────────────────── */
-
-.upload-modal__focal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.upload-modal__focal-cols {
-  display: flex;
-  gap: 4px;
-}
-
-.upload-modal__focal-col-btn {
-  width: 28px;
-  height: 24px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-}
-
-.upload-modal__focal-col-btn:hover {
-  background: var(--color-surface-strong);
-}
-
-.upload-modal__focal-col-btn.is-active {
-  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
-  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
-  color: var(--color-primary);
-}
 
 .upload-modal__focal-crosshair {
   position: absolute;

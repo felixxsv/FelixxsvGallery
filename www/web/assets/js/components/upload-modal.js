@@ -8,7 +8,6 @@ const TITLE_MAX = 100;
 const ACCEPTED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const MODAL_ID = "upload-modal";
 const DRAFT_KEY = "gallery.upload.draft.v1";
-const GRID_COLS_KEY = "gallery.home.gridCols";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -73,7 +72,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     tagSugOpen: false,
     focalX: 50,
     focalY: 50,
-    focalCols: Math.min(4, Math.max(1, Number(localStorage.getItem(GRID_COLS_KEY)) || 3)),
     focalDragging: false
   };
 
@@ -110,15 +108,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                 <!-- 上段: サムネイル + 画像追加 (1:1) -->
                 <div class="upload-modal__top">
                   <div class="upload-modal__thumb-col">
-                    <div class="upload-modal__focal-header">
-                      <span class="upload-modal__field-label">サムネイル / 表示位置</span>
-                      <div class="upload-modal__focal-cols" id="uploadModalFocalCols">
-                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="1">1</button>
-                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="2">2</button>
-                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="3">3</button>
-                        <button type="button" class="upload-modal__focal-col-btn" data-focal-cols="4">4</button>
-                      </div>
-                    </div>
+                    <div class="upload-modal__field-label">サムネイル / 表示位置</div>
                     <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
                       <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
                       <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
@@ -233,7 +223,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.stripNext = document.getElementById("uploadModalStripNext");
     refs.strip = document.getElementById("uploadModalStrip");
     refs.summary = document.getElementById("uploadModalSummary");
-    refs.focalCols = document.getElementById("uploadModalFocalCols");
     refs.focalCrosshair = document.getElementById("uploadModalFocalCrosshair");
     refs.titleInput = document.getElementById("uploadModalTitleInput");
     refs.titleCounter = document.getElementById("uploadModalTitleCounter");
@@ -308,14 +297,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (refs.thumbnailWrap) {
       refs.thumbnailWrap.classList.toggle("is-focal-active", hasImage);
     }
-    updateFocalColButtons();
-  }
-
-  function updateFocalColButtons() {
-    if (!refs.focalCols) return;
-    refs.focalCols.querySelectorAll("[data-focal-cols]").forEach((btn) => {
-      btn.classList.toggle("is-active", Number(btn.dataset.focalCols) === state.focalCols);
-    });
   }
 
   function focalPointerToPercent(event) {
@@ -411,7 +392,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       isPublic: refs.visInput?.checked ?? true,
       focalX: state.focalX,
       focalY: state.focalY,
-      savedAt: Date.now()
+      savedAt: Date.now(),
     };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
     app.toast?.info?.("下書きを保存しました。");
@@ -937,17 +918,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     });
     refs.stripNext?.addEventListener("click", () => {
       refs.strip.scrollBy({ left: 120, behavior: "smooth" });
-    });
-
-    // Focal: column buttons
-    refs.focalCols?.addEventListener("click", (event) => {
-      const btn = event.target.closest("[data-focal-cols]");
-      if (!btn) return;
-      const cols = Number(btn.dataset.focalCols);
-      if (![1, 2, 3, 4].includes(cols)) return;
-      state.focalCols = cols;
-      if (refs.focalCard) refs.focalCard.dataset.cols = String(cols);
-      updateFocalColButtons();
     });
 
     // Focal: drag to set position (directly on thumbnail wrap)
