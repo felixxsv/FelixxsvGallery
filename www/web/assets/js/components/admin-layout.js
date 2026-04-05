@@ -8,6 +8,8 @@ import { createI18n } from "../core/i18n.js";
 import { createImageModalController } from "../core/image-modal.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
+import { createThemeController } from "../core/theme.js";
+import { initUserShell } from "./user-shell.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
@@ -21,6 +23,7 @@ function createAdminContext() {
   const settings = createSettingsStore();
   const session = createSessionStore(api);
   const i18n = createI18n(settings);
+  const theme = createThemeController(settings);
   const modalRoot = byId("appModalRoot");
   const modalClose = byId("appGlobalClose");
   const toastRoot = byId("appToastRoot");
@@ -34,6 +37,7 @@ function createAdminContext() {
     settings,
     session,
     i18n,
+    theme,
     modal,
     toast,
     imageModal,
@@ -226,19 +230,7 @@ export async function initAdminLayout() {
     confirmApprove: byId("adminDiscardConfirmApproveButton"),
     confirmCancel: byId("adminDiscardConfirmCancelButton"),
     reloadButton: byId("adminReloadButton"),
-    headerGuestIcon: byId("shellUserTriggerGuestIcon"),
-    headerAuthIcon: byId("shellUserTriggerAuthIcon"),
   };
-
-  function renderAdminHeaderIcon(avatarUrl) {
-    if (refs.headerGuestIcon) refs.headerGuestIcon.hidden = true;
-    if (refs.headerAuthIcon) {
-      refs.headerAuthIcon.hidden = false;
-      refs.headerAuthIcon.style.backgroundImage = avatarUrl
-        ? `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`
-        : "";
-    }
-  }
 
   const shellState = {
     confirmResolver: null,
@@ -419,9 +411,13 @@ export async function initAdminLayout() {
   app.dirtyGuard = dirtyGuard;
   app.sidebar = sidebar;
 
+  app.theme.init();
+
   bindSidebarEdgePeek();
   bindSidebarToggleSync();
   syncSidebarDisplay();
+
+  initUserShell(app);
 
   refs.homeLink?.addEventListener("click", async (event) => {
     if (event.defaultPrevented) return;
@@ -468,7 +464,6 @@ export async function initAdminLayout() {
     if (refs.pageTitle) refs.pageTitle.textContent = pageTitle;
     if (refs.headerUserName) refs.headerUserName.textContent = currentUser.display_name || "-";
     if (refs.headerUserKey) refs.headerUserKey.textContent = currentUser.user_key || "-";
-    renderAdminHeaderIcon(user?.avatar_url || null);
     if (refs.pageDescription) {
       refs.pageDescription.textContent = document.body.dataset.adminDescription || "";
     }

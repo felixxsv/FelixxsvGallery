@@ -407,312 +407,494 @@
 </section>
 <div aria-live="polite" class="app-modal-root" id="appModalRoot">
 <button aria-label="閉じる" class="app-global-close" hidden="" id="appGlobalClose" type="button">×</button>
-<section class="app-modal-layer" data-modal-id="user-info" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="user-info"></div>
-<div aria-labelledby="userInfoTitle" aria-modal="true" class="app-modal-dialog shell-user-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="userInfoTitle">ユーザー情報</h2>
-<div class="app-modal-header-actions">
-<button class="shell-header-link" data-modal-open="settings" type="button">設定</button>
-<button class="shell-header-link" data-modal-open="help" type="button">ヘルプ</button>
-<button class="shell-header-link" data-modal-open="credits" type="button">クレジット</button>
-</div>
-</div>
-<div class="app-modal-body">
-<section class="shell-user-card" id="shellUserCard">
-<div class="shell-user-card__guest-overlay" hidden="" id="shellGuestOverlay">
-<button class="app-button app-button--primary" id="shellLoginButton" type="button">ログイン</button>
-</div>
-<div class="shell-user-card__content">
-<div class="shell-user-card__profile">
-<div aria-hidden="true" class="shell-user-card__avatar"></div>
-<div class="shell-user-card__identity">
-<div class="shell-user-card__name-row">
-<div class="shell-user-card__display-name" id="shellUserDisplayName">-</div>
-<button aria-label="アカウント設定" class="app-icon-button shell-pen-button" data-modal-open="account" hidden="" id="shellAccountEditButton" type="button">
-<span aria-hidden="true" class="shell-pen-icon"></span>
-</button>
-</div>
-<div class="shell-user-card__subline" id="shellUserKey">-</div>
-</div>
-</div>
-<dl class="app-definition-list">
-<div class="app-definition-list__row">
-<dt>メールアドレス</dt>
-<dd id="shellUserEmail">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>登録日時</dt>
-<dd id="shellUserCreatedAt">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>2段階認証</dt>
-<dd id="shellUserTwoFactor">-</dd>
-</div>
-<div class="app-definition-list__row" hidden="" id="shellUserRoleRow">
-<dt>ロール</dt>
-<dd id="shellUserRole">-</dd>
-</div>
-</dl>
-<p class="shell-inline-warning" hidden="" id="shellUploadDisabledMessage">
-                現在、画像投稿は無効化されています。
-              </p>
-<div class="app-button-row">
-<button class="app-button" data-modal-open="account" hidden="" id="shellAccountOpenButton" type="button">
-                  アカウント設定
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="user-info" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="user-info"></div>
+  <div class="app-modal-dialog shell-user-dialog" role="dialog" aria-modal="true" aria-labelledby="userInfoTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="userInfoTitle" class="app-modal-title">ユーザー情報</h2>
+      <div class="app-modal-header-actions">
+        <button type="button" class="shell-header-link" data-modal-open="settings">設定</button>
+        <button type="button" class="shell-header-link" data-modal-open="help">ヘルプ</button>
+        <button type="button" class="shell-header-link" data-modal-open="credits">クレジット</button>
+      </div>
+    </div>
+
+    <div class="app-modal-body">
+      <section id="shellUserCard" class="shell-user-card">
+        <div id="shellGuestOverlay" class="shell-user-card__guest-overlay" hidden="">
+          <button id="shellLoginButton" type="button" class="app-button app-button--primary">ログイン</button>
+        </div>
+
+        <div class="shell-user-card__content">
+
+          <!-- プロフィールヘッダー -->
+          <div class="shell-user-card__profile">
+            <div id="shellUserCardAvatar" class="shell-user-card__avatar" aria-hidden="true">
+              <img id="shellUserCardAvatarImg" class="shell-user-card__avatar-img" src="" alt="" hidden="">
+            </div>
+            <div class="shell-user-card__identity">
+              <div class="shell-user-card__name-row">
+                <div id="shellUserDisplayName" class="shell-user-card__display-name">-</div>
+                <button
+                  id="shellAccountEditButton"
+                  type="button"
+                  class="app-icon-button shell-pen-button"
+                  aria-label="プロフィール編集"
+                  data-modal-open="account"
+                  hidden=""
+                >
+                  <span class="shell-pen-icon" aria-hidden="true"></span>
                 </button>
-<a class="app-link-button" hidden="" href="/gallery/admin" id="shellAdminLink">
-                  管理画面へ
-                </a>
-</div>
-</div>
+              </div>
+              <div id="shellUserKey" class="shell-user-card__subline">-</div>
+            </div>
+          </div>
+
+          <!-- 自己紹介 -->
+          <p id="shellUserBio" class="shell-user-card__bio" hidden=""></p>
+
+          <!-- リンク -->
+          <div id="shellUserCardLinks" class="shell-user-card__links" hidden=""></div>
+
+          <!-- メタ情報 -->
+          <dl class="app-definition-list shell-user-card__meta-list">
+            <div class="app-definition-list__row">
+              <dt>メールアドレス</dt>
+              <dd id="shellUserEmail">-</dd>
+            </div>
+            <div class="app-definition-list__row">
+              <dt>登録日時</dt>
+              <dd id="shellUserCreatedAt">-</dd>
+            </div>
+            <div class="app-definition-list__row">
+              <dt>2段階認証</dt>
+              <dd id="shellUserTwoFactor">-</dd>
+            </div>
+            <div id="shellUserRoleRow" class="app-definition-list__row" hidden="">
+              <dt>ロール</dt>
+              <dd id="shellUserRole">-</dd>
+            </div>
+          </dl>
+
+          <!-- アップロード -->
+          <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden="">
+            現在、画像投稿は無効化されています。
+          </p>
+          <div class="shell-user-card__upload-row">
+            <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden="">アップロード</button>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <div id="shellUserFooter" class="app-modal-footer shell-user-footer" hidden="">
+      <div class="shell-user-footer__secondary">
+        <button
+          id="shellAccountOpenButton"
+          type="button"
+          class="app-button app-button--ghost app-button--small"
+          data-modal-open="account-security"
+          hidden=""
+        >アカウント設定</button>
+        <a
+          id="shellAdminLink"
+          href="/gallery/admin"
+          class="app-link-button app-button--small"
+          hidden=""
+        >管理画面へ</a>
+      </div>
+      <div class="shell-user-footer__actions">
+        <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
+        <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
+      </div>
+    </div>
+  </div>
 </section>
-</div>
-<div class="app-modal-footer app-modal-footer--end" hidden="" id="shellUserFooter">
-<button class="app-button app-button--ghost" id="shellLogoutAllButton" type="button">全端末ログアウト</button>
-<button class="app-button app-button--danger" id="shellLogoutButton" type="button">ログアウト</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="settings" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="settings"></div>
-<div aria-labelledby="settingsTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="settingsTitle">設定</h2>
-</div>
-<div class="app-modal-body">
-<form class="app-form-stack">
-<label class="app-field">
-<span class="app-field__label">言語</span>
-<select class="app-select" id="shellSettingLanguage">
-<option value="ja">日本語</option>
-<option value="en">English</option>
-</select>
-</label>
-<label class="app-field">
-<span class="app-field__label">カラーテーマ</span>
-<select class="app-select" id="shellSettingTheme">
-<option value="system">システム</option>
-<option value="dark">ダーク</option>
-<option value="light">ライト</option>
-</select>
-</label>
-<label class="app-field">
-<span class="app-field__label">画像クリック時の挙動</span>
-<select class="app-select" id="shellSettingImageOpenBehavior">
-<option value="modal">モーダルで表示</option>
-<option value="new_tab">別タブで表示</option>
-</select>
-</label>
-<label class="app-field app-field--switch app-switch">
-<input class="app-switch__input" id="shellSettingImageBackdropClose" type="checkbox"/>
-<span aria-hidden="true" class="app-switch__track">
-<span class="app-switch__thumb"></span>
-</span>
-<span class="app-switch__label">画像モーダルの背景クリックで閉じる</span>
-</label>
-<label class="app-field app-field--switch app-switch">
-<input class="app-switch__input" id="shellSettingImageMetaPinned" type="checkbox"/>
-<span aria-hidden="true" class="app-switch__track">
-<span class="app-switch__thumb"></span>
-</span>
-<span class="app-switch__label">画像モーダルのメタ情報バーを常時表示する</span>
-</label>
-</form>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--primary" data-modal-close="settings" type="button">閉じる</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="help" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="help"></div>
-<div aria-labelledby="helpTitle" aria-modal="true" class="app-modal-dialog app-modal-dialog--scroll" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="helpTitle">ヘルプ</h2>
-</div>
-<div class="app-modal-body">
-<div class="shell-empty-block"></div>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--primary" data-modal-close="help" type="button">閉じる</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="credits" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="credits"></div>
-<div aria-labelledby="creditsTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="creditsTitle">クレジット</h2>
-</div>
-<div class="app-modal-body">
-<dl class="app-definition-list">
-<div class="app-definition-list__row">
-<dt>サービス名</dt>
-<dd>Felixxsv Gallery</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>作成者</dt>
-<dd id="shellCreditAuthor">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>使用技術</dt>
-<dd id="shellCreditStack">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>ライセンス</dt>
-<dd id="shellCreditLicense">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>更新日</dt>
-<dd id="shellCreditUpdatedAt">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>バージョン</dt>
-<dd id="shellCreditVersion">-</dd>
-</div>
-</dl>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--primary" data-modal-close="credits" type="button">閉じる</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="account" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="account"></div>
-<div aria-labelledby="accountTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="accountTitle">アカウント設定</h2>
-</div>
-<div class="app-modal-body">
-<dl class="app-definition-list">
-<div class="app-definition-list__row">
-<dt>表示名</dt>
-<dd id="shellAccountDisplayName">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>user_key</dt>
-<dd id="shellAccountUserKey">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>メールアドレス</dt>
-<dd id="shellAccountEmail">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>登録日時</dt>
-<dd id="shellAccountCreatedAt">-</dd>
-</div>
-<div class="app-definition-list__row">
-<dt>2段階認証</dt>
-<dd id="shellAccountTwoFactor">-</dd>
-</div>
-</dl>
-<div class="shell-account-actions">
-<button class="app-button" data-modal-open="email" id="shellEmailActionButton" type="button">メールアドレス変更</button>
-<button class="app-button" data-modal-open="password" id="shellPasswordActionButton" type="button">パスワード変更</button>
-<button class="app-button" id="shellTwoFactorEnableButton" type="button">2段階認証を有効化</button>
-<button class="app-button" hidden="" id="shellTwoFactorDisableOpenButton" type="button">2段階認証を無効化</button>
-</div>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--primary" data-modal-close="account" type="button">閉じる</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="email" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="email"></div>
-<div aria-labelledby="emailTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="emailTitle">メールアドレス変更</h2>
-</div>
-<div class="app-modal-body">
-<form class="app-form-stack">
-<label class="app-field">
-<span class="app-field__label">メールアドレス</span>
-<input autocomplete="email" class="app-input" id="shellEmailInput" type="email"/>
-</label>
-</form>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--ghost" data-modal-close="email" type="button">キャンセル</button>
-<button class="app-button app-button--primary" id="shellEmailSaveButton" type="button">保存</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="password" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="password"></div>
-<div aria-labelledby="passwordTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="passwordTitle">パスワード変更</h2>
-</div>
-<div class="app-modal-body">
-<form class="app-form-stack">
-<label class="app-field">
-<span class="app-field__label">現在のパスワード</span>
-<input autocomplete="current-password" class="app-input" id="shellCurrentPasswordInput" type="password"/>
-</label>
-<label class="app-field">
-<span class="app-field__label">新しいパスワード</span>
-<input autocomplete="new-password" class="app-input" id="shellNewPasswordInput" type="password"/>
-</label>
-</form>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--ghost" data-modal-close="password" type="button">キャンセル</button>
-<button class="app-button app-button--primary" id="shellPasswordSaveButton" type="button">変更する</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="twofactor-setup" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="twofactor-setup"></div>
-<div aria-labelledby="twofactorSetupTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="twofactorSetupTitle">2段階認証の確認</h2>
-</div>
-<div class="app-modal-body">
-<p class="shell-inline-message" id="shellTwoFactorSetupMessage"></p>
-<form class="app-form-stack">
-<label class="app-field">
-<span class="app-field__label">確認コード</span>
-<input autocomplete="one-time-code" class="app-input" id="shellTwoFactorCodeInput" inputmode="numeric" maxlength="6" type="text"/>
-</label>
-</form>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--ghost" id="shellTwoFactorSetupResendButton" type="button">再送</button>
-<button class="app-button app-button--ghost" id="shellTwoFactorSetupCancelButton" type="button">キャンセル</button>
-<button class="app-button app-button--primary" id="shellTwoFactorSetupConfirmButton" type="button">確認</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="twofactor-disable" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="twofactor-disable"></div>
-<div aria-labelledby="twofactorDisableTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="twofactorDisableTitle">2段階認証の無効化</h2>
-</div>
-<div class="app-modal-body">
-<form class="app-form-stack">
-<p class="app-form-message" id="shellTwoFactorDisableMessage">確認コードを送信します。</p>
-<label class="app-field">
-<span class="app-field__label">確認コード</span>
-<input autocomplete="one-time-code" class="app-input" id="shellTwoFactorDisableCodeInput" inputmode="numeric" type="text"/>
-</label>
-</form>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--ghost" id="shellTwoFactorDisableResendButton" type="button">再送</button>
-<button class="app-button app-button--ghost" id="shellTwoFactorDisableCancelButton" type="button">キャンセル</button>
-<button class="app-button app-button--danger" id="shellTwoFactorDisableConfirmButton" type="button">無効化する</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="twofactor-action-confirm" data-modal-layer="" hidden="">
-<div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
-<div aria-labelledby="twofactorActionConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
-<div class="app-modal-header">
-<h2 class="app-modal-title" id="twofactorActionConfirmTitle">確認</h2>
-</div>
-<div class="app-modal-body">
-<p class="app-form-message" id="shellTwoFactorActionConfirmMessage">本当に実行しますか？</p>
-</div>
-<div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--ghost" id="shellTwoFactorActionConfirmCancelButton" type="button">キャンセル</button>
-<button class="app-button app-button--primary" id="shellTwoFactorActionConfirmApproveButton" type="button">実行する</button>
-</div>
-</div>
-</section><section class="app-modal-layer" data-modal-id="admin-discard-confirm" data-modal-layer="" hidden="">
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="settings" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="settings"></div>
+  <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="settingsTitle" class="app-modal-title">設定</h2>
+    </div>
+    <div class="app-modal-body">
+
+      <div class="shell-settings-group">
+        <h3 class="shell-settings-group__title">表示</h3>
+        <div class="app-form-stack">
+          <label class="app-field">
+            <span class="app-field__label">言語</span>
+            <select id="shellSettingLanguage" class="app-select">
+              <option value="ja">日本語</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+
+          <label class="app-field">
+            <span class="app-field__label">カラーテーマ</span>
+            <select id="shellSettingTheme" class="app-select">
+              <option value="system">システム設定に合わせる</option>
+              <option value="dark">ダーク</option>
+              <option value="light">ライト</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="shell-settings-group">
+        <h3 class="shell-settings-group__title">画像</h3>
+        <div class="app-form-stack">
+          <label class="app-field">
+            <span class="app-field__label">クリック時の挙動</span>
+            <select id="shellSettingImageOpenBehavior" class="app-select">
+              <option value="modal">モーダルで表示</option>
+              <option value="new_tab">別タブで表示</option>
+            </select>
+          </label>
+
+          <label class="app-field app-field--switch app-switch">
+            <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
+            <span class="app-switch__track" aria-hidden="true">
+              <span class="app-switch__thumb"></span>
+            </span>
+            <span class="app-switch__label">背景クリックでモーダルを閉じる</span>
+          </label>
+
+          <label class="app-field app-field--switch app-switch">
+            <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
+            <span class="app-switch__track" aria-hidden="true">
+              <span class="app-switch__thumb"></span>
+            </span>
+            <span class="app-switch__label">メタ情報バーを常時表示する</span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--primary" data-modal-close="settings">閉じる</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="help" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="help"></div>
+  <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="helpTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="helpTitle" class="app-modal-title">ヘルプ</h2>
+    </div>
+    <div class="app-modal-body">
+      <div class="shell-empty-block"></div>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--primary" data-modal-close="help">閉じる</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="credits" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="credits"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="creditsTitle" class="app-modal-title">クレジット</h2>
+    </div>
+    <div class="app-modal-body">
+      <dl class="app-definition-list">
+        <div class="app-definition-list__row">
+          <dt>サービス名</dt>
+          <dd>Felixxsv Gallery</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>作成者</dt>
+          <dd id="shellCreditAuthor">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>使用技術</dt>
+          <dd id="shellCreditStack">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>ライセンス</dt>
+          <dd id="shellCreditLicense">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>更新日</dt>
+          <dd id="shellCreditUpdatedAt">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>バージョン</dt>
+          <dd id="shellCreditVersion">-</dd>
+        </div>
+      </dl>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--primary" data-modal-close="credits">閉じる</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="account" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="account"></div>
+  <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="accountTitle" class="app-modal-title">プロフィール編集</h2>
+    </div>
+    <div class="app-modal-body">
+
+      <!-- Avatar section -->
+      <div class="shell-profile-avatar-section">
+        <div class="shell-profile-avatar-wrap">
+          <div id="shellAccountAvatar" class="shell-profile-avatar">
+            <span id="shellAccountAvatarInitial" class="shell-profile-avatar__initial"></span>
+            <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="アバター" hidden="">
+          </div>
+          <div class="shell-profile-avatar-controls">
+            <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
+              アイコンを変更
+            </label>
+            <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
+            <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden="">
+              削除
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile fields -->
+      <div class="shell-profile-fields app-form-stack">
+        <label class="app-field">
+          <span class="app-field__label">表示名</span>
+          <input id="shellProfileDisplayNameInput" class="app-input" type="text" autocomplete="name" maxlength="100" placeholder="例: Felix">
+        </label>
+        <label class="app-field">
+          <span class="app-field__label">ユーザーID</span>
+          <div class="shell-user-key-field">
+            <span class="shell-user-key-field__prefix">@</span>
+            <input id="shellProfileUserKeyInput" class="app-input shell-user-key-field__input" type="text" autocomplete="username" maxlength="20" placeholder="例: felix_x21">
+          </div>
+          <span class="app-field__hint">4〜20文字・英字始まり・英数字/アンダースコア/ハイフンのみ</span>
+        </label>
+        <label class="app-field">
+          <span class="app-field__label">自己紹介</span>
+          <textarea id="shellProfileBioInput" class="app-input app-textarea" rows="4" maxlength="300" placeholder="自己紹介を入力してください（300文字以内）"></textarea>
+          <span class="app-field__hint"><span id="shellProfileBioCount">0</span> / 300文字</span>
+        </label>
+      </div>
+
+      <!-- Links section -->
+      <div class="shell-profile-links">
+        <h3 class="shell-profile-links__title">リンク</h3>
+        <div class="shell-profile-links__grid" id="shellProfileLinksGrid"></div>
+      </div>
+
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--ghost" data-modal-close="account">キャンセル</button>
+      <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary">保存</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="account-security" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="account-security"></div>
+  <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountSecurityTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="accountSecurityTitle" class="app-modal-title">アカウント設定</h2>
+    </div>
+    <div class="app-modal-body">
+
+      <div class="shell-security-section">
+        <h3 class="shell-security-section__title">ログイン・認証</h3>
+        <div class="shell-security-list">
+          <div class="shell-security-item">
+            <div class="shell-security-item__left">
+              <span class="shell-security-item__label">メールアドレス</span>
+              <span id="shellAccountEmail" class="shell-security-item__value">-</span>
+            </div>
+            <button id="shellEmailActionButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="email">変更</button>
+          </div>
+          <div class="shell-security-item">
+            <div class="shell-security-item__left">
+              <span class="shell-security-item__label">パスワード</span>
+            </div>
+            <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password">変更</button>
+          </div>
+          <div class="shell-security-item">
+            <div class="shell-security-item__left">
+              <span class="shell-security-item__label">2段階認証</span>
+              <span id="shellAccountTwoFactor" class="shell-security-item__value">-</span>
+            </div>
+            <button id="shellTwoFactorEnableButton" type="button" class="app-button app-button--ghost app-button--small">有効化</button>
+            <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button app-button--ghost app-button--small" hidden="">無効化</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--primary" data-modal-close="account-security">閉じる</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="email" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="email"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="emailTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="emailTitle" class="app-modal-title">メールアドレス変更</h2>
+    </div>
+    <div class="app-modal-body">
+      <form class="app-form-stack">
+        <label class="app-field">
+          <span class="app-field__label">メールアドレス</span>
+          <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
+        </label>
+      </form>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--ghost" data-modal-close="email">キャンセル</button>
+      <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">保存</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="add-link" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="add-link"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="addLinkTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="addLinkTitle" class="app-modal-title">リンクを追加</h2>
+    </div>
+    <div class="app-modal-body">
+      <form class="app-form-stack" id="shellAddLinkForm">
+        <label class="app-field">
+          <span class="app-field__label">URL</span>
+          <input id="shellAddLinkInput" class="app-input" type="url" placeholder="https://x.com/yourname" autocomplete="off">
+          <span class="app-field__hint">https:// から始まるURLを入力してください</span>
+        </label>
+      </form>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--ghost" data-modal-close="add-link">キャンセル</button>
+      <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary">追加</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="crop-avatar" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="crop-avatar"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="cropAvatarTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="cropAvatarTitle" class="app-modal-title">アイコンの調整</h2>
+    </div>
+    <div class="app-modal-body">
+      <div class="shell-avatar-crop">
+        <div class="shell-avatar-crop__stage" id="shellAvatarCropStage">
+          <canvas id="shellAvatarCropCanvas" class="shell-avatar-crop__canvas" width="240" height="240"></canvas>
+        </div>
+        <div class="shell-avatar-crop__controls">
+          <label class="shell-avatar-crop__zoom-label">
+            <span class="shell-avatar-crop__zoom-text">ズーム</span>
+            <input id="shellAvatarZoomSlider" type="range" class="shell-avatar-crop__zoom" min="0" max="100" value="0">
+          </label>
+        </div>
+        <p class="shell-avatar-crop__hint">ドラッグで位置を調整できます</p>
+      </div>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--ghost" id="shellAvatarCropCancelButton">キャンセル</button>
+      <button type="button" class="app-button app-button--primary" id="shellAvatarCropConfirmButton">適用</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="password" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="password"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="passwordTitle" class="app-modal-title">パスワード変更</h2>
+    </div>
+    <div class="app-modal-body">
+      <form class="app-form-stack">
+        <label class="app-field">
+          <span class="app-field__label">現在のパスワード</span>
+          <input id="shellCurrentPasswordInput" class="app-input" type="password" autocomplete="current-password">
+        </label>
+
+        <label class="app-field">
+          <span class="app-field__label">新しいパスワード</span>
+          <input id="shellNewPasswordInput" class="app-input" type="password" autocomplete="new-password">
+        </label>
+      </form>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button type="button" class="app-button app-button--ghost" data-modal-close="password">キャンセル</button>
+      <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary">変更する</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="twofactor-setup" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="twofactor-setup"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorSetupTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="twofactorSetupTitle" class="app-modal-title">2段階認証の確認</h2>
+    </div>
+    <div class="app-modal-body">
+      <p id="shellTwoFactorSetupMessage" class="shell-inline-message"></p>
+      <form class="app-form-stack">
+        <label class="app-field">
+          <span class="app-field__label">確認コード</span>
+          <input id="shellTwoFactorCodeInput" class="app-input" type="text" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+        </label>
+      </form>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost">再送</button>
+      <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+      <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary">確認</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="twofactor-disable" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="twofactor-disable"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorDisableTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="twofactorDisableTitle" class="app-modal-title">2段階認証の無効化</h2>
+    </div>
+    <div class="app-modal-body">
+      <form class="app-form-stack">
+        <p id="shellTwoFactorDisableMessage" class="app-form-message">確認コードを送信します。</p>
+        <label class="app-field">
+          <span class="app-field__label">確認コード</span>
+          <input id="shellTwoFactorDisableCodeInput" class="app-input" type="text" inputmode="numeric" autocomplete="one-time-code">
+        </label>
+      </form>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost">再送</button>
+      <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+      <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger">無効化する</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="twofactor-action-confirm" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
+  <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorActionConfirmTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="twofactorActionConfirmTitle" class="app-modal-title">確認</h2>
+    </div>
+    <div class="app-modal-body">
+      <p id="shellTwoFactorActionConfirmMessage" class="app-form-message">本当に実行しますか？</p>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+      <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary">実行する</button>
+    </div>
+  </div>
+</section>
+<section class="app-modal-layer" data-modal-id="admin-discard-confirm" data-modal-layer="" hidden="">
 <div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
 <div aria-labelledby="adminDiscardConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
 <div class="app-modal-header">
