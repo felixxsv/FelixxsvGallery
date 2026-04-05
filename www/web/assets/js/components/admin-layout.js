@@ -225,8 +225,20 @@ export async function initAdminLayout() {
     confirmMessage: byId("adminDiscardConfirmMessage"),
     confirmApprove: byId("adminDiscardConfirmApproveButton"),
     confirmCancel: byId("adminDiscardConfirmCancelButton"),
-    reloadButton: byId("adminReloadButton")
+    reloadButton: byId("adminReloadButton"),
+    headerGuestIcon: byId("shellUserTriggerGuestIcon"),
+    headerAuthIcon: byId("shellUserTriggerAuthIcon"),
   };
+
+  function renderAdminHeaderIcon(avatarUrl) {
+    if (refs.headerGuestIcon) refs.headerGuestIcon.hidden = true;
+    if (refs.headerAuthIcon) {
+      refs.headerAuthIcon.hidden = false;
+      refs.headerAuthIcon.style.backgroundImage = avatarUrl
+        ? `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`
+        : "";
+    }
+  }
 
   const shellState = {
     confirmResolver: null,
@@ -456,6 +468,7 @@ export async function initAdminLayout() {
     if (refs.pageTitle) refs.pageTitle.textContent = pageTitle;
     if (refs.headerUserName) refs.headerUserName.textContent = currentUser.display_name || "-";
     if (refs.headerUserKey) refs.headerUserKey.textContent = currentUser.user_key || "-";
+    renderAdminHeaderIcon(user?.avatar_url || null);
     if (refs.pageDescription) {
       refs.pageDescription.textContent = document.body.dataset.adminDescription || "";
     }
