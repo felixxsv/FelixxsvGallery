@@ -278,8 +278,15 @@ export function initUserShell(app) {
   }
 
   function renderHeaderIcon() {
-    refs.guestIcon.hidden = isAuthenticated();
-    refs.authIcon.hidden = !isAuthenticated();
+    const authed = isAuthenticated();
+    refs.guestIcon.hidden = authed;
+    refs.authIcon.hidden = !authed;
+    if (authed) {
+      const avatarUrl = getUser()?.avatar_url || null;
+      refs.authIcon.style.backgroundImage = avatarUrl
+        ? `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`
+        : "";
+    }
   }
 
   function renderCredits() {

@@ -472,6 +472,18 @@ body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  background-color: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.shell-user-icon--auth:not([style*="background-image"])::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 12px 0 4px currentColor;
+  transform: translateY(-5px);
 }
 
 .shell-user-dialog .app-modal-header {
