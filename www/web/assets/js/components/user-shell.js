@@ -1,5 +1,48 @@
 import { byId } from "../core/dom.js";
 
+const LINK_ICON_MAP = {
+  "x.com": "x",
+  "twitter.com": "x",
+  "discord.com": "discord",
+  "discord.gg": "discord",
+  "pixiv.net": "pixiv",
+  "instagram.com": "instagram",
+  "youtube.com": "youtube",
+  "youtu.be": "youtube",
+  "bsky.app": "bluesky",
+  "bsky.social": "bluesky",
+  "misskey.io": "misskey",
+  "github.com": "github",
+  "tiktok.com": "tiktok",
+  "threads.net": "threads",
+  "mastodon.social": "mastodon",
+  "pawoo.net": "mastodon",
+  "fosstodon.org": "mastodon",
+  "mstdn.jp": "mastodon",
+  "tumblr.com": "tumblr",
+  "patreon.com": "patreon",
+  "twitch.tv": "twitch",
+  "note.com": "note",
+  "nicovideo.jp": "niconico",
+  "nico.ms": "niconico",
+  "zenn.dev": "zenn",
+  "facebook.com": "facebook",
+};
+
+function getLinkIconSlug(url) {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    return LINK_ICON_MAP[hostname] ?? "_default";
+  } catch {
+    return "_default";
+  }
+}
+
+function getLinkIconUrl(url) {
+  const slug = getLinkIconSlug(url);
+  return `/gallery/assets/icons/social/${slug}.svg`;
+}
+
 function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -67,7 +110,12 @@ export function initUserShell(app) {
     avatarDeleteButton: byId("shellAvatarDeleteButton"),
     profileDisplayNameInput: byId("shellProfileDisplayNameInput"),
     profileUserKeyInput: byId("shellProfileUserKeyInput"),
+    profileBioInput: byId("shellProfileBioInput"),
+    profileBioCount: byId("shellProfileBioCount"),
     profileSaveButton: byId("shellProfileSaveButton"),
+    profileLinksGrid: byId("shellProfileLinksGrid"),
+    addLinkInput: byId("shellAddLinkInput"),
+    addLinkSubmitButton: byId("shellAddLinkSubmitButton"),
 
     emailTitle: byId("emailTitle"),
     emailInput: byId("shellEmailInput"),
@@ -280,14 +328,86 @@ export function initUserShell(app) {
     refs.userFooter.hidden = false;
   }
 
+  const MAX_LINKS = 5;
+
+  function renderLinksGrid() {
+    const links = getUser()?.links || [];
+    const grid = refs.profileLinksGrid;
+    grid.innerHTML = "";
+
+    for (const link of links) {
+      const iconUrl = getLinkIconUrl(link.url);
+      const box = document.createElement("div");
+      box.className = "shell-link-box";
+      box.dataset.linkId = String(link.id);
+      box.innerHTML = `
+        <a class="shell-link-box__link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}">
+          <span class="shell-link-box__icon" style="--link-icon: url('${iconUrl}')"></span>
+        </a>
+        <button class="shell-link-box__remove" type="button" aria-label="削除" data-link-id="${link.id}">×</button>
+      `;
+      grid.appendChild(box);
+    }
+
+    if (links.length < MAX_LINKS) {
+      const addBox = document.createElement("div");
+      addBox.className = "shell-link-box shell-link-box--add";
+      addBox.innerHTML = `<button class="shell-link-box__add" type="button" aria-label="リンクを追加">+</button>`;
+      addBox.querySelector(".shell-link-box__add").addEventListener("click", () => {
+        refs.addLinkInput.value = "";
+        app.modal.open("add-link");
+      });
+      grid.appendChild(addBox);
+    }
+
+    grid.querySelectorAll(".shell-link-box__remove").forEach((btn) => {
+      btn.addEventListener("click", () => handleLinkDelete(Number(btn.dataset.linkId)));
+    });
+  }
+
+  async function handleLinkAdd() {
+    const url = refs.addLinkInput.value.trim();
+    if (!url) {
+      toast.error("URLを入力してください。");
+      refs.addLinkInput.focus();
+      return;
+    }
+    refs.addLinkSubmitButton.disabled = true;
+    try {
+      const result = await app.api.post("/api/auth/links", { url });
+      const links = result?.data?.links ?? [];
+      const user = getUser();
+      if (user) user.links = links;
+      renderLinksGrid();
+      app.modal.close("add-link");
+      toast.success(result?.message || "リンクを追加しました。");
+    } catch (error) {
+      const fieldErrors = error?.payload?.error?.field_errors || [];
+      toast.error(fieldErrors[0]?.message || error.message || "リンクの追加に失敗しました。");
+    } finally {
+      refs.addLinkSubmitButton.disabled = false;
+    }
+  }
+
+  async function handleLinkDelete(linkId) {
+    try {
+      const result = await app.api.delete(`/api/auth/links/${linkId}`);
+      const links = result?.data?.links ?? [];
+      const user = getUser();
+      if (user) user.links = links;
+      renderLinksGrid();
+      toast.success("リンクを削除しました。");
+    } catch (error) {
+      toast.error(error.message || "リンクの削除に失敗しました。");
+    }
+  }
+
   function renderAccountModal() {
     if (!isAuthenticated()) {
       return;
     }
 
     const user = getUser();
-    const twoFactor = getTwoFactor();
-    const email = user.primary_email || "";
 
     // Avatar
     const avatarUrl = user.avatar_url || null;
@@ -307,8 +427,22 @@ export function initUserShell(app) {
     // Profile inputs
     refs.profileDisplayNameInput.value = user.display_name || "";
     refs.profileUserKeyInput.value = user.user_key || "";
+    refs.profileBioInput.value = user.bio || "";
+    refs.profileBioCount.textContent = (user.bio || "").length;
 
-    // Security
+    // Links
+    renderLinksGrid();
+  }
+
+  function renderAccountSecurityModal() {
+    if (!isAuthenticated()) {
+      return;
+    }
+
+    const user = getUser();
+    const twoFactor = getTwoFactor();
+    const email = user.primary_email || "";
+
     refs.accountEmail.textContent = email || "未登録";
     refs.accountTwoFactor.textContent = twoFactor.is_enabled ? "有効" : "無効";
     refs.emailActionButton.textContent = email ? "変更" : "登録";
@@ -575,6 +709,7 @@ export function initUserShell(app) {
   async function handleProfileSave() {
     const displayName = refs.profileDisplayNameInput.value.trim();
     const userKey = refs.profileUserKeyInput.value.trim();
+    const bio = refs.profileBioInput.value;
 
     if (!displayName) {
       toast.error("表示名を入力してください。");
@@ -592,6 +727,7 @@ export function initUserShell(app) {
       await app.api.patch("/api/auth/profile", {
         display_name: displayName,
         user_key: userKey,
+        bio: bio,
       });
       await refreshSession();
       renderAccountModal();
@@ -680,6 +816,13 @@ export function initUserShell(app) {
       const file = refs.avatarFileInput.files?.[0] || null;
       if (file) handleAvatarUpload(file);
     });
+    refs.profileBioInput.addEventListener("input", () => {
+      refs.profileBioCount.textContent = refs.profileBioInput.value.length;
+    });
+    refs.addLinkSubmitButton.addEventListener("click", handleLinkAdd);
+    refs.addLinkInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleLinkAdd();
+    });
     refs.avatarDeleteButton.addEventListener("click", handleAvatarDelete);
     refs.twoFactorEnableButton.addEventListener("click", handleTwoFactorEnable);
     refs.twoFactorSetupConfirmButton.addEventListener("click", handleTwoFactorSetupConfirm);
@@ -736,6 +879,9 @@ export function initUserShell(app) {
       }
       if (id === "account") {
         renderAccountModal();
+      }
+      if (id === "account-security") {
+        renderAccountSecurityModal();
       }
       if (id === "email") {
         renderEmailModal();

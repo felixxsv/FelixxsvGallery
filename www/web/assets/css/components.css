@@ -956,6 +956,114 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Profile links section */
+.shell-profile-links {
+  margin-top: var(--space-5);
+}
+
+.shell-profile-links__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.shell-profile-links__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.shell-link-box {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.shell-link-box__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.shell-link-box__icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--link-icon);
+  mask-image: var(--link-icon);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.shell-link-box__remove {
+  display: none;
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-danger, #e53e3e);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 1;
+}
+
+.shell-link-box:hover .shell-link-box__remove {
+  display: flex;
+}
+
+.shell-link-box--add {
+  background: transparent;
+  border-style: dashed;
+}
+
+.shell-link-box__add {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.4rem;
+  color: var(--color-text-muted);
+  border-radius: 10px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.shell-link-box__add:hover {
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+}
+
 /* Settings groups */
 .shell-settings-group {
   margin-bottom: var(--space-5);

@@ -51,6 +51,11 @@ from auth_models import (
     update_user_registration_profile,
     set_user_must_reset_password,
     create_audit_log,
+    get_user_links,
+    count_user_links,
+    create_user_link,
+    delete_user_link,
+    reorder_user_links,
 )
 from auth_security import (
     AuthSecurityError,
@@ -3053,6 +3058,7 @@ def get_current_user_profile(
         can_open_admin = str(user.get("role") or "") == "admin"
         avatar_path = user.get("avatar_path") or None
         avatar_url = f"/api/auth/avatar/{user['id']}" if avatar_path else None
+        links = get_user_links(conn, user["id"])
 
         return build_service_success(
             data={
@@ -3060,6 +3066,8 @@ def get_current_user_profile(
                     "id": user["id"],
                     "user_key": user["user_key"],
                     "display_name": user["display_name"],
+                    "bio": user.get("bio"),
+                    "links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links],
                     "primary_email": user.get("primary_email"),
                     "avatar_url": avatar_url,
                     "role": user.get("role"),
@@ -3095,6 +3103,7 @@ def update_profile_for_current_session(
     session_token: str | None,
     display_name: str | None,
     user_key: str | None,
+    bio: str | None = None,
 ) -> dict:
     if session_token is None or str(session_token).strip() == "":
         return build_service_error(
@@ -3106,6 +3115,8 @@ def update_profile_for_current_session(
     errors = []
     validated_display_name = None
     validated_user_key = None
+    validated_bio = None
+    clear_bio = False
 
     if display_name is not None:
         try:
@@ -3118,6 +3129,15 @@ def update_profile_for_current_session(
             validated_user_key = validate_user_key(user_key)
         except AuthValidationError as exc:
             errors.append({"field": exc.field, "code": exc.code, "message": exc.message})
+
+    if bio is not None:
+        bio_stripped = bio.strip()
+        if len(bio_stripped) > 300:
+            errors.append({"field": "bio", "code": "bio_too_long", "message": "自己紹介文は300文字以内で入力してください。"})
+        elif bio_stripped:
+            validated_bio = bio_stripped
+        else:
+            clear_bio = True
 
     if errors:
         return build_service_error(
@@ -3163,6 +3183,8 @@ def update_profile_for_current_session(
             user_id=user["id"],
             display_name=validated_display_name,
             user_key=validated_user_key,
+            bio=validated_bio,
+            clear_bio=clear_bio,
         )
         conn.commit()
 
@@ -3969,5 +3991,147 @@ def _get_user_quick(user_id: int) -> dict | None:
         return get_user_by_id(conn, user_id)
     except Exception:
         return None
+    finally:
+        _safe_close(conn)
+
+_MAX_USER_LINKS = 5
+_ALLOWED_LINK_SCHEME = "https"
+
+
+def _validate_link_url(url: str) -> str:
+    """Validate a link URL. Returns the cleaned URL or raises ValueError."""
+    from urllib.parse import urlparse
+    url = url.strip()
+    if not url:
+        raise ValueError("URLを入力してください。")
+    if len(url) > 500:
+        raise ValueError("URLは500文字以内で入力してください。")
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise ValueError("URLの形式が正しくありません。")
+    if parsed.scheme != _ALLOWED_LINK_SCHEME:
+        raise ValueError("URLは https:// から始まる必要があります。")
+    if not parsed.netloc:
+        raise ValueError("URLの形式が正しくありません。")
+    return url
+
+
+def _resolve_session_user(conn, session_token: str) -> dict | None:
+    """Return user dict for session token, or None if invalid."""
+    token_hash = hash_session_token(session_token)
+    session_row = get_session_by_token_hash(conn, token_hash)
+    if session_row is None:
+        return None
+    user = get_user_by_id(conn, session_row["user_id"])
+    if user is None or user["status"] in {"deleted", "disabled"}:
+        return None
+    return user
+
+
+def add_link_for_current_session(
+    session_token: str | None,
+    url: str,
+) -> dict:
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    try:
+        validated_url = _validate_link_url(url)
+    except ValueError as exc:
+        return build_service_error(
+            error_code="validation_error",
+            message=str(exc),
+            field_errors=[{"field": "url", "code": "invalid_url", "message": str(exc)}],
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        user = _resolve_session_user(conn, str(session_token))
+        if user is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        current_count = count_user_links(conn, user["id"])
+        if current_count >= _MAX_USER_LINKS:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="links_limit_reached",
+                message=f"リンクは{_MAX_USER_LINKS}件まで登録できます。",
+            )
+
+        create_user_link(conn, user["id"], validated_url, current_count)
+        conn.commit()
+
+        links = get_user_links(conn, user["id"])
+        return build_service_success(
+            data={"links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links]},
+            message="リンクを追加しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="リンクの追加に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
+def delete_link_for_current_session(
+    session_token: str | None,
+    link_id: int,
+) -> dict:
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        user = _resolve_session_user(conn, str(session_token))
+        if user is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        deleted = delete_user_link(conn, link_id, user["id"])
+        if deleted == 0:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_found",
+                message="リンクが見つかりません。",
+                http_status=404,
+            )
+
+        reorder_user_links(conn, user["id"])
+        conn.commit()
+
+        links = get_user_links(conn, user["id"])
+        return build_service_success(
+            data={"links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links]},
+            message="リンクを削除しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="リンクの削除に失敗しました。",
+        )
     finally:
         _safe_close(conn)

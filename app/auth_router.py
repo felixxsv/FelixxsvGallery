@@ -35,6 +35,8 @@ from auth_service import (
     update_profile_for_current_session,
     update_avatar_for_current_session,
     delete_avatar_for_current_session,
+    add_link_for_current_session,
+    delete_link_for_current_session,
     start_registration,
     complete_registration,
     request_password_reset,
@@ -119,6 +121,11 @@ class PresenceRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     display_name: str | None = None
     user_key: str | None = None
+    bio: str | None = None
+
+
+class AddLinkRequest(BaseModel):
+    url: str
 
 
 def build_request_id() -> str:
@@ -388,6 +395,7 @@ async def update_profile(
             session_token=gallery_session,
             display_name=payload.display_name,
             user_key=payload.user_key,
+            bio=payload.bio,
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:
@@ -527,6 +535,48 @@ async def remove_avatar(
             request_id=request_id,
             error_code="server_error",
             message="アイコンの削除に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/links")
+async def add_link(
+    payload: AddLinkRequest,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        result = add_link_for_current_session(
+            session_token=gallery_session,
+            url=payload.url,
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="リンクの追加に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.delete("/links/{link_id}")
+async def remove_link(
+    link_id: int,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        result = delete_link_for_current_session(
+            session_token=gallery_session,
+            link_id=link_id,
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="リンクの削除に失敗しました。",
             http_status=500,
         )
 

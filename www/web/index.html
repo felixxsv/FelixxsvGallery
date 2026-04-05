@@ -379,7 +379,7 @@
                   id="shellAccountOpenButton"
                   type="button"
                   class="app-button"
-                  data-modal-open="account"
+                  data-modal-open="account-security"
                   hidden
                 >
                   アカウント設定
@@ -567,11 +567,37 @@
               </div>
               <span class="app-field__hint">4〜20文字・英字始まり・英数字/アンダースコア/ハイフンのみ</span>
             </label>
+            <label class="app-field">
+              <span class="app-field__label">自己紹介</span>
+              <textarea id="shellProfileBioInput" class="app-input app-textarea" rows="4" maxlength="300" placeholder="自己紹介を入力してください（300文字以内）"></textarea>
+              <span class="app-field__hint"><span id="shellProfileBioCount">0</span> / 300文字</span>
+            </label>
           </div>
 
-          <!-- Security section -->
+          <!-- Links section -->
+          <div class="shell-profile-links">
+            <h3 class="shell-profile-links__title">リンク</h3>
+            <div class="shell-profile-links__grid" id="shellProfileLinksGrid"></div>
+          </div>
+
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--ghost" data-modal-close="account">キャンセル</button>
+          <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary">保存</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="account-security" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="account-security"></div>
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountSecurityTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="accountSecurityTitle" class="app-modal-title">アカウント設定</h2>
+        </div>
+        <div class="app-modal-body">
+
           <div class="shell-security-section">
-            <h3 class="shell-security-section__title">セキュリティ</h3>
+            <h3 class="shell-security-section__title">ログイン・認証</h3>
             <div class="shell-security-list">
               <div class="shell-security-item">
                 <div class="shell-security-item__left">
@@ -598,9 +624,8 @@
           </div>
 
         </div>
-        <div class="app-modal-footer">
-          <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary">保存</button>
-          <button type="button" class="app-button app-button--ghost" data-modal-close="account">キャンセル</button>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--primary" data-modal-close="account-security">閉じる</button>
         </div>
       </div>
     </section>
@@ -620,8 +645,30 @@
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">保存</button>
           <button type="button" class="app-button app-button--ghost" data-modal-close="email">キャンセル</button>
+          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">保存</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="add-link" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="add-link"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="addLinkTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="addLinkTitle" class="app-modal-title">リンクを追加</h2>
+        </div>
+        <div class="app-modal-body">
+          <form class="app-form-stack" id="shellAddLinkForm">
+            <label class="app-field">
+              <span class="app-field__label">URL</span>
+              <input id="shellAddLinkInput" class="app-input" type="url" placeholder="https://x.com/yourname" autocomplete="off">
+              <span class="app-field__hint">https:// から始まるURLを入力してください</span>
+            </label>
+          </form>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--ghost" data-modal-close="add-link">キャンセル</button>
+          <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary">追加</button>
         </div>
       </div>
     </section>
@@ -646,8 +693,8 @@
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary">変更する</button>
           <button type="button" class="app-button app-button--ghost" data-modal-close="password">キャンセル</button>
+          <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary">変更する</button>
         </div>
       </div>
     </section>
@@ -668,9 +715,9 @@
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary">確認</button>
           <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost">再送</button>
           <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+          <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary">確認</button>
         </div>
       </div>
     </section>
@@ -691,9 +738,9 @@
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger">無効化する</button>
           <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost">再送</button>
           <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+          <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger">無効化する</button>
         </div>
       </div>
     </section>
@@ -708,8 +755,8 @@
           <p id="shellTwoFactorActionConfirmMessage" class="app-form-message">本当に実行しますか？</p>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary">実行する</button>
           <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+          <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary">実行する</button>
         </div>
       </div>
     </section>

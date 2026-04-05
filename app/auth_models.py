@@ -66,6 +66,7 @@ def get_user_by_id(conn, user_id: int) -> dict | None:
             display_name,
             email AS primary_email,
             avatar_path,
+            bio,
             role,
             status,
             can_upload AS upload_enabled,
@@ -94,6 +95,7 @@ def get_user_by_user_key(conn, user_key: str) -> dict | None:
             display_name,
             email AS primary_email,
             avatar_path,
+            bio,
             role,
             status,
             can_upload AS upload_enabled,
@@ -122,6 +124,7 @@ def get_user_by_primary_email(conn, email: str) -> dict | None:
             display_name,
             email AS primary_email,
             avatar_path,
+            bio,
             role,
             status,
             can_upload AS upload_enabled,
@@ -195,6 +198,8 @@ def update_user_profile(
     user_key: str | None = None,
     avatar_path: str | None = None,
     clear_avatar: bool = False,
+    bio: str | None = None,
+    clear_bio: bool = False,
 ) -> int:
     fields: list[str] = []
     params: list[Any] = []
@@ -213,6 +218,11 @@ def update_user_profile(
         params.append(avatar_path)
     elif clear_avatar:
         fields.append("avatar_path = NULL")
+    if bio is not None:
+        fields.append("bio = %s")
+        params.append(bio)
+    elif clear_bio:
+        fields.append("bio = NULL")
 
     if not fields:
         return 0
@@ -230,6 +240,68 @@ def update_user_profile(
         cursor.execute(sql, tuple(params))
         return _rows_affected(cursor)
 
+
+
+def get_user_links(conn, user_id: int) -> list[dict]:
+    sql = """
+        SELECT id, url, display_order
+        FROM user_links
+        WHERE user_id = %s AND gallery = %s
+        ORDER BY display_order ASC, id ASC
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(sql, (user_id, _get_gallery_name()))
+        return _fetch_all_dict(cursor)
+
+
+def count_user_links(conn, user_id: int) -> int:
+    sql = """
+        SELECT COUNT(*) AS cnt
+        FROM user_links
+        WHERE user_id = %s AND gallery = %s
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(sql, (user_id, _get_gallery_name()))
+        row = _fetch_one_dict(cursor)
+        return int(row["cnt"]) if row else 0
+
+
+def create_user_link(conn, user_id: int, url: str, display_order: int) -> int:
+    sql = """
+        INSERT INTO user_links (user_id, gallery, url, display_order)
+        VALUES (%s, %s, %s, %s)
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(sql, (user_id, _get_gallery_name(), url, display_order))
+        return _last_insert_id(cursor)
+
+
+def delete_user_link(conn, link_id: int, user_id: int) -> int:
+    sql = """
+        DELETE FROM user_links
+        WHERE id = %s AND user_id = %s AND gallery = %s
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(sql, (link_id, user_id, _get_gallery_name()))
+        return _rows_affected(cursor)
+
+
+def reorder_user_links(conn, user_id: int) -> None:
+    """Compact display_order values after a deletion."""
+    sql = """
+        SELECT id FROM user_links
+        WHERE user_id = %s AND gallery = %s
+        ORDER BY display_order ASC, id ASC
+    """
+    update_sql = """
+        UPDATE user_links SET display_order = %s WHERE id = %s
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(sql, (user_id, _get_gallery_name()))
+        rows = _fetch_all_dict(cursor)
+    with conn.cursor() as cursor:
+        for i, row in enumerate(rows):
+            cursor.execute(update_sql, (i, row["id"]))
 
 
 def update_user_registration_profile(
