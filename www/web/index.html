@@ -374,7 +374,15 @@
                 </div>
                 <div id="shellUserRoleRow" class="app-definition-list__row" hidden>
                   <dt>ロール</dt>
-                  <dd id="shellUserRole">-</dd>
+                  <dd class="shell-role-cell">
+                    <span id="shellUserRole">-</span>
+                    <a
+                      id="shellAdminLink"
+                      href="/gallery/admin"
+                      class="app-link-button app-button--small"
+                      hidden
+                    >管理画面へ</a>
+                  </dd>
                 </div>
               </dl>
 
@@ -399,12 +407,6 @@
               data-modal-open="account-security"
               hidden
             >アカウント設定</button>
-            <a
-              id="shellAdminLink"
-              href="/gallery/admin"
-              class="app-link-button app-button--small"
-              hidden
-            >管理画面へ</a>
           </div>
           <div class="shell-user-footer__actions">
             <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>

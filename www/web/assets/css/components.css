@@ -323,6 +323,12 @@ body {
   word-break: break-word;
 }
 
+.shell-role-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .app-empty-state {
   padding: var(--space-8) var(--space-4);
   text-align: center;
@@ -698,7 +704,6 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  flex-wrap: wrap;
 }
 
 .shell-user-footer__secondary {
