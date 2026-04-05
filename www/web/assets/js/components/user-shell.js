@@ -954,8 +954,6 @@ export function initUserShell(app) {
   }
 
   async function handleAvatarDelete() {
-
-  async function handleAvatarDelete() {
     if (!window.confirm("アイコンを削除しますか？")) return;
     try {
       await app.api.delete("/api/auth/avatar");
