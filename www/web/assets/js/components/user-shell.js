@@ -350,7 +350,7 @@ export function initUserShell(app) {
     // Avatar
     const avatarUrl = user.avatar_url || null;
     if (avatarUrl) {
-      refs.userCardAvatarImg.src = avatarUrl + "?t=" + Date.now();
+      refs.userCardAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.userCardAvatarImg.hidden = false;
       refs.userCardAvatar.classList.add("has-avatar");
     } else {
@@ -473,7 +473,7 @@ export function initUserShell(app) {
     // Avatar
     const avatarUrl = user.avatar_url || null;
     if (avatarUrl) {
-      refs.accountAvatarImg.src = avatarUrl + "?t=" + Date.now();
+      refs.accountAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.accountAvatarImg.hidden = false;
       refs.accountAvatarInitial.hidden = true;
       refs.avatarDeleteButton.hidden = false;
