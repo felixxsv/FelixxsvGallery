@@ -328,9 +328,12 @@
             </div>
 
             <div class="shell-user-card__content">
-              <div class="shell-user-card__profile">
-                <div class="shell-user-card__avatar" aria-hidden="true"></div>
 
+              <!-- プロフィールヘッダー -->
+              <div class="shell-user-card__profile">
+                <div id="shellUserCardAvatar" class="shell-user-card__avatar" aria-hidden="true">
+                  <img id="shellUserCardAvatarImg" class="shell-user-card__avatar-img" src="" alt="" hidden>
+                </div>
                 <div class="shell-user-card__identity">
                   <div class="shell-user-card__name-row">
                     <div id="shellUserDisplayName" class="shell-user-card__display-name">-</div>
@@ -338,7 +341,7 @@
                       id="shellAccountEditButton"
                       type="button"
                       class="app-icon-button shell-pen-button"
-                      aria-label="アカウント設定"
+                      aria-label="プロフィール編集"
                       data-modal-open="account"
                       hidden
                     >
@@ -349,7 +352,14 @@
                 </div>
               </div>
 
-              <dl class="app-definition-list">
+              <!-- 自己紹介 -->
+              <p id="shellUserBio" class="shell-user-card__bio" hidden></p>
+
+              <!-- リンク -->
+              <div id="shellUserCardLinks" class="shell-user-card__links" hidden></div>
+
+              <!-- メタ情報 -->
+              <dl class="app-definition-list shell-user-card__meta-list">
                 <div class="app-definition-list__row">
                   <dt>メールアドレス</dt>
                   <dd id="shellUserEmail">-</dd>
@@ -368,39 +378,38 @@
                 </div>
               </dl>
 
+              <!-- アップロード -->
               <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden>
                 現在、画像投稿は無効化されています。
               </p>
-
-              <div class="app-button-row">
+              <div class="shell-user-card__upload-row">
                 <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden>アップロード</button>
-
-                <button
-                  id="shellAccountOpenButton"
-                  type="button"
-                  class="app-button"
-                  data-modal-open="account-security"
-                  hidden
-                >
-                  アカウント設定
-                </button>
-
-                <a
-                  id="shellAdminLink"
-                  href="/gallery/admin"
-                  class="app-link-button"
-                  hidden
-                >
-                  管理画面へ
-                </a>
               </div>
+
             </div>
           </section>
         </div>
 
-        <div id="shellUserFooter" class="app-modal-footer app-modal-footer--end" hidden>
-          <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
-          <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
+        <div id="shellUserFooter" class="app-modal-footer shell-user-footer" hidden>
+          <div class="shell-user-footer__secondary">
+            <button
+              id="shellAccountOpenButton"
+              type="button"
+              class="app-button app-button--ghost app-button--small"
+              data-modal-open="account-security"
+              hidden
+            >アカウント設定</button>
+            <a
+              id="shellAdminLink"
+              href="/gallery/admin"
+              class="app-link-button app-button--small"
+              hidden
+            >管理画面へ</a>
+          </div>
+          <div class="shell-user-footer__actions">
+            <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
+            <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
+          </div>
         </div>
       </div>
     </section>
@@ -669,6 +678,33 @@
         <div class="app-modal-footer app-modal-footer--end">
           <button type="button" class="app-button app-button--ghost" data-modal-close="add-link">キャンセル</button>
           <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary">追加</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="crop-avatar" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="crop-avatar"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="cropAvatarTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="cropAvatarTitle" class="app-modal-title">アイコンの調整</h2>
+        </div>
+        <div class="app-modal-body">
+          <div class="shell-avatar-crop">
+            <div class="shell-avatar-crop__stage" id="shellAvatarCropStage">
+              <canvas id="shellAvatarCropCanvas" class="shell-avatar-crop__canvas" width="240" height="240"></canvas>
+            </div>
+            <div class="shell-avatar-crop__controls">
+              <label class="shell-avatar-crop__zoom-label">
+                <span class="shell-avatar-crop__zoom-text">ズーム</span>
+                <input id="shellAvatarZoomSlider" type="range" class="shell-avatar-crop__zoom" min="0" max="100" value="0">
+              </label>
+            </div>
+            <p class="shell-avatar-crop__hint">ドラッグで位置を調整できます</p>
+          </div>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--ghost" id="shellAvatarCropCancelButton">キャンセル</button>
+          <button type="button" class="app-button app-button--primary" id="shellAvatarCropConfirmButton">適用</button>
         </div>
       </div>
     </section>

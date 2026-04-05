@@ -72,6 +72,10 @@ export function initUserShell(app) {
     displayName: byId("shellUserDisplayName"),
     accountEditButton: byId("shellAccountEditButton"),
     userKey: byId("shellUserKey"),
+    userCardAvatar: byId("shellUserCardAvatar"),
+    userCardAvatarImg: byId("shellUserCardAvatarImg"),
+    userBio: byId("shellUserBio"),
+    userCardLinks: byId("shellUserCardLinks"),
     email: byId("shellUserEmail"),
     createdAt: byId("shellUserCreatedAt"),
     twoFactor: byId("shellUserTwoFactor"),
@@ -117,6 +121,12 @@ export function initUserShell(app) {
     addLinkInput: byId("shellAddLinkInput"),
     addLinkSubmitButton: byId("shellAddLinkSubmitButton"),
 
+    avatarCropStage: byId("shellAvatarCropStage"),
+    avatarCropCanvas: byId("shellAvatarCropCanvas"),
+    avatarZoomSlider: byId("shellAvatarZoomSlider"),
+    avatarCropCancelButton: byId("shellAvatarCropCancelButton"),
+    avatarCropConfirmButton: byId("shellAvatarCropConfirmButton"),
+
     emailTitle: byId("emailTitle"),
     emailInput: byId("shellEmailInput"),
     emailSaveButton: byId("shellEmailSaveButton"),
@@ -150,6 +160,23 @@ export function initUserShell(app) {
     bypassVerificationCloseGuard: false,
     allowBrowserLeave: false,
     actionConfirmResolver: null
+  };
+
+  const CROP_DISPLAY = 240;
+  const CROP_OUTPUT = 256;
+
+  const cropState = {
+    img: null,
+    scale: 1,
+    minScale: 1,
+    maxScale: 4,
+    offsetX: 0,
+    offsetY: 0,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    dragStartOffsetX: 0,
+    dragStartOffsetY: 0,
   };
 
   let countdownTimer = null;
@@ -318,6 +345,40 @@ export function initUserShell(app) {
     } else {
       refs.roleRow.hidden = true;
       refs.role.textContent = "-";
+    }
+
+    // Avatar
+    const avatarUrl = user.avatar_url || null;
+    if (avatarUrl) {
+      refs.userCardAvatarImg.src = avatarUrl + "?t=" + Date.now();
+      refs.userCardAvatarImg.hidden = false;
+      refs.userCardAvatar.classList.add("has-avatar");
+    } else {
+      refs.userCardAvatarImg.src = "";
+      refs.userCardAvatarImg.hidden = true;
+      refs.userCardAvatar.classList.remove("has-avatar");
+    }
+
+    // Bio
+    const bio = (user.bio || "").trim();
+    if (bio) {
+      refs.userBio.textContent = bio;
+      refs.userBio.hidden = false;
+    } else {
+      refs.userBio.hidden = true;
+    }
+
+    // Links
+    const links = user.links || [];
+    if (links.length > 0) {
+      refs.userCardLinks.hidden = false;
+      refs.userCardLinks.innerHTML = links.map((link) => {
+        const iconUrl = getLinkIconUrl(link.url);
+        return `<a class="shell-user-link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}"><span class="shell-user-link__icon" style="--link-icon: url('${iconUrl}')"></span></a>`;
+      }).join("");
+    } else {
+      refs.userCardLinks.hidden = true;
+      refs.userCardLinks.innerHTML = "";
     }
 
     const uploadEnabled = user.upload_enabled !== false;
@@ -733,6 +794,7 @@ export function initUserShell(app) {
       renderAccountModal();
       renderUserCard();
       toast.success("プロフィールを更新しました。");
+      app.modal.close("account");
     } catch (error) {
       const fieldErrors = error?.payload?.error?.field_errors || [];
       if (fieldErrors.length > 0) {
@@ -745,21 +807,98 @@ export function initUserShell(app) {
     }
   }
 
-  async function handleAvatarUpload(file) {
-    if (!file) return;
+  // --- Avatar crop ---
 
-    const formData = new FormData();
-    formData.append("file", file);
+  function cropScaleToSlider(scale) {
+    const { minScale, maxScale } = cropState;
+    return Math.round(((scale - minScale) / (maxScale - minScale)) * 100);
+  }
 
-    refs.avatarFileInput.value = "";
+  function cropSliderToScale(val) {
+    const { minScale, maxScale } = cropState;
+    return minScale + (maxScale - minScale) * (val / 100);
+  }
 
+  function cropClampOffset() {
+    const { img, scale } = cropState;
+    if (!img) return;
+    const scaledW = img.width * scale;
+    const scaledH = img.height * scale;
+    const maxX = Math.max(0, (scaledW - CROP_DISPLAY) / 2);
+    const maxY = Math.max(0, (scaledH - CROP_DISPLAY) / 2);
+    cropState.offsetX = Math.max(-maxX, Math.min(maxX, cropState.offsetX));
+    cropState.offsetY = Math.max(-maxY, Math.min(maxY, cropState.offsetY));
+  }
+
+  function cropDraw() {
+    const canvas = refs.avatarCropCanvas;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const { img, scale, offsetX, offsetY } = cropState;
+    ctx.clearRect(0, 0, CROP_DISPLAY, CROP_DISPLAY);
+    if (!img) return;
+    const scaledW = img.width * scale;
+    const scaledH = img.height * scale;
+    const x = (CROP_DISPLAY - scaledW) / 2 + offsetX;
+    const y = (CROP_DISPLAY - scaledH) / 2 + offsetY;
+    ctx.drawImage(img, x, y, scaledW, scaledH);
+  }
+
+  function openAvatarCropModal(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        cropState.img = img;
+        const fitScale = Math.min(CROP_DISPLAY / img.width, CROP_DISPLAY / img.height);
+        const fillScale = Math.max(CROP_DISPLAY / img.width, CROP_DISPLAY / img.height);
+        cropState.minScale = fitScale;
+        cropState.maxScale = Math.max(fillScale * 3, fitScale * 3);
+        cropState.scale = fillScale;
+        cropState.offsetX = 0;
+        cropState.offsetY = 0;
+        if (refs.avatarZoomSlider) {
+          refs.avatarZoomSlider.value = String(cropScaleToSlider(fillScale));
+        }
+        cropDraw();
+        app.modal.open("crop-avatar");
+      };
+      img.src = String(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleCropConfirm() {
+    if (!cropState.img) return;
+    refs.avatarCropConfirmButton.disabled = true;
     try {
-      const result = await app.api.postForm("/api/auth/avatar", formData);
-      const avatarUrl = result?.data?.avatar_url || null;
-      if (avatarUrl) {
-        const user = getUser();
-        user.avatar_url = avatarUrl;
-      }
+      const offscreen = document.createElement("canvas");
+      offscreen.width = CROP_OUTPUT;
+      offscreen.height = CROP_OUTPUT;
+      const ctx = offscreen.getContext("2d");
+      const ratio = CROP_OUTPUT / CROP_DISPLAY;
+      const { img, scale, offsetX, offsetY } = cropState;
+      const scaledW = img.width * scale * ratio;
+      const scaledH = img.height * scale * ratio;
+      const x = (CROP_OUTPUT - scaledW) / 2 + offsetX * ratio;
+      const y = (CROP_OUTPUT - scaledH) / 2 + offsetY * ratio;
+      ctx.drawImage(img, x, y, scaledW, scaledH);
+
+      offscreen.toBlob(async (blob) => {
+        app.modal.close("crop-avatar");
+        await uploadAvatarBlob(blob);
+        refs.avatarCropConfirmButton.disabled = false;
+      }, "image/jpeg", 0.92);
+    } catch {
+      refs.avatarCropConfirmButton.disabled = false;
+    }
+  }
+
+  async function uploadAvatarBlob(blob) {
+    const formData = new FormData();
+    formData.append("file", new File([blob], "avatar.jpg", { type: "image/jpeg" }));
+    try {
+      await app.api.postForm("/api/auth/avatar", formData);
       await refreshSession();
       renderAccountModal();
       renderUserCard();
@@ -768,6 +907,53 @@ export function initUserShell(app) {
       toast.error(error.message || "アイコンのアップロードに失敗しました。");
     }
   }
+
+  function bindCropDrag() {
+    const stage = refs.avatarCropStage;
+    if (!stage) return;
+
+    stage.addEventListener("mousedown", (e) => {
+      cropState.isDragging = true;
+      cropState.dragStartX = e.clientX;
+      cropState.dragStartY = e.clientY;
+      cropState.dragStartOffsetX = cropState.offsetX;
+      cropState.dragStartOffsetY = cropState.offsetY;
+      e.preventDefault();
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!cropState.isDragging) return;
+      cropState.offsetX = cropState.dragStartOffsetX + (e.clientX - cropState.dragStartX);
+      cropState.offsetY = cropState.dragStartOffsetY + (e.clientY - cropState.dragStartY);
+      cropClampOffset();
+      cropDraw();
+    });
+
+    window.addEventListener("mouseup", () => { cropState.isDragging = false; });
+
+    stage.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      cropState.isDragging = true;
+      cropState.dragStartX = t.clientX;
+      cropState.dragStartY = t.clientY;
+      cropState.dragStartOffsetX = cropState.offsetX;
+      cropState.dragStartOffsetY = cropState.offsetY;
+      e.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener("touchmove", (e) => {
+      if (!cropState.isDragging) return;
+      const t = e.touches[0];
+      cropState.offsetX = cropState.dragStartOffsetX + (t.clientX - cropState.dragStartX);
+      cropState.offsetY = cropState.dragStartOffsetY + (t.clientY - cropState.dragStartY);
+      cropClampOffset();
+      cropDraw();
+    }, { passive: false });
+
+    window.addEventListener("touchend", () => { cropState.isDragging = false; });
+  }
+
+  async function handleAvatarDelete() {
 
   async function handleAvatarDelete() {
     if (!window.confirm("アイコンを削除しますか？")) return;
@@ -814,11 +1000,29 @@ export function initUserShell(app) {
     refs.profileSaveButton.addEventListener("click", handleProfileSave);
     refs.avatarFileInput.addEventListener("change", () => {
       const file = refs.avatarFileInput.files?.[0] || null;
-      if (file) handleAvatarUpload(file);
+      refs.avatarFileInput.value = "";
+      if (file) openAvatarCropModal(file);
     });
     refs.profileBioInput.addEventListener("input", () => {
       refs.profileBioCount.textContent = refs.profileBioInput.value.length;
     });
+    if (refs.avatarZoomSlider) {
+      refs.avatarZoomSlider.addEventListener("input", () => {
+        cropState.scale = cropSliderToScale(Number(refs.avatarZoomSlider.value));
+        cropClampOffset();
+        cropDraw();
+      });
+    }
+    if (refs.avatarCropConfirmButton) {
+      refs.avatarCropConfirmButton.addEventListener("click", handleCropConfirm);
+    }
+    if (refs.avatarCropCancelButton) {
+      refs.avatarCropCancelButton.addEventListener("click", () => {
+        cropState.img = null;
+        app.modal.close("crop-avatar");
+      });
+    }
+    bindCropDrag();
     refs.addLinkSubmitButton.addEventListener("click", handleLinkAdd);
     refs.addLinkInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") handleLinkAdd();

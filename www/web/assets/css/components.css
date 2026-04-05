@@ -524,9 +524,11 @@ body {
 }
 
 .shell-user-card__avatar {
+  position: relative;
   width: 56px;
   height: 56px;
   border-radius: 999px;
+  overflow: hidden;
   background:
     radial-gradient(circle at 32% 32%, color-mix(in srgb, var(--color-primary) 72%, #ffffff 28%), transparent 40%),
     linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 58%, #0f172a 42%), color-mix(in srgb, var(--color-primary-strong) 62%, #0f172a 38%));
@@ -535,6 +537,19 @@ body {
     0 12px 28px rgba(15, 23, 42, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.14);
   flex-shrink: 0;
+}
+
+.shell-user-card__avatar.has-avatar {
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 65%, transparent);
+}
+
+.shell-user-card__avatar-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .shell-user-card__identity {
@@ -598,6 +613,146 @@ body {
 .shell-user-card__meta-value {
   margin: 0;
   word-break: break-word;
+}
+
+/* User card content extensions */
+.shell-user-card__bio {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.shell-user-card__meta-list {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.shell-user-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shell-user-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.shell-user-link:hover {
+  background: var(--color-surface-strong);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+}
+
+.shell-user-link__icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--link-icon);
+  mask-image: var(--link-icon);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.shell-user-card__upload-row {
+  display: flex;
+}
+
+.shell-user-card__upload-row .app-button {
+  flex: 1;
+}
+
+/* Footer layout */
+.shell-user-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.shell-user-footer__secondary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.shell-user-footer__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Avatar crop modal */
+.shell-avatar-crop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.shell-avatar-crop__stage {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--color-border);
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.shell-avatar-crop__stage:active {
+  cursor: grabbing;
+}
+
+.shell-avatar-crop__canvas {
+  display: block;
+  width: 240px;
+  height: 240px;
+}
+
+.shell-avatar-crop__controls {
+  width: 100%;
+  max-width: 280px;
+}
+
+.shell-avatar-crop__zoom-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.shell-avatar-crop__zoom-text {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.shell-avatar-crop__zoom {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
+.shell-avatar-crop__hint {
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+  margin: 0;
 }
 
 .shell-settings-group {
