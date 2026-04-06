@@ -19,6 +19,48 @@
 ## Git操作
 - `git push --force` / `git reset --hard` / `git clean -f` は禁止
 - コミット・プッシュは必ず事前に確認を取ること
+- **サーバー上で `git stash` は使わない**（未コミットの編集が消えてバグの原因になる）
+
+## デプロイ手順（必ずこの順序で行う）
+
+### 前提
+- 編集の実態はサーバー (`felix@192.168.10.102`, `/data/felixxsv-gallery`) にある
+- ローカル (`/home/felix/felixxsv-gallery`) はgitで管理するための場所
+
+### 手順
+
+#### 1. サーバーの未コミット変更をローカルに取り込む
+```bash
+# サーバーで変更されているファイルを確認
+sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 "cd /data/felixxsv-gallery && git status --short"
+
+# 変更ファイルをローカルにscpで取得（例）
+sshpass -p "jimon.jp0710" scp felix@192.168.10.102:/data/felixxsv-gallery/<path> /home/felix/felixxsv-gallery/<path>
+```
+
+#### 2. ローカルでコミット・プッシュ
+```bash
+git add <files>
+git commit -m "..."
+git push origin syu
+```
+
+#### 3. サーバーでpull・再起動
+```bash
+# サーバーのワーキングツリーをクリーン（取り込み済みなので安全）
+sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 \
+  "cd /data/felixxsv-gallery && git reset HEAD . && git checkout -- . && git pull"
+
+# APIサーバー再起動（Pythonバックエンドの変更時のみ）
+sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 \
+  "echo 'jimon.jp0710' | sudo -S systemctl restart felixxsv-gallery-api"
+```
+
+#### 注意事項
+- `git stash` はサーバーで使わない
+- pullの前に必ずサーバー側のワーキングツリーをリセット（`git reset HEAD . && git checkout -- .`）する
+- フロントエンド（HTML/CSS/JS）の変更のみならAPIサーバー再起動は不要
+- Pythonファイル（`app/`）を変更した場合は必ず再起動する
 
 ## deploy/ ディレクトリ
 - `deploy/` 以下のsystemdファイル等、本番環境に関わるファイルの変更は必ず事前確認すること
