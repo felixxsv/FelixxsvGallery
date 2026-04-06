@@ -43,6 +43,15 @@ function getLinkIconUrl(url) {
   return `/gallery/assets/icons/social/${slug}.svg`;
 }
 
+// Default badge icon as inline SVG data URI (used when icon file is not yet available)
+const BADGE_DEFAULT_ICON = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='6'/%3E%3Cpath d='M8 14l-3 7 7-3 7 3-3-7'/%3E%3C/svg%3E`;
+
+function getBadgeIconHtml(badge, appBase) {
+  if (!badge.icon) return "";
+  const src = `${appBase}/assets/images/badges/${badge.icon}`;
+  return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.src='${BADGE_DEFAULT_ICON}'">`;
+}
+
 function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -109,7 +118,7 @@ export function initUserShell(app) {
     twoFactorDisableOpenButton: byId("shellTwoFactorDisableOpenButton"),
 
     accountAvatar: byId("shellAccountAvatar"),
-    accountAvatarDefault: byId("shellAccountAvatarDefault"),
+    accountAvatarInitial: byId("shellAccountAvatarInitial"),
     accountAvatarImg: byId("shellAccountAvatarImg"),
     avatarFileInput: byId("shellAvatarFileInput"),
     avatarDeleteButton: byId("shellAvatarDeleteButton"),
@@ -358,17 +367,14 @@ export function initUserShell(app) {
 
     // Avatar
     const avatarUrl = user.avatar_url || null;
-    const cardAvatarDefault = refs.userCardAvatar?.querySelector(".shell-user-card__avatar-default");
     if (avatarUrl) {
       refs.userCardAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.userCardAvatarImg.hidden = false;
       refs.userCardAvatar.classList.add("has-avatar");
-      if (cardAvatarDefault) cardAvatarDefault.hidden = true;
     } else {
       refs.userCardAvatarImg.src = "";
       refs.userCardAvatarImg.hidden = true;
       refs.userCardAvatar.classList.remove("has-avatar");
-      if (cardAvatarDefault) cardAvatarDefault.hidden = false;
     }
 
     // Bio
@@ -419,7 +425,7 @@ export function initUserShell(app) {
     }
     container.hidden = false;
     container.innerHTML = toShow.map((badge) =>
-      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${badge.description || badge.name || ""}">${badge.name || badge.key}</span>`
+      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${badge.description || badge.name || ""}">${getBadgeIconHtml(badge, app.appBase)}${badge.name || badge.key}</span>`
     ).join("");
   }
 
@@ -445,7 +451,7 @@ export function initUserShell(app) {
       btn.className = `shell-badge-pool__item shell-badge-pool__item--${badge.color || "gray"}${isSelected ? " is-selected" : ""}`;
       btn.dataset.badgeKey = badge.key;
       btn.title = badge.description || badge.name || "";
-      btn.textContent = badge.name || badge.key;
+      btn.innerHTML = `${getBadgeIconHtml(badge, app.appBase)}${badge.name || badge.key}`;
       btn.setAttribute("aria-pressed", String(isSelected));
       list.appendChild(btn);
     }
@@ -560,12 +566,15 @@ export function initUserShell(app) {
     if (avatarUrl) {
       refs.accountAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.accountAvatarImg.hidden = false;
-      if (refs.accountAvatarDefault) refs.accountAvatarDefault.hidden = true;
+      if (refs.accountAvatarInitial) refs.accountAvatarInitial.hidden = true;
       refs.avatarDeleteButton.hidden = false;
     } else {
       refs.accountAvatarImg.hidden = true;
       refs.accountAvatarImg.src = "";
-      if (refs.accountAvatarDefault) refs.accountAvatarDefault.hidden = false;
+      if (refs.accountAvatarInitial) {
+        refs.accountAvatarInitial.hidden = false;
+        refs.accountAvatarInitial.textContent = (user.display_name || user.user_key || "?")[0];
+      }
       refs.avatarDeleteButton.hidden = true;
     }
 
