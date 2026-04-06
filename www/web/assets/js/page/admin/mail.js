@@ -1,4 +1,5 @@
 import { createApiClient } from "../../core/api.js";
+import { escapeHtml } from "../../core/dom.js";
 
 const appBase = document.body.dataset.appBase || "/gallery";
 const api = createApiClient({ baseUrl: appBase });
@@ -38,15 +39,6 @@ function setDraftStatus(message) {
   const el = $("#adminMailDraftStatus");
   if (!el) return;
   el.textContent = message || "下書きはありません。";
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
 }
 
 function formatDate(value) {

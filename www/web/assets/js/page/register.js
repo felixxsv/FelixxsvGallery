@@ -86,7 +86,12 @@ function showDevVerifyLink(url) {
   const u = String(url || "").trim()
   if (!u) return
   devLink.style.display = "block"
-  devLink.innerHTML = `<a class="authlink" href="${u}">検証用リンク（メール未設定時）</a>`
+  devLink.innerHTML = ""
+  const link = document.createElement("a")
+  link.className = "authlink"
+  link.href = u
+  link.textContent = "検証用リンク（メール未設定時）"
+  devLink.appendChild(link)
 }
 
 function init() {

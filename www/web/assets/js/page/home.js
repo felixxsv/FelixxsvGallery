@@ -1,15 +1,9 @@
-import { byId } from "../core/dom.js";
+import { byId, escapeHtml } from "../core/dom.js";
 
 const GRID_COLS_STORAGE_KEY = "gallery.home.gridCols";
 const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
 const DEFAULT_ROW_COUNT = 30;
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 function highlightMatch(text, query) {
   if (!query) return escapeHtml(text);

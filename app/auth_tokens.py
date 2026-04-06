@@ -414,6 +414,7 @@ def create_registration_token(
     provider_email: str | None,
     provider_display_name: str | None,
     provider_username: str | None,
+    provider_avatar_hash: str | None = None,
     expires_in_sec: int = DEFAULT_REGISTRATION_TOKEN_EXPIRES_SEC,
     now: int | float | datetime | None = None,
 ) -> str:
@@ -431,6 +432,7 @@ def create_registration_token(
             "provider_email": provider_email,
             "provider_display_name": provider_display_name,
             "provider_username": provider_username,
+            "provider_avatar_hash": provider_avatar_hash,
         },
         now=now,
     )
@@ -453,12 +455,15 @@ def parse_registration_token(
     provider_email = payload.get("provider_email")
     provider_display_name = payload.get("provider_display_name")
     provider_username = payload.get("provider_username")
+    provider_avatar_hash = payload.get("provider_avatar_hash")
 
     if provider_email is not None and not isinstance(provider_email, str):
         raise InvalidAuthTokenError()
     if provider_display_name is not None and not isinstance(provider_display_name, str):
         raise InvalidAuthTokenError()
     if provider_username is not None and not isinstance(provider_username, str):
+        raise InvalidAuthTokenError()
+    if provider_avatar_hash is not None and not isinstance(provider_avatar_hash, str):
         raise InvalidAuthTokenError()
 
     return {
@@ -468,6 +473,7 @@ def parse_registration_token(
         "provider_email": provider_email,
         "provider_display_name": provider_display_name,
         "provider_username": provider_username,
+        "provider_avatar_hash": provider_avatar_hash,
         "jti": str(_extract_required(payload, "jti")),
         "iat": int(_extract_required(payload, "iat")),
         "exp": int(_extract_required(payload, "exp")),

@@ -340,21 +340,25 @@
             </select>
           </label>
 
-          <label class="app-field app-field--switch app-switch">
-            <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
-            <span class="app-switch__track" aria-hidden="true">
-              <span class="app-switch__thumb"></span>
-            </span>
-            <span class="app-switch__label">背景クリックでモーダルを閉じる</span>
-          </label>
+          <div class="app-switch-row">
+            <span class="app-switch-row__label">背景クリックでモーダルを閉じる</span>
+            <label class="app-switch">
+              <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
+              <span class="app-switch__track" aria-hidden="true">
+                <span class="app-switch__thumb"></span>
+              </span>
+            </label>
+          </div>
 
-          <label class="app-field app-field--switch app-switch">
-            <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
-            <span class="app-switch__track" aria-hidden="true">
-              <span class="app-switch__thumb"></span>
-            </span>
-            <span class="app-switch__label">メタ情報バーを常時表示する</span>
-          </label>
+          <div class="app-switch-row">
+            <span class="app-switch-row__label">メタ情報バーを常時表示する</span>
+            <label class="app-switch">
+              <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
+              <span class="app-switch__track" aria-hidden="true">
+                <span class="app-switch__thumb"></span>
+              </span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -531,16 +535,31 @@
       <h2 id="emailTitle" class="app-modal-title">メールアドレス変更</h2>
     </div>
     <div class="app-modal-body">
-      <form class="app-form-stack">
-        <label class="app-field">
-          <span class="app-field__label">メールアドレス</span>
-          <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
-        </label>
-      </form>
+      <!-- Step 1: 新しいメールアドレス入力 -->
+      <div id="shellEmailStep1">
+        <div class="app-form-stack">
+          <label class="app-field">
+            <span class="app-field__label">新しいメールアドレス</span>
+            <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
+          </label>
+        </div>
+      </div>
+      <!-- Step 2: 確認コード入力 -->
+      <div id="shellEmailStep2" hidden>
+        <div class="app-form-stack">
+          <p id="shellEmailCodeInfo" class="app-field__hint"></p>
+          <label class="app-field">
+            <span class="app-field__label">確認コード（6桁）</span>
+            <input id="shellEmailCodeInput" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+          </label>
+        </div>
+      </div>
     </div>
-    <div class="app-modal-footer app-modal-footer--end">
+    <div class="app-modal-footer">
+      <button id="shellEmailResendButton" type="button" class="app-button app-button--ghost" hidden>再送する</button>
+      <div class="app-modal-footer__spacer"></div>
       <button type="button" class="app-button app-button--ghost" data-modal-close="email">キャンセル</button>
-      <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">保存</button>
+      <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">確認メールを送信</button>
     </div>
   </div>
 </section>

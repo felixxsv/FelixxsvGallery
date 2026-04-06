@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import logging
 import os
 import re
 import shutil
@@ -11,6 +12,8 @@ import hashlib
 import tempfile
 import base64
 import hmac
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request, Response, Cookie
 from fastapi.responses import FileResponse
@@ -109,6 +112,7 @@ def _palette_from_conf(conf: dict) -> list[dict]:
             b = int(rgb[2])
             out.append({"id": cid, "name": name, "hex": _rgb_to_hex((r, g, b))})
         except Exception:
+            logger.exception("Unhandled error")
             continue
 
     if not out:
@@ -294,7 +298,7 @@ def _get_current_user(req: Request | None) -> dict | None:
 
 def _table_cols(conn: pymysql.Connection, table: str) -> set[str]:
     with conn.cursor() as cur:
-        cur.execute(f"SHOW COLUMNS FROM {table}")
+        cur.execute(f"SHOW COLUMNS FROM `{table}`")
         rows = cur.fetchall()
     return {str(r["Field"]).lower() for r in rows}
 
@@ -314,6 +318,7 @@ def _now_local_naive(conf: dict) -> datetime:
         dt = datetime.now(ZoneInfo(tz))
         return dt.replace(tzinfo=None)
     except Exception:
+        logger.exception("Unhandled error")
         return datetime.now()
 
 
@@ -348,6 +353,7 @@ def _verify_password(password: str, stored: str) -> bool:
         got = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iters, dklen=len(want))
         return hmac.compare_digest(got, want)
     except Exception:
+        logger.exception("Unhandled error")
         return False
 
 
@@ -393,6 +399,7 @@ def _check_column_exists(table: str, column: str) -> bool:
             )
             return int((cur.fetchone() or {}).get("cnt", 0)) > 0
     except Exception:
+        logger.exception("Unhandled error")
         return False
     finally:
         conn.close()
@@ -1159,6 +1166,7 @@ def upload_images(
                 try:
                     return datetime(y, mo, d, hh, mm, ss)
                 except Exception:
+                    logger.exception("Unhandled error")
                     return _now_local_naive(CONF)
 
             for idx, uf in enumerate(files):
@@ -1412,6 +1420,7 @@ def upload_images(
                     try:
                         colors = extract_top_colors(abs_path, palette, cset)
                     except Exception:
+                        logger.exception("Unhandled error")
                         colors = []
                     with conn.cursor() as cur:
                         cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))

@@ -39,6 +39,10 @@
           <input id="loginPass" class="inp" type="password" autocomplete="current-password">
 
           <button id="loginBtn" class="btn btn-primary authbtn" type="button">Login</button>
+
+          <div class="authdivider"><span>または</span></div>
+
+          <button id="loginDiscordBtn" class="btn btn-discord authbtn" type="button">Discordでログイン</button>
         </div>
 
         <div id="loginStageTwoFactor" hidden>
@@ -61,6 +65,10 @@
           <input id="signupEmail" class="inp" type="email" autocomplete="email">
 
           <button id="signupStartBtn" class="btn btn-primary authbtn" type="button">認証コードを送信</button>
+
+          <div class="authdivider"><span>または</span></div>
+
+          <button id="signupDiscordBtn" class="btn btn-discord authbtn" type="button">Discordで登録</button>
         </div>
 
         <div id="signupStageVerify" hidden>
@@ -79,14 +87,21 @@
         <div id="signupStageComplete" hidden>
           <div id="signupCompleteMessage" class="label">アカウント情報を入力してください。</div>
 
+          <div id="discordAvatarPreview" hidden style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <img id="discordAvatarImg" src="" alt="Discord avatar" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--color-border)">
+            <span style="font-size:0.82rem;color:var(--color-text-muted)">Discordのアイコンをプレビュー表示中。登録後に変更できます。</span>
+          </div>
+
           <div class="label">User Key</div>
           <input id="completeUserKey" class="inp" type="text" placeholder="4-20 chars (A-Za-z0-9_-)" autocomplete="username">
 
           <div class="label">Display Name</div>
           <input id="completeDisplayName" class="inp" type="text">
 
-          <div class="label">Password</div>
-          <input id="completePassword" class="inp" type="password" autocomplete="new-password">
+          <div id="completePasswordRow">
+            <div class="label">Password</div>
+            <input id="completePassword" class="inp" type="password" autocomplete="new-password">
+          </div>
 
           <button id="completeRegisterBtn" class="btn btn-primary authbtn" type="button">アカウントを作成</button>
         </div>
@@ -105,6 +120,6 @@
     </div>
   </div>
 
-  <script src="/gallery/assets/js/pages/auth.js"></script>
+  <script src="/gallery/assets/js/page/auth.js"></script>
 </body>
 </html>

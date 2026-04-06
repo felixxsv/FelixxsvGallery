@@ -1,4 +1,5 @@
 import { createImageDetailModal } from "./image-detail-modal.js";
+import { escapeHtml } from "./dom.js";
 
 const STYLE_ID = "felixxsv-image-modal-style";
 
@@ -11,14 +12,6 @@ function ensureStylesheet(appBase) {
   document.head.appendChild(link);
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 function textOrDash(value) {
   if (value === undefined || value === null || value === "") return "-";

@@ -1,4 +1,4 @@
-import { createElement } from "../core/dom.js";
+import { createElement, escapeHtml } from "../core/dom.js";
 
 const MAX_FILES = 20;
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -10,15 +10,6 @@ const MODAL_ID = "upload-modal";
 const TAG_BROWSE_MODAL_ID = "tag-browse-modal";
 const DRAFT_KEY = "gallery.upload.draft.v1";
 const TAG_QUICK_LIMIT = 10;
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function highlightMatch(text, query) {
   if (!query) return escapeHtml(text);

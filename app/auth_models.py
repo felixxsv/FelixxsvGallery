@@ -10,6 +10,7 @@ from typing import Any
 from db import load_conf
 
 
+# Cached for process lifetime; config changes require server restart anyway
 @lru_cache(maxsize=1)
 def _get_gallery_name() -> str:
     conf_path = os.environ.get(

@@ -1,3 +1,5 @@
+import { escapeHtml } from "../../core/dom.js";
+
 function byId(id) {
   return document.getElementById(id);
 }
@@ -7,15 +9,6 @@ function formatDateTime(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleString("ja-JP");
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function buildPill(text, mod) {

@@ -61,3 +61,12 @@ export function mountHTML(target, html) {
   target.innerHTML = html;
   return target;
 }
+
+export function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}

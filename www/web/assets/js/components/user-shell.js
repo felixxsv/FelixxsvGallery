@@ -44,12 +44,13 @@ function getLinkIconUrl(url) {
 }
 
 // Default badge icon as inline SVG data URI (used when icon file is not yet available)
-const BADGE_DEFAULT_ICON = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='6'/%3E%3Cpath d='M8 14l-3 7 7-3 7 3-3-7'/%3E%3C/svg%3E`;
+const BADGE_DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='6'/%3E%3Cpath d='M8 14l-3 7 7-3 7 3-3-7'/%3E%3C/svg%3E";
+window._BADGE_DEFAULT_ICON = BADGE_DEFAULT_ICON;
 
 function getBadgeIconHtml(badge, appBase) {
-  if (!badge.icon) return "";
+  if (!badge.icon) return `<img class="badge-icon" src="${BADGE_DEFAULT_ICON}" alt="" aria-hidden="true">`;
   const src = `${appBase}/assets/images/badges/${badge.icon}`;
-  return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.src='${BADGE_DEFAULT_ICON}'">`;
+  return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src=window._BADGE_DEFAULT_ICON">`;
 }
 
 function formatDate(value) {
@@ -138,12 +139,26 @@ export function initUserShell(app) {
     avatarCropConfirmButton: byId("shellAvatarCropConfirmButton"),
 
     emailTitle: byId("emailTitle"),
+    emailStep1: byId("shellEmailStep1"),
+    emailStep2: byId("shellEmailStep2"),
     emailInput: byId("shellEmailInput"),
+    emailCodeInput: byId("shellEmailCodeInput"),
+    emailCodeInfo: byId("shellEmailCodeInfo"),
     emailSaveButton: byId("shellEmailSaveButton"),
+    emailResendButton: byId("shellEmailResendButton"),
 
     currentPasswordInput: byId("shellCurrentPasswordInput"),
     newPasswordInput: byId("shellNewPasswordInput"),
     passwordSaveButton: byId("shellPasswordSaveButton"),
+
+    accountPasswordStatus: byId("shellAccountPasswordStatus"),
+    passwordChangeButton: byId("shellPasswordChangeButton"),
+    passwordSetButton: byId("shellPasswordSetButton"),
+    setPasswordInput: byId("shellSetPasswordInput"),
+    setPasswordSaveButton: byId("shellSetPasswordSaveButton"),
+
+    accountDiscordStatus: byId("shellAccountDiscordStatus"),
+    discordLinkButton: byId("shellDiscordLinkButton"),
 
     twoFactorSetupMessage: byId("shellTwoFactorSetupMessage"),
     twoFactorCodeInput: byId("shellTwoFactorCodeInput"),
@@ -425,7 +440,7 @@ export function initUserShell(app) {
     }
     container.hidden = false;
     container.innerHTML = toShow.map((badge) =>
-      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${badge.description || badge.name || ""}">${getBadgeIconHtml(badge, app.appBase)}${badge.name || badge.key}</span>`
+      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${badge.name || badge.key}">${getBadgeIconHtml(badge, app.appBase)}</span>`
     ).join("");
   }
 
@@ -598,25 +613,83 @@ export function initUserShell(app) {
 
     const user = getUser();
     const twoFactor = getTwoFactor();
+    const security = getSessionState().data?.security || {};
     const email = user.primary_email || "";
+    const hasPassword = !!security.has_password;
+    const hasDiscord = !!security.has_discord;
 
     refs.accountEmail.textContent = email || "未登録";
     refs.accountTwoFactor.textContent = twoFactor.is_enabled ? "有効" : "無効";
     refs.emailActionButton.textContent = email ? "変更" : "登録";
     refs.twoFactorEnableButton.hidden = twoFactor.is_enabled;
     refs.twoFactorDisableOpenButton.hidden = !twoFactor.is_enabled;
+
+    if (refs.accountPasswordStatus) {
+      refs.accountPasswordStatus.textContent = hasPassword ? "設定済み" : "未設定";
+    }
+    if (refs.passwordChangeButton) refs.passwordChangeButton.hidden = !hasPassword;
+    if (refs.passwordSetButton) refs.passwordSetButton.hidden = hasPassword;
+
+    if (refs.accountDiscordStatus) {
+      refs.accountDiscordStatus.textContent = hasDiscord ? "連携済み" : "未連携";
+    }
+    if (refs.discordLinkButton) refs.discordLinkButton.hidden = hasDiscord;
   }
 
-  function renderEmailModal() {
-    if (!isAuthenticated()) {
-      return;
-    }
+  // メール変更フローの状態
+  let emailVerifyTicket = null;
+  let emailResendCooldownTimer = null;
 
+  function renderEmailModal() {
+    if (!isAuthenticated()) return;
     const email = currentEmail();
     const title = email ? "メールアドレス変更" : "メールアドレス登録";
     refs.emailTitle.textContent = title;
     refs.emailActionButton.textContent = title;
-    refs.emailInput.value = email;
+    _showEmailStep1();
+  }
+
+  function _showEmailStep1() {
+    emailVerifyTicket = null;
+    if (emailResendCooldownTimer) { clearInterval(emailResendCooldownTimer); emailResendCooldownTimer = null; }
+    if (refs.emailStep1) refs.emailStep1.hidden = false;
+    if (refs.emailStep2) refs.emailStep2.hidden = true;
+    if (refs.emailResendButton) refs.emailResendButton.hidden = true;
+    refs.emailInput.value = currentEmail();
+    refs.emailSaveButton.textContent = "確認メールを送信";
+    refs.emailSaveButton.disabled = false;
+  }
+
+  function _showEmailStep2(maskedEmail, expiresInSec, resendCooldownSec) {
+    if (refs.emailStep1) refs.emailStep1.hidden = true;
+    if (refs.emailStep2) refs.emailStep2.hidden = false;
+    if (refs.emailCodeInfo) refs.emailCodeInfo.textContent = `確認コードを ${maskedEmail} に送信しました。コードを入力してください。`;
+    if (refs.emailCodeInput) refs.emailCodeInput.value = "";
+    refs.emailSaveButton.textContent = "確認する";
+    refs.emailSaveButton.disabled = false;
+    _startEmailResendCooldown(resendCooldownSec);
+  }
+
+  function _startEmailResendCooldown(sec) {
+    if (!refs.emailResendButton) return;
+    if (emailResendCooldownTimer) clearInterval(emailResendCooldownTimer);
+    let remaining = Math.max(0, Math.ceil(sec));
+    const update = () => {
+      if (remaining <= 0) {
+        clearInterval(emailResendCooldownTimer);
+        emailResendCooldownTimer = null;
+        refs.emailResendButton.disabled = false;
+        refs.emailResendButton.textContent = "再送する";
+        refs.emailResendButton.hidden = false;
+      } else {
+        refs.emailResendButton.disabled = true;
+        refs.emailResendButton.textContent = `再送する（${remaining}秒後）`;
+        refs.emailResendButton.hidden = false;
+        remaining--;
+      }
+    };
+    update();
+    emailResendCooldownTimer = setInterval(update, 1000);
   }
 
   async function refreshSession() {
@@ -674,6 +747,37 @@ export function initUserShell(app) {
     }
   }
 
+  async function handleSetPasswordSave() {
+    const password = refs.setPasswordInput?.value || "";
+    if (!password) {
+      toast.error("パスワードを入力してください。");
+      return;
+    }
+    try {
+      await app.api.post("/api/auth/password/set", { password });
+      app.modal.close("password-set");
+      await refreshSession();
+      renderAccountSecurityModal();
+      toast.success("パスワードを設定しました。メールアドレスとパスワードでもログインできます。");
+    } catch (error) {
+      toast.error(error.message || "パスワードの設定に失敗しました。");
+    }
+  }
+
+  async function handleDiscordLink() {
+    try {
+      const data = await app.api.post("/api/auth/discord/link/start");
+      const redirectTo = data?.next?.to;
+      if (redirectTo) {
+        window.location.replace(redirectTo);
+      } else {
+        toast.error("Discord連携URLの取得に失敗しました。");
+      }
+    } catch (error) {
+      toast.error(error.message || "Discord連携の開始に失敗しました。");
+    }
+  }
+
   async function beginTwoFactorFlow(kind) {
     if (!isAuthenticated()) {
       toast.error("ログインが必要です。");
@@ -681,7 +785,14 @@ export function initUserShell(app) {
     }
 
     if (!currentEmail()) {
-      toast.error("メールアドレスを入力してください。");
+      toast.error("2段階認証にはメールアドレスの登録が必要です。設定からメールアドレスを登録してください。", 6000);
+      if (refs.twoFactor) {
+        app.modal.open("account");
+        setTimeout(() => {
+          const emailSection = refs.twoFactor.closest(".modal-section") || document.getElementById("shellAccountEmail");
+          if (emailSection) emailSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 200);
+      }
       return;
     }
 
@@ -1062,13 +1173,64 @@ export function initUserShell(app) {
     }
   }
 
-  function handleEmailSave() {
-    const email = refs.emailInput.value.trim();
-    if (!email) {
-      toast.error("メールアドレスを入力してください。");
+  async function handleEmailSave() {
+    refs.emailSaveButton.disabled = true;
+
+    // Step 2: コード確認
+    if (emailVerifyTicket) {
+      const code = (refs.emailCodeInput?.value || "").trim();
+      if (!code) {
+        toast.error("確認コードを入力してください。");
+        refs.emailSaveButton.disabled = false;
+        return;
+      }
+      try {
+        await app.api.post("/api/auth/verify/email/confirm", { verify_ticket: emailVerifyTicket, code });
+        app.modal.close("email");
+        await refreshSession();
+        renderAccountSecurityModal();
+        renderUserCard();
+        toast.success("メールアドレスを変更しました。");
+      } catch (error) {
+        toast.error(error.message || "確認コードが正しくありません。");
+        refs.emailSaveButton.disabled = false;
+      }
       return;
     }
-    toast.info("メールアドレス登録・変更は未実装です。");
+
+    // Step 1: 確認メール送信
+    const newEmail = refs.emailInput.value.trim();
+    if (!newEmail) {
+      toast.error("メールアドレスを入力してください。");
+      refs.emailSaveButton.disabled = false;
+      return;
+    }
+    try {
+      const result = await app.api.post("/api/auth/email/change/start", { new_email: newEmail });
+      emailVerifyTicket = result.data?.verify_ticket;
+      _showEmailStep2(
+        result.data?.masked_email || newEmail,
+        result.data?.expires_in_sec || 600,
+        result.data?.resend_cooldown_sec || 60,
+      );
+    } catch (error) {
+      toast.error(error.message || "確認メールの送信に失敗しました。");
+      refs.emailSaveButton.disabled = false;
+    }
+  }
+
+  async function handleEmailResend() {
+    if (!emailVerifyTicket) return;
+    refs.emailResendButton.disabled = true;
+    try {
+      const result = await app.api.post("/api/auth/verify/email/send", { verify_ticket: emailVerifyTicket });
+      emailVerifyTicket = result.data?.verify_ticket || emailVerifyTicket;
+      _startEmailResendCooldown(result.data?.resend_cooldown_sec || 60);
+      toast.success("確認コードを再送しました。");
+    } catch (error) {
+      toast.error(error.message || "再送に失敗しました。");
+      refs.emailResendButton.disabled = false;
+    }
   }
 
   function handleBeforeUnload(event) {
@@ -1110,6 +1272,8 @@ export function initUserShell(app) {
     }
 
     refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
+    if (refs.setPasswordSaveButton) refs.setPasswordSaveButton.addEventListener("click", handleSetPasswordSave);
+    if (refs.discordLinkButton) refs.discordLinkButton.addEventListener("click", handleDiscordLink);
     refs.profileSaveButton.addEventListener("click", handleProfileSave);
     refs.avatarFileInput.addEventListener("change", () => {
       const file = refs.avatarFileInput.files?.[0] || null;
@@ -1152,6 +1316,7 @@ export function initUserShell(app) {
     refs.actionConfirmApproveButton.addEventListener("click", () => closeActionConfirm(true));
     refs.actionConfirmCancelButton.addEventListener("click", () => closeActionConfirm(false));
     refs.emailSaveButton.addEventListener("click", handleEmailSave);
+    if (refs.emailResendButton) refs.emailResendButton.addEventListener("click", handleEmailResend);
 
     refs.settingLanguage.addEventListener("change", () => {
       app.settings.setLanguage(refs.settingLanguage.value);
@@ -1218,6 +1383,10 @@ export function initUserShell(app) {
         app.modal.open("twofactor-disable");
         requestDiscardVerificationFlow("disable");
       }
+      if (id === "email") {
+        // モーダルを閉じたらステップをリセット
+        _showEmailStep1();
+      }
     });
 
     session.subscribe(() => {
@@ -1233,4 +1402,17 @@ export function initUserShell(app) {
   refreshResendButtons();
   startCountdownTimer();
   bindEvents();
+
+  // Discord連携コールバック結果をトースト通知
+  const _discordLinkParam = new URLSearchParams(location.search).get("discord_link");
+  if (_discordLinkParam) {
+    const _url = new URL(location.href);
+    _url.searchParams.delete("discord_link");
+    history.replaceState(null, "", _url.toString());
+    setTimeout(() => {
+      if (_discordLinkParam === "ok") toast.success("Discordアカウントを連携しました。");
+      else if (_discordLinkParam === "already") toast.success("このDiscordアカウントはすでに連携済みです。");
+      else if (_discordLinkParam === "conflict") toast.error("このDiscordアカウントは別のアカウントに紐付いています。");
+    }, 500);
+  }
 }

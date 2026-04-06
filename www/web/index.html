@@ -498,21 +498,25 @@
                 </select>
               </label>
 
-              <label class="app-field app-field--switch app-switch">
-                <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
-                <span class="app-switch__track" aria-hidden="true">
-                  <span class="app-switch__thumb"></span>
-                </span>
-                <span class="app-switch__label">背景クリックでモーダルを閉じる</span>
-              </label>
+              <div class="app-switch-row">
+                <span class="app-switch-row__label">背景クリックでモーダルを閉じる</span>
+                <label class="app-switch">
+                  <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true">
+                    <span class="app-switch__thumb"></span>
+                  </span>
+                </label>
+              </div>
 
-              <label class="app-field app-field--switch app-switch">
-                <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
-                <span class="app-switch__track" aria-hidden="true">
-                  <span class="app-switch__thumb"></span>
-                </span>
-                <span class="app-switch__label">メタ情報バーを常時表示する</span>
-              </label>
+              <div class="app-switch-row">
+                <span class="app-switch-row__label">メタ情報バーを常時表示する</span>
+                <label class="app-switch">
+                  <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true">
+                    <span class="app-switch__thumb"></span>
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -669,8 +673,17 @@
               <div class="shell-security-item">
                 <div class="shell-security-item__left">
                   <span class="shell-security-item__label">パスワード</span>
+                  <span id="shellAccountPasswordStatus" class="shell-security-item__value">-</span>
                 </div>
-                <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password">変更</button>
+                <button id="shellPasswordChangeButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password" hidden>変更</button>
+                <button id="shellPasswordSetButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password-set" hidden>設定する</button>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label">Discord連携</span>
+                  <span id="shellAccountDiscordStatus" class="shell-security-item__value">-</span>
+                </div>
+                <button id="shellDiscordLinkButton" type="button" class="app-button app-button--ghost app-button--small" hidden>連携する</button>
               </div>
               <div class="shell-security-item">
                 <div class="shell-security-item__left">
@@ -697,16 +710,31 @@
           <h2 id="emailTitle" class="app-modal-title">メールアドレス変更</h2>
         </div>
         <div class="app-modal-body">
-          <form class="app-form-stack">
-            <label class="app-field">
-              <span class="app-field__label">メールアドレス</span>
-              <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
-            </label>
-          </form>
+          <!-- Step 1: 新しいメールアドレス入力 -->
+          <div id="shellEmailStep1">
+            <div class="app-form-stack">
+              <label class="app-field">
+                <span class="app-field__label">新しいメールアドレス</span>
+                <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
+              </label>
+            </div>
+          </div>
+          <!-- Step 2: 確認コード入力 -->
+          <div id="shellEmailStep2" hidden>
+            <div class="app-form-stack">
+              <p id="shellEmailCodeInfo" class="app-field__hint"></p>
+              <label class="app-field">
+                <span class="app-field__label">確認コード（6桁）</span>
+                <input id="shellEmailCodeInput" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+              </label>
+            </div>
+          </div>
         </div>
-        <div class="app-modal-footer app-modal-footer--end">
+        <div class="app-modal-footer">
+          <button id="shellEmailResendButton" type="button" class="app-button app-button--ghost" hidden>再送する</button>
+          <div class="app-modal-footer__spacer"></div>
           <button type="button" class="app-button app-button--ghost" data-modal-close="email">キャンセル</button>
-          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">保存</button>
+          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">確認メールを送信</button>
         </div>
       </div>
     </section>
@@ -782,6 +810,28 @@
         <div class="app-modal-footer app-modal-footer--end">
           <button type="button" class="app-button app-button--ghost" data-modal-close="password">キャンセル</button>
           <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary">変更する</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="password-set" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="password-set"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordSetTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="passwordSetTitle" class="app-modal-title">パスワード設定</h2>
+        </div>
+        <div class="app-modal-body">
+          <p class="app-modal-desc">パスワードを設定すると、メールアドレスとパスワードでもログインできるようになります。</p>
+          <form class="app-form-stack">
+            <label class="app-field">
+              <span class="app-field__label">新しいパスワード</span>
+              <input id="shellSetPasswordInput" class="app-input" type="password" autocomplete="new-password">
+            </label>
+          </form>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--ghost" data-modal-close="password-set">キャンセル</button>
+          <button id="shellSetPasswordSaveButton" type="button" class="app-button app-button--primary">設定する</button>
         </div>
       </div>
     </section>
