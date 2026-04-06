@@ -1,61 +1,360 @@
-.auth{
-  width:min(520px,92vw);
-  margin:0 auto;
-  padding:22px 0 28px;
+/* ── Auth page layout ───────────────────────────────────────────────────── */
+
+.auth-main {
+  min-height: calc(100vh - var(--header-height));
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
-.authcard{
-  padding:18px;
+.auth-lang-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 20px 0;
 }
 
-.authtabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:14px;
+.auth-lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  padding: 4px 28px 4px 10px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(232,238,248,0.56)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
 }
 
-.authtabs .btn{
-  height:40px;
-  padding:0 14px;
+.auth-lang-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-.authpane{
-  display:none;
+/* ── Split layout ───────────────────────────────────────────────────────── */
+
+.auth-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
 }
 
-.authpane.is-on{
-  display:block;
+@media (min-width: 900px) {
+  .auth-split {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
-.authbtn{
-  width:100%;
-  margin-top:14px;
+/* ── Hero (left panel) ──────────────────────────────────────────────────── */
+
+.auth-hero {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
+  border-right: 1px solid var(--color-border);
 }
 
-.authdivider{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-top:16px;
-  color:var(--color-text-muted);
-  font-size:0.8rem;
+@media (min-width: 900px) {
+  .auth-hero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
-.authdivider::before,
-.authdivider::after{
-  content:"";
-  flex:1;
-  height:1px;
-  background:var(--color-border);
+.auth-hero__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 48px 40px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
-.btn-discord{
-  background:#5865f2;
-  color:#fff;
-  border:none;
+.auth-hero__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.btn-discord:hover{
-  background:#4752c4;
-  color:#fff;
+.auth-hero__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+}
+
+.auth-hero__glow--1 {
+  width: 340px;
+  height: 340px;
+  top: -80px;
+  left: -80px;
+  background: var(--color-primary);
+}
+
+.auth-hero__glow--2 {
+  width: 260px;
+  height: 260px;
+  bottom: -60px;
+  right: -60px;
+  background: var(--color-primary-strong);
+}
+
+.auth-hero__icon {
+  color: var(--color-primary);
+  opacity: 0.88;
+}
+
+.auth-hero__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.auth-hero__sub {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  max-width: 260px;
+}
+
+.auth-hero__frames {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  grid-template-rows: repeat(2, 52px);
+  gap: 8px;
+  margin-top: 8px;
+  opacity: 0.22;
+}
+
+.auth-hero__frame {
+  border-radius: var(--radius-xs);
+  background: var(--color-primary);
+}
+
+.auth-hero__frame:nth-child(2) { opacity: 0.7; }
+.auth-hero__frame:nth-child(4) { opacity: 0.5; grid-column: 2 / 4; }
+.auth-hero__frame:nth-child(5) { opacity: 0.8; }
+
+/* ── Form side (right panel) ─────────────────────────────────────────────── */
+
+.auth-form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px 48px;
+}
+
+.auth-form-panel {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+
+.auth-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 28px;
+  gap: 0;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+  text-align: center;
+}
+
+.auth-tab:hover {
+  color: var(--color-text);
+}
+
+.auth-tab.is-on {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Panes ────────────────────────────────────────────────────────────────── */
+
+.auth-pane {
+  display: none;
+}
+
+.auth-pane.is-on {
+  display: block;
+}
+
+/* ── Form fields ─────────────────────────────────────────────────────────── */
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.auth-field__label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.auth-btn {
+  width: 100%;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  color: var(--color-text-faint);
+  font-size: 0.78rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* Discord button */
+.app-button--discord {
+  background: #5865f2;
+  color: #fff;
+  border: none;
+}
+
+.app-button--discord:hover {
+  background: #4752c4;
+  color: #fff;
+}
+
+/* Confirm button danger state (set by auth.js) */
+.btn-danger {
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 24%, transparent);
+}
+
+/* ── Confirm overlay ─────────────────────────────────────────────────────── */
+
+.auth-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.auth-confirm-overlay.is-open {
+  display: flex;
+}
+
+.auth-confirm-card {
+  width: min(480px, 100%);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  box-shadow: var(--shadow-2);
+}
+
+.auth-confirm-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.auth-confirm-message {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+
+.auth-confirm-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Discord avatar preview ──────────────────────────────────────────────── */
+
+.auth-discord-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.auth-discord-preview__img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.auth-discord-preview__note {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── Header: logo non-clickable ─────────────────────────────────────────── */
+.auth-site-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  color: var(--color-text);
+  cursor: default;
+  user-select: none;
+}
+
+.auth-site-logo__mark {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-round);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  flex-shrink: 0;
+}
+
+.auth-site-logo__label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
