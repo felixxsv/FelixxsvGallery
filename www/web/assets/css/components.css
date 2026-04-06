@@ -979,14 +979,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .shell-profile-preview-icon::before {
   content: "";
-  width: 13px;
-  height: 9px;
+  width: 16px;
+  height: 11px;
   border: 1.5px solid color-mix(in srgb, var(--color-text) 92%, transparent);
   border-radius: 50%;
   box-sizing: border-box;
@@ -996,8 +996,8 @@ body {
 .shell-profile-preview-icon::after {
   content: "";
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--color-text) 92%, transparent);
   border-color: transparent;
