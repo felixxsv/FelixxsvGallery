@@ -8,6 +8,7 @@ import { createSessionStore } from "./core/session.js";
 import { createI18n } from "./core/i18n.js";
 import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js";
+import { initPublicProfileModal } from "./components/public-profile.js";
 import { createUploadModalController } from "./components/upload-modal.js";
 import { initHomePage } from "./page/home.js";
 import { ensureCustomScrollbars } from "./core/custom-scrollbar.js";
@@ -485,6 +486,7 @@ async function bootstrap() {
   window.App = app;
   app.theme.init();
   initUserShell(app);
+  initPublicProfileModal(app);
   ensureCustomScrollbars({ includeWindow: true, selectors: [".home-sidebar__body"] });
 
   app.uploadModal = createUploadModalController({ app, scope: "public" });

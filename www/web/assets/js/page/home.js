@@ -1177,6 +1177,7 @@ export function initHomePage(app) {
     const emptyNode = fragment.querySelector("[data-card-empty]");
     const titleNode = fragment.querySelector("[data-card-title]");
     const metaNode = fragment.querySelector("[data-card-meta]");
+    const userButton = fragment.querySelector("[data-card-user]");
     const likeButton = fragment.querySelector("[data-action='toggle-like']");
     const likeIcon = fragment.querySelector("[data-card-like-icon]");
     const likeCount = fragment.querySelector("[data-card-like-count]");
@@ -1211,6 +1212,23 @@ export function initHomePage(app) {
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
     metaNode.textContent = textOrDash(image.shot_at || image.created_at || image.date || "");
+
+    const detail = buildPublicDetail(image);
+    const user = detail.user || {};
+    if (userButton && user.user_key) {
+      userButton.dataset.userKey = user.user_key;
+      userButton.setAttribute("aria-label", `${user.display_name || user.user_key} のプロフィール`);
+      userButton.hidden = false;
+      const avatarEl = userButton.querySelector("[data-card-user-avatar]");
+      if (avatarEl) {
+        if (user.avatar_url) {
+          avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="">`;
+        } else {
+          avatarEl.textContent = (user.display_name || "?").slice(0, 1).toUpperCase();
+        }
+      }
+    }
+
     applyLikeButtonState(likeButton, likeIcon, likeCount, image, state.pendingLikeIds.has(String(image.id ?? "")));
     return article;
   }
@@ -1775,6 +1793,17 @@ export function initHomePage(app) {
         event.preventDefault();
         event.stopPropagation();
         toggleLikeById(imageId);
+      }
+      return;
+    }
+
+    const userButton = event.target.closest("[data-card-user]");
+    if (userButton && refs.galleryGrid.contains(userButton)) {
+      const userKey = userButton.dataset.userKey;
+      if (userKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.dispatchEvent(new CustomEvent("app:open-user-profile", { detail: { userKey } }));
       }
       return;
     }

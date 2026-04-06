@@ -178,13 +178,13 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       <section class="image-detail-modal__section image-detail-modal__section--summary">
         <div class="image-detail-modal__summary-group image-detail-modal__summary-group--user">
           <div class="image-detail-modal__summary-label">ユーザー情報</div>
-          <div class="image-detail-modal__user image-detail-modal__user--compact">
+          <button type="button" class="image-detail-modal__user image-detail-modal__user--compact${user.user_key ? " is-clickable" : ""}" data-user-key="${escapeHtml(user.user_key || "")}">
             ${user.avatar_url ? `<img class="image-detail-modal__avatar" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
             <div class="image-detail-modal__user-meta">
               <div class="image-detail-modal__user-name">${escapeHtml(textOrDash(user.display_name))}</div>
               <div class="image-detail-modal__user-id">@${escapeHtml(textOrDash(user.user_key))}</div>
             </div>
-          </div>
+          </button>
         </div>
         <div class="image-detail-modal__summary-divider"></div>
         <div class="image-detail-modal__summary-group">
@@ -281,11 +281,18 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
   });
   overlay.querySelector(".image-detail-modal__backdrop")?.addEventListener("click", close);
   body.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-detail-preview-open]");
-    if (!button) {
+    const previewBtn = event.target.closest("[data-detail-preview-open]");
+    if (previewBtn) {
+      handlePreviewOpen();
       return;
     }
-    handlePreviewOpen();
+    const userBtn = event.target.closest("[data-user-key]");
+    if (userBtn) {
+      const userKey = userBtn.dataset.userKey;
+      if (userKey) {
+        document.dispatchEvent(new CustomEvent("app:open-user-profile", { detail: { userKey } }));
+      }
+    }
   });
 
   return { open, update, close, isOpen: () => !overlay.hidden, setLikePending };

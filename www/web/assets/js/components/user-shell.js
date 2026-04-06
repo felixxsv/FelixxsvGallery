@@ -84,6 +84,7 @@ export function initUserShell(app) {
     uploadDisabled: byId("shellUploadDisabledMessage"),
     uploadOpenButton: byId("shellUploadOpenButton"),
     accountOpenButton: byId("shellAccountOpenButton"),
+    profilePreviewButton: byId("shellProfilePreviewButton"),
     adminLink: byId("shellAdminLink"),
     userFooter: byId("shellUserFooter"),
     logoutButton: byId("shellLogoutButton"),
@@ -328,6 +329,7 @@ export function initUserShell(app) {
       refs.uploadDisabled.hidden = true;
       if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = true;
       refs.accountOpenButton.hidden = true;
+      if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = true;
       refs.adminLink.hidden = true;
       refs.userFooter.hidden = true;
       return;
@@ -392,6 +394,7 @@ export function initUserShell(app) {
     refs.uploadDisabled.hidden = uploadEnabled;
     if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = !uploadEnabled;
     refs.accountOpenButton.hidden = false;
+    if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = false;
     refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
     refs.userFooter.hidden = false;
   }
@@ -1001,6 +1004,14 @@ export function initUserShell(app) {
 
     refs.logoutButton.addEventListener("click", handleLogout);
     refs.logoutAllButton.addEventListener("click", handleLogoutAll);
+    if (refs.profilePreviewButton) {
+      refs.profilePreviewButton.addEventListener("click", () => {
+        const userKey = getUser()?.user_key;
+        if (userKey) {
+          document.dispatchEvent(new CustomEvent("app:open-user-profile", { detail: { userKey } }));
+        }
+      });
+    }
     refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
     refs.profileSaveButton.addEventListener("click", handleProfileSave);
     refs.avatarFileInput.addEventListener("change", () => {

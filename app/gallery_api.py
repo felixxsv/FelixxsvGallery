@@ -406,6 +406,45 @@ def health():
     return {"ok": True}
 
 
+@app.get("/api/users/{user_key}")
+def get_public_user_profile(user_key: str):
+    try:
+        validated = _validate_user_key(user_key)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="not found")
+
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, user_key, display_name, bio, avatar_path FROM users WHERE user_key=%s AND status='active'",
+                [validated],
+            )
+            user = cur.fetchone()
+            if not user:
+                raise HTTPException(status_code=404, detail="not found")
+
+            cur.execute(
+                "SELECT url FROM user_links WHERE user_id=%s AND gallery=%s ORDER BY display_order ASC, id ASC",
+                [user["id"], GALLERY],
+            )
+            links = [{"url": r["url"]} for r in cur.fetchall()]
+
+            avatar_url = f"/api/auth/avatar/{user['id']}" if user.get("avatar_path") else None
+
+            return {
+                "user": {
+                    "user_key": user["user_key"],
+                    "display_name": user["display_name"],
+                    "bio": user.get("bio") or "",
+                    "links": links,
+                    "avatar_url": avatar_url,
+                }
+            }
+    finally:
+        conn.close()
+
+
 @app.get("/api/palette")
 def palette():
     return {"items": _palette_from_conf(CONF)}
@@ -514,6 +553,15 @@ def list_images(
 
     sort_key = (sort or "latest").lower()
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+    if _HAS_IMAGES_OWNER_USER_ID:
+        user_select = """,
+  u.user_key AS uploader_user_key,
+  u.display_name AS uploader_display_name,
+  CASE WHEN u.avatar_path IS NOT NULL THEN CONCAT('/api/auth/avatar/', u.id) ELSE NULL END AS uploader_avatar_url"""
+        user_join = "LEFT JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'"
+    else:
+        user_select = ""
+        user_join = ""
     order_params: list = []
     viewer_liked_sql = "0 AS viewer_liked"
     viewer_liked_params: list = []
@@ -549,10 +597,11 @@ SELECT
   COALESCE(i.focal_x, 50) AS focal_x, COALESCE(i.focal_y, 50) AS focal_y,
   COALESCE(st.view_count,0) AS view_count,
   i.like_count,
-  {viewer_liked_sql}
+  {viewer_liked_sql}{user_select}
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
+{user_join}
 WHERE i.gallery=%s AND i.is_public=1
 {where_extra_sql}
 {order_sql}
@@ -603,6 +652,15 @@ def get_image(image_id: int, req: Request):
     conn = db_conn(CONF)
     try:
         with conn.cursor() as cur:
+            if _HAS_IMAGES_OWNER_USER_ID:
+                detail_user_select = """,
+  u.user_key AS uploader_user_key,
+  u.display_name AS uploader_display_name,
+  CASE WHEN u.avatar_path IS NOT NULL THEN CONCAT('/api/auth/avatar/', u.id) ELSE NULL END AS uploader_avatar_url"""
+                detail_user_join = "LEFT JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'"
+            else:
+                detail_user_select = ""
+                detail_user_join = ""
             cur.execute(
                 f"""
 SELECT
@@ -612,9 +670,10 @@ SELECT
   COALESCE(st.view_count,0) AS view_count,
   i.like_count AS like_count,
   COALESCE(st.x_like_count,0) AS x_like_count,
-  {viewer_liked_sql}
+  {viewer_liked_sql}{detail_user_select}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
+{detail_user_join}
 WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
 """,
                 [*viewer_liked_params, GALLERY, image_id],

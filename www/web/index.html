@@ -407,10 +407,42 @@
               data-modal-open="account-security"
               hidden
             >アカウント設定</button>
+            <button
+              id="shellProfilePreviewButton"
+              type="button"
+              class="app-button app-button--ghost app-button--small"
+              hidden
+            >プロフィールを確認</button>
           </div>
           <div class="shell-user-footer__actions">
             <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
             <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="user-profile" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="user-profile"></div>
+      <div class="app-modal-dialog shell-user-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="userProfileTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="userProfileTitle" class="app-modal-title">プロフィール</h2>
+        </div>
+        <div class="app-modal-body">
+          <div id="userProfileLoading" class="shell-user-profile__loading">読み込み中...</div>
+          <div id="userProfileError" class="shell-user-profile__error" hidden>ユーザーが見つかりませんでした。</div>
+          <div id="userProfileContent" class="shell-user-profile" hidden>
+            <div class="shell-user-profile__header">
+              <div id="userProfileAvatar" class="shell-user-profile__avatar" aria-hidden="true">
+                <img id="userProfileAvatarImg" class="shell-user-profile__avatar-img" src="" alt="" hidden>
+              </div>
+              <div class="shell-user-profile__identity">
+                <div id="userProfileDisplayName" class="shell-user-profile__name">-</div>
+                <div id="userProfileUserKey" class="shell-user-profile__key">-</div>
+              </div>
+            </div>
+            <p id="userProfileBio" class="shell-user-profile__bio" hidden></p>
+            <div id="userProfileLinks" class="shell-user-card__links" hidden></div>
           </div>
         </div>
       </div>
@@ -815,6 +847,9 @@
         <div class="home-gallery-card__title" data-card-title></div>
         <div class="home-gallery-card__footer">
           <div class="home-gallery-card__meta" data-card-meta></div>
+          <button type="button" class="home-gallery-card__user" data-card-user aria-label="プロフィールを表示" hidden>
+            <span class="home-gallery-card__user-avatar" data-card-user-avatar></span>
+          </button>
           <button type="button" class="home-gallery-card__like" data-action="toggle-like" aria-label="いいね" aria-pressed="false">
             <span class="home-gallery-card__like-icon" data-card-like-icon aria-hidden="true">♡</span>
             <span class="home-gallery-card__like-count" data-card-like-count>0</span>

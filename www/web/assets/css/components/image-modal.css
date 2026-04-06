@@ -205,6 +205,21 @@ body.is-image-modal-open {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.image-modal__user.is-clickable {
+  cursor: pointer;
+  border-radius: var(--radius-1);
+  transition: opacity 0.15s ease;
+}
+
+.image-modal__user.is-clickable:hover {
+  opacity: 0.75;
 }
 
 .image-modal__user-avatar {
@@ -531,10 +546,27 @@ body.is-image-modal-open {
   display: flex;
   align-items: center;
   gap: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  width: 100%;
 }
 
 .image-detail-modal__user--compact {
   align-items: flex-start;
+}
+
+.image-detail-modal__user.is-clickable {
+  cursor: pointer;
+  border-radius: var(--radius-1);
+  transition: opacity 0.15s ease;
+}
+
+.image-detail-modal__user.is-clickable:hover {
+  opacity: 0.75;
 }
 
 .image-detail-modal__avatar {

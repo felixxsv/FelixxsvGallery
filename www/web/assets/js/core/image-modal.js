@@ -339,6 +339,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
       userAvatarNode.textContent = (user.display_name || "?").slice(0, 1);
     }
     userTextNode.textContent = `${textOrDash(user.display_name)} / @${textOrDash(user.user_key)}`;
+    const userSpan = root.querySelector(".image-modal__user");
+    if (userSpan) {
+      userSpan.dataset.userKey = user.user_key || "";
+      userSpan.classList.toggle("is-clickable", Boolean(user.user_key));
+    }
     syncPagerUi();
     syncLikeUi();
   }
@@ -668,6 +673,12 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   likeButton.addEventListener("click", () => {
     toggleLike();
+  });
+
+  root.querySelector(".image-modal__user").addEventListener("click", (event) => {
+    const userKey = event.currentTarget.dataset.userKey;
+    if (!userKey) return;
+    document.dispatchEvent(new CustomEvent("app:open-user-profile", { detail: { userKey } }));
   });
 
   return {
