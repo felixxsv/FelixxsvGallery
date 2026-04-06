@@ -34,6 +34,12 @@ const completePassword = el("completePassword")
 const completeRegisterBtn = el("completeRegisterBtn")
 const authHeaderBackButton = el("authHeaderBackButton")
 
+const loginDiscordBtn = el("loginDiscordBtn")
+const signupDiscordBtn = el("signupDiscordBtn")
+const discordAvatarPreview = el("discordAvatarPreview")
+const discordAvatarImg = el("discordAvatarImg")
+const completePasswordRow = el("completePasswordRow")
+
 const authConfirmLayer = el("authConfirmLayer")
 const authConfirmTitle = el("authConfirmTitle")
 const authConfirmMessage = el("authConfirmMessage")
@@ -58,7 +64,9 @@ const state = {
   challengeToken: "",
   challengeMaskedEmail: "",
   signupResendAvailableAt: 0,
-  loginResendAvailableAt: 0
+  loginResendAvailableAt: 0,
+  isDiscordRegistration: false,
+  discordLinkRegistrationToken: "",
 }
 
 function ensureToast() {
@@ -147,7 +155,9 @@ function persistState() {
     challengeToken: state.challengeToken,
     challengeMaskedEmail: state.challengeMaskedEmail,
     signupResendAvailableAt: state.signupResendAvailableAt,
-    loginResendAvailableAt: state.loginResendAvailableAt
+    loginResendAvailableAt: state.loginResendAvailableAt,
+    isDiscordRegistration: state.isDiscordRegistration,
+    discordLinkRegistrationToken: state.discordLinkRegistrationToken,
   }
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
 }
@@ -164,6 +174,8 @@ function restorePersistedState() {
     state.challengeMaskedEmail = String(saved?.challengeMaskedEmail || "")
     state.signupResendAvailableAt = Number(saved?.signupResendAvailableAt || 0)
     state.loginResendAvailableAt = Number(saved?.loginResendAvailableAt || 0)
+    state.isDiscordRegistration = Boolean(saved?.isDiscordRegistration || false)
+    state.discordLinkRegistrationToken = String(saved?.discordLinkRegistrationToken || "")
   } catch (_error) {
   }
 }
@@ -250,14 +262,24 @@ function setSignupStage(which) {
   refreshLeaveGuard()
 }
 
+function setDiscordRegistrationMode(enabled) {
+  state.isDiscordRegistration = enabled
+  if (discordAvatarPreview) discordAvatarPreview.hidden = !enabled
+  if (completePasswordRow) completePasswordRow.hidden = enabled
+}
+
 function resetSignupState() {
   state.verifyTicket = ""
   state.registrationToken = ""
   state.signupResendAvailableAt = 0
-  signupVerifyCode.value = ""
-  completeUserKey.value = ""
-  completeDisplayName.value = ""
-  completePassword.value = ""
+  state.isDiscordRegistration = false
+  if (signupVerifyCode) signupVerifyCode.value = ""
+  if (completeUserKey) completeUserKey.value = ""
+  if (completeDisplayName) completeDisplayName.value = ""
+  if (completePassword) completePassword.value = ""
+  if (discordAvatarPreview) discordAvatarPreview.hidden = true
+  if (discordAvatarImg) discordAvatarImg.src = ""
+  if (completePasswordRow) completePasswordRow.hidden = false
   persistState()
   refreshResendButtons()
 }
@@ -449,6 +471,21 @@ async function doLogin() {
     return
   }
 
+  // Discord email-conflict: auto-link after login
+  if (state.discordLinkRegistrationToken) {
+    const linkToken = state.discordLinkRegistrationToken
+    clearPersistedState()
+    const { res: lRes, data: lData } = await postJson("/gallery/api/auth/discord/link/via-token", { registration_token: linkToken })
+    if (!lRes.ok) {
+      showToastErr(getErrorMessage(lData, "Discord連携に失敗しました。"), 6000)
+      setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 1200)
+      return
+    }
+    showToastOk("Discordアカウントを連携しました。", 2400)
+    setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 900)
+    return
+  }
+
   showToastOk(String(data?.message || "ログインしました。"), 1600)
   clearPersistedState()
   setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 450)
@@ -505,6 +542,24 @@ async function doLoginTwoFactorResend() {
   setQuery({ step: "verify-2fa", challenge: state.challengeToken })
   setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec)
   showToastOk(String(data?.message || "認証コードを再送しました。"), 1800)
+}
+
+async function startDiscordOAuth() {
+  const { res, data } = await postJson("/gallery/api/auth/discord/start", {})
+
+  if (!res.ok) {
+    showToastErr(getErrorMessage(data, `Discord OAuth 開始に失敗しました (${res.status})`), 5200)
+    return
+  }
+
+  const redirectTo = data?.next?.to
+  if (redirectTo) {
+    allowBrowserLeave = true
+    location.replace(redirectTo)
+    return
+  }
+
+  showToastErr("Discord認証URLの取得に失敗しました。", 5200)
 }
 
 async function startRegistration() {
@@ -591,8 +646,34 @@ async function confirmRegistrationCode() {
 async function completeRegistration() {
   const userKey = String(completeUserKey.value || "").trim()
   const displayName = String(completeDisplayName.value || "").trim()
-  const password = String(completePassword.value || "")
 
+  if (state.isDiscordRegistration) {
+    if (!state.registrationToken || !userKey || !displayName) {
+      showToastErr("user_key / display_name を入力してください。", 5200)
+      return
+    }
+
+    const { res, data } = await postJson("/gallery/api/auth/register/discord", {
+      registration_token: state.registrationToken,
+      user_key: userKey,
+      display_name: displayName,
+    })
+
+    if (!res.ok) {
+      showToastErr(getErrorMessage(data, `Discord登録に失敗しました (${res.status})`), 5200)
+      return
+    }
+
+    showToastOk(String(data?.message || "Discordアカウントで登録しました。"), 2200)
+    resetSignupState()
+    setQuery({})
+    clearPersistedState()
+    const nextTo = data?.next?.to
+    setTimeout(() => { location.replace(nextTo || "/gallery/") }, 600)
+    return
+  }
+
+  const password = String(completePassword.value || "")
   if (!state.registrationToken || !userKey || !displayName || !password) {
     showToastErr("user_key / display_name / password を入力してください。", 5200)
     return
@@ -622,6 +703,31 @@ async function completeRegistration() {
   clearPersistedState()
 }
 
+async function hydrateDiscordRegistrationPrefill() {
+  if (!state.registrationToken) return
+  const { res, data } = await getJson(
+    `/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.registrationToken)}`
+  )
+  if (!res.ok || !data?.data?.prefill) return
+  const prefill = data.data.prefill
+  if (completeUserKey && prefill.user_key && !completeUserKey.value) {
+    completeUserKey.value = prefill.user_key
+  }
+  if (completeDisplayName && prefill.display_name && !completeDisplayName.value) {
+    completeDisplayName.value = prefill.display_name
+  }
+  const profile = data.data.discord_profile
+  if (profile?.provider_avatar_url && discordAvatarImg) {
+    discordAvatarImg.src = profile.provider_avatar_url
+    if (discordAvatarPreview) discordAvatarPreview.hidden = false
+  }
+  if (profile?.provider_email) {
+    if (signupCompleteMessage) signupCompleteMessage.textContent = `Discordアカウント (${profile.provider_email}) でアカウントを作成します。`
+  } else {
+    if (signupCompleteMessage) signupCompleteMessage.textContent = "Discordアカウントでアカウントを作成します。パスワードを設定してください。"
+  }
+}
+
 async function restoreFromLocation() {
   restorePersistedState()
   if (state.signupEmail && signupEmail) signupEmail.value = state.signupEmail
@@ -639,9 +745,35 @@ async function restoreFromLocation() {
   }
   if (step === "complete-registration") {
     state.registrationToken = String(url.searchParams.get("registration") || state.registrationToken || "")
+    const provider = String(url.searchParams.get("provider") || "")
+    const conflict = String(url.searchParams.get("conflict") || "")
+
+    if (provider === "discord" && conflict === "email_exists") {
+      // Email already exists: ask user to login to link Discord
+      state.discordLinkRegistrationToken = state.registrationToken
+      state.registrationToken = ""
+      // Pre-fill email from Discord profile if available
+      try {
+        const statusRes = await fetch(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.discordLinkRegistrationToken)}`)
+        const statusData = await statusRes.json()
+        const email = statusData?.data?.discord_profile?.provider_email || ""
+        if (email && loginEmail) loginEmail.value = email
+      } catch (_) {}
+      setTab("login")
+      setLoginStage("credentials")
+      setSignupStage("start")
+      persistState()
+      showToast("このメールアドレスはすでに登録されています。ログインするとDiscordが自動的に連携されます。", 8000, "ok")
+      return
+    }
+
+    setDiscordRegistrationMode(provider === "discord")
     setTab("signup")
     setSignupStage("complete")
     setLoginStage("credentials")
+    if (provider === "discord" && state.registrationToken) {
+      await hydrateDiscordRegistrationPrefill()
+    }
     persistState()
     refreshLeaveGuard()
     return
@@ -725,6 +857,9 @@ function init() {
       })
     })
   }
+
+  if (loginDiscordBtn) loginDiscordBtn.addEventListener("click", startDiscordOAuth)
+  if (signupDiscordBtn) signupDiscordBtn.addEventListener("click", startDiscordOAuth)
 
   if (loginBtn) loginBtn.addEventListener("click", doLogin)
   if (loginTwoFactorVerifyBtn) loginTwoFactorVerifyBtn.addEventListener("click", doLoginTwoFactorVerify)

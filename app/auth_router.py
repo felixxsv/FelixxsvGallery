@@ -37,6 +37,7 @@ from auth_service import (
     delete_avatar_for_current_session,
     add_link_for_current_session,
     delete_link_for_current_session,
+    start_email_change_for_session,
     start_registration,
     complete_registration,
     request_password_reset,
@@ -44,6 +45,9 @@ from auth_service import (
     send_email_verification_again,
     send_two_factor_challenge_again,
     start_discord_oauth,
+    start_discord_link,
+    set_password_for_session,
+    link_discord_via_registration_token,
     start_two_factor_setup_for_current_session,
 )
 
@@ -99,10 +103,19 @@ class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
 
+class EmailChangeStartRequest(BaseModel):
+    new_email: str
+
 class DiscordRegisterRequest(BaseModel):
     registration_token: str
     user_key: str
     display_name: str
+
+class SetPasswordRequest(BaseModel):
+    password: str
+
+class DiscordLinkViaTokenRequest(BaseModel):
+    registration_token: str
 
 class TwoFactorSetupConfirmRequest(BaseModel):
     verify_ticket: str
@@ -930,6 +943,31 @@ async def password_forgot(
             http_status=500,
         )
 
+@router.post("/email/change/start")
+async def email_change_start(
+    payload: EmailChangeStartRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = start_email_change_for_session(
+            session_token=gallery_session,
+            new_email=payload.new_email,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="メールアドレス変更の開始に失敗しました。",
+            http_status=500,
+        )
+
+
 @router.post("/password/change")
 async def password_change(
     payload: ChangePasswordRequest,
@@ -1014,17 +1052,61 @@ async def discord_start():
         )
 
 
+@router.post("/discord/link/start")
+async def discord_link_start(
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    try:
+        result = start_discord_link(session_token=gallery_session)
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="Discord連携の開始に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/password/set")
+async def password_set(
+    payload: SetPasswordRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = set_password_for_session(
+            session_token=gallery_session,
+            password=payload.password,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="パスワードの設定に失敗しました。",
+            http_status=500,
+        )
+
+
 @router.get("/discord/callback")
 async def discord_callback(
     request: Request,
     code: str | None = Query(default=None),
     state: str | None = Query(default=None),
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     context = extract_request_context(request)
     try:
         result = handle_discord_callback(
             code=code,
             state=state,
+            session_token=gallery_session,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -1085,5 +1167,30 @@ async def discord_register(
             request_id=request_id,
             error_code="server_error",
             message="Discord登録の完了に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/discord/link/via-token")
+async def discord_link_via_token(
+    payload: DiscordLinkViaTokenRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = link_discord_via_registration_token(
+            session_token=gallery_session,
+            registration_token=payload.registration_token,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="Discord連携に失敗しました。",
             http_status=500,
         )

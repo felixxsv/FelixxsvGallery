@@ -3139,8 +3139,7 @@ def handle_discord_callback(
             return result
 
         else:
-            # New Discord user — create registration token and redirect
-            _safe_rollback(conn)
+            # New Discord user — check if email already exists on another account
             registration_token = create_registration_token(
                 provider_user_id=provider_user_id,
                 provider_email=provider_email,
@@ -3150,6 +3149,20 @@ def handle_discord_callback(
             )
             conf = _get_conf()
             base_url = _get_base_url(conf)
+
+            if provider_email:
+                existing_user = get_user_by_primary_email(conn, provider_email)
+                if existing_user is not None and existing_user.get("status") == "active":
+                    # Email conflict: offer to link Discord to existing account
+                    _safe_rollback(conn)
+                    redirect_path = _build_register_complete_path(registration_token)
+                    return build_service_success(
+                        next_kind="redirect",
+                        next_to=f"{base_url}{redirect_path}&provider=discord&conflict=email_exists",
+                        message="このメールアドレスは既に登録されています。既存のアカウントにDiscordを連携できます。",
+                    )
+
+            _safe_rollback(conn)
             redirect_path = _build_register_complete_path(registration_token)
             return build_service_success(
                 next_kind="redirect",
@@ -3215,6 +3228,76 @@ def get_discord_registration_status(
             error_code="server_error",
             message="Discord登録情報の取得に失敗しました。",
         )
+
+
+def link_discord_via_registration_token(
+    session_token: str | None,
+    registration_token: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    """メール衝突後にログインして、registrationトークンのDiscordアカウントを連携する"""
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+    if not registration_token or str(registration_token).strip() == "":
+        return build_service_error(error_code="invalid_token", message="registrationトークンが無効です。")
+
+    now_dt = _utc_now(now)
+    current = get_current_user_by_session_token(session_token=session_token, now=now_dt)
+    if current is None:
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+
+    try:
+        parsed = parse_registration_token(str(registration_token).strip(), now=now_dt)
+    except Exception:
+        return build_service_error(error_code="invalid_token", message="registrationトークンが無効または期限切れです。")
+
+    provider_user_id = parsed["provider_user_id"]
+    provider_email = parsed.get("provider_email")
+    provider_display_name = parsed.get("provider_display_name") or parsed.get("provider_username") or ""
+    user_id = current["user"]["id"]
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+
+        existing_identity = get_identity_by_provider_user_id(conn, "discord", provider_user_id)
+        if existing_identity is not None:
+            _safe_rollback(conn)
+            if existing_identity["user_id"] == user_id:
+                return build_service_error(error_code="already_linked", message="このDiscordアカウントはすでに連携済みです。")
+            return build_service_error(error_code="discord_conflict", message="このDiscordアカウントは別のアカウントに連携されています。")
+
+        create_auth_identity(
+            conn=conn,
+            user_id=user_id,
+            provider="discord",
+            provider_user_id=provider_user_id,
+            provider_email=provider_email,
+            provider_display_name=provider_display_name,
+            is_enabled=True,
+        )
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user_id,
+            action_type="auth.discord_link",
+            target_type="user",
+            target_id=str(user_id),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="メール衝突後にDiscordアカウントを連携しました。",
+            meta_json={"provider_user_id": provider_user_id},
+        )
+        conn.commit()
+        return build_service_success(message="Discordアカウントを連携しました。")
+    except Exception:
+        logger.exception("link_discord_via_registration_token DB error")
+        _safe_rollback(conn)
+        return build_service_error(error_code="server_error", message="Discord連携中にエラーが発生しました。")
+    finally:
+        _safe_close(conn)
 
 
 def complete_discord_registration(
