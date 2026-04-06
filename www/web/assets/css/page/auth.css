@@ -1,44 +1,124 @@
+/* ── Body lock: auth page fits viewport exactly ─────────────────────────── */
+
+body.auth-page {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 /* ── Auth page layout ───────────────────────────────────────────────────── */
 
 .auth-main {
-  height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   overflow: hidden;
 }
 
 .auth-split {
   display: grid;
-  grid-template-columns: 1fr;
   height: 100%;
 }
+
+/* ── PC: side-by-side ───────────────────────────────────────────────────── */
 
 @media (min-width: 900px) {
   .auth-split {
     grid-template-columns: 1fr 1fr;
   }
+
+  /* Hero visible, takes left column */
+  .auth-hero {
+    display: block;
+    position: relative;
+  }
+
+  /* Form side: right column */
+  .auth-form-side {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 20px 40px;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .auth-lang-bar {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+  }
+
+  .auth-form-panel {
+    width: 100%;
+    max-width: 400px;
+  }
 }
 
-/* ── Hero: slideshow (left panel) ───────────────────────────────────────── */
+/* ── Mobile / portrait: form over slideshow background ──────────────────── */
+
+@media (max-width: 899px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+
+  /* Hero: full-bleed background layer */
+  .auth-hero {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* Form side: overlay on top of hero */
+  .auth-form-side {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 52px 20px 36px;
+    background: color-mix(in srgb, var(--color-bg) 62%, transparent);
+    backdrop-filter: blur(4px);
+  }
+
+  .auth-lang-bar {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 2;
+  }
+
+  /* Form panel: glass card for readability */
+  .auth-form-panel {
+    width: 100%;
+    max-width: 400px;
+    background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* ── Hero: slideshow ────────────────────────────────────────────────────── */
 
 .auth-hero {
-  display: none;
-  position: relative;
   overflow: hidden;
   background: var(--color-bg);
 }
 
-@media (min-width: 900px) {
-  .auth-hero {
-    display: block;
-  }
-}
-
-/* Slide container */
 .auth-hero__slides {
   position: absolute;
   inset: 0;
 }
 
-/* Individual slides */
 .auth-hero__slide {
   position: absolute;
   inset: 0;
@@ -55,10 +135,10 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  /* object-position set per-image by JS using focal_x/focal_y */
+  /* object-position applied per-image by JS (focal_x/focal_y) */
 }
 
-/* Overlay: gradient + branding at bottom */
+/* Bottom gradient overlay + branding */
 .auth-hero__overlay {
   position: absolute;
   inset: 0;
@@ -66,13 +146,13 @@
     to top,
     rgba(0, 0, 0, 0.72) 0%,
     rgba(0, 0, 0, 0.28) 40%,
-    rgba(0, 0, 0, 0.08) 70%,
+    rgba(0, 0, 0, 0.06) 70%,
     transparent 100%
   );
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 32px 36px;
+  padding: 28px 32px;
   pointer-events: none;
 }
 
@@ -80,85 +160,38 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .auth-hero__brand-mark {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 22%, transparent);
   flex-shrink: 0;
 }
 
 .auth-hero__brand-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #fff;
   letter-spacing: -0.01em;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
 .auth-hero__sub {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.72);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.68);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
-/* ── Form side (right panel) ─────────────────────────────────────────────── */
-
-.auth-form-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 20px 40px;
-  height: 100%;
-  overflow-y: auto;
-  position: relative;
-}
-
-/* Language selector: top-right of form side */
-.auth-lang-bar {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-}
-
-.auth-lang-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-  padding: 4px 26px 4px 10px;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='rgba(232,238,248,0.5)' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-}
-
-.auth-lang-select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* ── Form panel ──────────────────────────────────────────────────────────── */
-
-.auth-form-panel {
-  width: 100%;
-  max-width: 400px;
-}
-
-/* ── Tabs ────────────────────────────────────────────────────────────────── */
+/* ── Form: tabs ──────────────────────────────────────────────────────────── */
 
 .auth-tabs {
   display: flex;
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .auth-tab {
@@ -183,7 +216,7 @@
   border-bottom-color: var(--color-primary);
 }
 
-/* ── Panes ───────────────────────────────────────────────────────────────── */
+/* ── Form: panes ─────────────────────────────────────────────────────────── */
 
 .auth-pane {
   display: none;
@@ -193,13 +226,13 @@
   display: block;
 }
 
-/* ── Form fields ─────────────────────────────────────────────────────────── */
+/* ── Form: fields ────────────────────────────────────────────────────────── */
 
 .auth-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .auth-field__label {
@@ -218,7 +251,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 16px 0;
+  margin: 14px 0;
   color: var(--color-text-faint);
   font-size: 0.78rem;
 }
@@ -231,7 +264,30 @@
   background: var(--color-border);
 }
 
-/* Discord button */
+/* ── Language selector ───────────────────────────────────────────────────── */
+
+.auth-lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  padding: 4px 26px 4px 10px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='rgba(232,238,248,0.5)' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.auth-lang-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Discord button ──────────────────────────────────────────────────────── */
+
 .app-button--discord {
   background: #5865f2;
   color: #fff;
@@ -243,7 +299,8 @@
   color: #fff;
 }
 
-/* Confirm button danger state (toggled by auth.js) */
+/* ── Confirm button danger state (set by auth.js) ────────────────────────── */
+
 .btn-danger {
   background: color-mix(in srgb, var(--color-danger) 16%, transparent);
   color: var(--color-danger);
@@ -302,7 +359,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   padding: 10px 12px;
   background: var(--color-surface);
   border-radius: var(--radius-sm);
@@ -310,15 +367,15 @@
 }
 
 .auth-discord-preview__img {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
 
 .auth-discord-preview__note {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--color-text-muted);
   line-height: 1.5;
 }
@@ -349,25 +406,4 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
-}
-
-/* ── Mobile: form scrollable ─────────────────────────────────────────────── */
-
-@media (max-width: 899px) {
-  .auth-main {
-    height: auto;
-    min-height: calc(100vh - var(--header-height));
-    overflow: visible;
-  }
-
-  .auth-split {
-    height: auto;
-    min-height: calc(100vh - var(--header-height));
-  }
-
-  .auth-form-side {
-    height: auto;
-    min-height: calc(100vh - var(--header-height));
-    padding-top: 52px;
-  }
 }
