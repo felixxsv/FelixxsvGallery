@@ -3,31 +3,57 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>VRChat Gallery - Verify</title>
+  <title>Felixxsv Gallery - メール確認</title>
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
   <link rel="stylesheet" href="/gallery/assets/css/page/auth.css">
 </head>
-<body>
-  <header class="hdr">
-    <div class="hdr__in authhdr__in">
-      <div class="hdr__l authhdr__l">
-        <a class="hdr__title authhdr__title" href="/gallery/">
-          <span class="authhdr__brand">VRChat Gallery</span>
-          <span class="authhdr__path">/gallery/auth/verify</span>
-        </a>
+<body class="app-page auth-page" data-app-base="/gallery">
+
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <span class="auth-site-logo" aria-label="Felixxsv Gallery">
+          <span class="auth-site-logo__mark" aria-hidden="true"></span>
+          <span class="auth-site-logo__label">Felixxsv Gallery</span>
+        </span>
       </div>
-      <div class="hdr__r authhdr__r">
-        <a class="authhdr__back" href="/gallery/"><span class="authhdr__backic" aria-hidden="true">←</span><span>Back to Gallery</span></a>
+      <div class="app-site-header__right">
+        <a href="/gallery/" class="app-button app-button--ghost app-button--small">← ギャラリーへ</a>
       </div>
     </div>
   </header>
 
-  <main class="authmain">
-    <div class="authwrap">
-      <div class="authhero">
-        <h1 class="authhero__ttl">メール確認中...</h1>
-        <div class="authhero__sub">このままお待ちください。</div>
+  <main class="auth-main">
+    <div class="auth-split">
+
+      <!-- ── Left: hero ────────────────────────────────────────────────────── -->
+      <div class="auth-hero" aria-hidden="true">
+        <div id="authHeroSlides" class="auth-hero__slides"></div>
+        <div class="auth-hero__overlay">
+          <div class="auth-hero__brand">
+            <span class="auth-hero__brand-mark"></span>
+            <span class="auth-hero__brand-name">Felixxsv Gallery</span>
+          </div>
+          <div class="auth-hero__sub">VRChatの思い出を、ここに。</div>
+        </div>
       </div>
+
+      <!-- ── Right: status ──────────────────────────────────────────────── -->
+      <div class="auth-form-side">
+        <div class="auth-form-panel">
+
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab is-on" type="button" role="tab" aria-selected="true">メール確認中...</button>
+          </div>
+
+          <div id="verifyStatus" class="auth-field__label" style="line-height:1.7">
+            このままお待ちください。
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </main>
 

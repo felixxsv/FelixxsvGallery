@@ -3,49 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>VRChat Gallery - Complete</title>
+  <title>Felixxsv Gallery - アカウント設定</title>
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
   <link rel="stylesheet" href="/gallery/assets/css/page/auth.css">
 </head>
-<body>
-  <header class="hdr">
-    <div class="hdr__in authhdr__in">
-      <div class="hdr__l authhdr__l">
-        <a class="hdr__title authhdr__title" href="/gallery/">
-          <span class="authhdr__brand">VRChat Gallery</span>
-          <span class="authhdr__path">/gallery/auth/complete</span>
-        </a>
+<body class="app-page auth-page" data-app-base="/gallery">
+
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <span class="auth-site-logo" aria-label="Felixxsv Gallery">
+          <span class="auth-site-logo__mark" aria-hidden="true"></span>
+          <span class="auth-site-logo__label">Felixxsv Gallery</span>
+        </span>
       </div>
-      <div class="hdr__r authhdr__r">
-        <a class="authhdr__back" href="/gallery/"><span class="authhdr__backic" aria-hidden="true">←</span><span>Back to Gallery</span></a>
+      <div class="app-site-header__right">
+        <a href="/gallery/auth/" class="app-button app-button--ghost app-button--small">← ログインへ戻る</a>
       </div>
     </div>
   </header>
 
-  <main class="authmain">
-    <div class="authwrap">
-      <div class="authhero">
-        <h1 class="authhero__ttl">アカウント情報の設定</h1>
-        <div class="authhero__sub">ID（User Key）を設定して登録を完了してください。</div>
+  <main class="auth-main">
+    <div class="auth-split">
+
+      <!-- ── Left: hero ────────────────────────────────────────────────────── -->
+      <div class="auth-hero" aria-hidden="true">
+        <div id="authHeroSlides" class="auth-hero__slides"></div>
+        <div class="auth-hero__overlay">
+          <div class="auth-hero__brand">
+            <span class="auth-hero__brand-mark"></span>
+            <span class="auth-hero__brand-name">Felixxsv Gallery</span>
+          </div>
+          <div class="auth-hero__sub">VRChatの思い出を、ここに。</div>
+        </div>
       </div>
 
-      <section class="authcard">
-        <div class="authcard__cap">プロフィール</div>
+      <!-- ── Right: form ────────────────────────────────────────────────── -->
+      <div class="auth-form-side">
+        <div class="auth-form-panel">
 
-        <form id="cForm" class="authform" autocomplete="on">
-          <label class="sr" for="cUserKey">User Key</label>
-          <input id="cUserKey" class="authinp" type="text" placeholder="User Key（4-20文字 / 先頭英字 / 英数字・_・-）" required minlength="4" maxlength="20" autocomplete="username" inputmode="latin" pattern="[A-Za-z][A-Za-z0-9_-]{3,19}">
-
-          <label class="sr" for="cDisplayName">Display Name</label>
-          <input id="cDisplayName" class="authinp" type="text" placeholder="Display Name（任意）" maxlength="128" autocomplete="nickname">
-
-          <button id="cBtn" class="authbtn authbtn--primary" type="submit">登録完了</button>
-
-          <div class="authlinks">
-            <a class="authlink" href="/gallery/auth/">ログインへ戻る</a>
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab is-on" type="button" role="tab" aria-selected="true">アカウント設定</button>
           </div>
-        </form>
-      </section>
+
+          <form id="cForm" autocomplete="on">
+            <div class="auth-field">
+              <label class="auth-field__label" for="cUserKey">ユーザーキー</label>
+              <input id="cUserKey" class="app-input" type="text"
+                placeholder="4〜20文字 (先頭英字 / 英数字・_・-)"
+                required minlength="4" maxlength="20"
+                autocomplete="username" inputmode="latin"
+                pattern="[A-Za-z][A-Za-z0-9_-]{3,19}">
+            </div>
+            <div class="auth-field">
+              <label class="auth-field__label" for="cDisplayName">表示名</label>
+              <input id="cDisplayName" class="app-input" type="text"
+                placeholder="任意" maxlength="128" autocomplete="nickname">
+            </div>
+            <button id="cBtn" class="app-button app-button--primary auth-btn" type="submit">登録完了</button>
+          </form>
+
+        </div>
+      </div>
+
     </div>
   </main>
 
