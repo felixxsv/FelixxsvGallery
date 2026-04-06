@@ -159,6 +159,7 @@ export function initUserShell(app) {
 
     accountDiscordStatus: byId("shellAccountDiscordStatus"),
     discordLinkButton: byId("shellDiscordLinkButton"),
+    discordUnlinkButton: byId("shellDiscordUnlinkButton"),
 
     twoFactorSetupMessage: byId("shellTwoFactorSetupMessage"),
     twoFactorCodeInput: byId("shellTwoFactorCodeInput"),
@@ -634,6 +635,7 @@ export function initUserShell(app) {
       refs.accountDiscordStatus.textContent = hasDiscord ? "連携済み" : "未連携";
     }
     if (refs.discordLinkButton) refs.discordLinkButton.hidden = hasDiscord;
+    if (refs.discordUnlinkButton) refs.discordUnlinkButton.hidden = !hasDiscord;
   }
 
   // メール変更フローの状態
@@ -775,6 +777,18 @@ export function initUserShell(app) {
       }
     } catch (error) {
       toast.error(error.message || "Discord連携の開始に失敗しました。");
+    }
+  }
+
+  async function handleDiscordUnlink() {
+    const confirmed = await confirm("Discord連携を解除しますか？\n解除後はDiscordでのログインができなくなります。");
+    if (!confirmed) return;
+    try {
+      await app.api.post("/api/auth/discord/unlink");
+      toast.success("Discord連携を解除しました。");
+      await refreshSession();
+    } catch (error) {
+      toast.error(error.message || "Discord連携の解除に失敗しました。");
     }
   }
 
@@ -1274,6 +1288,7 @@ export function initUserShell(app) {
     refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
     if (refs.setPasswordSaveButton) refs.setPasswordSaveButton.addEventListener("click", handleSetPasswordSave);
     if (refs.discordLinkButton) refs.discordLinkButton.addEventListener("click", handleDiscordLink);
+    if (refs.discordUnlinkButton) refs.discordUnlinkButton.addEventListener("click", handleDiscordUnlink);
     refs.profileSaveButton.addEventListener("click", handleProfileSave);
     refs.avatarFileInput.addEventListener("change", () => {
       const file = refs.avatarFileInput.files?.[0] || null;

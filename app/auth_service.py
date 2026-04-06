@@ -2185,6 +2185,57 @@ def start_discord_link(session_token: str | None, now=None) -> dict:
     )
 
 
+def unlink_discord_for_session(
+    session_token: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+    now_dt = _utc_now(now)
+    current = get_current_user_by_session_token(session_token=session_token, now=now_dt)
+    if current is None:
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+    user_id = current["user"]["id"]
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        identity = get_identity_by_user_and_provider(conn, user_id, "discord")
+        if identity is None or not bool(identity.get("is_enabled")):
+            _safe_rollback(conn)
+            return build_service_error(error_code="not_linked", message="Discordアカウントが連携されていません。")
+        # パスワードがない場合は解除不可（ログイン手段がなくなる）
+        pw_creds = get_password_credentials_by_user_id(conn, user_id)
+        if pw_creds is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="cannot_unlink",
+                message="パスワードが設定されていないため、Discord連携を解除できません。先にパスワードを設定してください。",
+            )
+        update_auth_identity_enabled(conn, identity["id"], False)
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user_id,
+            action_type="auth.discord_unlink",
+            target_type="user",
+            target_id=str(user_id),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="Discord連携を解除しました。",
+            meta_json={"identity_id": identity["id"]},
+        )
+        conn.commit()
+        return build_service_success(message="Discord連携を解除しました。")
+    except Exception:
+        logger.exception("unlink_discord_for_session error")
+        _safe_rollback(conn)
+        return build_service_error(error_code="server_error", message="Discord連携解除中にエラーが発生しました。")
+    finally:
+        _safe_close(conn)
+
+
 def set_password_for_session(
     session_token: str | None,
     password: str | None,

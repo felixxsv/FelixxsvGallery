@@ -48,6 +48,7 @@ from auth_service import (
     start_discord_link,
     set_password_for_session,
     link_discord_via_registration_token,
+    unlink_discord_for_session,
     start_two_factor_setup_for_current_session,
 )
 
@@ -1192,5 +1193,28 @@ async def discord_link_via_token(
             request_id=request_id,
             error_code="server_error",
             message="Discord連携に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/discord/unlink")
+async def discord_unlink(
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = unlink_discord_for_session(
+            session_token=gallery_session,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="Discord連携解除に失敗しました。",
             http_status=500,
         )
