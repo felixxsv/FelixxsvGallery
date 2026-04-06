@@ -819,6 +819,8 @@ body {
 }
 
 .shell-user-profile__bio {
+  flex: 1;
+  min-height: 3rem;
   font-size: 0.88rem;
   color: var(--color-text);
   line-height: 1.65;
