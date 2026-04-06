@@ -337,16 +337,27 @@
                 <div class="shell-user-card__identity">
                   <div class="shell-user-card__name-row">
                     <div id="shellUserDisplayName" class="shell-user-card__display-name">-</div>
-                    <button
-                      id="shellAccountEditButton"
-                      type="button"
-                      class="app-icon-button shell-pen-button"
-                      aria-label="プロフィール編集"
-                      data-modal-open="account"
-                      hidden
-                    >
-                      <span class="shell-pen-icon" aria-hidden="true"></span>
-                    </button>
+                    <div class="shell-user-card__name-actions">
+                      <button
+                        id="shellAccountEditButton"
+                        type="button"
+                        class="app-icon-button shell-pen-button"
+                        aria-label="プロフィール編集"
+                        data-modal-open="account"
+                        hidden
+                      >
+                        <span class="shell-pen-icon" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        id="shellProfilePreviewButton"
+                        type="button"
+                        class="app-icon-button shell-profile-preview-button"
+                        aria-label="プロフィールを確認"
+                        hidden
+                      >
+                        <span class="shell-profile-preview-icon" aria-hidden="true"></span>
+                      </button>
+                    </div>
                   </div>
                   <div id="shellUserKey" class="shell-user-card__subline">-</div>
                 </div>
@@ -407,12 +418,6 @@
               data-modal-open="account-security"
               hidden
             >アカウント設定</button>
-            <button
-              id="shellProfilePreviewButton"
-              type="button"
-              class="app-button app-button--ghost app-button--small"
-              hidden
-            >プロフィールを確認</button>
           </div>
           <div class="shell-user-footer__actions">
             <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
