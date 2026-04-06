@@ -578,6 +578,29 @@ def reactivate_auth_identity(
         return _rows_affected(cursor)
 
 
+def reassign_auth_identity(
+    conn,
+    identity_id: int,
+    user_id: int,
+    provider_user_id: str,
+    provider_email: str | None = None,
+    provider_display_name: str | None = None,
+) -> int:
+    """無効化済みのidentityをDiscord IDごと差し替えて再有効化する（別Discordアカウントへの切り替え用）"""
+    sql = """
+        UPDATE auth_identities
+        SET user_id = %s,
+            provider_user_id = %s,
+            provider_email = %s,
+            provider_display_name = %s,
+            is_enabled = 1
+        WHERE id = %s
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(sql, (user_id, provider_user_id, provider_email, provider_display_name, identity_id))
+        return _rows_affected(cursor)
+
+
 def get_password_credentials_by_user_id(conn, user_id: int) -> dict | None:
     sql = """
         SELECT

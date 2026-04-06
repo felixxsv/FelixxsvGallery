@@ -56,6 +56,7 @@ from auth_models import (
     update_auth_identity_last_used,
     update_auth_identity_enabled,
     reactivate_auth_identity,
+    reassign_auth_identity,
     update_password_failed_attempts,
     update_password_hash,
     update_two_factor_settings,
@@ -3140,15 +3141,28 @@ def handle_discord_callback(
                     provider_display_name=provider_display_name or provider_username,
                 )
             else:
-                create_auth_identity(
-                    conn=conn,
-                    user_id=link_user["id"],
-                    provider="discord",
-                    provider_user_id=provider_user_id,
-                    provider_email=provider_email,
-                    provider_display_name=provider_display_name or provider_username,
-                    is_enabled=True,
-                )
+                # identity=None for this Discord ID, but the user may have an old disabled identity
+                user_existing = get_identity_by_user_and_provider(conn, link_user["id"], "discord")
+                if user_existing is not None and not bool(user_existing.get("is_enabled")):
+                    # Reuse the old row, replacing Discord ID
+                    reassign_auth_identity(
+                        conn=conn,
+                        identity_id=user_existing["id"],
+                        user_id=link_user["id"],
+                        provider_user_id=provider_user_id,
+                        provider_email=provider_email,
+                        provider_display_name=provider_display_name or provider_username,
+                    )
+                else:
+                    create_auth_identity(
+                        conn=conn,
+                        user_id=link_user["id"],
+                        provider="discord",
+                        provider_user_id=provider_user_id,
+                        provider_email=provider_email,
+                        provider_display_name=provider_display_name or provider_username,
+                        is_enabled=True,
+                    )
             log_auth_event(
                 conn=conn,
                 actor_user_id=link_user["id"],
@@ -3345,15 +3359,26 @@ def link_discord_via_registration_token(
                 provider_display_name=provider_display_name,
             )
         else:
-            create_auth_identity(
-                conn=conn,
-                user_id=user_id,
-                provider="discord",
-                provider_user_id=provider_user_id,
-                provider_email=provider_email,
-                provider_display_name=provider_display_name,
-                is_enabled=True,
-            )
+            user_existing = get_identity_by_user_and_provider(conn, user_id, "discord")
+            if user_existing is not None and not bool(user_existing.get("is_enabled")):
+                reassign_auth_identity(
+                    conn=conn,
+                    identity_id=user_existing["id"],
+                    user_id=user_id,
+                    provider_user_id=provider_user_id,
+                    provider_email=provider_email,
+                    provider_display_name=provider_display_name,
+                )
+            else:
+                create_auth_identity(
+                    conn=conn,
+                    user_id=user_id,
+                    provider="discord",
+                    provider_user_id=provider_user_id,
+                    provider_email=provider_email,
+                    provider_display_name=provider_display_name,
+                    is_enabled=True,
+                )
         log_auth_event(
             conn=conn,
             actor_user_id=user_id,
