@@ -908,60 +908,6 @@ function init() {
   refreshResendButtons()
 }
 
-async function initHeroSlideshow() {
-  const container = document.getElementById("authHeroSlides")
-  if (!container) return
-  const appBase = document.body.dataset.appBase || "/gallery"
-
-  function resolveUrl(path) {
-    if (!path) return ""
-    if (path.startsWith("http://") || path.startsWith("https://")) return path
-    if (path.startsWith("/gallery/")) return path
-    if (path.startsWith("/")) return `${appBase}${path}`
-    return `${appBase}/storage/${path}`
-  }
-
-  let items = []
-  try {
-    const res = await fetch(`${appBase}/api/images?per_page=24&sort=latest`)
-    if (!res.ok) return
-    const data = await res.json()
-    items = (data.items || []).filter(img => img.preview_path || img.thumb_path_960 || img.thumb_path_480)
-  } catch (_) { return }
-  if (!items.length) return
-
-  // Shuffle so each page visit shows different order
-  for (let i = items.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [items[i], items[j]] = [items[j], items[i]]
-  }
-
-  items.forEach((img, i) => {
-    const src = resolveUrl(img.preview_path || img.thumb_path_960 || img.thumb_path_480)
-    if (!src) return
-
-    const slide = document.createElement("div")
-    slide.className = "auth-hero__slide" + (i === 0 ? " is-active" : "")
-
-    const imgEl = document.createElement("img")
-    imgEl.src = src
-    imgEl.alt = ""
-    imgEl.draggable = false
-    imgEl.style.objectPosition = `${img.focal_x ?? 50}% ${img.focal_y ?? 50}%`
-
-    slide.appendChild(imgEl)
-    container.appendChild(slide)
-  })
-
-  let current = 0
-  setInterval(() => {
-    const slides = container.querySelectorAll(".auth-hero__slide")
-    if (slides.length < 2) return
-    slides[current].classList.remove("is-active")
-    current = (current + 1) % slides.length
-    slides[current].classList.add("is-active")
-  }, 6000)
-}
-
 init()
-initHeroSlideshow()
+if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
+

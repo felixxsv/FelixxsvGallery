@@ -85,6 +85,7 @@ async function completeRegister(user_key, display_name) {
 }
 
 function init() {
+  if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
   if (!TOKEN) {
     location.replace(`/gallery/auth/register/?next=${encodeURIComponent(NEXT)}`)
     return

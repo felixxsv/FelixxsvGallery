@@ -18,6 +18,7 @@ async function verifyToken(token) {
 }
 
 async function boot() {
+  if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
   const token = parseParam("token")
   const next = safeNext(parseParam("next"))
 

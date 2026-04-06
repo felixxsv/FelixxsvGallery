@@ -95,6 +95,7 @@ function showDevVerifyLink(url) {
 }
 
 function init() {
+  if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
   if (!form) return
   form.addEventListener("submit", async (e) => {
     e.preventDefault()
