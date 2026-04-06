@@ -55,6 +55,7 @@ from auth_models import (
     update_session_presence,
     update_auth_identity_last_used,
     update_auth_identity_enabled,
+    reactivate_auth_identity,
     update_password_failed_attempts,
     update_password_hash,
     update_two_factor_settings,
@@ -3110,7 +3111,9 @@ def handle_discord_callback(
                 )
             link_user = current["user"]
             if identity is not None:
-                if identity["user_id"] == link_user["id"]:
+                already_enabled = bool(identity.get("is_enabled"))
+                same_user = identity["user_id"] == link_user["id"]
+                if same_user and already_enabled:
                     _safe_rollback(conn)
                     conf = _get_conf()
                     base_url = _get_base_url(conf)
@@ -3119,7 +3122,7 @@ def handle_discord_callback(
                         next_to=f"{base_url}/gallery/?discord_link=already",
                         message="このDiscordアカウントはすでに連携済みです。",
                     )
-                else:
+                if not same_user and already_enabled:
                     _safe_rollback(conn)
                     conf = _get_conf()
                     base_url = _get_base_url(conf)
@@ -3128,15 +3131,24 @@ def handle_discord_callback(
                         next_to=f"{base_url}/gallery/?discord_link=conflict",
                         message="このDiscordアカウントは別のアカウントに紐付いています。",
                     )
-            create_auth_identity(
-                conn=conn,
-                user_id=link_user["id"],
-                provider="discord",
-                provider_user_id=provider_user_id,
-                provider_email=provider_email,
-                provider_display_name=provider_display_name or provider_username,
-                is_enabled=True,
-            )
+                # disabled identity (same or different user) → reactivate
+                reactivate_auth_identity(
+                    conn=conn,
+                    identity_id=identity["id"],
+                    user_id=link_user["id"],
+                    provider_email=provider_email,
+                    provider_display_name=provider_display_name or provider_username,
+                )
+            else:
+                create_auth_identity(
+                    conn=conn,
+                    user_id=link_user["id"],
+                    provider="discord",
+                    provider_user_id=provider_user_id,
+                    provider_email=provider_email,
+                    provider_display_name=provider_display_name or provider_username,
+                    is_enabled=True,
+                )
             log_auth_event(
                 conn=conn,
                 actor_user_id=link_user["id"],
@@ -3316,20 +3328,32 @@ def link_discord_via_registration_token(
 
         existing_identity = get_identity_by_provider_user_id(conn, "discord", provider_user_id)
         if existing_identity is not None:
-            _safe_rollback(conn)
-            if existing_identity["user_id"] == user_id:
+            already_enabled = bool(existing_identity.get("is_enabled"))
+            same_user = existing_identity["user_id"] == user_id
+            if same_user and already_enabled:
+                _safe_rollback(conn)
                 return build_service_error(error_code="already_linked", message="このDiscordアカウントはすでに連携済みです。")
-            return build_service_error(error_code="discord_conflict", message="このDiscordアカウントは別のアカウントに連携されています。")
-
-        create_auth_identity(
-            conn=conn,
-            user_id=user_id,
-            provider="discord",
-            provider_user_id=provider_user_id,
-            provider_email=provider_email,
-            provider_display_name=provider_display_name,
-            is_enabled=True,
-        )
+            if not same_user and already_enabled:
+                _safe_rollback(conn)
+                return build_service_error(error_code="discord_conflict", message="このDiscordアカウントは別のアカウントに連携されています。")
+            # disabled → reactivate
+            reactivate_auth_identity(
+                conn=conn,
+                identity_id=existing_identity["id"],
+                user_id=user_id,
+                provider_email=provider_email,
+                provider_display_name=provider_display_name,
+            )
+        else:
+            create_auth_identity(
+                conn=conn,
+                user_id=user_id,
+                provider="discord",
+                provider_user_id=provider_user_id,
+                provider_email=provider_email,
+                provider_display_name=provider_display_name,
+                is_enabled=True,
+            )
         log_auth_event(
             conn=conn,
             actor_user_id=user_id,

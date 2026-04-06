@@ -557,6 +557,27 @@ def update_auth_identity_enabled(conn, identity_id: int, is_enabled: bool) -> in
         return _rows_affected(cursor)
 
 
+def reactivate_auth_identity(
+    conn,
+    identity_id: int,
+    user_id: int,
+    provider_email: str | None = None,
+    provider_display_name: str | None = None,
+) -> int:
+    """無効化済みのidentityを別ユーザーも含めて再有効化する"""
+    sql = """
+        UPDATE auth_identities
+        SET user_id = %s,
+            provider_email = %s,
+            provider_display_name = %s,
+            is_enabled = 1
+        WHERE id = %s
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(sql, (user_id, provider_email, provider_display_name, identity_id))
+        return _rows_affected(cursor)
+
+
 def get_password_credentials_by_user_id(conn, user_id: int) -> dict | None:
     sql = """
         SELECT
