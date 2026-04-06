@@ -54,6 +54,7 @@ from auth_models import (
     update_session_last_seen,
     update_session_presence,
     update_auth_identity_last_used,
+    update_auth_identity_enabled,
     update_password_failed_attempts,
     update_password_hash,
     update_two_factor_settings,
