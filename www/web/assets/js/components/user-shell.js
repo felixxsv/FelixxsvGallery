@@ -109,7 +109,7 @@ export function initUserShell(app) {
     twoFactorDisableOpenButton: byId("shellTwoFactorDisableOpenButton"),
 
     accountAvatar: byId("shellAccountAvatar"),
-    accountAvatarInitial: byId("shellAccountAvatarInitial"),
+    accountAvatarDefault: byId("shellAccountAvatarDefault"),
     accountAvatarImg: byId("shellAccountAvatarImg"),
     avatarFileInput: byId("shellAvatarFileInput"),
     avatarDeleteButton: byId("shellAvatarDeleteButton"),
@@ -358,14 +358,17 @@ export function initUserShell(app) {
 
     // Avatar
     const avatarUrl = user.avatar_url || null;
+    const cardAvatarDefault = refs.userCardAvatar?.querySelector(".shell-user-card__avatar-default");
     if (avatarUrl) {
       refs.userCardAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.userCardAvatarImg.hidden = false;
       refs.userCardAvatar.classList.add("has-avatar");
+      if (cardAvatarDefault) cardAvatarDefault.hidden = true;
     } else {
       refs.userCardAvatarImg.src = "";
       refs.userCardAvatarImg.hidden = true;
       refs.userCardAvatar.classList.remove("has-avatar");
+      if (cardAvatarDefault) cardAvatarDefault.hidden = false;
     }
 
     // Bio
@@ -387,8 +390,8 @@ export function initUserShell(app) {
       }).join("");
     }
 
-    // Badge pool display selection
-    renderBadgePoolUI(user);
+    // Display selected badges on card
+    renderDisplayBadges(user);
 
     const uploadEnabled = user.upload_enabled !== false;
     refs.uploadDisabled.hidden = uploadEnabled;
@@ -399,32 +402,41 @@ export function initUserShell(app) {
     refs.userFooter.hidden = false;
   }
 
-  // ---- Badge pool UI ----
+  // ---- Badge UI ----
 
-  function renderBadgePoolUI(user) {
-    const container = byId("shellBadgePool");
+  /** Show the selected (up to 3) display badges on the main user card */
+  function renderDisplayBadges(user) {
+    const container = byId("shellUserDisplayBadges");
     if (!container) return;
-
     const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
-    const displayBadges = Array.isArray(user.display_badges) ? user.display_badges : [];
+    const displayKeys = Array.isArray(user.display_badges) ? user.display_badges : [];
+    const poolMap = Object.fromEntries(pool.map((b) => [b.key, b]));
+    const toShow = displayKeys.map((k) => poolMap[k]).filter(Boolean);
+    if (toShow.length === 0) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+    container.hidden = false;
+    container.innerHTML = toShow.map((badge) =>
+      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${badge.description || badge.name || ""}">${badge.name || badge.key}</span>`
+    ).join("");
+  }
 
-    const list = container.querySelector(".shell-badge-pool__list");
-    const hint = container.querySelector(".shell-badge-pool__hint");
-    const empty = container.querySelector(".shell-badge-pool__empty");
-
+  /** Render badge pool in the profile edit modal (shellProfileBadgePool) */
+  function renderProfileBadgePool(user) {
+    const section = byId("shellProfileBadgeSection");
+    const list = byId("shellProfileBadgePool");
     if (!list) return;
 
+    const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
+    if (section) section.hidden = pool.length === 0;
     if (pool.length === 0) {
-      list.innerHTML = "";
-      if (empty) empty.hidden = false;
-      if (hint) hint.hidden = true;
-      container.hidden = false;
+      list.innerHTML = `<span class="shell-badge-pool__empty">バッジはまだありません</span>`;
       return;
     }
 
-    if (empty) empty.hidden = true;
-    if (hint) hint.hidden = false;
-
+    const displayBadges = Array.isArray(user.display_badges) ? user.display_badges : [];
     list.innerHTML = "";
     for (const badge of pool) {
       const isSelected = displayBadges.includes(badge.key);
@@ -437,17 +449,12 @@ export function initUserShell(app) {
       btn.setAttribute("aria-pressed", String(isSelected));
       list.appendChild(btn);
     }
-
-    container.hidden = false;
   }
 
   async function handleBadgeToggle(badgeKey, user) {
-    const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
     const currentDisplay = Array.isArray(user.display_badges) ? [...user.display_badges] : [];
-
     const isSelected = currentDisplay.includes(badgeKey);
     let newDisplay;
-
     if (isSelected) {
       newDisplay = currentDisplay.filter((k) => k !== badgeKey);
     } else {
@@ -457,11 +464,11 @@ export function initUserShell(app) {
       }
       newDisplay = [...currentDisplay, badgeKey];
     }
-
     try {
       await app.api.put("/api/users/me/badge-display", { badge_keys: newDisplay });
       user.display_badges = newDisplay;
-      renderBadgePoolUI(user);
+      renderProfileBadgePool(user);
+      renderDisplayBadges(user);
     } catch (err) {
       app.toast?.error?.(err?.message || "バッジの更新に失敗しました。");
     }
@@ -553,13 +560,12 @@ export function initUserShell(app) {
     if (avatarUrl) {
       refs.accountAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.accountAvatarImg.hidden = false;
-      refs.accountAvatarInitial.hidden = true;
+      if (refs.accountAvatarDefault) refs.accountAvatarDefault.hidden = true;
       refs.avatarDeleteButton.hidden = false;
     } else {
       refs.accountAvatarImg.hidden = true;
       refs.accountAvatarImg.src = "";
-      refs.accountAvatarInitial.hidden = false;
-      refs.accountAvatarInitial.textContent = (user.display_name || user.user_key || "?")[0];
+      if (refs.accountAvatarDefault) refs.accountAvatarDefault.hidden = false;
       refs.avatarDeleteButton.hidden = true;
     }
 
@@ -571,6 +577,9 @@ export function initUserShell(app) {
 
     // Links
     renderLinksGrid();
+
+    // Badge pool (in profile edit)
+    renderProfileBadgePool(user);
   }
 
   function renderAccountSecurityModal() {
@@ -1080,10 +1089,10 @@ export function initUserShell(app) {
         }
       });
     }
-    // Badge pool click delegation
-    const badgePoolEl = byId("shellBadgePool");
-    if (badgePoolEl) {
-      badgePoolEl.addEventListener("click", (e) => {
+    // Badge pool click delegation (in profile edit modal)
+    const profileBadgePoolEl = byId("shellProfileBadgePool");
+    if (profileBadgePoolEl) {
+      profileBadgePoolEl.addEventListener("click", (e) => {
         const btn = e.target.closest(".shell-badge-pool__item[data-badge-key]");
         if (!btn) return;
         const user = getUser();
