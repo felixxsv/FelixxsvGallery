@@ -717,7 +717,7 @@ export function initUserShell(app) {
   }
 
   async function handleLogoutAll() {
-    if (!window.confirm("全端末からログアウトします。よろしいですか。")) {
+    if (!await openActionConfirm("全端末からログアウトします。よろしいですか。", "ログアウト", true)) {
       return;
     }
 
@@ -781,7 +781,7 @@ export function initUserShell(app) {
   }
 
   async function handleDiscordUnlink() {
-    const confirmed = await confirm("Discord連携を解除しますか？\n解除後はDiscordでのログインができなくなります。");
+    const confirmed = await openActionConfirm("Discord連携を解除しますか？解除後はDiscordでのログインができなくなります。", "解除する", true);
     if (!confirmed) return;
     try {
       await app.api.post("/api/auth/discord/unlink");
