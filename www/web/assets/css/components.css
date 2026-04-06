@@ -985,6 +985,7 @@ body {
 
 .shell-profile-preview-icon::before {
   content: "";
+  display: block;
   width: 16px;
   height: 11px;
   border: 1.5px solid color-mix(in srgb, var(--color-text) 92%, transparent);

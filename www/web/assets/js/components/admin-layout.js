@@ -10,6 +10,7 @@ import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
 import { createThemeController } from "../core/theme.js";
 import { initUserShell } from "./user-shell.js";
+import { initPublicProfileModal } from "./public-profile.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
@@ -418,6 +419,7 @@ export async function initAdminLayout() {
   syncSidebarDisplay();
 
   initUserShell(app);
+  initPublicProfileModal(app);
 
   refs.homeLink?.addEventListener("click", async (event) => {
     if (event.defaultPrevented) return;
