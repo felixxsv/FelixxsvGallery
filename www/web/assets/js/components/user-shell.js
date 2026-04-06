@@ -377,18 +377,18 @@ export function initUserShell(app) {
       refs.userBio.hidden = true;
     }
 
-    // Links
+    // Links (always show container for reserved space)
     const links = user.links || [];
-    if (links.length > 0) {
+    if (refs.userCardLinks) {
       refs.userCardLinks.hidden = false;
-      refs.userCardLinks.innerHTML = links.map((link) => {
+      refs.userCardLinks.innerHTML = links.slice(0, 5).map((link) => {
         const iconUrl = getLinkIconUrl(link.url);
         return `<a class="shell-user-link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}"><span class="shell-user-link__icon" style="--link-icon: url('${iconUrl}')"></span></a>`;
       }).join("");
-    } else {
-      refs.userCardLinks.hidden = true;
-      refs.userCardLinks.innerHTML = "";
     }
+
+    // Badge pool display selection
+    renderBadgePoolUI(user);
 
     const uploadEnabled = user.upload_enabled !== false;
     refs.uploadDisabled.hidden = uploadEnabled;
@@ -397,6 +397,74 @@ export function initUserShell(app) {
     if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = false;
     refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
     refs.userFooter.hidden = false;
+  }
+
+  // ---- Badge pool UI ----
+
+  function renderBadgePoolUI(user) {
+    const container = byId("shellBadgePool");
+    if (!container) return;
+
+    const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
+    const displayBadges = Array.isArray(user.display_badges) ? user.display_badges : [];
+
+    const list = container.querySelector(".shell-badge-pool__list");
+    const hint = container.querySelector(".shell-badge-pool__hint");
+    const empty = container.querySelector(".shell-badge-pool__empty");
+
+    if (!list) return;
+
+    if (pool.length === 0) {
+      list.innerHTML = "";
+      if (empty) empty.hidden = false;
+      if (hint) hint.hidden = true;
+      container.hidden = false;
+      return;
+    }
+
+    if (empty) empty.hidden = true;
+    if (hint) hint.hidden = false;
+
+    list.innerHTML = "";
+    for (const badge of pool) {
+      const isSelected = displayBadges.includes(badge.key);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `shell-badge-pool__item shell-badge-pool__item--${badge.color || "gray"}${isSelected ? " is-selected" : ""}`;
+      btn.dataset.badgeKey = badge.key;
+      btn.title = badge.description || badge.name || "";
+      btn.textContent = badge.name || badge.key;
+      btn.setAttribute("aria-pressed", String(isSelected));
+      list.appendChild(btn);
+    }
+
+    container.hidden = false;
+  }
+
+  async function handleBadgeToggle(badgeKey, user) {
+    const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
+    const currentDisplay = Array.isArray(user.display_badges) ? [...user.display_badges] : [];
+
+    const isSelected = currentDisplay.includes(badgeKey);
+    let newDisplay;
+
+    if (isSelected) {
+      newDisplay = currentDisplay.filter((k) => k !== badgeKey);
+    } else {
+      if (currentDisplay.length >= 3) {
+        app.toast?.info?.("バッジは最大3つまで選択できます。");
+        return;
+      }
+      newDisplay = [...currentDisplay, badgeKey];
+    }
+
+    try {
+      await app.api.put("/api/users/me/badge-display", { badge_keys: newDisplay });
+      user.display_badges = newDisplay;
+      renderBadgePoolUI(user);
+    } catch (err) {
+      app.toast?.error?.(err?.message || "バッジの更新に失敗しました。");
+    }
   }
 
   const MAX_LINKS = 5;
@@ -1012,6 +1080,17 @@ export function initUserShell(app) {
         }
       });
     }
+    // Badge pool click delegation
+    const badgePoolEl = byId("shellBadgePool");
+    if (badgePoolEl) {
+      badgePoolEl.addEventListener("click", (e) => {
+        const btn = e.target.closest(".shell-badge-pool__item[data-badge-key]");
+        if (!btn) return;
+        const user = getUser();
+        if (user) handleBadgeToggle(btn.dataset.badgeKey, user);
+      });
+    }
+
     refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
     refs.profileSaveButton.addEventListener("click", handleProfileSave);
     refs.avatarFileInput.addEventListener("change", () => {

@@ -10,6 +10,7 @@ import uuid
 
 from db import db_conn, load_conf
 from auth_mail import AuthMailError, send_password_reset_email, send_two_factor_code_email, send_verification_email
+from badge_defs import serialize_badge, _parse_display_badges_py, ensure_auto_badges
 from auth_models import (
     clear_password_failed_attempts,
     consume_email_verification,
@@ -3060,6 +3061,38 @@ def get_current_user_profile(
         avatar_url = f"/api/auth/avatar/{user['id']}" if avatar_path else None
         links = get_user_links(conn, user["id"])
 
+        # Auto-grant year/role badges; commit handled inside
+        try:
+            ensure_auto_badges(conn, user["id"], user.get("role"), created_at)
+            conn.commit()
+        except Exception:
+            try: conn.rollback()
+            except Exception: pass
+
+        # Load badge pool and display selection
+        badge_pool = []
+        display_badge_keys = []
+        try:
+            with conn.cursor() as _cur:
+                _cur.execute("SHOW TABLES LIKE 'user_badges'")
+                _has_badge_table = bool(_cur.fetchone())
+            if _has_badge_table:
+                with conn.cursor() as _cur:
+                    _cur.execute(
+                        "SELECT badge_key, granted_by, granted_at FROM user_badges WHERE user_id=%s ORDER BY granted_at ASC",
+                        (user["id"],),
+                    )
+                    badge_pool = [
+                        serialize_badge(r["badge_key"], granted_at=None, granted_by=r.get("granted_by"))
+                        for r in (_cur.fetchall() or [])
+                    ]
+                with conn.cursor() as _cur:
+                    _cur.execute("SELECT display_badges FROM users WHERE id=%s LIMIT 1", (user["id"],))
+                    _row = _cur.fetchone()
+                display_badge_keys = _parse_display_badges_py((_row or {}).get("display_badges"))
+        except Exception:
+            pass
+
         return build_service_success(
             data={
                 "user": {
@@ -3074,6 +3107,8 @@ def get_current_user_profile(
                     "upload_enabled": bool(user.get("upload_enabled")),
                     "is_email_verified": bool(user.get("is_email_verified")),
                     "created_at": created_at_text,
+                    "badge_pool": badge_pool,
+                    "display_badges": display_badge_keys,
                 },
                 "security": {
                     "two_factor": {

@@ -50,6 +50,7 @@ export function initPublicProfileModal(app) {
     userKey: byId("userProfileUserKey"),
     bio: byId("userProfileBio"),
     links: byId("userProfileLinks"),
+    badges: byId("userProfileBadges"),
   };
 
   if (!refs.loading) return;
@@ -89,16 +90,28 @@ export function initPublicProfileModal(app) {
         refs.bio.hidden = true;
       }
 
+      // Links (always show container, max 5 slots reserved)
       const links = user.links || [];
-      if (links.length > 0) {
+      if (refs.links) {
         refs.links.hidden = false;
-        refs.links.innerHTML = links.map((link) => {
+        refs.links.innerHTML = links.slice(0, 5).map((link) => {
           const iconUrl = getLinkIconUrl(link.url);
           return `<a class="shell-user-link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}"><span class="shell-user-link__icon" style="--link-icon: url('${iconUrl}')"></span></a>`;
         }).join("");
-      } else {
-        refs.links.hidden = true;
-        refs.links.innerHTML = "";
+      }
+
+      // Badges
+      const badges = Array.isArray(user.badges) ? user.badges : [];
+      if (refs.badges) {
+        refs.badges.innerHTML = "";
+        refs.badges.hidden = badges.length === 0;
+        for (const badge of badges.slice(0, 3)) {
+          const el = document.createElement("span");
+          el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;
+          el.title = badge.description || badge.name || "";
+          el.textContent = badge.name || badge.key;
+          refs.badges.appendChild(el);
+        }
       }
 
       refs.loading.hidden = true;

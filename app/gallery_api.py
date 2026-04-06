@@ -24,6 +24,7 @@ from admin_router import router as admin_router
 from auth_security import DEFAULT_COOKIE_NAME
 from auth_service import get_current_user_by_session_token
 from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
+from badge_defs import BADGE_CATALOG, POST_COUNT_BADGES, serialize_badge
 
 
 def clamp_per_page(n: int) -> int:
@@ -406,6 +407,48 @@ def health():
     return {"ok": True}
 
 
+def _load_user_display_badges(conn, user_id: int, display_badge_keys: list) -> list[dict]:
+    """Load badge details for the user's selected display badges."""
+    if not display_badge_keys:
+        return []
+    if not _detect_table_exists(conn, "user_badges"):
+        return []
+    placeholders = ",".join(["%s"] * len(display_badge_keys))
+    import json as _json
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT badge_key, granted_by, granted_at FROM user_badges WHERE user_id=%s AND badge_key IN ({placeholders})",
+            [user_id, *display_badge_keys],
+        )
+        rows = {r["badge_key"]: r for r in (cur.fetchall() or [])}
+    result = []
+    for key in display_badge_keys:
+        if key in rows:
+            row = rows[key]
+            result.append(serialize_badge(key, granted_at=None, granted_by=row.get("granted_by")))
+    return result
+
+
+def _detect_table_exists(conn, table_name: str) -> bool:
+    with conn.cursor() as cur:
+        cur.execute("SHOW TABLES LIKE %s", (table_name,))
+        return cur.fetchone() is not None
+
+
+def _parse_display_badges(raw) -> list[str]:
+    import json as _json
+    if isinstance(raw, list):
+        return [str(k) for k in raw if k in BADGE_CATALOG][:3]
+    if isinstance(raw, str):
+        try:
+            parsed = _json.loads(raw)
+            if isinstance(parsed, list):
+                return [str(k) for k in parsed if k in BADGE_CATALOG][:3]
+        except Exception:
+            pass
+    return []
+
+
 @app.get("/api/users/{user_key}")
 def get_public_user_profile(user_key: str):
     try:
@@ -417,7 +460,7 @@ def get_public_user_profile(user_key: str):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, user_key, display_name, bio, avatar_path FROM users WHERE user_key=%s AND status='active'",
+                "SELECT id, user_key, display_name, bio, avatar_path, display_badges FROM users WHERE user_key=%s AND status='active'",
                 [validated],
             )
             user = cur.fetchone()
@@ -431,6 +474,8 @@ def get_public_user_profile(user_key: str):
             links = [{"url": r["url"]} for r in cur.fetchall()]
 
             avatar_url = f"/api/auth/avatar/{user['id']}" if user.get("avatar_path") else None
+            display_badge_keys = _parse_display_badges(user.get("display_badges"))
+            badges = _load_user_display_badges(conn, user["id"], display_badge_keys)
 
             return {
                 "user": {
@@ -439,8 +484,96 @@ def get_public_user_profile(user_key: str):
                     "bio": user.get("bio") or "",
                     "links": links,
                     "avatar_url": avatar_url,
+                    "badges": badges,
                 }
             }
+    finally:
+        conn.close()
+
+
+@app.put("/api/users/me/badge-display")
+async def update_my_badge_display(
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    """User selects up to 3 badges from their pool to display on public profile."""
+    import json as _json
+    payload = await request.json()
+    badge_keys = payload.get("badge_keys") or []
+    if not isinstance(badge_keys, list):
+        raise HTTPException(status_code=400, detail="badge_keys must be a list")
+    if len(badge_keys) > 3:
+        raise HTTPException(status_code=400, detail="バッジは最大3つまで選択できます。")
+
+    session_result = get_current_user_by_session_token(gallery_session)
+    user = (session_result or {}).get("user") if session_result else None
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です。")
+
+    conn = db_conn(CONF)
+    try:
+        if not _detect_table_exists(conn, "user_badges"):
+            raise HTTPException(status_code=503, detail="バッジ機能はまだ有効になっていません。")
+
+        # Validate all badge_keys are in user's pool
+        if badge_keys:
+            placeholders = ",".join(["%s"] * len(badge_keys))
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT badge_key FROM user_badges WHERE user_id=%s AND badge_key IN ({placeholders})",
+                    [user["id"], *badge_keys],
+                )
+                owned = {r["badge_key"] for r in (cur.fetchall() or [])}
+            invalid = [k for k in badge_keys if k not in owned]
+            if invalid:
+                raise HTTPException(status_code=400, detail=f"所持していないバッジです: {', '.join(invalid)}")
+            # Validate keys exist in catalog
+            unknown = [k for k in badge_keys if k not in BADGE_CATALOG]
+            if unknown:
+                raise HTTPException(status_code=400, detail=f"無効なバッジキーです: {', '.join(unknown)}")
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET display_badges=%s WHERE id=%s",
+                (_json.dumps(badge_keys), user["id"]),
+            )
+        conn.commit()
+        return {"ok": True, "display_badges": badge_keys}
+    finally:
+        conn.close()
+
+
+@app.get("/api/users/me/badges")
+def get_my_badges(
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    """Return the current user's badge pool and current display selection."""
+    import json as _json
+    session_result = get_current_user_by_session_token(gallery_session)
+    user = (session_result or {}).get("user") if session_result else None
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です。")
+
+    conn = db_conn(CONF)
+    try:
+        if not _detect_table_exists(conn, "user_badges"):
+            return {"pool": [], "display_badges": [], "catalog": []}
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT badge_key, granted_by, granted_at FROM user_badges WHERE user_id=%s ORDER BY granted_at ASC",
+                (user["id"],),
+            )
+            rows = cur.fetchall() or []
+        pool = [serialize_badge(r["badge_key"], granted_at=None, granted_by=r.get("granted_by")) for r in rows]
+
+        with conn.cursor() as cur:
+            cur.execute("SELECT display_badges FROM users WHERE id=%s LIMIT 1", (user["id"],))
+            row = cur.fetchone()
+        display_badges = _parse_display_badges(row.get("display_badges") if row else None)
+
+        from badge_defs import list_catalog as _list_catalog
+        return {"pool": pool, "display_badges": display_badges, "catalog": _list_catalog()}
     finally:
         conn.close()
 
@@ -922,6 +1055,43 @@ async def check_hashes(req: Request):
         conn.close()
 
 
+def _try_grant_post_count_badges(conn, user_id: int) -> None:
+    """Check post count and auto-grant threshold badges. Safe to call after commit."""
+    try:
+        if not _detect_table_exists(conn, "user_badges"):
+            return
+        # Count uploads by this user
+        img_col = None
+        for col in ("uploader_user_id", "owner_user_id"):
+            with conn.cursor() as cur:
+                cur.execute("SHOW COLUMNS FROM images LIKE %s", (col,))
+                if cur.fetchone():
+                    img_col = col
+                    break
+        if img_col is None:
+            return
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT COUNT(*) AS cnt FROM images WHERE {img_col}=%s", (user_id,))
+            row = cur.fetchone()
+        post_count = int((row or {}).get("cnt") or 0)
+        # Grant all thresholds reached
+        to_grant = [key for threshold, key in POST_COUNT_BADGES if post_count >= threshold]
+        if not to_grant:
+            return
+        for badge_key in to_grant:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT IGNORE INTO user_badges (user_id, badge_key, granted_by) VALUES (%s, %s, NULL)",
+                    (user_id, badge_key),
+                )
+        conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+
+
 @app.post("/api/upload")
 def upload_images(
     req: Request,
@@ -1315,6 +1485,9 @@ def upload_images(
 
                 conn.commit()
                 conn.autocommit(True)
+                # Auto-grant post count badges if user is logged in
+                if u is not None and created_items:
+                    _try_grant_post_count_badges(conn, int(u["id"]))
                 return {
                     "ok": True,
                     "has_duplicates": False,

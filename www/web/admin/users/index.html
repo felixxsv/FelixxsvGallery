@@ -222,6 +222,33 @@
           <!-- リンク -->
           <div id="shellUserCardLinks" class="shell-user-card__links" hidden=""></div>
 
+              <!-- バッジプール -->
+              <div id="shellBadgePool" class="shell-badge-pool" hidden="">
+                <span class="shell-badge-pool__label">バッジ（最大3つ選択）</span>
+                <div class="shell-badge-pool__list">
+                  <span class="shell-badge-pool__empty">バッジはまだありません</span>
+                </div>
+                <span class="shell-badge-pool__hint">クリックでプロフィールに表示するバッジを切り替えられます</span>
+              </div>
+
+              <!-- バッジプール -->
+              <div id="shellBadgePool" class="shell-badge-pool" hidden="">
+                <span class="shell-badge-pool__label">バッジ（最大3つ選択）</span>
+                <div class="shell-badge-pool__list">
+                  <span class="shell-badge-pool__empty">バッジはまだありません</span>
+                </div>
+                <span class="shell-badge-pool__hint">クリックでプロフィールに表示するバッジを切り替えられます</span>
+              </div>
+
+              <!-- バッジプール -->
+              <div id="shellBadgePool" class="shell-badge-pool" hidden="">
+                <span class="shell-badge-pool__label">バッジ（最大3つ選択）</span>
+                <div class="shell-badge-pool__list">
+                  <span class="shell-badge-pool__empty">バッジはまだありません</span>
+                </div>
+                <span class="shell-badge-pool__hint">クリックでプロフィールに表示するバッジを切り替えられます</span>
+              </div>
+
           <!-- メタ情報 -->
           <dl class="app-definition-list shell-user-card__meta-list">
             <div class="app-definition-list__row">
@@ -680,6 +707,7 @@
         <div class="shell-user-profile__right">
           <p id="userProfileBio" class="shell-user-profile__bio" hidden=""></p>
           <div id="userProfileLinks" class="shell-user-card__links" hidden=""></div>
+              <div id="userProfileBadges" class="user-profile-badges" hidden=""></div>
         </div>
       </div>
     </div>
@@ -737,6 +765,25 @@
 <input id="adminUsersEditUploadEnabled" type="checkbox"/>
 <span>投稿を許可する</span>
 </label>
+</div>
+<div class="admin-users-modal__field admin-users-modal__field--full">
+<label class="admin-form-label" for="adminUsersEditBio">自己紹介（300文字以内）</label>
+<textarea class="app-input admin-users-modal__bio" id="adminUsersEditBio" maxlength="300" rows="3" placeholder="自己紹介文を入力..."></textarea>
+</div>
+<div class="admin-users-modal__field admin-users-modal__field--full">
+<label class="admin-form-label">リンク（最大5件）</label>
+<div id="adminUsersEditLinksList" class="admin-users-modal__links-list"></div>
+<button class="app-button app-button--ghost admin-users-modal__link-add" id="adminUsersEditLinkAddButton" type="button">+ リンクを追加</button>
+</div>
+<div class="admin-users-modal__field admin-users-modal__field--full">
+<label class="admin-form-label">バッジプール</label>
+<div id="adminUsersEditBadgePool" class="admin-users-modal__badge-pool"></div>
+<div class="admin-users-modal__badge-grant">
+<select class="app-select admin-users-modal__badge-select" id="adminUsersEditBadgeSelect">
+<option value="">バッジを選択...</option>
+</select>
+<button class="app-button app-button--ghost" id="adminUsersEditBadgeGrantButton" type="button">付与</button>
+</div>
 </div>
 <div class="admin-users-modal__meta">
 <div><span>メール</span><strong id="adminUsersEditEmail">-</strong></div>

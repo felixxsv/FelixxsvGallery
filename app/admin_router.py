@@ -21,6 +21,7 @@ from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_option
 from auth_service import get_current_user_profile
 from auth_mail import AuthMailError, build_text_message, send_message
 from db import db_conn, load_conf
+from badge_defs import BADGE_CATALOG, AUTO_BADGE_KEYS, POST_COUNT_BADGES, serialize_badge, list_catalog as list_badge_catalog
 
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -1028,13 +1029,57 @@ LIMIT %s OFFSET %s
         "items": items,
     }
 
+def _users_has_bio(conn) -> bool:
+    return _users_has_column(conn, "bio")
+
+
+def _users_has_display_badges(conn) -> bool:
+    return _users_has_column(conn, "display_badges")
+
+
+def _load_user_links_for_admin(conn, user_id: int) -> list[dict]:
+    """Load all user links regardless of gallery."""
+    conf = load_conf()
+    gallery = conf.get("gallery") or "felixxsv"
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, url, display_order FROM user_links WHERE user_id=%s AND gallery=%s ORDER BY display_order ASC, id ASC",
+            (user_id, gallery),
+        )
+        return list(cur.fetchall() or [])
+
+
+def _load_user_badges_for_admin(conn, user_id: int) -> list[dict]:
+    if not _detect_table(conn, "user_badges"):
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT badge_key, granted_by, granted_at FROM user_badges WHERE user_id=%s ORDER BY granted_at ASC",
+            (user_id,),
+        )
+        rows = cur.fetchall() or []
+    result = []
+    for row in rows:
+        s = serialize_badge(
+            row["badge_key"],
+            granted_at=_coerce_utc_text(row.get("granted_at")),
+            granted_by=row.get("granted_by"),
+        )
+        result.append(s)
+    return result
+
+
 def _load_user_detail(conn, user_id: int) -> dict | None:
     email_col = _users_email_column(conn)
     upload_col = _users_upload_column(conn)
     avatar_col = _users_avatar_column(conn)
+    has_bio = _users_has_bio(conn)
+    has_display_badges = _users_has_display_badges(conn)
     email_select = f"{email_col} AS primary_email" if email_col else "NULL AS primary_email"
     upload_select = f"{upload_col} AS upload_enabled" if upload_col else "1 AS upload_enabled"
     avatar_select = f"{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path"
+    bio_select = "bio" if has_bio else "NULL AS bio"
+    display_badges_select = "display_badges" if has_display_badges else "NULL AS display_badges"
 
     with conn.cursor() as cur:
         cur.execute(
@@ -1050,6 +1095,8 @@ SELECT
     is_email_verified,
     must_reset_password,
     {avatar_select},
+    {bio_select},
+    {display_badges_select},
     created_at,
     updated_at,
     deleted_at,
@@ -1066,10 +1113,27 @@ LIMIT 1
     providers_map = _load_user_providers_map(conn, [user_id])
     two_factor_map = _load_user_two_factor_map(conn, [user_id])
     last_seen_map = _load_user_last_seen_map(conn, [user_id])
-    item = _serialize_user_list_item(row, providers_map, two_factor_map, last_seen_map)
+    # Fix: apply last_seen_map to row before passing to serializer (was causing 500)
+    row = dict(row)
+    row["last_seen_at"] = last_seen_map.get(int(row["id"]))
+    item = _serialize_user_list_item(row, providers_map, two_factor_map)
     item["must_reset_password"] = bool(row.get("must_reset_password")) if row.get("must_reset_password") is not None else False
     item["deleted_at"] = _coerce_utc_text(row.get("deleted_at"))
     item["force_logout_after"] = _coerce_utc_text(row.get("force_logout_after"))
+    item["bio"] = row.get("bio") or ""
+    # display_badges: JSON string or None in DB
+    raw_display = row.get("display_badges")
+    if isinstance(raw_display, str):
+        try:
+            item["display_badges"] = json.loads(raw_display)
+        except Exception:
+            item["display_badges"] = []
+    elif isinstance(raw_display, list):
+        item["display_badges"] = raw_display
+    else:
+        item["display_badges"] = []
+    item["links"] = _load_user_links_for_admin(conn, user_id)
+    item["badges"] = _load_user_badges_for_admin(conn, user_id)
     return item
 
 def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
@@ -1107,6 +1171,13 @@ def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
 
     if "upload_enabled" in payload:
         normalized["upload_enabled"] = bool(payload.get("upload_enabled"))
+
+    if "bio" in payload:
+        bio_val = str(payload.get("bio") or "").strip()
+        if len(bio_val) > 300:
+            field_errors["bio"] = {"code": "too_long", "message": "自己紹介文は300文字以内で入力してください。"}
+        else:
+            normalized["bio"] = bio_val or None
 
     return normalized, field_errors
 
@@ -1395,7 +1466,12 @@ def admin_user_update(
         set_clauses = []
         params = []
         for key, value in changes.items():
-            db_key = upload_col if key == "upload_enabled" else key
+            if key == "upload_enabled":
+                db_key = upload_col
+            elif key == "bio":
+                db_key = "bio" if _users_has_bio(conn) else None
+            else:
+                db_key = key
             if db_key is None:
                 continue
             set_clauses.append(f"{db_key}=%s")
@@ -1441,6 +1517,186 @@ def admin_user_update(
     finally:
         if conn is not None:
             conn.close()
+
+
+@router.put("/users/{user_id}/links")
+def admin_user_update_links(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    """Bulk-replace all links for a user (admin). payload: {"links": [{"url": "..."}]}"""
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    raw_links = payload.get("links") or []
+    if not isinstance(raw_links, list):
+        return _json_error(400, request_id, "validation_error", "links must be a list.")
+    if len(raw_links) > 5:
+        return _json_error(400, request_id, "validation_error", "リンクは最大5件までです。")
+
+    conf = load_conf()
+    gallery = conf.get("gallery") or "felixxsv"
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        if not conn.cursor().__class__:
+            pass
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+            cur.execute("DELETE FROM user_links WHERE user_id=%s AND gallery=%s", (user_id, gallery))
+            for i, lnk in enumerate(raw_links):
+                url = str(lnk.get("url") or "").strip()
+                if url:
+                    cur.execute(
+                        "INSERT INTO user_links (user_id, gallery, url, display_order) VALUES (%s, %s, %s, %s)",
+                        (user_id, gallery, url[:500], i),
+                    )
+        _log_audit_event(conn, int(actor.get("id") or 0) or None, "admin.users.update_links", "user", str(user_id), "success", "リンクを更新しました。", None)
+        conn.commit()
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, url, display_order FROM user_links WHERE user_id=%s AND gallery=%s ORDER BY display_order ASC, id ASC", (user_id, gallery))
+            links = list(cur.fetchall() or [])
+        return _json_success(request_id=request_id, data={"links": [{"id": r["id"], "url": r["url"]} for r in links]}, message="リンクを更新しました。")
+    except Exception:
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "リンクの更新に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.get("/users/{user_id}/badges")
+def admin_user_badges(
+    user_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        badges = _load_user_badges_for_admin(conn, user_id)
+        return _json_success(request_id=request_id, data={"badges": badges, "catalog": list_badge_catalog()}, message="バッジ一覧を取得しました。")
+    except Exception:
+        return _json_error(500, request_id, "server_error", "バッジ情報の取得に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.post("/users/{user_id}/badges")
+def admin_user_grant_badge(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    badge_key = str(payload.get("badge_key") or "").strip()
+    if badge_key not in BADGE_CATALOG:
+        return _json_error(400, request_id, "validation_error", "無効なバッジキーです。")
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        if not _detect_table(conn, "user_badges"):
+            return _json_error(503, request_id, "not_available", "バッジ機能はまだ有効になっていません。")
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+            cur.execute(
+                "INSERT IGNORE INTO user_badges (user_id, badge_key, granted_by) VALUES (%s, %s, %s)",
+                (user_id, badge_key, int(actor.get("id") or 0) or None),
+            )
+        _log_audit_event(conn, int(actor.get("id") or 0) or None, "admin.users.grant_badge", "user", str(user_id), "success", f"バッジを付与しました: {badge_key}", {"badge_key": badge_key})
+        conn.commit()
+        badges = _load_user_badges_for_admin(conn, user_id)
+        return _json_success(request_id=request_id, data={"badges": badges}, message="バッジを付与しました。")
+    except Exception:
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "バッジの付与に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.delete("/users/{user_id}/badges/{badge_key}")
+def admin_user_revoke_badge(
+    user_id: int = Path(..., ge=1),
+    badge_key: str = Path(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        if not _detect_table(conn, "user_badges"):
+            return _json_error(503, request_id, "not_available", "バッジ機能はまだ有効になっていません。")
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM user_badges WHERE user_id=%s AND badge_key=%s", (user_id, badge_key))
+            deleted = cur.rowcount
+        if deleted == 0:
+            conn.rollback()
+            return _json_error(404, request_id, "not_found", "対象バッジが見つかりません。")
+        # Also remove from display_badges if present
+        if _users_has_display_badges(conn):
+            with conn.cursor() as cur:
+                cur.execute("SELECT display_badges FROM users WHERE id=%s LIMIT 1", (user_id,))
+                row = cur.fetchone()
+                if row:
+                    raw = row.get("display_badges")
+                    if isinstance(raw, str):
+                        try: current_display = json.loads(raw)
+                        except Exception: current_display = []
+                    elif isinstance(raw, list):
+                        current_display = raw
+                    else:
+                        current_display = []
+                    if badge_key in current_display:
+                        new_display = [k for k in current_display if k != badge_key]
+                        cur.execute("UPDATE users SET display_badges=%s WHERE id=%s", (json.dumps(new_display), user_id))
+        _log_audit_event(conn, int(actor.get("id") or 0) or None, "admin.users.revoke_badge", "user", str(user_id), "success", f"バッジを剥奪しました: {badge_key}", {"badge_key": badge_key})
+        conn.commit()
+        badges = _load_user_badges_for_admin(conn, user_id)
+        return _json_success(request_id=request_id, data={"badges": badges}, message="バッジを剥奪しました。")
+    except Exception:
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "バッジの剥奪に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.get("/badges")
+def admin_badge_catalog(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    return _json_success(request_id=request_id, data={"catalog": list_badge_catalog()}, message="バッジカタログを取得しました。")
 
 
 @router.post("/users/create")

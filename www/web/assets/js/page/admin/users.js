@@ -45,6 +45,14 @@ function screenStatusLabel(value) {
   return String(value || "") === "visible" ? "表示中" : "非表示";
 }
 
+const BADGE_COLOR_CLASS = {
+  blue: "admin-badge--blue",
+  red: "admin-badge--red",
+  green: "admin-badge--green",
+  gold: "admin-badge--gold",
+  gray: "admin-badge--gray",
+};
+
 const state = {
   page: 1,
   perPage: 20,
@@ -61,6 +69,9 @@ const state = {
   createDirty: false,
   pendingConfirm: null,
   filterTimer: null,
+  editLinks: [],          // current link list in modal
+  editBadges: [],         // current badge pool in modal
+  badgeCatalog: [],       // full catalog from API
 };
 
 function qs() {
@@ -84,10 +95,116 @@ function setEditDirty() {
       byId("adminUsersEditUserKey")?.value !== (original.user_key || "") ||
       byId("adminUsersEditRole")?.value !== (original.role || "user") ||
       byId("adminUsersEditStatus")?.value !== (original.status || "active") ||
-      Boolean(byId("adminUsersEditUploadEnabled")?.checked) !== Boolean(original.upload_enabled)
+      Boolean(byId("adminUsersEditUploadEnabled")?.checked) !== Boolean(original.upload_enabled) ||
+      (byId("adminUsersEditBio")?.value || "") !== (original.bio || "")
     );
   }
   window.AdminApp?.dirtyGuard?.setDirty("admin-users-edit", state.editDirty);
+}
+
+// --- Links editor ---
+
+function renderLinksEditor() {
+  const list = byId("adminUsersEditLinksList");
+  const addBtn = byId("adminUsersEditLinkAddButton");
+  if (!list) return;
+  list.innerHTML = "";
+  state.editLinks.forEach((link, idx) => {
+    const row = document.createElement("div");
+    row.className = "admin-users-modal__link-row";
+    row.innerHTML = `
+      <input class="app-input admin-users-modal__link-input" type="url" placeholder="https://..." value="${escapeHtml(link.url || "")}" data-link-idx="${idx}"/>
+      <button type="button" class="app-button app-button--ghost admin-users-modal__link-remove" data-link-idx="${idx}" aria-label="削除">×</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll("[data-link-idx]").forEach((el) => {
+    el.addEventListener("input", (e) => {
+      const idx = Number(e.target.dataset.linkIdx);
+      if (state.editLinks[idx] !== undefined) state.editLinks[idx].url = e.target.value;
+      setEditDirty();
+    });
+    el.addEventListener("click", (e) => {
+      if (!e.target.classList.contains("admin-users-modal__link-remove")) return;
+      const idx = Number(e.target.dataset.linkIdx);
+      state.editLinks.splice(idx, 1);
+      renderLinksEditor();
+      setEditDirty();
+    });
+  });
+  if (addBtn) addBtn.hidden = state.editLinks.length >= 5;
+}
+
+// --- Badge pool editor ---
+
+function renderBadgePool() {
+  const pool = byId("adminUsersEditBadgePool");
+  const sel = byId("adminUsersEditBadgeSelect");
+  if (!pool) return;
+  pool.innerHTML = "";
+  if (!state.editBadges.length) {
+    pool.innerHTML = `<span class="admin-users-modal__badge-empty">バッジなし</span>`;
+  }
+  for (const badge of state.editBadges) {
+    const colorClass = BADGE_COLOR_CLASS[badge.color] || "admin-badge--gray";
+    const span = document.createElement("span");
+    span.className = `admin-badge ${colorClass}`;
+    span.innerHTML = `${escapeHtml(badge.name)}<button type="button" class="admin-badge__revoke" data-badge-key="${escapeHtml(badge.key)}" aria-label="剥奪">×</button>`;
+    pool.appendChild(span);
+  }
+  pool.querySelectorAll(".admin-badge__revoke").forEach((btn) => {
+    btn.addEventListener("click", () => revokeBadge(btn.dataset.badgeKey));
+  });
+  // Update select options: exclude already-owned keys
+  if (sel) {
+    const ownedKeys = new Set(state.editBadges.map((b) => b.key));
+    sel.innerHTML = `<option value="">バッジを選択...</option>`;
+    for (const item of state.badgeCatalog) {
+      if (ownedKeys.has(item.key)) continue;
+      const opt = document.createElement("option");
+      opt.value = item.key;
+      opt.textContent = `${item.name}（${item.type === "auto" ? "自動" : "手動"}）`;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+async function grantBadge() {
+  const sel = byId("adminUsersEditBadgeSelect");
+  const badgeKey = sel?.value;
+  if (!badgeKey || !state.currentUser) return;
+  try {
+    const res = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/badges`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ badge_key: badgeKey }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data?.error?.message || "バッジ付与に失敗しました。");
+    state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges : state.editBadges;
+    renderBadgePool();
+    window.AdminApp?.toast?.success?.("バッジを付与しました。");
+  } catch (err) {
+    window.AdminApp?.toast?.error?.(err?.message || "バッジ付与に失敗しました。");
+  }
+}
+
+async function revokeBadge(badgeKey) {
+  if (!state.currentUser) return;
+  try {
+    const res = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/badges/${encodeURIComponent(badgeKey)}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data?.error?.message || "バッジ剥奪に失敗しました。");
+    state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges : state.editBadges;
+    renderBadgePool();
+    window.AdminApp?.toast?.success?.("バッジを剥奪しました。");
+  } catch (err) {
+    window.AdminApp?.toast?.error?.(err?.message || "バッジ剥奪に失敗しました。");
+  }
 }
 
 function setCreateDirty() {
@@ -231,8 +348,11 @@ async function loadUsers() {
 
 async function openEditModal(userId) {
   try {
-    const payload = await window.AdminApp.api.get(`/api/admin/users/${userId}`);
-    const user = payload.data?.user;
+    const [detailPayload, badgePayload] = await Promise.all([
+      window.AdminApp.api.get(`/api/admin/users/${userId}`),
+      window.AdminApp.api.get(`/api/admin/users/${userId}/badges`).catch(() => null),
+    ]);
+    const user = detailPayload.data?.user;
     if (!user) throw new Error("対象ユーザーが見つかりません。");
     state.currentUser = user;
     state.editOriginal = {
@@ -241,16 +361,27 @@ async function openEditModal(userId) {
       role: user.role || "user",
       status: user.status || "active",
       upload_enabled: Boolean(user.upload_enabled),
+      bio: user.bio || "",
     };
+    state.editLinks = Array.isArray(user.links) ? user.links.map((l) => ({ url: l.url || "" })) : [];
+    state.editBadges = Array.isArray(badgePayload?.data?.badges) ? badgePayload.data.badges : (Array.isArray(user.badges) ? user.badges : []);
+    state.badgeCatalog = Array.isArray(badgePayload?.data?.catalog) ? badgePayload.data.catalog : [];
+
     byId("adminUsersEditDisplayName").value = state.editOriginal.display_name;
     byId("adminUsersEditUserKey").value = state.editOriginal.user_key;
     byId("adminUsersEditRole").value = state.editOriginal.role;
     byId("adminUsersEditStatus").value = state.editOriginal.status;
     byId("adminUsersEditUploadEnabled").checked = state.editOriginal.upload_enabled;
+    const bioEl = byId("adminUsersEditBio");
+    if (bioEl) bioEl.value = state.editOriginal.bio;
     byId("adminUsersEditEmail").textContent = user.primary_email || "未登録";
     byId("adminUsersEditCreatedAt").textContent = formatDateTime(user.created_at);
     byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_seen_at);
     byId("adminUsersEditTwoFactor").textContent = user.two_factor?.is_enabled ? `${user.two_factor?.method || "email"} / ON` : "OFF";
+
+    renderLinksEditor();
+    renderBadgePool();
+
     state.editDirty = false;
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
     window.AdminApp.modal.open("admin-users-edit");
@@ -261,38 +392,64 @@ async function openEditModal(userId) {
 
 async function saveEdit() {
   if (!state.currentUser) return;
-  const payload = {
+  const currentBio = byId("adminUsersEditBio")?.value || "";
+  const profilePayload = {
     display_name: byId("adminUsersEditDisplayName")?.value || "",
     user_key: byId("adminUsersEditUserKey")?.value || "",
     role: byId("adminUsersEditRole")?.value || "user",
     status: byId("adminUsersEditStatus")?.value || "active",
     upload_enabled: Boolean(byId("adminUsersEditUploadEnabled")?.checked),
+    bio: currentBio,
   };
-  const hasChanges = (
-    payload.display_name !== state.editOriginal.display_name ||
-    payload.user_key !== state.editOriginal.user_key ||
-    payload.role !== state.editOriginal.role ||
-    payload.status !== state.editOriginal.status ||
-    payload.upload_enabled !== state.editOriginal.upload_enabled
+  const linksChanged = JSON.stringify(state.editLinks.map((l) => l.url)) !==
+    JSON.stringify((state.editOriginal._links || []).map((l) => l.url));
+  const hasProfileChanges = (
+    profilePayload.display_name !== state.editOriginal.display_name ||
+    profilePayload.user_key !== state.editOriginal.user_key ||
+    profilePayload.role !== state.editOriginal.role ||
+    profilePayload.status !== state.editOriginal.status ||
+    profilePayload.upload_enabled !== state.editOriginal.upload_enabled ||
+    profilePayload.bio !== state.editOriginal.bio
   );
-  if (!hasChanges) {
+  if (!hasProfileChanges && !linksChanged) {
     closeEditModal();
     return;
   }
   const ok = await openActionConfirm("ユーザー情報を更新しますか？", "更新");
   if (!ok) return;
   try {
-    const response = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}`, {
-      method: "PATCH",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.ok) {
-      throw new Error(data?.error?.message || "ユーザー情報の更新に失敗しました。");
+    const tasks = [];
+    if (hasProfileChanges) {
+      tasks.push(
+        fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profilePayload),
+        }).then(async (r) => {
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok || !d.ok) throw new Error(d?.error?.message || "プロフィール更新に失敗しました。");
+          return d;
+        })
+      );
     }
-    window.AdminApp?.toast?.success?.(data?.message || "更新しました。");
+    if (linksChanged) {
+      const validLinks = state.editLinks.filter((l) => l.url.trim());
+      tasks.push(
+        fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/links`, {
+          method: "PUT",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ links: validLinks }),
+        }).then(async (r) => {
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok || !d.ok) throw new Error(d?.error?.message || "リンク更新に失敗しました。");
+          return d;
+        })
+      );
+    }
+    await Promise.all(tasks);
+    window.AdminApp?.toast?.success?.("更新しました。");
     closeEditModal();
     await loadUsers();
   } catch (error) {
@@ -428,12 +585,22 @@ function bindModals() {
   byId("adminUsersActionConfirmApprove")?.addEventListener("click", () => closeActionConfirm(true));
   byId("adminUsersActionConfirmCancel")?.addEventListener("click", () => closeActionConfirm(false));
 
+  byId("adminUsersEditLinkAddButton")?.addEventListener("click", () => {
+    if (state.editLinks.length >= 5) return;
+    state.editLinks.push({ url: "" });
+    renderLinksEditor();
+    setEditDirty();
+  });
+
+  byId("adminUsersEditBadgeGrantButton")?.addEventListener("click", grantBadge);
+
   [
     "adminUsersEditDisplayName",
     "adminUsersEditUserKey",
     "adminUsersEditRole",
     "adminUsersEditStatus",
     "adminUsersEditUploadEnabled",
+    "adminUsersEditBio",
   ].forEach((id) => {
     const el = byId(id);
     el?.addEventListener("input", setEditDirty);

@@ -302,6 +302,134 @@
   line-height: 1.7;
 }
 
+/* Full-width field */
+.admin-users-modal__field--full {
+  grid-column: span 2;
+}
+
+/* Bio textarea */
+.admin-users-modal__bio {
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* Links editor */
+.admin-users-modal__links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 8px;
+}
+
+.admin-users-modal__link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-users-modal__link-input {
+  flex: 1;
+}
+
+.admin-users-modal__link-remove {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.admin-users-modal__link-add {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 0.82rem;
+}
+
+/* Badge pool */
+.admin-users-modal__badge-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 32px;
+  align-items: center;
+}
+
+.admin-users-modal__badge-empty {
+  color: rgba(226, 232, 240, 0.46);
+  font-size: 0.82rem;
+}
+
+.admin-users-modal__badge-grant {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.admin-users-modal__badge-select {
+  flex: 1;
+}
+
+/* Badge chip */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  white-space: nowrap;
+}
+
+.admin-badge--blue {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.44);
+  color: #93c5fd;
+}
+
+.admin-badge--red {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.44);
+  color: #fca5a5;
+}
+
+.admin-badge--green {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.44);
+  color: #86efac;
+}
+
+.admin-badge--gold {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.44);
+  color: #fde047;
+}
+
+.admin-badge--gray {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.admin-badge__revoke {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  opacity: 0.6;
+  color: inherit;
+}
+
+.admin-badge__revoke:hover {
+  opacity: 1;
+}
+
 @media (max-width: 1280px) {
   .admin-users-toolbar {
     grid-template-columns: 1fr;
@@ -322,7 +450,8 @@
     grid-template-columns: 1fr;
   }
 
-  .admin-users-modal__meta {
+  .admin-users-modal__meta,
+  .admin-users-modal__field--full {
     grid-column: span 1;
   }
 
