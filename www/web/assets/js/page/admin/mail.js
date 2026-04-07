@@ -1,121 +1,6 @@
 import { createApiClient } from "../../core/api.js";
 import { escapeHtml } from "../../core/dom.js";
 
-const MAIL_MESSAGES = {
-  ja: {
-    no_draft: "下書きはありません。",
-    everyone: "全員",
-    none_selected: "選択なし",
-    user: "ユーザー",
-    selected_count: "{count}名選択",
-    selected_more: "{first} ほか{count}名",
-    recipients_empty: "該当するユーザーがいません。",
-    can_send: "送信可",
-    cannot_send: "送信不可",
-    select_user: "{name} を選択",
-    history_empty: "送信履歴はまだありません。",
-    sender: "送信者",
-    recipients: "宛先",
-    success: "成功",
-    failure: "失敗",
-    draft_saved: "下書きを保存済み ({date})",
-    sender_meta: "送信元: {sender}",
-    template_error: "メール設定の取得に失敗しました。",
-    draft_load_error: "下書きの取得に失敗しました。",
-    recipient_error: "宛先一覧の取得に失敗しました。",
-    history_error: "送信履歴の取得に失敗しました。",
-    draft_saving: "下書きを保存中...",
-    draft_save_error: "下書きの保存に失敗しました。",
-    subject_required: "件名を入力してください。",
-    body_required: "本文を入力してください。",
-    recipient_required: "送信先を選択してください。",
-    sent_ok: "メールを送信しました。",
-    send_error: "メール送信に失敗しました。",
-    recipient_select: "宛先選択",
-    recipient_select_meta: "送信先ユーザーを選択します。全ユーザー送信時は実ログに @everyone として記録します。",
-    selected_users: "選択ユーザー",
-    all_users: "全ユーザー",
-    search: "検索",
-    search_placeholder: "表示名 / ID / メール",
-    role: "ロール",
-    status: "状態",
-    user_col: "ユーザー",
-    mail_col: "メール",
-    send_availability: "送信可否",
-    total_count: "総件数",
-    compose_title: "メール作成",
-    subject: "件名",
-    subject_placeholder: "件名を入力してください",
-    body: "本文",
-    body_placeholder: "本文を入力してください",
-    recipient_summary: "送信先",
-    selected_count_label: "選択件数",
-    send: "送信",
-    history_title: "送信履歴",
-    history_meta: "将来のお知らせ表示へ流用できる前提で保持します。",
-    reload: "再読込",
-    loading: "読み込み中です。",
-    prev: "前へ",
-    next: "次へ",
-  },
-  "en-us": {
-    no_draft: "No draft.",
-    everyone: "Everyone",
-    none_selected: "None selected",
-    user: "User",
-    selected_count: "{count} selected",
-    selected_more: "{first} and {count} more",
-    recipients_empty: "No users found.",
-    can_send: "Can send",
-    cannot_send: "Cannot send",
-    select_user: "Select {name}",
-    history_empty: "No mail history yet.",
-    sender: "Sender",
-    recipients: "Recipients",
-    success: "Success",
-    failure: "Failure",
-    draft_saved: "Draft saved ({date})",
-    sender_meta: "From: {sender}",
-    template_error: "Failed to load mail settings.",
-    draft_load_error: "Failed to load draft.",
-    recipient_error: "Failed to load recipients.",
-    history_error: "Failed to load history.",
-    draft_saving: "Saving draft...",
-    draft_save_error: "Failed to save draft.",
-    subject_required: "Enter a subject.",
-    body_required: "Enter a message body.",
-    recipient_required: "Select recipients.",
-    sent_ok: "Mail sent.",
-    send_error: "Failed to send mail.",
-    recipient_select: "Recipients",
-    recipient_select_meta: "Select recipient users. When sending to all users, the audit log is recorded as @everyone.",
-    selected_users: "Selected Users",
-    all_users: "All Users",
-    search: "Search",
-    search_placeholder: "Display name / ID / email",
-    role: "Role",
-    status: "Status",
-    user_col: "User",
-    mail_col: "Mail",
-    send_availability: "Deliverability",
-    total_count: "Total",
-    compose_title: "Compose Mail",
-    subject: "Subject",
-    subject_placeholder: "Enter a subject",
-    body: "Body",
-    body_placeholder: "Enter the message body",
-    recipient_summary: "Recipients",
-    selected_count_label: "Selected",
-    send: "Send",
-    history_title: "Mail History",
-    history_meta: "Stored so it can be reused for future announcements.",
-    reload: "Reload",
-    loading: "Loading...",
-    prev: "Prev",
-    next: "Next",
-  },
-};
-
 const appBase = document.body.dataset.appBase || "/gallery";
 const api = createApiClient({ baseUrl: appBase });
 
@@ -144,15 +29,6 @@ const $ = (selector) => document.querySelector(selector);
 
 function t(key, fallback, vars = {}) {
   return window.AdminApp?.i18n?.t?.(`admin_mail.${key}`, fallback, vars) || fallback;
-}
-
-function defineMessages() {
-  Object.entries(MAIL_MESSAGES).forEach(([locale, messages]) => {
-    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_mail.${key}`, value])));
-  });
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(MAIL_MESSAGES["en-us"]).map(([key, value]) => [`admin_mail.${key}`, value])));
-  });
 }
 
 function setMessage(message, isError = false) {
@@ -602,7 +478,6 @@ function bindEvents() {
 }
 
 async function init() {
-  defineMessages();
   const titleEls = document.querySelectorAll(".admin-mail-panel .admin-panel__title");
   if (titleEls[0]) titleEls[0].textContent = t("recipient_select", "Recipients");
   if (titleEls[1]) titleEls[1].textContent = t("compose_title", "Compose Mail");

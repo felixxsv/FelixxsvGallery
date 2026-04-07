@@ -2,126 +2,8 @@ function byId(id) {
   return document.getElementById(id);
 }
 
-const DASHBOARD_MESSAGES = {
-  ja: {
-    elapsed_hours: "{hours}時間 {minutes}分",
-    elapsed_minutes: "{minutes}分 {seconds}秒",
-    elapsed_seconds: "{seconds}秒",
-    not_set: "未設定",
-    usage_label: "使用率",
-    active_users_empty: "現在アクセス中のユーザーはいません。",
-    active_user_head_icon: "アイコン",
-    active_user_head_name: "表示名",
-    active_user_head_id: "ユーザーID",
-    active_user_head_status: "状態",
-    active_user_head_elapsed: "セッション時間",
-    online: "オンライン",
-    recent_logs_empty: "直近の操作ログはありません。",
-    recent_logs_head_date: "日時",
-    recent_logs_head_action: "操作種別",
-    recent_logs_head_summary: "概要",
-    recent_logs_head_result: "結果",
-    recent_logs_head_actor: "実行者",
-    storage_loading: "使用状況を読み込み中です…",
-    storage_idle: "使用状況はまだ読み込まれていません。",
-    storage_placeholder: "使用状況を取得するとここに表示します。",
-    storage_error: "ストレージ使用状況の取得に失敗しました。",
-    no_history: "まだ実行履歴がありません。",
-    none: "なし",
-    pending_exists: "実行待ちがあります",
-    queue_run: "手動実行を予約",
-    no_issues: "直近の問題はありません。",
-    no_detail: "詳細情報なし",
-    untitled: "タイトル未設定",
-    unknown_user: "投稿者不明",
-    clock_error: "時計設定の更新に失敗しました。",
-    dashboard_error: "ダッシュボードの取得に失敗しました。",
-    integrity_run_success: "整合性チェックを実行キューへ追加しました。",
-    integrity_run_error: "整合性チェックの実行予約に失敗しました。",
-  },
-  "en-us": {
-    elapsed_hours: "{hours}h {minutes}m",
-    elapsed_minutes: "{minutes}m {seconds}s",
-    elapsed_seconds: "{seconds}s",
-    not_set: "Not set",
-    usage_label: "Usage",
-    active_users_empty: "No users are currently active.",
-    active_user_head_icon: "Icon",
-    active_user_head_name: "Display Name",
-    active_user_head_id: "User ID",
-    active_user_head_status: "Status",
-    active_user_head_elapsed: "Session",
-    online: "Online",
-    recent_logs_empty: "There are no recent activity logs.",
-    recent_logs_head_date: "Date",
-    recent_logs_head_action: "Action",
-    recent_logs_head_summary: "Summary",
-    recent_logs_head_result: "Result",
-    recent_logs_head_actor: "Actor",
-    storage_loading: "Loading storage usage...",
-    storage_idle: "Storage usage has not been loaded yet.",
-    storage_placeholder: "Storage usage will appear here after loading.",
-    storage_error: "Failed to load storage usage.",
-    no_history: "No execution history yet.",
-    none: "None",
-    pending_exists: "A run is already queued",
-    queue_run: "Queue Manual Run",
-    no_issues: "No recent issues.",
-    no_detail: "No details",
-    untitled: "Untitled",
-    unknown_user: "Unknown uploader",
-    clock_error: "Failed to update clock setting.",
-    dashboard_error: "Failed to load dashboard.",
-    integrity_run_success: "Integrity check queued.",
-    integrity_run_error: "Failed to queue integrity check.",
-    title_clock: "Clock",
-    meta_clock: "The display mode is stored per administrator.",
-    mode_digital: "Digital",
-    mode_analog: "Analog",
-    title_latest: "Latest Image",
-    meta_latest: "Shows the newest image.",
-    latest_empty: "No image available.",
-    title_summary: "Current Overview",
-    meta_summary: "Shows the gallery-wide counts and storage summary.",
-    stat_online_users: "Online Users",
-    stat_today_uploads: "Uploads Today",
-    stat_public_count: "Public Images",
-    stat_private_count: "Private Images",
-    stat_quarantine_count: "Quarantine",
-    stat_storage_used: "Storage Usage",
-    title_storage: "Storage Monitor",
-    meta_storage: "Automatically loads storage_root usage. Shares the refresh interval with the settings page.",
-    last_fetched: "Last fetched",
-    auto_refresh: "Auto refresh",
-    manual_only: "Manual only",
-    refresh: "Refresh",
-    metric_directory_size: "Directory size",
-    metric_filesystem_usage: "Used / Total",
-    metric_filesystem_free: "Free space",
-    title_integrity: "Integrity Check",
-    meta_integrity: "Shows the latest status, recent issues, and manual-run queue.",
-    stat_integrity_status: "Latest status",
-    stat_integrity_last_run: "Last run",
-    stat_integrity_last_success: "Last success",
-    stat_integrity_pending: "Pending jobs",
-    title_online_users: "Online Users",
-    meta_online_users: "Shows active users and their session duration.",
-    title_recent_logs: "Recent Activity Logs",
-    meta_recent_logs: "Shows recent audit logs.",
-  },
-};
-
 function t(key, fallback, vars = {}) {
   return window.AdminApp?.i18n?.t?.(`admin_dashboard.${key}`, fallback, vars) || fallback;
-}
-
-function defineMessages() {
-  Object.entries(DASHBOARD_MESSAGES).forEach(([locale, messages]) => {
-    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_dashboard.${key}`, value])));
-  });
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(DASHBOARD_MESSAGES["en-us"]).map(([key, value]) => [`admin_dashboard.${key}`, value])));
-  });
 }
 
 function applyStaticTranslations() {
@@ -963,7 +845,6 @@ function startDashboardLiveRefresh() {
 
 async function initDashboard() {
   if (!window.AdminApp || !window.AdminApp.ready) return;
-  defineMessages();
   applyStaticTranslations();
 
   bindClockButtons();

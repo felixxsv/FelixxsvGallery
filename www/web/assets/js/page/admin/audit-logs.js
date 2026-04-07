@@ -1,79 +1,11 @@
 import { escapeHtml } from "../../core/dom.js";
 
-const AUDIT_MESSAGES = {
-  ja: {
-    empty: "該当する監査ログがありません。",
-    detail: "詳細",
-    total_count: "合計 {count} 件",
-    loading: "読み込み中です。",
-    load_error: "監査ログの取得に失敗しました。",
-    not_found: "監査ログが見つかりません。",
-    detail_load_error: "監査ログ詳細の取得に失敗しました。",
-    search: "検索",
-    search_placeholder: "操作種別 / 対象 / 実行者 / summary を検索",
-    action_type: "操作種別",
-    action_type_placeholder: "admin.users.update など",
-    result: "結果",
-    start_date: "開始日",
-    end_date: "終了日",
-    auto_refresh: "自動更新",
-    reload: "再読込",
-    export: "CSV 出力",
-    list_title: "監査ログ一覧",
-    date: "日時",
-    actor: "実行者",
-    target: "対象",
-    summary: "概要",
-    action: "操作",
-    prev: "前へ",
-    next: "次へ",
-    all: "すべて",
-  },
-  "en-us": {
-    empty: "No audit logs found.",
-    detail: "Details",
-    total_count: "Total {count}",
-    loading: "Loading...",
-    load_error: "Failed to load audit logs.",
-    not_found: "Audit log not found.",
-    detail_load_error: "Failed to load audit log details.",
-    search: "Search",
-    search_placeholder: "Search action / target / actor / summary",
-    action_type: "Action Type",
-    action_type_placeholder: "e.g. admin.users.update",
-    result: "Result",
-    start_date: "Start Date",
-    end_date: "End Date",
-    auto_refresh: "Auto Refresh",
-    reload: "Reload",
-    export: "Export CSV",
-    list_title: "Audit Logs",
-    date: "Date",
-    actor: "Actor",
-    target: "Target",
-    summary: "Summary",
-    action: "Action",
-    prev: "Prev",
-    next: "Next",
-    all: "All",
-  },
-};
-
 function byId(id) {
   return document.getElementById(id);
 }
 
 function t(key, fallback, vars = {}) {
   return window.AdminApp?.i18n?.t?.(`admin_audit.${key}`, fallback, vars) || fallback;
-}
-
-function defineMessages() {
-  Object.entries(AUDIT_MESSAGES).forEach(([locale, messages]) => {
-    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_audit.${key}`, value])));
-  });
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(AUDIT_MESSAGES["en-us"]).map(([key, value]) => [`admin_audit.${key}`, value])));
-  });
 }
 
 function formatDateTime(value) {
@@ -340,7 +272,6 @@ function startLiveRefresh() {
 }
 
 document.addEventListener("admin:ready", async () => {
-  defineMessages();
   const fields = document.querySelectorAll(".admin-audit-field .admin-form-label");
   if (fields[0]) fields[0].textContent = t("search", "Search");
   if (fields[1]) fields[1].textContent = t("action_type", "Action Type");
