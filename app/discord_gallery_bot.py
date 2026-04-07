@@ -21,6 +21,7 @@ from gallery_upload_service import (
 logger = logging.getLogger(__name__)
 
 IMAGE_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+PROMPT_INACTIVITY_SECONDS = 120
 
 
 @dataclass(frozen=True)
@@ -195,6 +196,7 @@ class UploadChoiceView(discord.ui.View):
         self.separate_uploaded_ids: list[str] = []
         self.separate_processed_count = 0
         self.separate_completed = False
+        self.inactivity_task: asyncio.Task | None = None
         if self.suggested_tags:
             self.tag_select = UploadTagSelect(self, self.suggested_tags)
             self.add_item(self.tag_select)
@@ -253,12 +255,46 @@ class UploadChoiceView(discord.ui.View):
             ]
         )
         lines.append("入力後「Galleryへ投稿」からアップロードが可能です。")
+        lines.append("操作しない場合2分後にこのメッセージは削除されます。")
         return "\n".join(lines)
 
     async def refresh_prompt_message(self) -> None:
         self._sync_button_state()
         if self.prompt_message is not None:
             await self.prompt_message.edit(content=self._build_prompt_text(), view=self)
+            self.touch_prompt()
+
+    def touch_prompt(self) -> None:
+        self._cancel_inactivity_task()
+        if self.prompt_message is not None:
+            self.inactivity_task = asyncio.create_task(self._auto_delete_prompt())
+
+    def _cancel_inactivity_task(self) -> None:
+        if self.inactivity_task is not None:
+            if self.inactivity_task is asyncio.current_task():
+                self.inactivity_task = None
+                return
+            self.inactivity_task.cancel()
+            self.inactivity_task = None
+
+    async def _auto_delete_prompt(self) -> None:
+        try:
+            await asyncio.sleep(PROMPT_INACTIVITY_SECONDS)
+            await self._delete_prompt_message()
+        except asyncio.CancelledError:
+            return
+
+    async def _delete_prompt_message(self) -> None:
+        self._cancel_inactivity_task()
+        self.stop()
+        if self.prompt_message is None:
+            return
+        message = self.prompt_message
+        self.prompt_message = None
+        try:
+            await message.delete()
+        except Exception:
+            logger.exception("Failed to delete prompt message")
 
     async def _open_metadata_modal(self, interaction: discord.Interaction) -> None:
         modal = UploadMetadataModal(
@@ -322,12 +358,7 @@ class UploadChoiceView(discord.ui.View):
 
     async def _skip_current(self, interaction: discord.Interaction, *, message_prefix: str) -> None:
         if len(self.attachments) <= 1:
-            self.stop()
-            if self.prompt_message is not None:
-                try:
-                    await self.prompt_message.delete()
-                except Exception:
-                    logger.exception("Failed to delete skipped prompt message")
+            await self._delete_prompt_message()
             await interaction.followup.send(message_prefix, ephemeral=True)
             return
 
@@ -339,6 +370,7 @@ class UploadChoiceView(discord.ui.View):
             await self._prepare_next_separate_draft()
         await self.refresh_prompt_message()
         if self.separate_completed:
+            await self._delete_prompt_message()
             await interaction.followup.send(f"{message_prefix} 1枚ずつ投稿は完了です。", ephemeral=True)
         else:
             await interaction.followup.send(
@@ -369,6 +401,7 @@ class UploadChoiceView(discord.ui.View):
             await interaction.response.send_message(error, ephemeral=True)
             return
         await interaction.response.defer(thinking=True, ephemeral=True)
+        self.touch_prompt()
         try:
             result = await self._submit_upload(
                 files=self._remaining_attachments(),
@@ -378,6 +411,7 @@ class UploadChoiceView(discord.ui.View):
                 shot_at=self.draft_shot_at.strip(),
                 is_public=self.selected_public,
             )
+            await self._delete_prompt_message()
             await self._handle_upload_result(interaction, result)
         except GalleryUploadError as exc:
             await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
@@ -394,6 +428,7 @@ class UploadChoiceView(discord.ui.View):
             await interaction.response.send_message(error, ephemeral=True)
             return
         await interaction.response.defer(thinking=True, ephemeral=True)
+        self.touch_prompt()
         attachment = self.attachments[self.separate_index]
         try:
             result = await self._submit_upload(
@@ -417,6 +452,7 @@ class UploadChoiceView(discord.ui.View):
                 await self._prepare_next_separate_draft()
             await self.refresh_prompt_message()
             if self.separate_completed:
+                await self._delete_prompt_message()
                 await interaction.followup.send("画像を投稿しました。1枚ずつ投稿は完了です。", ephemeral=True)
             else:
                 await interaction.followup.send(
@@ -444,6 +480,7 @@ class UploadChoiceView(discord.ui.View):
             await interaction.response.send_message(error, ephemeral=True)
             return
         await interaction.response.defer(thinking=True, ephemeral=True)
+        self.touch_prompt()
         try:
             result = await self._submit_upload(
                 files=self._remaining_attachments(),
@@ -453,6 +490,7 @@ class UploadChoiceView(discord.ui.View):
                 shot_at=self.draft_shot_at.strip(),
                 is_public=self.selected_public,
             )
+            await self._delete_prompt_message()
             await self._handle_upload_result(interaction, result)
         except GalleryUploadError as exc:
             await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
@@ -465,6 +503,7 @@ class UploadChoiceView(discord.ui.View):
         if not await self._ensure_author(interaction):
             return
         await interaction.response.defer(thinking=True, ephemeral=True)
+        self.touch_prompt()
         await self._skip_current(interaction, message_prefix="この画像をスキップしました。")
 
 
@@ -544,6 +583,7 @@ class GalleryDiscordBot(discord.Client):
             mention_author=False,
         )
         view.prompt_message = prompt
+        view.touch_prompt()
 
 
 def build_parser() -> argparse.ArgumentParser:
