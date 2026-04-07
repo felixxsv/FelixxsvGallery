@@ -164,8 +164,8 @@ body.auth-page {
 }
 
 .app-site-logo__mark {
-  width: 28px;
-  height: 28px;
+  width: 15px;
+  height: 15px;
   object-fit: contain;
   display: block;
   flex-shrink: 0;
