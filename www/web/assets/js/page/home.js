@@ -1217,7 +1217,9 @@ export function initHomePage(app) {
       popular: "人気順",
       random: "ランダム",
     };
-    refs.statusText.textContent = state.total > 0 ? "現在の条件で表示しています。" : "条件に一致する画像を探しています。";
+    if (refs.statusText) {
+      refs.statusText.textContent = state.total > 0 ? "現在の条件で表示しています。" : "条件に一致する画像を探しています。";
+    }
     if (refs.statusQuery) {
       refs.statusQuery.textContent = state.q ? `"${state.q}"` : "なし";
     }
@@ -1641,7 +1643,9 @@ export function initHomePage(app) {
       setGridVisible(false);
       setEmpty(false);
       setError(error.message || "画像一覧の取得に失敗しました。");
-      refs.statusText.textContent = "画像一覧を取得できませんでした。";
+      if (refs.statusText) {
+        refs.statusText.textContent = "画像一覧を取得できませんでした。";
+      }
       app.toast.error(error.message || "画像一覧の取得に失敗しました。");
     } finally {
       setLoading(false);
