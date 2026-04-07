@@ -834,8 +834,10 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 }
 
 .home-gallery-section {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
-  min-height: clamp(360px, 58vh, 720px);
+  min-height: 0;
 }
 
 .home-state-card {
@@ -853,6 +855,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
 .home-state-card--loading,
 .home-state-card--empty {
+  flex: 1 1 auto;
   min-height: inherit;
   display: flex;
   flex-direction: column;
