@@ -89,11 +89,11 @@ body {
 }
 
 .app-site-logo__mark {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-round);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .app-site-logo__label {
