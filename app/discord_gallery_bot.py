@@ -358,7 +358,7 @@ class UploadVisibilitySelect(discord.ui.Select):
                 discord.SelectOption(label="公開", value="public", default=view_ref.selected_public),
                 discord.SelectOption(label="非公開", value="private", default=not view_ref.selected_public),
             ],
-            row=0,
+            row=3,
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -383,7 +383,7 @@ class UploadTagSelect(discord.ui.Select):
             min_values=0,
             max_values=min(5, len(options)),
             options=options,
-            row=1,
+            row=4,
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
