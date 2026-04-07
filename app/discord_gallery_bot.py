@@ -234,7 +234,7 @@ class UploadChoiceView(discord.ui.View):
         if len(self.attachments) == 1:
             return self.attachments[0].filename or "画像"
         attachment = self.attachments[self.separate_index]
-        return f"{self.separate_index + 1}/{len(self.attachments)}: {attachment.filename or '画像'}"
+        return f"({self.separate_index + 1}/{len(self.attachments)}枚目) {attachment.filename or '画像'}"
 
     def _build_prompt_text(self) -> str:
         count_text = "この画像" if len(self.attachments) == 1 else f"この {len(self.attachments)} 枚"
@@ -382,7 +382,13 @@ class UploadChoiceView(discord.ui.View):
                 self.separate_index += 1
                 await self._prepare_next_separate_draft()
             await self.refresh_prompt_message()
-            await interaction.followup.send(f"画像を投稿しました。image_id: {', '.join(created_ids)}", ephemeral=True)
+            if self.separate_completed:
+                await interaction.followup.send("画像を投稿しました。1枚ずつ投稿は完了です。", ephemeral=True)
+            else:
+                await interaction.followup.send(
+                    f"画像を投稿しました。次の写真 {self._current_attachment_label()} を編集して投稿してください。",
+                    ephemeral=True,
+                )
         except GalleryUploadError as exc:
             await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
         except Exception as exc:
