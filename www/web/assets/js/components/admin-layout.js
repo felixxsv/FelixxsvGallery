@@ -4,7 +4,7 @@ import { createModalManager } from "../core/modal.js";
 import { createToastManager } from "../core/toast.js";
 import { createSessionStore } from "../core/session.js";
 import { createSettingsStore } from "../core/settings.js";
-import { createI18n } from "../core/i18n.js";
+import { buildLocaleLoadOrder, createI18n } from "../core/i18n.js";
 import { createImageModalController } from "../core/image-modal.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
@@ -279,9 +279,10 @@ export async function initAdminLayout() {
   const app = createAdminContext();
   window.AdminApp = app;
   defineAdminLayoutMessages(app.i18n);
+  const localeLoadOrder = buildLocaleLoadOrder(app.settings.getLanguage());
 
   try {
-    await app.i18n.loadCatalogs(`${app.appBase}/assets/i18n`, ["ja", "en-us"]);
+    await app.i18n.loadCatalogs(`${app.appBase}/assets/i18n`, localeLoadOrder);
   } catch {
     // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
   }

@@ -1,6 +1,6 @@
 import { createSettingsStore } from "../core/settings.js";
 import { createThemeController } from "../core/theme.js";
-import { createI18n } from "../core/i18n.js";
+import { buildLocaleLoadOrder, createI18n } from "../core/i18n.js";
 
 const SPECIAL_MESSAGES = {
   ja: {
@@ -113,7 +113,46 @@ function initPageTitle() {
   }
 }
 
-initTheme();
-initActions();
-initPageTitle();
-initErrorPage();
+async function initSpecialPages() {
+  const settings = initTheme();
+  const i18n = createSpecialI18n(settings);
+
+  try {
+    await i18n.loadCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage()));
+  } catch {
+    // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
+  }
+
+  document.documentElement.lang = settings.getLanguage();
+  initActions();
+  initPageTitle();
+  if (document.body.dataset.pageKind === "error") {
+    const params = new URLSearchParams(window.location.search);
+    const code = text(params.get("code"), text(params.get("status"), "Error"));
+    const title = text(
+      params.get("title"),
+      document.body.dataset.pageTitle || i18n.t("special.error_title", "An error occurred")
+    );
+    const message = text(
+      params.get("message"),
+      document.body.dataset.pageDescription || i18n.t("special.error_message", "A problem occurred while processing your request. Please try again later.")
+    );
+    const requestId = text(params.get("request_id"));
+    const detail = text(params.get("detail"));
+
+    document.title = `${title} - Felixxsv Gallery`;
+    setText("specialStatusCode", code);
+    setText("specialTitle", title);
+    setText("specialDescription", message);
+
+    const metaParts = [];
+    if (requestId) metaParts.push(`Request ID: ${requestId}`);
+    if (detail) metaParts.push(detail);
+    setText("specialMeta", metaParts.join(" / "));
+    setHidden("specialMeta", metaParts.length === 0);
+    return;
+  }
+  initErrorPage();
+}
+
+initSpecialPages();

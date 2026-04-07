@@ -5,7 +5,7 @@ import { createToastManager } from "./core/toast.js";
 import { createSettingsStore } from "./core/settings.js";
 import { createThemeController } from "./core/theme.js";
 import { createSessionStore } from "./core/session.js";
-import { createI18n } from "./core/i18n.js";
+import { buildLocaleLoadOrder, createI18n } from "./core/i18n.js";
 import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js";
 import { initPublicProfileModal } from "./components/public-profile.js";
@@ -505,6 +505,14 @@ async function bootstrap() {
   const app = createAppContext();
   window.App = app;
   app.theme.init();
+  const localeLoadOrder = buildLocaleLoadOrder(app.settings.getLanguage());
+
+  try {
+    await app.i18n.loadCatalogs(`${app.appBase}/assets/i18n`, localeLoadOrder);
+  } catch {
+    // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
+  }
+
   initUserShell(app);
   initPublicProfileModal(app);
   ensureCustomScrollbars({ includeWindow: true, selectors: [".home-sidebar__body"] });
@@ -534,12 +542,6 @@ async function bootstrap() {
     initPublicSidebar();
     initHomePage(app);
     initHomeGridColumns();
-  }
-
-  try {
-    await app.i18n.loadCatalogs(`${app.appBase}/assets/i18n`, ["ja", "en-us"]);
-  } catch {
-    // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
   }
 
   syncLanguagePreference(app, null);

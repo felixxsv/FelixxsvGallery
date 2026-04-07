@@ -1,5 +1,5 @@
 import { createSettingsStore, normalizeLanguageCode } from "../core/settings.js";
-import { fetchLocaleCatalogs } from "../core/i18n.js";
+import { buildLocaleLoadOrder, fetchLocaleCatalogs } from "../core/i18n.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -138,7 +138,7 @@ const MESSAGES = {
 };
 
 async function loadSharedMessages() {
-  const catalogs = await fetchLocaleCatalogs("/gallery/assets/i18n", ["ja", "en-us"]);
+  const catalogs = await fetchLocaleCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage()));
   Object.entries(catalogs).forEach(([locale, messages]) => {
     if (!MESSAGES[locale]) MESSAGES[locale] = {};
     MESSAGES[locale] = { ...MESSAGES[locale], ...(messages || {}) };

@@ -78,6 +78,15 @@ export function createI18n(settingsStore) {
   };
 }
 
+export function buildLocaleLoadOrder(language) {
+  const normalized = String(language || "").trim().toLowerCase();
+  const locales = ["ja", "en-us"];
+  if (normalized && !locales.includes(normalized)) {
+    locales.push(normalized);
+  }
+  return locales;
+}
+
 export async function fetchLocaleCatalogs(basePath, locales = ["ja", "en-us"]) {
   const normalizedBasePath = String(basePath || "").replace(/\/+$/, "");
   const entries = await Promise.all(locales.map(async (locale) => {

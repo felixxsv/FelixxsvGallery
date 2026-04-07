@@ -148,6 +148,8 @@
   "admin_layout.discard_title": "Confirm",
   "admin_layout.discard_cancel": "Cancel",
   "admin_layout.discard_approve": "Discard and Continue",
+  "special.error_title": "An error occurred",
+  "special.error_message": "A problem occurred while processing your request. Please try again later.",
   "public_profile.title": "Profile",
   "public_profile.loading": "Loading...",
   "public_profile.not_found": "User not found."
