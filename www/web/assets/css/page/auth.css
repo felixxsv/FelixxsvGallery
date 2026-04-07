@@ -263,6 +263,53 @@ body.auth-page {
   background: var(--color-border);
 }
 
+/* ── Legacy toast on auth flow ──────────────────────────────────────────── */
+
+.uptoastwrap {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 12000;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.uptoast {
+  min-width: min(560px, calc(100vw - 32px));
+  max-width: min(720px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--color-primary) 70%, rgba(15, 23, 42, 0.95));
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+
+.uptoast.is-on {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.uptoast.is-off {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.uptoast.is-ok {
+  background: rgba(16, 185, 129, 0.92);
+}
+
+.uptoast.is-err {
+  background: rgba(220, 53, 69, 0.94);
+}
+
 /* ── Language selector ───────────────────────────────────────────────────── */
 
 .auth-lang-select {
