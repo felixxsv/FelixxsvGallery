@@ -211,6 +211,8 @@ class UploadChoiceView(discord.ui.View):
         if len(self.attachments) > 1:
             self.upload_separate.label = "1枚ずつ投稿完了" if self.separate_completed else f"{self.separate_index + 1}枚目を投稿"
             self.upload_separate.disabled = self.separate_completed
+            self.upload_grouped.disabled = self.separate_completed
+            self.skip_current.disabled = self.separate_completed
 
     async def ensure_initial_draft(self) -> None:
         if not self.draft_shot_at:
@@ -313,6 +315,37 @@ class UploadChoiceView(discord.ui.View):
         self.draft_tags = ""
         self.draft_shot_at = await self._candidate_shot_at(self.separate_index)
 
+    def _remaining_attachments(self) -> list[discord.Attachment]:
+        if len(self.attachments) <= 1:
+            return list(self.attachments)
+        return list(self.attachments[self.separate_index:])
+
+    async def _skip_current(self, interaction: discord.Interaction, *, message_prefix: str) -> None:
+        if len(self.attachments) <= 1:
+            self.stop()
+            if self.prompt_message is not None:
+                try:
+                    await self.prompt_message.delete()
+                except Exception:
+                    logger.exception("Failed to delete skipped prompt message")
+            await interaction.followup.send(message_prefix, ephemeral=True)
+            return
+
+        self.separate_processed_count += 1
+        if self.separate_index + 1 >= len(self.attachments):
+            self.separate_completed = True
+        else:
+            self.separate_index += 1
+            await self._prepare_next_separate_draft()
+        await self.refresh_prompt_message()
+        if self.separate_completed:
+            await interaction.followup.send(f"{message_prefix} 1枚ずつ投稿は完了です。", ephemeral=True)
+        else:
+            await interaction.followup.send(
+                f"{message_prefix} 次の写真 {self._current_attachment_label()} を編集して投稿してください。",
+                ephemeral=True,
+            )
+
     @discord.ui.button(label="内容を編集", style=discord.ButtonStyle.primary, row=1)
     async def edit_metadata(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
         if not await self._ensure_author(interaction):
@@ -338,7 +371,7 @@ class UploadChoiceView(discord.ui.View):
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
             result = await self._submit_upload(
-                files=self.attachments,
+                files=self._remaining_attachments(),
                 title=self.draft_title.strip(),
                 alt=self.draft_alt.strip(),
                 tags=self.draft_tags.strip(),
@@ -372,20 +405,7 @@ class UploadChoiceView(discord.ui.View):
                 is_public=self.selected_public,
             )
             if result.get("has_duplicates"):
-                self.separate_processed_count += 1
-                if self.separate_index + 1 >= len(self.attachments):
-                    self.separate_completed = True
-                else:
-                    self.separate_index += 1
-                    await self._prepare_next_separate_draft()
-                await self.refresh_prompt_message()
-                if self.separate_completed:
-                    await interaction.followup.send("重複画像のためスキップしました。1枚ずつ投稿は完了です。", ephemeral=True)
-                else:
-                    await interaction.followup.send(
-                        f"重複画像のためスキップしました。次の写真 {self._current_attachment_label()} を編集して投稿してください。",
-                        ephemeral=True,
-                    )
+                await self._skip_current(interaction, message_prefix="重複画像のためスキップしました。")
                 return
             created_ids = [str(item["image_id"]) for item in result.get("items") or [] if item.get("image_id")]
             self.separate_uploaded_ids.extend(created_ids)
@@ -426,7 +446,7 @@ class UploadChoiceView(discord.ui.View):
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
             result = await self._submit_upload(
-                files=self.attachments,
+                files=self._remaining_attachments(),
                 title=self.draft_title.strip(),
                 alt=self.draft_alt.strip(),
                 tags=self.draft_tags.strip(),
@@ -439,6 +459,13 @@ class UploadChoiceView(discord.ui.View):
         except Exception as exc:
             logger.exception("Discord upload failed")
             await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
+
+    @discord.ui.button(label="スキップ", style=discord.ButtonStyle.secondary, row=2)
+    async def skip_current(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
+        if not await self._ensure_author(interaction):
+            return
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        await self._skip_current(interaction, message_prefix="この画像をスキップしました。")
 
 
 class UploadTagSelect(discord.ui.Select):
