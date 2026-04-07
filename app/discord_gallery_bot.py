@@ -141,135 +141,49 @@ async def _read_attachments(attachments: list[discord.Attachment]) -> list[Galle
 
 
 class UploadMetadataModal(discord.ui.Modal):
-    def __init__(
-        self,
-        *,
-        bot_client: "GalleryDiscordBot",
-        message: discord.Message,
-        mode: str,
-        attachments: list[discord.Attachment],
-        actor: GalleryActor,
-        candidate_shot_at: str,
-        is_public: bool,
-        selected_tags: list[str],
-        suggested_tags: list[str],
-    ) -> None:
-        super().__init__(title="Gallery Upload")
-        self.bot_client = bot_client
-        self.message = message
-        self.mode = mode
-        self.attachments = attachments
-        self.actor = actor
+    def __init__(self, *, view_ref: "UploadChoiceView", candidate_shot_at: str) -> None:
+        super().__init__(title="投稿内容を編集")
+        self.view_ref = view_ref
         self.title_input = discord.ui.TextInput(
             label="タイトル",
-            default="",
+            default=view_ref.draft_title,
             placeholder="タイトルを入力",
             max_length=100,
             required=True,
         )
         self.alt_input = discord.ui.TextInput(
             label="説明文",
-            default="",
+            default=view_ref.draft_alt,
             style=discord.TextStyle.paragraph,
             max_length=1000,
             required=False,
         )
         self.shot_at_input = discord.ui.TextInput(
             label="撮影日",
-            default=candidate_shot_at,
+            default=view_ref.draft_shot_at or candidate_shot_at,
             placeholder="YYYY-MM-DDTHH:MM",
             max_length=16,
             required=False,
         )
         self.tags_input = discord.ui.TextInput(
             label="タグ",
-            default=", ".join(selected_tags[:8]),
-            placeholder=", ".join(suggested_tags[:3]) if suggested_tags else "tag1, tag2",
+            default=view_ref.draft_tags,
+            placeholder=", ".join(view_ref.suggested_tags[:3]) if view_ref.suggested_tags else "tag1, tag2",
             max_length=300,
             required=False,
         )
-        self.selected_public = bool(is_public)
         self.add_item(self.title_input)
         self.add_item(self.alt_input)
         self.add_item(self.shot_at_input)
         self.add_item(self.tags_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        title = str(self.title_input.value or "").strip()
-        alt = str(self.alt_input.value or "").strip()
-        shot_at = str(self.shot_at_input.value or "").strip()
-        tags = str(self.tags_input.value or "").strip()
-        is_public = bool(self.selected_public)
-
-        try:
-            prepared = await _read_attachments(self.attachments)
-            if self.mode == "separate":
-                created_ids: list[str] = []
-                duplicate_names: list[str] = []
-                for index, item in enumerate(prepared, start=1):
-                    item_title = title if len(prepared) == 1 else f"{title} #{index}"
-                    result = await asyncio.to_thread(
-                        perform_gallery_upload,
-                        conf=self.bot_client.conf,
-                        title=item_title,
-                        alt=alt,
-                        tags=tags,
-                        is_public=is_public,
-                        shot_at=shot_at,
-                        files=[item],
-                        actor=self.actor,
-                    )
-                    if result.get("has_duplicates"):
-                        duplicate_names.extend(
-                            entry["filename"]
-                            for entry in (result.get("items") or [])
-                            if entry.get("duplicate")
-                        )
-                        continue
-                    created_ids.extend(str(entry["image_id"]) for entry in (result.get("items") or []))
-                if duplicate_names and not created_ids:
-                    await interaction.followup.send(
-                        f"重複画像があるため投稿を中止しました。{', '.join(duplicate_names)}",
-                        ephemeral=True,
-                    )
-                    return
-                suffix = f" / 重複除外: {', '.join(duplicate_names)}" if duplicate_names else ""
-                await interaction.followup.send(
-                    f"{len(created_ids)}件の画像を Gallery へ投稿しました。image_id: {', '.join(created_ids)}{suffix}",
-                    ephemeral=True,
-                )
-                return
-
-            result = await asyncio.to_thread(
-                perform_gallery_upload,
-                conf=self.bot_client.conf,
-                title=title,
-                alt=alt,
-                tags=tags,
-                is_public=is_public,
-                shot_at=shot_at,
-                files=prepared,
-                actor=self.actor,
-            )
-            if result.get("has_duplicates"):
-                duplicates = ", ".join(item["filename"] for item in result.get("items") or [] if item.get("duplicate"))
-                await interaction.followup.send(f"重複画像があるため投稿を中止しました。{duplicates}", ephemeral=True)
-                return
-
-            if result.get("content_key"):
-                await interaction.followup.send(
-                    f"Gallery へ投稿しました。content_key: {result['content_key']} / 件数: {result.get('count', 0)}",
-                    ephemeral=True,
-                )
-            else:
-                created_ids = ", ".join(str(item["image_id"]) for item in result.get("items") or [])
-                await interaction.followup.send(f"Gallery へ投稿しました。image_id: {created_ids}", ephemeral=True)
-        except GalleryUploadError as exc:
-            await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
-        except Exception as exc:
-            logger.exception("Discord upload failed")
-            await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
+        await interaction.response.defer()
+        self.view_ref.draft_title = str(self.title_input.value or "").strip()
+        self.view_ref.draft_alt = str(self.alt_input.value or "").strip()
+        self.view_ref.draft_shot_at = str(self.shot_at_input.value or "").strip()
+        self.view_ref.draft_tags = str(self.tags_input.value or "").strip()
+        await self.view_ref.refresh_prompt_message()
 
 
 class UploadChoiceView(discord.ui.View):
@@ -279,19 +193,33 @@ class UploadChoiceView(discord.ui.View):
         self.message = message
         self.attachments = attachments
         self.actor = actor
+        self.prompt_message: discord.Message | None = None
         self.selected_public = bool(bot_client.bot_cfg.public_default)
-        self.selected_tags: list[str] = []
         self.suggested_tags = _load_tag_suggestions(bot_client.conf, limit=8)
-        self.visibility_select = UploadVisibilitySelect(self)
-        self.add_item(self.visibility_select)
-        if self.suggested_tags:
-            self.tag_select = UploadTagSelect(self, self.suggested_tags)
-            self.add_item(self.tag_select)
+        self.draft_title = ""
+        self.draft_alt = ""
+        self.draft_shot_at = ""
+        self.draft_tags = ""
+        self.separate_index = 0
+        self.separate_uploaded_ids: list[str] = []
+        self.separate_completed = False
         if len(attachments) == 1:
-            self.upload_separate.disabled = True
-            self.upload_grouped.disabled = True
+            self.remove_item(self.upload_separate)
+            self.remove_item(self.upload_grouped)
         else:
-            self.upload_single.disabled = True
+            self.remove_item(self.upload_single)
+        self._sync_button_state()
+
+    def _sync_button_state(self) -> None:
+        self.toggle_visibility.label = f"公開設定: {'公開' if self.selected_public else '非公開'}"
+        self.toggle_visibility.style = discord.ButtonStyle.success if self.selected_public else discord.ButtonStyle.secondary
+        if len(self.attachments) > 1:
+            self.upload_separate.label = "1枚ずつ投稿完了" if self.separate_completed else f"{self.separate_index + 1}枚目を投稿"
+            self.upload_separate.disabled = self.separate_completed
+
+    async def ensure_initial_draft(self) -> None:
+        if not self.draft_shot_at:
+            self.draft_shot_at = await self._candidate_shot_at(0)
 
     async def _ensure_author(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.message.author.id:
@@ -299,42 +227,179 @@ class UploadChoiceView(discord.ui.View):
             return False
         return True
 
-    async def _candidate_shot_at(self) -> str:
-        first = self.attachments[0]
+    async def _candidate_shot_at(self, index: int) -> str:
+        attachment = self.attachments[index]
         try:
-            data = await first.read()
-            return extract_candidate_shot_at_from_image_bytes(first.filename or "image", data, self.bot_client.conf)
+            data = await attachment.read()
+            return extract_candidate_shot_at_from_image_bytes(attachment.filename or "image", data, self.bot_client.conf)
         except Exception:
             logger.exception("Failed to build candidate shot_at")
             return ""
 
-    async def _open_modal(self, interaction: discord.Interaction, mode: str) -> None:
+    def _current_attachment_label(self) -> str:
+        if len(self.attachments) == 1:
+            return self.attachments[0].filename or "画像"
+        attachment = self.attachments[self.separate_index]
+        return f"{self.separate_index + 1}/{len(self.attachments)}: {attachment.filename or '画像'}"
+
+    def _build_prompt_text(self) -> str:
+        count_text = "この画像" if len(self.attachments) == 1 else f"この {len(self.attachments)} 枚"
+        lines = [f"{count_text} を Felixxsv Gallery へ送りますか？"]
+        if len(self.attachments) > 1:
+            lines.append(f"1枚ずつ投稿の現在対象: {self._current_attachment_label()}")
+            lines.append(f"1枚ずつ投稿済み: {len(self.separate_uploaded_ids)}/{len(self.attachments)}")
+        lines.extend(
+            [
+                f"タイトル: {self.draft_title or '未設定'}",
+                f"説明文: {self.draft_alt or '未設定'}",
+                f"撮影日: {self.draft_shot_at or '未設定'}",
+                f"公開設定: {'公開' if self.selected_public else '非公開'}",
+                f"タグ: {self.draft_tags or '未設定'}",
+            ]
+        )
+        if self.suggested_tags:
+            lines.append(f"候補タグ: {', '.join(self.suggested_tags[:5])}")
+        lines.append("内容を編集してから、下の投稿ボタンで確定できます。")
+        return "\n".join(lines)
+
+    async def refresh_prompt_message(self) -> None:
+        self._sync_button_state()
+        if self.prompt_message is not None:
+            await self.prompt_message.edit(content=self._build_prompt_text(), view=self)
+
+    async def _open_metadata_modal(self, interaction: discord.Interaction) -> None:
         modal = UploadMetadataModal(
-            bot_client=self.bot_client,
-            message=self.message,
-            mode=mode,
-            attachments=self.attachments,
-            actor=self.actor,
-            candidate_shot_at=await self._candidate_shot_at(),
-            is_public=self.selected_public,
-            selected_tags=self.selected_tags,
-            suggested_tags=self.suggested_tags,
+            view_ref=self,
+            candidate_shot_at=self.draft_shot_at or await self._candidate_shot_at(self.separate_index),
         )
         await interaction.response.send_modal(modal)
 
-    @discord.ui.button(label="Galleryへ投稿", style=discord.ButtonStyle.primary)
+    def _draft_ready(self) -> str | None:
+        if not self.draft_title.strip():
+            return "先に「内容を編集」からタイトルを入力してください。"
+        return None
+
+    async def _submit_upload(
+        self,
+        *,
+        files: list[discord.Attachment],
+        title: str,
+        alt: str,
+        tags: str,
+        shot_at: str,
+        is_public: bool,
+    ) -> dict:
+        prepared = await _read_attachments(files)
+        return await asyncio.to_thread(
+            perform_gallery_upload,
+            conf=self.bot_client.conf,
+            title=title,
+            alt=alt,
+            tags=tags,
+            is_public=is_public,
+            shot_at=shot_at,
+            files=prepared,
+            actor=self.actor,
+        )
+
+    async def _handle_upload_result(self, interaction: discord.Interaction, result: dict) -> None:
+        if result.get("has_duplicates"):
+            duplicates = ", ".join(item["filename"] for item in result.get("items") or [] if item.get("duplicate"))
+            await interaction.followup.send(f"重複画像があるため投稿を中止しました。{duplicates}", ephemeral=True)
+            return
+        if result.get("content_key"):
+            await interaction.followup.send(
+                f"Gallery へ投稿しました。content_key: {result['content_key']} / 件数: {result.get('count', 0)}",
+                ephemeral=True,
+            )
+            return
+        created_ids = ", ".join(str(item["image_id"]) for item in result.get("items") or [] if item.get("image_id"))
+        await interaction.followup.send(f"Gallery へ投稿しました。image_id: {created_ids}", ephemeral=True)
+
+    async def _prepare_next_separate_draft(self) -> None:
+        self.draft_title = ""
+        self.draft_alt = ""
+        self.draft_tags = ""
+        self.draft_shot_at = await self._candidate_shot_at(self.separate_index)
+
+    @discord.ui.button(label="内容を編集", style=discord.ButtonStyle.primary, row=0)
+    async def edit_metadata(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
+        if not await self._ensure_author(interaction):
+            return
+        await self._open_metadata_modal(interaction)
+
+    @discord.ui.button(label="公開設定: 公開", style=discord.ButtonStyle.success, row=0)
+    async def toggle_visibility(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
+        if not await self._ensure_author(interaction):
+            return
+        self.selected_public = not self.selected_public
+        await interaction.response.defer()
+        await self.refresh_prompt_message()
+
+    @discord.ui.button(label="Galleryへ投稿", style=discord.ButtonStyle.success, row=1)
     async def upload_single(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
         if not await self._ensure_author(interaction):
             return
-        await self._open_modal(interaction, "single")
+        error = self._draft_ready()
+        if error:
+            await interaction.response.send_message(error, ephemeral=True)
+            return
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        try:
+            result = await self._submit_upload(
+                files=self.attachments,
+                title=self.draft_title.strip(),
+                alt=self.draft_alt.strip(),
+                tags=self.draft_tags.strip(),
+                shot_at=self.draft_shot_at.strip(),
+                is_public=self.selected_public,
+            )
+            await self._handle_upload_result(interaction, result)
+        except GalleryUploadError as exc:
+            await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
+        except Exception as exc:
+            logger.exception("Discord upload failed")
+            await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
 
-    @discord.ui.button(label="1枚ずつ投稿", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="1枚ずつ投稿", style=discord.ButtonStyle.secondary, row=1)
     async def upload_separate(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
         if not await self._ensure_author(interaction):
             return
-        await self._open_modal(interaction, "separate")
+        error = self._draft_ready()
+        if error:
+            await interaction.response.send_message(error, ephemeral=True)
+            return
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        attachment = self.attachments[self.separate_index]
+        try:
+            result = await self._submit_upload(
+                files=[attachment],
+                title=self.draft_title.strip(),
+                alt=self.draft_alt.strip(),
+                tags=self.draft_tags.strip(),
+                shot_at=self.draft_shot_at.strip(),
+                is_public=self.selected_public,
+            )
+            if result.get("has_duplicates"):
+                duplicates = ", ".join(item["filename"] for item in result.get("items") or [] if item.get("duplicate"))
+                await interaction.followup.send(f"重複画像があるため投稿を中止しました。{duplicates}", ephemeral=True)
+                return
+            created_ids = [str(item["image_id"]) for item in result.get("items") or [] if item.get("image_id")]
+            self.separate_uploaded_ids.extend(created_ids)
+            if self.separate_index + 1 >= len(self.attachments):
+                self.separate_completed = True
+            else:
+                self.separate_index += 1
+                await self._prepare_next_separate_draft()
+            await self.refresh_prompt_message()
+            await interaction.followup.send(f"画像を投稿しました。image_id: {', '.join(created_ids)}", ephemeral=True)
+        except GalleryUploadError as exc:
+            await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
+        except Exception as exc:
+            logger.exception("Discord upload failed")
+            await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
 
-    @discord.ui.button(label="まとめて1投稿", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="まとめて1投稿", style=discord.ButtonStyle.success, row=1)
     async def upload_grouped(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
         if not await self._ensure_author(interaction):
             return
@@ -344,55 +409,26 @@ class UploadChoiceView(discord.ui.View):
                 ephemeral=True,
             )
             return
-        await self._open_modal(interaction, "grouped")
-
-
-class UploadVisibilitySelect(discord.ui.Select):
-    def __init__(self, view_ref: UploadChoiceView) -> None:
-        self.view_ref = view_ref
-        super().__init__(
-            placeholder="公開設定",
-            min_values=1,
-            max_values=1,
-            options=[
-                discord.SelectOption(label="公開", value="public", default=view_ref.selected_public),
-                discord.SelectOption(label="非公開", value="private", default=not view_ref.selected_public),
-            ],
-            row=3,
-        )
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        if interaction.user.id != self.view_ref.message.author.id:
-            await interaction.response.send_message("この操作は元の投稿者のみ実行できます。", ephemeral=True)
+        error = self._draft_ready()
+        if error:
+            await interaction.response.send_message(error, ephemeral=True)
             return
-        self.view_ref.selected_public = self.values[0] == "public"
-        self.options[0].default = self.view_ref.selected_public
-        self.options[1].default = not self.view_ref.selected_public
-        await interaction.response.send_message(
-            f"公開設定を {'公開' if self.view_ref.selected_public else '非公開'} に設定しました。",
-            ephemeral=True,
-        )
-
-
-class UploadTagSelect(discord.ui.Select):
-    def __init__(self, view_ref: UploadChoiceView, suggestions: list[str]) -> None:
-        self.view_ref = view_ref
-        options = [discord.SelectOption(label=tag[:100], value=tag[:100]) for tag in suggestions[:8]]
-        super().__init__(
-            placeholder="候補タグを選択",
-            min_values=0,
-            max_values=min(5, len(options)),
-            options=options,
-            row=4,
-        )
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        if interaction.user.id != self.view_ref.message.author.id:
-            await interaction.response.send_message("この操作は元の投稿者のみ実行できます。", ephemeral=True)
-            return
-        self.view_ref.selected_tags = list(self.values)
-        text = ", ".join(self.view_ref.selected_tags) if self.view_ref.selected_tags else "未選択"
-        await interaction.response.send_message(f"タグ候補: {text}", ephemeral=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        try:
+            result = await self._submit_upload(
+                files=self.attachments,
+                title=self.draft_title.strip(),
+                alt=self.draft_alt.strip(),
+                tags=self.draft_tags.strip(),
+                shot_at=self.draft_shot_at.strip(),
+                is_public=self.selected_public,
+            )
+            await self._handle_upload_result(interaction, result)
+        except GalleryUploadError as exc:
+            await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
+        except Exception as exc:
+            logger.exception("Discord upload failed")
+            await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
 
 
 class GalleryDiscordBot(discord.Client):
@@ -442,15 +478,14 @@ class GalleryDiscordBot(discord.Client):
             )
             return
 
-        count_text = "この画像" if len(attachments) == 1 else f"この {len(attachments)} 枚"
         view = UploadChoiceView(bot_client=self, message=message, attachments=attachments, actor=actor)
-        await message.reply(
-            f"{count_text} を Felixxsv Gallery へ送りますか？\n"
-            "撮影日は自動候補を入れます。Discord modal の制約でカレンダー入力は使えません。\n"
-            "公開設定と候補タグは下の select で先に選べます。",
+        await view.ensure_initial_draft()
+        prompt = await message.reply(
+            view._build_prompt_text(),
             view=view,
             mention_author=False,
         )
+        view.prompt_message = prompt
 
 
 def build_parser() -> argparse.ArgumentParser:
