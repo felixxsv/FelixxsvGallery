@@ -85,7 +85,7 @@ body[data-page="home"] {
 .home-page {
   min-height: calc(100vh - var(--header-height));
   min-height: calc(100dvh - var(--header-height));
-  padding: 0 0 20px;
+  padding: 0;
 }
 
 .home-page > .app-container {
