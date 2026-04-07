@@ -163,11 +163,12 @@ body.auth-page {
   margin-bottom: 5px;
 }
 
-.app-site-logo__mark {
-  width: 15px;
-  height: 15px;
-  object-fit: contain;
-  display: block;
+.auth-hero__brand-mark {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 22%, transparent);
   flex-shrink: 0;
 }
 
