@@ -5,6 +5,7 @@ from galleryctl.integrity_check import run_integrity_check, run_integrity_dispat
 from galleryctl.sync_full import run_sync_full
 from galleryctl.rebuild_colors import run_rebuild_colors
 from galleryctl.rebuild_contents import run_rebuild_contents
+from galleryctl.wipe_gallery import run_wipe_gallery
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,6 +41,13 @@ def build_parser() -> argparse.ArgumentParser:
     disp = sub.add_parser("integrity-dispatch")
     disp.add_argument("--config", required=True)
     disp.add_argument("--max-runs", type=int, default=1)
+
+    wipe = sub.add_parser("wipe-gallery")
+    wipe.add_argument("--config", required=True)
+    wipe.add_argument("--dry-run", action="store_true")
+    wipe.add_argument("--delete-storage", action="store_true")
+    wipe.add_argument("--delete-source", action="store_true")
+    wipe.add_argument("--delete-tags", action="store_true")
 
     return p
 
@@ -86,6 +94,15 @@ def main(argv: list[str]) -> int:
         return run_integrity_dispatch(
             config_path=args.config,
             max_runs=max(1, int(args.max_runs or 1)),
+        )
+
+    if args.cmd == "wipe-gallery":
+        return run_wipe_gallery(
+            config_path=args.config,
+            dry_run=bool(args.dry_run),
+            delete_storage=bool(args.delete_storage),
+            delete_source=bool(args.delete_source),
+            delete_tags=bool(args.delete_tags),
         )
 
     return 2
