@@ -1,18 +1,5 @@
 import { byId } from "../core/dom.js";
 
-const PROFILE_MESSAGES = {
-  ja: {
-    title: "プロフィール",
-    loading: "読み込み中...",
-    not_found: "ユーザーが見つかりませんでした。",
-  },
-  "en-us": {
-    title: "Profile",
-    loading: "Loading...",
-    not_found: "User not found.",
-  },
-};
-
 const LINK_ICON_MAP = {
   "x.com": "x",
   "twitter.com": "x",
@@ -66,13 +53,6 @@ function getBadgeIconHtml(badge, appBase) {
 }
 
 export function initPublicProfileModal(app) {
-  Object.entries(PROFILE_MESSAGES).forEach(([locale, messages]) => {
-    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`public_profile.${key}`, value])));
-  });
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(PROFILE_MESSAGES["en-us"]).map(([key, value]) => [`public_profile.${key}`, value])));
-  });
-
   const refs = {
     loading: byId("userProfileLoading"),
     error: byId("userProfileError"),

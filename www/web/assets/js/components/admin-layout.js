@@ -17,47 +17,6 @@ const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
 const SIDEBAR_EDGE_PEEK_PX = 44;
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "gallery.admin.sidebar.collapsed";
 const ADMIN_SIDEBAR_INIT_KEY = "gallery.admin.sidebar.init.v2";
-const ADMIN_LAYOUT_MESSAGES = {
-  ja: {
-    page_title: "管理画面",
-    sidebar_expand: "サイドバーを展開する",
-    sidebar_close: "サイドバーを閉じる",
-    init_error: "管理画面の初期化に失敗しました。",
-    discard_move: "未保存の変更があります。破棄して移動しますか？",
-    user_info: "ユーザー情報",
-    nav_label: "管理画面ナビゲーション",
-    not_found_title: "404",
-    not_found_desc: "お探しのページは見つかりませんでした。",
-    home_back: "ホームへ戻る",
-    error_title: "初期化に失敗しました",
-    error_desc: "管理画面の初期化中にエラーが発生しました。",
-    reload: "再読み込み",
-    sidebar_footer: "管理画面は権限確認後にのみ表示します。",
-    discard_title: "確認",
-    discard_cancel: "キャンセル",
-    discard_approve: "破棄して移動",
-  },
-  "en-us": {
-    page_title: "Admin",
-    sidebar_expand: "Expand sidebar",
-    sidebar_close: "Close sidebar",
-    init_error: "Failed to initialize the admin console.",
-    discard_move: "You have unsaved changes. Discard them and continue?",
-    user_info: "User menu",
-    nav_label: "Admin navigation",
-    not_found_title: "404",
-    not_found_desc: "The page you requested was not found.",
-    home_back: "Back to Home",
-    error_title: "Initialization Failed",
-    error_desc: "An error occurred while initializing the admin console.",
-    reload: "Reload",
-    sidebar_footer: "The admin console is shown only after permission checks complete.",
-    discard_title: "Confirm",
-    discard_cancel: "Cancel",
-    discard_approve: "Discard and Continue",
-  },
-};
-
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
   const api = createApiClient({ baseUrl: appBase });
@@ -87,15 +46,6 @@ function createAdminContext() {
     bootstrapData: null,
     presence: null
   };
-}
-
-function defineAdminLayoutMessages(i18n) {
-  Object.entries(ADMIN_LAYOUT_MESSAGES).forEach(([locale, messages]) => {
-    i18n.define(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_layout.${key}`, value])));
-  });
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    i18n.define(locale, Object.fromEntries(Object.entries(ADMIN_LAYOUT_MESSAGES["en-us"]).map(([key, value]) => [`admin_layout.${key}`, value])));
-  });
 }
 
 function applyDocumentLanguage(language) {
@@ -278,7 +228,6 @@ function createPresenceController(app) {
 export async function initAdminLayout() {
   const app = createAdminContext();
   window.AdminApp = app;
-  defineAdminLayoutMessages(app.i18n);
   const localeLoadOrder = buildLocaleLoadOrder(app.settings.getLanguage());
 
   try {

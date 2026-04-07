@@ -2,17 +2,6 @@ import { createSettingsStore } from "../core/settings.js";
 import { createThemeController } from "../core/theme.js";
 import { buildLocaleLoadOrder, createI18n } from "../core/i18n.js";
 
-const SPECIAL_MESSAGES = {
-  ja: {
-    error_title: "エラーが発生しました",
-    error_message: "処理中に問題が発生しました。時間をおいて再試行してください。",
-  },
-  "en-us": {
-    error_title: "An error occurred",
-    error_message: "A problem occurred while processing your request. Please try again later.",
-  },
-};
-
 function text(value, fallback = "") {
   const raw = typeof value === "string" ? value.trim() : "";
   return raw || fallback;
@@ -37,17 +26,6 @@ function initTheme() {
   const theme = createThemeController(settings);
   theme.init();
   return settings;
-}
-
-function createSpecialI18n(settings) {
-  const i18n = createI18n(settings);
-  Object.entries(SPECIAL_MESSAGES).forEach(([locale, messages]) => {
-    i18n.define(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`special.${key}`, value])));
-  });
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    i18n.define(locale, Object.fromEntries(Object.entries(SPECIAL_MESSAGES["en-us"]).map(([key, value]) => [`special.${key}`, value])));
-  });
-  return i18n;
 }
 
 function initActions() {
@@ -115,7 +93,7 @@ function initPageTitle() {
 
 async function initSpecialPages() {
   const settings = initTheme();
-  const i18n = createSpecialI18n(settings);
+  const i18n = createI18n(settings);
 
   try {
     await i18n.loadCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage()));
