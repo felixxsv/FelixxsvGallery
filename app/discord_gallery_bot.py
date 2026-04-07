@@ -331,19 +331,37 @@ class UploadChoiceView(discord.ui.View):
             actor=self.actor,
         )
 
+    async def _send_temporary_followup(self, interaction: discord.Interaction, content: str) -> None:
+        try:
+            notice = await interaction.followup.send(content, ephemeral=True, wait=True)
+        except TypeError:
+            await interaction.followup.send(content, ephemeral=True)
+            return
+
+        async def _cleanup_notice() -> None:
+            try:
+                await asyncio.sleep(PROMPT_INACTIVITY_SECONDS)
+                await notice.delete()
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                logger.exception("Failed to delete followup notice")
+
+        asyncio.create_task(_cleanup_notice())
+
     async def _handle_upload_result(self, interaction: discord.Interaction, result: dict) -> None:
         if result.get("has_duplicates"):
             duplicates = ", ".join(item["filename"] for item in result.get("items") or [] if item.get("duplicate"))
-            await interaction.followup.send(f"重複画像があるため投稿を中止しました。{duplicates}", ephemeral=True)
+            await self._send_temporary_followup(interaction, f"重複画像があるため投稿を中止しました。{duplicates}")
             return
         if result.get("content_key"):
-            await interaction.followup.send(
+            await self._send_temporary_followup(
+                interaction,
                 f"Gallery へ投稿しました。content_key: {result['content_key']} / 件数: {result.get('count', 0)}",
-                ephemeral=True,
             )
             return
         created_ids = ", ".join(str(item["image_id"]) for item in result.get("items") or [] if item.get("image_id"))
-        await interaction.followup.send(f"Gallery へ投稿しました。image_id: {created_ids}", ephemeral=True)
+        await self._send_temporary_followup(interaction, f"Gallery へ投稿しました。image_id: {created_ids}")
 
     async def _prepare_next_separate_draft(self) -> None:
         self.draft_title = ""
@@ -408,10 +426,10 @@ class UploadChoiceView(discord.ui.View):
             await self._delete_prompt_message()
             await self._handle_upload_result(interaction, result)
         except GalleryUploadError as exc:
-            await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
+            await self._send_temporary_followup(interaction, f"投稿に失敗しました: {exc.message}")
         except Exception as exc:
             logger.exception("Discord upload failed")
-            await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
+            await self._send_temporary_followup(interaction, f"投稿に失敗しました: {type(exc).__name__}: {exc}")
 
     @discord.ui.button(label="1枚ずつ投稿", style=discord.ButtonStyle.secondary, row=2)
     async def upload_separate(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
@@ -447,17 +465,17 @@ class UploadChoiceView(discord.ui.View):
             await self.refresh_prompt_message()
             if self.separate_completed:
                 await self._delete_prompt_message()
-                await interaction.followup.send("画像を投稿しました。1枚ずつ投稿は完了です。", ephemeral=True)
+                await self._send_temporary_followup(interaction, "画像を投稿しました。1枚ずつ投稿は完了です。")
             else:
-                await interaction.followup.send(
+                await self._send_temporary_followup(
+                    interaction,
                     f"画像を投稿しました。次の写真 {self._current_attachment_label()} を編集して投稿してください。",
-                    ephemeral=True,
                 )
         except GalleryUploadError as exc:
-            await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
+            await self._send_temporary_followup(interaction, f"投稿に失敗しました: {exc.message}")
         except Exception as exc:
             logger.exception("Discord upload failed")
-            await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
+            await self._send_temporary_followup(interaction, f"投稿に失敗しました: {type(exc).__name__}: {exc}")
 
     @discord.ui.button(label="まとめて1投稿", style=discord.ButtonStyle.success, row=2)
     async def upload_grouped(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
@@ -487,10 +505,10 @@ class UploadChoiceView(discord.ui.View):
             await self._delete_prompt_message()
             await self._handle_upload_result(interaction, result)
         except GalleryUploadError as exc:
-            await interaction.followup.send(f"投稿に失敗しました: {exc.message}", ephemeral=True)
+            await self._send_temporary_followup(interaction, f"投稿に失敗しました: {exc.message}")
         except Exception as exc:
             logger.exception("Discord upload failed")
-            await interaction.followup.send(f"投稿に失敗しました: {type(exc).__name__}: {exc}", ephemeral=True)
+            await self._send_temporary_followup(interaction, f"投稿に失敗しました: {type(exc).__name__}: {exc}")
 
     @discord.ui.button(label="スキップ", style=discord.ButtonStyle.secondary, row=2)
     async def skip_current(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
