@@ -400,6 +400,7 @@ function readActiveButton(container, selector = "[data-ui-segment-button], [data
 
 export function initHomePage(app) {
   const refs = {
+    contentShell: document.querySelector(".home-shell-layout__content"),
     searchInput: byId("homeSearchInput"),
     sortSelect: byId("homeSortSelect"),
     statusText: byId("homeStatusText"),
@@ -488,19 +489,34 @@ export function initHomePage(app) {
 
   function setLoading(loading) {
     refs.loadingState.hidden = !loading;
+    syncEmptyLayoutClass();
   }
 
   function setError(message) {
     refs.errorState.hidden = !message;
     refs.errorState.textContent = message || "";
+    syncEmptyLayoutClass();
   }
 
   function setEmpty(visible) {
     refs.emptyState.hidden = !visible;
+    syncEmptyLayoutClass();
   }
 
   function setGridVisible(visible) {
     refs.galleryGrid.hidden = !visible;
+    syncEmptyLayoutClass();
+  }
+
+  function syncEmptyLayoutClass() {
+    if (!refs.contentShell) {
+      return;
+    }
+    const hasGrid = !refs.galleryGrid.hidden;
+    const hasLoading = !refs.loadingState.hidden;
+    const hasError = !refs.errorState.hidden;
+    const hasEmpty = !refs.emptyState.hidden;
+    refs.contentShell.classList.toggle("is-home-empty-layout", !hasGrid && (hasLoading || hasError || hasEmpty));
   }
 
   function effectiveGridCols() {
