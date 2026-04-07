@@ -86,7 +86,7 @@ def _resolve_gallery_actor(conf: dict, discord_user_id: int) -> GalleryActor | N
         with conn.cursor() as cur:
             cur.execute(
                 """
-SELECT u.id, u.upload_enabled, u.status
+SELECT u.id, u.can_upload AS upload_enabled, u.status
 FROM auth_identities ai
 JOIN users u ON u.id=ai.user_id
 WHERE ai.provider=%s AND ai.provider_user_id=%s AND ai.is_enabled=1
