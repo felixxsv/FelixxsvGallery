@@ -839,8 +839,8 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 }
 
 .home-shell-layout__content.is-home-empty-layout {
-  min-height: calc(100vh - var(--header-height));
-  min-height: calc(100dvh - var(--header-height));
+  height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -1224,7 +1224,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
   .home-shell-layout__content.is-home-empty-layout,
   .home-shell-layout.is-sidebar-collapsed .home-shell-layout__content.is-home-empty-layout {
-    min-height: 0;
+    height: auto;
     overflow: visible;
   }
 
