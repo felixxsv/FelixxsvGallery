@@ -197,6 +197,7 @@ class UploadChoiceView(discord.ui.View):
         self.separate_processed_count = 0
         self.separate_completed = False
         self.inactivity_task: asyncio.Task | None = None
+        self.last_followup_notice = None
         if self.suggested_tags:
             self.tag_select = UploadTagSelect(self, self.suggested_tags)
             self.add_item(self.tag_select)
@@ -332,22 +333,36 @@ class UploadChoiceView(discord.ui.View):
         )
 
     async def _send_temporary_followup(self, interaction: discord.Interaction, content: str) -> None:
+        await self._delete_last_followup_notice()
         try:
             notice = await interaction.followup.send(content, ephemeral=True, wait=True)
         except TypeError:
             await interaction.followup.send(content, ephemeral=True)
             return
+        self.last_followup_notice = notice
 
         async def _cleanup_notice() -> None:
             try:
                 await asyncio.sleep(PROMPT_INACTIVITY_SECONDS)
-                await notice.delete()
+                if self.last_followup_notice is notice:
+                    await notice.delete()
+                    self.last_followup_notice = None
             except asyncio.CancelledError:
                 return
             except Exception:
                 logger.exception("Failed to delete followup notice")
 
         asyncio.create_task(_cleanup_notice())
+
+    async def _delete_last_followup_notice(self) -> None:
+        if self.last_followup_notice is None:
+            return
+        notice = self.last_followup_notice
+        self.last_followup_notice = None
+        try:
+            await notice.delete()
+        except Exception:
+            logger.exception("Failed to delete previous followup notice")
 
     async def _handle_upload_result(self, interaction: discord.Interaction, result: dict) -> None:
         if result.get("has_duplicates"):
@@ -377,6 +392,7 @@ class UploadChoiceView(discord.ui.View):
     async def _skip_current(self, interaction: discord.Interaction, *, message_prefix: str) -> None:
         if len(self.attachments) <= 1:
             await self._delete_prompt_message()
+            await self._send_temporary_followup(interaction, message_prefix)
             return
 
         self.separate_processed_count += 1
@@ -388,6 +404,12 @@ class UploadChoiceView(discord.ui.View):
         await self.refresh_prompt_message()
         if self.separate_completed:
             await self._delete_prompt_message()
+            await self._send_temporary_followup(interaction, f"{message_prefix} 1枚ずつ投稿は完了です。")
+        else:
+            await self._send_temporary_followup(
+                interaction,
+                f"{message_prefix} 次の写真 {self._current_attachment_label()} を編集して投稿してください。",
+            )
 
     @discord.ui.button(label="内容を編集", style=discord.ButtonStyle.primary, row=1)
     async def edit_metadata(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
