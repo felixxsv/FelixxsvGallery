@@ -1617,6 +1617,9 @@ def _normalize_content_detail_item(item: dict, content_title: str | None, conten
         "view_count": int(item.get("view_count") or 0),
         "sort_order": item.get("sort_order"),
         "is_thumbnail": bool(item.get("is_thumbnail")),
+        "uploader_user_key": item.get("uploader_user_key"),
+        "uploader_display_name": item.get("uploader_display_name"),
+        "uploader_avatar_url": item.get("uploader_avatar_url"),
     }
 
 
@@ -1694,6 +1697,15 @@ def list_contents(
         join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
         join_content = "LEFT JOIN gallery_content_images gci ON gci.image_id=i.id LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery"
         content_key_expr = _content_key_expr("i", "gci")
+        if _HAS_IMAGES_OWNER_USER_ID:
+            content_user_select = """,
+    u.user_key AS uploader_user_key,
+    u.display_name AS uploader_display_name,
+    CASE WHEN u.avatar_path IS NOT NULL THEN CONCAT('/api/auth/avatar/', u.id) ELSE NULL END AS uploader_avatar_url"""
+            content_user_join = "LEFT JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'"
+        else:
+            content_user_select = ""
+            content_user_join = ""
         sort_key = (sort or "latest").lower()
 
         count_sql = f"""
@@ -1773,7 +1785,7 @@ FROM (
     i.like_count,
     COALESCE(i.focal_x, 50) AS focal_x,
     COALESCE(i.focal_y, 50) AS focal_y,
-    {thumb_viewer_sql},
+    {thumb_viewer_sql}{content_user_select},
     COUNT(*) OVER (PARTITION BY {content_key_expr}) AS image_count,
     ROW_NUMBER() OVER (
       PARTITION BY {content_key_expr}
@@ -1788,6 +1800,7 @@ FROM (
   JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
   LEFT JOIN gallery_content_images gci ON gci.image_id=i.id
   LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery
+  {content_user_join}
   WHERE i.gallery=%s AND i.is_public=1 AND {content_key_expr} IN ({key_placeholders})
 ) picked
 WHERE picked.rn=1
@@ -1824,6 +1837,9 @@ WHERE picked.rn=1
                 "view_count": int(row.get("view_count_sum") or 0),
                 "focal_x": float(thumb.get("focal_x") or 50),
                 "focal_y": float(thumb.get("focal_y") or 50),
+                "uploader_user_key": thumb.get("uploader_user_key"),
+                "uploader_display_name": thumb.get("uploader_display_name"),
+                "uploader_avatar_url": thumb.get("uploader_avatar_url"),
             })
 
         pages = (total + per_page - 1) // per_page if total else 0
@@ -2004,6 +2020,16 @@ LIMIT 1
             if not content_row:
                 raise HTTPException(status_code=404, detail="not found")
 
+            if _HAS_IMAGES_OWNER_USER_ID:
+                content_detail_user_select = """,
+  u.user_key AS uploader_user_key,
+  u.display_name AS uploader_display_name,
+  CASE WHEN u.avatar_path IS NOT NULL THEN CONCAT('/api/auth/avatar/', u.id) ELSE NULL END AS uploader_avatar_url"""
+                content_detail_user_join = "LEFT JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'"
+            else:
+                content_detail_user_select = ""
+                content_detail_user_join = ""
+
             cur.execute(
                 f"""
 SELECT
@@ -2020,13 +2046,14 @@ SELECT
   i.preview_path,
   i.like_count,
   COALESCE(st.view_count,0) AS view_count,
-  {viewer_liked_sql},
+  {viewer_liked_sql}{content_detail_user_select},
   gci.sort_order,
   COALESCE(gci.is_thumbnail, 0) AS is_thumbnail
 FROM gallery_content_images gci
 JOIN images i ON i.id=gci.image_id AND i.gallery=%s AND i.is_public=1
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 LEFT JOIN image_stats st ON st.image_id=i.id
+{content_detail_user_join}
 WHERE gci.content_id=%s
 ORDER BY
   CASE WHEN %s IS NOT NULL AND %s = i.id THEN 0 ELSE 1 END,
@@ -2057,6 +2084,9 @@ ORDER BY
             "image_count": len(images),
             "like_count": int(primary.get("like_count") or 0),
             "viewer_liked": bool(primary.get("viewer_liked")),
+            "uploader_user_key": primary.get("uploader_user_key"),
+            "uploader_display_name": primary.get("uploader_display_name"),
+            "uploader_avatar_url": primary.get("uploader_avatar_url"),
             "images": images,
         }
     finally:
