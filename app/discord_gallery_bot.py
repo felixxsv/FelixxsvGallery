@@ -359,7 +359,6 @@ class UploadChoiceView(discord.ui.View):
     async def _skip_current(self, interaction: discord.Interaction, *, message_prefix: str) -> None:
         if len(self.attachments) <= 1:
             await self._delete_prompt_message()
-            await interaction.followup.send(message_prefix, ephemeral=True)
             return
 
         self.separate_processed_count += 1
@@ -371,17 +370,12 @@ class UploadChoiceView(discord.ui.View):
         await self.refresh_prompt_message()
         if self.separate_completed:
             await self._delete_prompt_message()
-            await interaction.followup.send(f"{message_prefix} 1枚ずつ投稿は完了です。", ephemeral=True)
-        else:
-            await interaction.followup.send(
-                f"{message_prefix} 次の写真 {self._current_attachment_label()} を編集して投稿してください。",
-                ephemeral=True,
-            )
 
     @discord.ui.button(label="内容を編集", style=discord.ButtonStyle.primary, row=1)
     async def edit_metadata(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
         if not await self._ensure_author(interaction):
             return
+        self.touch_prompt()
         await self._open_metadata_modal(interaction)
 
     @discord.ui.button(label="公開設定: 公開", style=discord.ButtonStyle.success, row=1)

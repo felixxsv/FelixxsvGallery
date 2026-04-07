@@ -59,7 +59,7 @@ function normalizePayload(item, options = {}) {
   const normalized = { ...(item || {}) };
   normalized.image_id = item?.image_id ?? item?.id ?? null;
   normalized.title = item?.title || item?.alt || "タイトル未設定";
-  normalized.alt = item?.alt || item?.title || "";
+  normalized.alt = item?.alt ?? "";
   normalized.preview_url = withAppBase(
     item?.preview_url ||
       item?.original_url ||

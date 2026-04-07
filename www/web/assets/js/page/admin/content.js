@@ -35,7 +35,7 @@ function buildImageModalPayload(item) {
   return {
     image_id: imageId || item?.image_id || item?.id || null,
     title: item?.title || item?.alt || "タイトル未設定",
-    alt: item?.alt || item?.title || "",
+    alt: item?.alt ?? "",
     preview_url: item?.preview_url || item?.original_url || (imageId ? `/media/original/${imageId}` : ""),
     original_url: item?.original_url || item?.preview_url || (imageId ? `/media/original/${imageId}` : ""),
     posted_at: item?.posted_at || item?.created_at || item?.shot_at || null,
