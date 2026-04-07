@@ -54,6 +54,18 @@ function createAppContext() {
   };
 }
 
+function applyDocumentLanguage(language) {
+  document.documentElement.lang = String(language || "ja").trim().toLowerCase() || "ja";
+}
+
+function syncLanguagePreference(app, sessionState) {
+  const preferredLanguage = sessionState?.data?.user?.preferred_language || null;
+  const resolvedLanguage = preferredLanguage ? app.settings.setLanguage(preferredLanguage) : app.settings.getLanguage();
+  app.i18n.setLanguage(resolvedLanguage);
+  applyDocumentLanguage(resolvedLanguage);
+  return resolvedLanguage;
+}
+
 function createPresenceController(app) {
   let started = false;
   let intervalId = null;
@@ -485,6 +497,7 @@ async function bootstrap() {
   const app = createAppContext();
   window.App = app;
   app.theme.init();
+  syncLanguagePreference(app, null);
   initUserShell(app);
   initPublicProfileModal(app);
   ensureCustomScrollbars({ includeWindow: true, selectors: [".home-sidebar__body"] });
@@ -500,6 +513,7 @@ async function bootstrap() {
 
   try {
     const sessionState = await app.session.load();
+    syncLanguagePreference(app, sessionState);
 
     if (sessionState.authenticated) {
       app.presence = createPresenceController(app);

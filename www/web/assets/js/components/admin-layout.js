@@ -49,6 +49,18 @@ function createAdminContext() {
   };
 }
 
+function applyDocumentLanguage(language) {
+  document.documentElement.lang = String(language || "ja").trim().toLowerCase() || "ja";
+}
+
+function syncLanguagePreference(app, sessionState) {
+  const preferredLanguage = sessionState?.data?.user?.preferred_language || null;
+  const resolvedLanguage = preferredLanguage ? app.settings.setLanguage(preferredLanguage) : app.settings.getLanguage();
+  app.i18n.setLanguage(resolvedLanguage);
+  applyDocumentLanguage(resolvedLanguage);
+  return resolvedLanguage;
+}
+
 function show(el) {
   if (el) el.hidden = false;
 }
@@ -210,6 +222,7 @@ function createPresenceController(app) {
 export async function initAdminLayout() {
   const app = createAdminContext();
   window.AdminApp = app;
+  syncLanguagePreference(app, null);
 
   const refs = {
     loading: byId("adminLoadingState"),
@@ -438,6 +451,7 @@ export async function initAdminLayout() {
 
   try {
     const sessionState = await app.session.load();
+    syncLanguagePreference(app, sessionState);
 
     if (!sessionState.authenticated) {
       showNotFound();

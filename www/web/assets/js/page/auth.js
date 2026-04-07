@@ -1,9 +1,9 @@
-import { createSettingsStore } from "../core/settings.js";
+import { createSettingsStore, normalizeLanguageCode } from "../core/settings.js";
 
 const el = (id) => document.getElementById(id);
 
 const settings = createSettingsStore();
-const SUPPORTED_LANGUAGES = new Set(["ja", "en"]);
+const SUPPORTED_LANGUAGES = new Set(["ja", "en-us", "de", "fr", "ru", "es", "zh-cn", "ko"]);
 
 const MESSAGES = {
   ja: {
@@ -70,7 +70,7 @@ const MESSAGES = {
     "auth.resend": "再送",
     "auth.resendCountdown": "再送 ({seconds}秒)",
   },
-  en: {
+  "en-us": {
     "auth.meta.title": "Felixxsv Gallery",
     "auth.header.back": "← Back to Gallery",
     "auth.hero.sub": "A place to keep your VRChat memories.",
@@ -137,15 +137,16 @@ const MESSAGES = {
 };
 
 function normalizeLanguage(value) {
-  const lang = String(value || "").trim().toLowerCase();
+  const lang = normalizeLanguageCode(value);
   return SUPPORTED_LANGUAGES.has(lang) ? lang : "ja";
 }
 
 let currentLanguage = normalizeLanguage(settings.getLanguage());
 
 function t(key, vars = {}) {
-  const dict = MESSAGES[currentLanguage] || MESSAGES.ja;
-  const fallback = MESSAGES.ja[key] || key;
+  const fallbackLanguage = currentLanguage === "ja" ? "ja" : "en-us";
+  const dict = MESSAGES[currentLanguage] || MESSAGES[fallbackLanguage] || MESSAGES.ja;
+  const fallback = MESSAGES[fallbackLanguage]?.[key] || MESSAGES.ja[key] || key;
   const template = dict[key] || fallback;
   return template.replace(/\{(\w+)\}/g, (_m, name) => String(vars[name] ?? ""));
 }

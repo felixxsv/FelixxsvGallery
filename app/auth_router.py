@@ -136,6 +136,7 @@ class ProfileUpdateRequest(BaseModel):
     display_name: str | None = None
     user_key: str | None = None
     bio: str | None = None
+    preferred_language: str | None = None
 
 
 class AddLinkRequest(BaseModel):
@@ -410,6 +411,7 @@ async def update_profile(
             display_name=payload.display_name,
             user_key=payload.user_key,
             bio=payload.bio,
+            preferred_language=payload.preferred_language,
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:

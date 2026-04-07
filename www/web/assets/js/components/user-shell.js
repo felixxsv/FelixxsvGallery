@@ -1348,9 +1348,34 @@ export function initUserShell(app) {
     refs.emailSaveButton.addEventListener("click", handleEmailSave);
     if (refs.emailResendButton) refs.emailResendButton.addEventListener("click", handleEmailResend);
 
-    refs.settingLanguage.addEventListener("change", () => {
-      app.settings.setLanguage(refs.settingLanguage.value);
-      toast.success("言語設定を保存しました。");
+    refs.settingLanguage.addEventListener("change", async () => {
+      const previousLanguage = app.settings.getLanguage();
+      const nextLanguage = app.settings.setLanguage(refs.settingLanguage.value);
+      refs.settingLanguage.value = nextLanguage;
+      document.documentElement.lang = nextLanguage;
+      app.i18n?.setLanguage?.(nextLanguage);
+
+      if (!isAuthenticated()) {
+        toast.success("言語設定を保存しました。");
+        return;
+      }
+
+      try {
+        await app.api.patch("/api/auth/profile", {
+          preferred_language: nextLanguage,
+        });
+        const sessionState = session.getState();
+        if (sessionState?.authenticated && sessionState.data?.user) {
+          sessionState.data.user.preferred_language = nextLanguage;
+        }
+        toast.success("言語設定を保存しました。");
+      } catch (error) {
+        const restoredLanguage = app.settings.setLanguage(previousLanguage);
+        refs.settingLanguage.value = restoredLanguage;
+        document.documentElement.lang = restoredLanguage;
+        app.i18n?.setLanguage?.(restoredLanguage);
+        toast.error(error?.message || "言語設定の保存に失敗しました。");
+      }
     });
 
     refs.settingTheme.addEventListener("change", () => {

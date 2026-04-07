@@ -131,6 +131,7 @@ DEFAULT_VERIFY_MAX_ATTEMPTS = 5
 DEFAULT_TWO_FACTOR_MAX_ATTEMPTS = 5
 # Fallback used when base_url is not set in gallery.conf [app] or [site] section
 DEFAULT_BASE_URL = "https://felixxsv.net"
+SUPPORTED_LANGUAGE_CODES = {"ja", "en-us", "de", "fr", "ru", "es", "zh-cn", "ko"}
 
 
 def build_service_success(
@@ -202,6 +203,40 @@ def mask_email_address(email: str | None) -> str | None:
     else:
         masked_local = f"{local_part[0]}***"
     return f"{masked_local}@{domain}"
+
+
+def normalize_preferred_language(value: str | None) -> str | None:
+    raw = str(value or "").strip().lower().replace("_", "-")
+    if raw == "":
+        return None
+    aliases = {
+        "ja": "ja",
+        "ja-jp": "ja",
+        "en": "en-us",
+        "en-us": "en-us",
+        "en-gb": "en-us",
+        "de": "de",
+        "de-de": "de",
+        "fr": "fr",
+        "fr-fr": "fr",
+        "ru": "ru",
+        "ru-ru": "ru",
+        "es": "es",
+        "es-es": "es",
+        "es-419": "es",
+        "zh": "zh-cn",
+        "zh-cn": "zh-cn",
+        "zh-hans": "zh-cn",
+        "zh-sg": "zh-cn",
+        "ko": "ko",
+        "ko-kr": "ko",
+    }
+    normalized = aliases.get(raw)
+    if normalized is None and "-" in raw:
+        normalized = aliases.get(raw.split("-", 1)[0])
+    if normalized not in SUPPORTED_LANGUAGE_CODES:
+        return None
+    return normalized
 
 
 def build_gallery_url(path: str) -> str:
@@ -3899,6 +3934,7 @@ def get_current_user_profile(
                     "user_key": user["user_key"],
                     "display_name": user["display_name"],
                     "bio": user.get("bio"),
+                    "preferred_language": normalize_preferred_language(user.get("preferred_language")) or "ja",
                     "links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links],
                     "primary_email": user.get("primary_email"),
                     "avatar_url": avatar_url,
@@ -3942,6 +3978,7 @@ def update_profile_for_current_session(
     display_name: str | None,
     user_key: str | None,
     bio: str | None = None,
+    preferred_language: str | None = None,
 ) -> dict:
     if session_token is None or str(session_token).strip() == "":
         return build_service_error(
@@ -3954,6 +3991,7 @@ def update_profile_for_current_session(
     validated_display_name = None
     validated_user_key = None
     validated_bio = None
+    validated_preferred_language = None
     clear_bio = False
 
     if display_name is not None:
@@ -3976,6 +4014,11 @@ def update_profile_for_current_session(
             validated_bio = bio_stripped
         else:
             clear_bio = True
+
+    if preferred_language is not None:
+        validated_preferred_language = normalize_preferred_language(preferred_language)
+        if validated_preferred_language is None:
+            errors.append({"field": "preferred_language", "code": "invalid_language", "message": "対応していない言語です。"})
 
     if errors:
         return build_service_error(
@@ -4023,6 +4066,7 @@ def update_profile_for_current_session(
             user_key=validated_user_key,
             bio=validated_bio,
             clear_bio=clear_bio,
+            preferred_language=validated_preferred_language,
         )
         conn.commit()
 
