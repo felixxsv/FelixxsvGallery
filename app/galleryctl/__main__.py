@@ -6,6 +6,7 @@ from galleryctl.sync_full import run_sync_full
 from galleryctl.rebuild_colors import run_rebuild_colors
 from galleryctl.rebuild_contents import run_rebuild_contents
 from galleryctl.wipe_gallery import run_wipe_gallery
+from galleryctl.wipe_deleted_users import run_wipe_deleted_users
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -48,6 +49,10 @@ def build_parser() -> argparse.ArgumentParser:
     wipe.add_argument("--delete-storage", action="store_true")
     wipe.add_argument("--delete-source", action="store_true")
     wipe.add_argument("--delete-tags", action="store_true")
+
+    wipe_users = sub.add_parser("wipe-deleted-users")
+    wipe_users.add_argument("--config", required=True)
+    wipe_users.add_argument("--dry-run", action="store_true")
 
     return p
 
@@ -103,6 +108,12 @@ def main(argv: list[str]) -> int:
             delete_storage=bool(args.delete_storage),
             delete_source=bool(args.delete_source),
             delete_tags=bool(args.delete_tags),
+        )
+
+    if args.cmd == "wipe-deleted-users":
+        return run_wipe_deleted_users(
+            config_path=args.config,
+            dry_run=bool(args.dry_run),
         )
 
     return 2
