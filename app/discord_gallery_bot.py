@@ -371,8 +371,19 @@ class UploadChoiceView(discord.ui.View):
                 is_public=self.selected_public,
             )
             if result.get("has_duplicates"):
-                duplicates = ", ".join(item["filename"] for item in result.get("items") or [] if item.get("duplicate"))
-                await interaction.followup.send(f"重複画像があるため投稿を中止しました。{duplicates}", ephemeral=True)
+                if self.separate_index + 1 >= len(self.attachments):
+                    self.separate_completed = True
+                else:
+                    self.separate_index += 1
+                    await self._prepare_next_separate_draft()
+                await self.refresh_prompt_message()
+                if self.separate_completed:
+                    await interaction.followup.send("重複画像のためスキップしました。1枚ずつ投稿は完了です。", ephemeral=True)
+                else:
+                    await interaction.followup.send(
+                        f"重複画像のためスキップしました。次の写真 {self._current_attachment_label()} を編集して投稿してください。",
+                        ephemeral=True,
+                    )
                 return
             created_ids = [str(item["image_id"]) for item in result.get("items") or [] if item.get("image_id")]
             self.separate_uploaded_ids.extend(created_ids)
