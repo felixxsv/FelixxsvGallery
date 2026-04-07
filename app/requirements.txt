@@ -3,3 +3,4 @@ uvicorn[standard]>=0.27
 pymysql>=1.1
 pillow>=10.0
 argon2-cffi>=23.1
+discord.py>=2.4

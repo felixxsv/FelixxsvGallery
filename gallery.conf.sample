@@ -34,3 +34,10 @@ use_starttls = false
 use_auth = false
 from_email = "noreply@felixxsv.net"
 from_name = "Felixxsv Gallery"
+
+[discord_bot]
+token = ""
+guild_id = 0
+watch_channel_ids = [0]
+max_files = 20
+public_default = true
