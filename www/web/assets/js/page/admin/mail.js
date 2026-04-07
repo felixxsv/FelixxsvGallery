@@ -31,6 +31,32 @@ const MAIL_MESSAGES = {
     recipient_required: "送信先を選択してください。",
     sent_ok: "メールを送信しました。",
     send_error: "メール送信に失敗しました。",
+    recipient_select: "宛先選択",
+    recipient_select_meta: "送信先ユーザーを選択します。全ユーザー送信時は実ログに @everyone として記録します。",
+    selected_users: "選択ユーザー",
+    all_users: "全ユーザー",
+    search: "検索",
+    search_placeholder: "表示名 / ID / メール",
+    role: "ロール",
+    status: "状態",
+    user_col: "ユーザー",
+    mail_col: "メール",
+    send_availability: "送信可否",
+    total_count: "総件数",
+    compose_title: "メール作成",
+    subject: "件名",
+    subject_placeholder: "件名を入力してください",
+    body: "本文",
+    body_placeholder: "本文を入力してください",
+    recipient_summary: "送信先",
+    selected_count_label: "選択件数",
+    send: "送信",
+    history_title: "送信履歴",
+    history_meta: "将来のお知らせ表示へ流用できる前提で保持します。",
+    reload: "再読込",
+    loading: "読み込み中です。",
+    prev: "前へ",
+    next: "次へ",
   },
   "en-us": {
     no_draft: "No draft.",
@@ -61,6 +87,32 @@ const MAIL_MESSAGES = {
     recipient_required: "Select recipients.",
     sent_ok: "Mail sent.",
     send_error: "Failed to send mail.",
+    recipient_select: "Recipients",
+    recipient_select_meta: "Select recipient users. When sending to all users, the audit log is recorded as @everyone.",
+    selected_users: "Selected Users",
+    all_users: "All Users",
+    search: "Search",
+    search_placeholder: "Display name / ID / email",
+    role: "Role",
+    status: "Status",
+    user_col: "User",
+    mail_col: "Mail",
+    send_availability: "Deliverability",
+    total_count: "Total",
+    compose_title: "Compose Mail",
+    subject: "Subject",
+    subject_placeholder: "Enter a subject",
+    body: "Body",
+    body_placeholder: "Enter the message body",
+    recipient_summary: "Recipients",
+    selected_count_label: "Selected",
+    send: "Send",
+    history_title: "Mail History",
+    history_meta: "Stored so it can be reused for future announcements.",
+    reload: "Reload",
+    loading: "Loading...",
+    prev: "Prev",
+    next: "Next",
   },
 };
 
@@ -551,6 +603,57 @@ function bindEvents() {
 
 async function init() {
   defineMessages();
+  const titleEls = document.querySelectorAll(".admin-mail-panel .admin-panel__title");
+  if (titleEls[0]) titleEls[0].textContent = t("recipient_select", "Recipients");
+  if (titleEls[1]) titleEls[1].textContent = t("compose_title", "Compose Mail");
+  if (titleEls[2]) titleEls[2].textContent = t("history_title", "Mail History");
+  const metaEls = document.querySelectorAll(".admin-mail-panel .admin-panel__meta");
+  if (metaEls[0]) metaEls[0].textContent = t("recipient_select_meta", "Select recipient users. When sending to all users, the audit log is recorded as @everyone.");
+  if (metaEls[1]) metaEls[1].textContent = t("history_meta", "Stored so it can be reused for future announcements.");
+  const chips = document.querySelectorAll(".admin-mail-chip span");
+  if (chips[0]) chips[0].textContent = t("selected_users", "Selected Users");
+  if (chips[1]) chips[1].textContent = t("all_users", "All Users");
+  const labels = document.querySelectorAll(".admin-mail-filters .admin-mail-field > span");
+  if (labels[0]) labels[0].textContent = t("search", "Search");
+  if (labels[1]) labels[1].textContent = t("role", "Role");
+  if (labels[2]) labels[2].textContent = t("status", "Status");
+  const searchInput = $("#adminMailRecipientSearch");
+  if (searchInput) searchInput.placeholder = t("search_placeholder", "Display name / ID / email");
+  const role = $("#adminMailRecipientRole");
+  const status = $("#adminMailRecipientStatus");
+  if (role?.options[0]) role.options[0].text = t("all", "All");
+  if (status?.options[0]) status.options[0].text = t("all", "All");
+  const searchBtn = $("#adminMailRecipientSearchButton");
+  if (searchBtn) searchBtn.textContent = t("search", "Search");
+  const tableHead = document.querySelectorAll(".admin-mail-recipient-table thead th");
+  if (tableHead[1]) tableHead[1].textContent = t("user_col", "User");
+  if (tableHead[2]) tableHead[2].textContent = t("mail_col", "Mail");
+  if (tableHead[3]) tableHead[3].textContent = t("role", "Role");
+  if (tableHead[4]) tableHead[4].textContent = t("status", "Status");
+  if (tableHead[5]) tableHead[5].textContent = t("send_availability", "Deliverability");
+  const selectAll = $("#adminMailRecipientSelectAll");
+  if (selectAll) selectAll.setAttribute("aria-label", t("all_users", "All Users"));
+  const totalLabel = document.querySelector(".admin-mail-recipient-count");
+  if (totalLabel) totalLabel.childNodes[0].textContent = `${t("total_count", "Total")}: `;
+  const prev = $("#adminMailRecipientPrevPage");
+  if (prev) prev.textContent = t("prev", "Prev");
+  const next = $("#adminMailRecipientNextPage");
+  if (next) next.textContent = t("next", "Next");
+  const subjectLabel = document.querySelector("label[for='adminMailSubject'], #adminMailSubject")?.closest("label")?.querySelector("span");
+  if (subjectLabel) subjectLabel.textContent = t("subject", "Subject");
+  const subjectInput = $("#adminMailSubject");
+  if (subjectInput) subjectInput.placeholder = t("subject_placeholder", "Enter a subject");
+  const bodyLabel = document.querySelector("label[for='adminMailBody'], #adminMailBody")?.closest("label")?.querySelector("span");
+  if (bodyLabel) bodyLabel.textContent = t("body", "Body");
+  const bodyInput = $("#adminMailBody");
+  if (bodyInput) bodyInput.placeholder = t("body_placeholder", "Enter the message body");
+  const summaryRows = document.querySelectorAll(".admin-mail-summary__row span");
+  if (summaryRows[0]) summaryRows[0].textContent = t("recipient_summary", "Recipients");
+  if (summaryRows[1]) summaryRows[1].textContent = t("selected_count_label", "Selected");
+  const sendBtn = $("#adminMailSendButton");
+  if (sendBtn) sendBtn.textContent = t("send", "Send");
+  const historyReload = $("#adminMailHistoryReloadButton");
+  if (historyReload) historyReload.textContent = t("reload", "Reload");
   bindEvents();
   await Promise.all([loadTemplates(), loadDraft()]);
   await loadRecipients();
@@ -561,6 +664,37 @@ async function init() {
 document.addEventListener("admin:ready", () => {
   void init();
   window.addEventListener("gallery:language-changed", () => {
+    if (titleEls[0]) titleEls[0].textContent = t("recipient_select", "Recipients");
+    if (titleEls[1]) titleEls[1].textContent = t("compose_title", "Compose Mail");
+    if (titleEls[2]) titleEls[2].textContent = t("history_title", "Mail History");
+    if (metaEls[0]) metaEls[0].textContent = t("recipient_select_meta", "Select recipient users. When sending to all users, the audit log is recorded as @everyone.");
+    if (metaEls[1]) metaEls[1].textContent = t("history_meta", "Stored so it can be reused for future announcements.");
+    if (chips[0]) chips[0].textContent = t("selected_users", "Selected Users");
+    if (chips[1]) chips[1].textContent = t("all_users", "All Users");
+    if (labels[0]) labels[0].textContent = t("search", "Search");
+    if (labels[1]) labels[1].textContent = t("role", "Role");
+    if (labels[2]) labels[2].textContent = t("status", "Status");
+    if (searchInput) searchInput.placeholder = t("search_placeholder", "Display name / ID / email");
+    if (role?.options[0]) role.options[0].text = t("all", "All");
+    if (status?.options[0]) status.options[0].text = t("all", "All");
+    if (searchBtn) searchBtn.textContent = t("search", "Search");
+    if (tableHead[1]) tableHead[1].textContent = t("user_col", "User");
+    if (tableHead[2]) tableHead[2].textContent = t("mail_col", "Mail");
+    if (tableHead[3]) tableHead[3].textContent = t("role", "Role");
+    if (tableHead[4]) tableHead[4].textContent = t("status", "Status");
+    if (tableHead[5]) tableHead[5].textContent = t("send_availability", "Deliverability");
+    if (selectAll) selectAll.setAttribute("aria-label", t("all_users", "All Users"));
+    if (totalLabel) totalLabel.childNodes[0].textContent = `${t("total_count", "Total")}: `;
+    if (prev) prev.textContent = t("prev", "Prev");
+    if (next) next.textContent = t("next", "Next");
+    if (subjectLabel) subjectLabel.textContent = t("subject", "Subject");
+    if (subjectInput) subjectInput.placeholder = t("subject_placeholder", "Enter a subject");
+    if (bodyLabel) bodyLabel.textContent = t("body", "Body");
+    if (bodyInput) bodyInput.placeholder = t("body_placeholder", "Enter the message body");
+    if (summaryRows[0]) summaryRows[0].textContent = t("recipient_summary", "Recipients");
+    if (summaryRows[1]) summaryRows[1].textContent = t("selected_count_label", "Selected");
+    if (sendBtn) sendBtn.textContent = t("send", "Send");
+    if (historyReload) historyReload.textContent = t("reload", "Reload");
     updateSummary();
     renderRecipients();
     renderHistory();

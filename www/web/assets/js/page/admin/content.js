@@ -42,6 +42,27 @@ const CONTENT_MESSAGES = {
     update_error: "更新に失敗しました。",
     new_post: "新規投稿",
     reload: "再読込",
+    search: "検索",
+    search_placeholder: "タイトル / ALT / タグで検索",
+    visibility: "公開状態",
+    status: "状態",
+    sort: "並び順",
+    all: "すべて",
+    latest: "新しい順",
+    oldest: "古い順",
+    likes_desc: "いいね順",
+    views_desc: "閲覧数順",
+    title_asc: "タイトル昇順",
+    list_title: "コンテンツ一覧",
+    image: "画像",
+    title_uploader: "タイトル / 投稿者",
+    public_short: "公開",
+    likes: "いいね",
+    views: "閲覧",
+    posted_at: "投稿日",
+    action: "操作",
+    prev: "前へ",
+    next: "次へ",
   },
   "en-us": {
     untitled: "Untitled",
@@ -83,6 +104,27 @@ const CONTENT_MESSAGES = {
     update_error: "Update failed.",
     new_post: "New Post",
     reload: "Reload",
+    search: "Search",
+    search_placeholder: "Search title / ALT / tags",
+    visibility: "Visibility",
+    status: "Status",
+    sort: "Sort",
+    all: "All",
+    latest: "Latest",
+    oldest: "Oldest",
+    likes_desc: "Most Likes",
+    views_desc: "Most Views",
+    title_asc: "Title A-Z",
+    list_title: "Content List",
+    image: "Image",
+    title_uploader: "Title / Uploader",
+    public_short: "Public",
+    likes: "Likes",
+    views: "Views",
+    posted_at: "Posted At",
+    action: "Action",
+    prev: "Prev",
+    next: "Next",
   },
 };
 
@@ -551,6 +593,36 @@ function applyStaticTranslations() {
   };
   setText("adminContentUploadOpenButton", "new_post", "New Post");
   setText("adminContentReloadButton", "reload", "Reload");
+  const labels = document.querySelectorAll(".admin-content-filters .admin-field__label");
+  if (labels[0]) labels[0].textContent = t("search", "Search");
+  if (labels[1]) labels[1].textContent = t("visibility", "Visibility");
+  if (labels[2]) labels[2].textContent = t("status", "Status");
+  if (labels[3]) labels[3].textContent = t("sort", "Sort");
+  const searchInput = byId("adminContentSearchInput");
+  if (searchInput) searchInput.placeholder = t("search_placeholder", "Search title / ALT / tags");
+  const visibility = byId("adminContentVisibilityFilter");
+  if (visibility?.options[0]) visibility.options[0].text = t("all", "All");
+  const status = byId("adminContentStatusFilter");
+  if (status?.options[0]) status.options[0].text = t("all", "All");
+  const sort = byId("adminContentSort");
+  if (sort?.options[0]) sort.options[0].text = t("latest", "Latest");
+  if (sort?.options[1]) sort.options[1].text = t("oldest", "Oldest");
+  if (sort?.options[2]) sort.options[2].text = t("likes_desc", "Most Likes");
+  if (sort?.options[3]) sort.options[3].text = t("views_desc", "Most Views");
+  if (sort?.options[4]) sort.options[4].text = t("title_asc", "Title A-Z");
+  const panelTitle = document.querySelector(".admin-content-panel .admin-panel__title");
+  if (panelTitle) panelTitle.textContent = t("list_title", "Content List");
+  const tableHead = document.querySelectorAll(".admin-content-table thead th");
+  if (tableHead[0]) tableHead[0].textContent = t("image", "Image");
+  if (tableHead[1]) tableHead[1].textContent = t("title_uploader", "Title / Uploader");
+  if (tableHead[2]) tableHead[2].textContent = t("public_short", "Public");
+  if (tableHead[3]) tableHead[3].textContent = t("status", "Status");
+  if (tableHead[4]) tableHead[4].textContent = t("likes", "Likes");
+  if (tableHead[5]) tableHead[5].textContent = t("views", "Views");
+  if (tableHead[6]) tableHead[6].textContent = t("posted_at", "Posted At");
+  if (tableHead[7]) tableHead[7].textContent = t("action", "Action");
+  setText("adminContentPrevPage", "prev", "Prev");
+  setText("adminContentNextPage", "next", "Next");
 }
 
 function bindFilters() {
@@ -668,6 +740,7 @@ function bindModals() {
 
 async function initPage() {
   applyStaticTranslations();
+  window.addEventListener("gallery:language-changed", applyStaticTranslations);
   state.uploadModalController = createUploadModalController({ app: window.AdminApp, scope: "admin" });
   bindFilters();
   bindTableEvents();

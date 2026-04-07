@@ -100,6 +100,71 @@ const SETTINGS_MESSAGES = {
     integrity_help_daily: "Runs once a day at the specified time.",
     integrity_selected: "Selected: {days}",
     not_saved_yet: "Not saved yet.",
+    tab_general: "General",
+    tab_security: "Security",
+    tab_smtp: "Mail (SMTP)",
+    tab_storage: "Storage",
+    tab_integrity: "Integrity Check",
+    field_site_name: "Site Name",
+    field_gallery_key: "Gallery Key",
+    field_deleted_user_display_name: "Deleted User Display Name",
+    field_default_image_open: "Default image click behavior",
+    field_default_image_open_modal: "Open in modal",
+    field_default_image_open_tab: "Open in new tab",
+    field_default_backdrop_close: "Allow backdrop click by default",
+    field_default_meta_pinned: "Keep the image meta bar pinned by default",
+    field_password_min_length: "Minimum password length",
+    field_login_rate_limit: "Login attempts per 10 minutes",
+    field_session_idle_timeout: "Session idle timeout (minutes)",
+    field_require_uppercase: "Require uppercase letters",
+    field_require_lowercase: "Require lowercase letters",
+    field_require_number: "Require numbers",
+    field_admin_2fa_recommended: "Recommend 2FA for administrators",
+    field_smtp_host: "SMTP host",
+    field_smtp_port: "Port",
+    field_smtp_from_email: "Sender email address",
+    field_smtp_from_name: "Sender name",
+    field_smtp_starttls: "Use STARTTLS",
+    storage_config_title: "Paths and upload limits",
+    storage_config_meta: "Manage source_root / storage_root / original_cache_root and upload limits here.",
+    field_max_upload_files: "Maximum upload files",
+    field_max_upload_size_mb: "Maximum upload size (MB)",
+    storage_usage_title: "Directory usage",
+    storage_usage_meta: "Shows directory size and destination filesystem usage based on the saved source_root / storage_root / original_cache_root.",
+    last_fetched: "Last fetched",
+    auto_refresh: "Auto refresh",
+    refresh_usage: "Refresh Usage",
+    primary_display: "Primary View",
+    metric_directory_size: "Directory size",
+    metric_filesystem_usage: "Used / Total",
+    metric_filesystem_free: "Free space",
+    integrity_hero_eyebrow: "Scheduled run",
+    integrity_hero_title: "Enable integrity checks",
+    integrity_hero_description: "Regularly checks source / DB / derived files / color data. Disabled means no scheduled run, but settings can still be saved.",
+    enabled: "Enabled",
+    integrity_rule_title: "Execution Rule",
+    integrity_rule_meta: "Only the required inputs are shown for the selected execution method.",
+    field_schedule_type: "Schedule",
+    schedule_daily: "Daily",
+    schedule_every_n_days: "Every n days",
+    schedule_weekly: "Weekly",
+    field_run_at: "Run time",
+    run_at_hint: "Use 24-hour time.",
+    field_interval_days: "Every n days",
+    interval_days_hint: "Example: entering 3 runs it every 3 days.",
+    field_weekly_days: "Weekdays",
+    weekly_days_help: "Used only when weekly is selected.",
+    integrity_report_title: "Report Retention",
+    integrity_report_meta: "Controls report retention period and operation notes.",
+    field_report_retention_days: "Report retention days",
+    report_retention_hint: "Used as a guideline when cleaning up old JSON reports.",
+    operation_note: "Operation Note",
+    operation_note_body: "Queue manual runs from the dashboard. Actual scheduled execution is expected to be handled by a periodic dispatcher such as a systemd timer.",
+    apply_button: "Apply",
+    apply_confirm_title: "Apply these settings?",
+    apply_confirm_message: "Apply the current changes?",
+    apply_confirm_approve: "Apply",
+    apply_confirm_cancel: "Cancel",
   },
 };
 
@@ -134,6 +199,105 @@ function applyGroupTranslations() {
   WEEKDAY_LABELS.fri = t("fri", "Fri");
   WEEKDAY_LABELS.sat = t("sat", "Sat");
   WEEKDAY_LABELS.sun = t("sun", "Sun");
+}
+
+function applyStaticTranslations() {
+  const setText = (selector, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = value;
+  };
+  const setClosestText = (selector, closestSelector, targetSelector, value) => {
+    const base = document.querySelector(selector);
+    const node = base?.closest(closestSelector)?.querySelector(targetSelector);
+    if (node) node.textContent = value;
+  };
+  const setAttr = (selector, attr, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.setAttribute(attr, value);
+  };
+
+  document.querySelectorAll("[data-settings-tab]").forEach((button) => {
+    const key = button.dataset.settingsTab;
+    const map = {
+      general: "tab_general",
+      security: "tab_security",
+      smtp: "tab_smtp",
+      storage: "tab_storage",
+      integrity: "tab_integrity",
+    };
+    if (map[key]) button.textContent = t(map[key], button.textContent);
+  });
+
+  setAttr(".admin-settings-tabs", "aria-label", t("group_general", "General"));
+  setText("#adminSettingsSaveState", state.saving ? t("save_saving", "Saving...") : document.getElementById("adminSettingsSaveState")?.textContent || "");
+  setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(1) > span", t("field_site_name", "Site Name"));
+  setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(2) > span", t("field_gallery_key", "Gallery Key"));
+  setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(3) > span", t("field_deleted_user_display_name", "Deleted User Display Name"));
+  setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(4) > span", t("field_default_image_open", "Default image click behavior"));
+  setText("#adminSettingsGeneralImageOpenBehavior option[value='modal']", t("field_default_image_open_modal", "Open in modal"));
+  setText("#adminSettingsGeneralImageOpenBehavior option[value='new_tab']", t("field_default_image_open_tab", "Open in new tab"));
+  setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(5) .app-switch__label", t("field_default_backdrop_close", "Allow backdrop click by default"));
+  setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(6) .app-switch__label", t("field_default_meta_pinned", "Keep the image meta bar pinned by default"));
+
+  setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(1) > span", t("field_password_min_length", "Minimum password length"));
+  setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(2) > span", t("field_login_rate_limit", "Login attempts per 10 minutes"));
+  setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(3) > span", t("field_session_idle_timeout", "Session idle timeout (minutes)"));
+  setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(4) .app-switch__label", t("field_require_uppercase", "Require uppercase letters"));
+  setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(5) .app-switch__label", t("field_require_lowercase", "Require lowercase letters"));
+  setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(6) .app-switch__label", t("field_require_number", "Require numbers"));
+  setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(7) .app-switch__label", t("field_admin_2fa_recommended", "Recommend 2FA for administrators"));
+
+  setText("#adminSettingsFormSmtp .admin-settings-field:nth-of-type(1) > span", t("field_smtp_host", "SMTP host"));
+  setText("#adminSettingsFormSmtp .admin-settings-field:nth-of-type(2) > span", t("field_smtp_port", "Port"));
+  setText("#adminSettingsFormSmtp .admin-settings-field:nth-of-type(3) > span", t("field_smtp_from_email", "Sender email address"));
+  setText("#adminSettingsFormSmtp .admin-settings-field:nth-of-type(4) > span", t("field_smtp_from_name", "Sender name"));
+  setText("#adminSettingsFormSmtp .admin-settings-field:nth-of-type(5) .app-switch__label", t("field_smtp_starttls", "Use STARTTLS"));
+
+  setText("#adminStorageConfigTitle", t("storage_config_title", "Paths and upload limits"));
+  setText(".admin-storage-pane--config .admin-storage-pane__meta", t("storage_config_meta", "Manage source_root / storage_root / original_cache_root and upload limits here."));
+  setText("#adminSettingsFormStorage .admin-settings-field:nth-of-type(4) > span", t("field_max_upload_files", "Maximum upload files"));
+  setText("#adminSettingsFormStorage .admin-settings-field:nth-of-type(5) > span", t("field_max_upload_size_mb", "Maximum upload size (MB)"));
+  setText("#adminStorageUsageTitle", t("storage_usage_title", "Directory usage"));
+  setText(".admin-storage-pane--usage .admin-storage-overview__meta", t("storage_usage_meta", "Shows directory size and destination filesystem usage based on the saved source_root / storage_root / original_cache_root."));
+  const usageGeneratedAt = document.getElementById("adminStorageUsageGeneratedAt");
+  if (usageGeneratedAt?.parentElement) usageGeneratedAt.parentElement.firstChild.textContent = `${t("last_fetched", "Last fetched")}: `;
+  setText(".admin-storage-refresh-interval > span", t("auto_refresh", "Auto refresh"));
+  setAttr("#adminStorageUsageRefreshInterval", "aria-label", t("auto_refresh", "Auto refresh"));
+  setText("#adminStorageUsageRefreshInterval option[value='0']", t("manual_only", "Manual only"));
+  setText("#adminStorageUsageRefreshButton", t("refresh_usage", "Refresh Usage"));
+  setText(".admin-storage-summary-card__eyebrow", t("primary_display", "Primary View"));
+  setClosestText("#adminStoragePrimaryDirectorySize", ".admin-storage-summary-card__metric", "span", t("metric_directory_size", "Directory size"));
+  setClosestText("#adminStoragePrimaryFilesystemUsage", ".admin-storage-summary-card__metric", "span", t("metric_filesystem_usage", "Used / Total"));
+  setClosestText("#adminStoragePrimaryFilesystemFree", ".admin-storage-summary-card__metric", "span", t("metric_filesystem_free", "Free space"));
+
+  setText(".admin-integrity-hero__eyebrow", t("integrity_hero_eyebrow", "Scheduled run"));
+  setText(".admin-integrity-hero__title", t("integrity_hero_title", "Enable integrity checks"));
+  setText(".admin-integrity-hero__description", t("integrity_hero_description", "Regularly checks source / DB / derived files / color data. Disabled means no scheduled run, but settings can still be saved."));
+  setText(".admin-integrity-hero__toggle-text", t("enabled", "Enabled"));
+  setText(".admin-integrity-section:nth-of-type(2) .admin-integrity-section__title", t("integrity_rule_title", "Execution Rule"));
+  setText(".admin-integrity-section:nth-of-type(2) .admin-integrity-section__meta", t("integrity_rule_meta", "Only the required inputs are shown for the selected execution method."));
+  setText("#adminSettingsFormIntegrity .admin-settings-field:nth-of-type(1) > span", t("field_schedule_type", "Schedule"));
+  setText("#adminSettingsIntegrityScheduleType option[value='daily']", t("schedule_daily", "Daily"));
+  setText("#adminSettingsIntegrityScheduleType option[value='every_n_days']", t("schedule_every_n_days", "Every n days"));
+  setText("#adminSettingsIntegrityScheduleType option[value='weekly']", t("schedule_weekly", "Weekly"));
+  setText("#adminSettingsFormIntegrity .admin-settings-field:nth-of-type(2) > span", t("field_run_at", "Run time"));
+  setText("#adminSettingsFormIntegrity .admin-settings-field:nth-of-type(2) .admin-settings-field__help", t("run_at_hint", "Use 24-hour time."));
+  setText("#adminIntegrityIntervalField > span", t("field_interval_days", "Every n days"));
+  setText("#adminIntegrityIntervalField .admin-settings-field__help", t("interval_days_hint", "Example: entering 3 runs it every 3 days."));
+  setText("#adminIntegrityWeeklyField > span", t("field_weekly_days", "Weekdays"));
+  setText("#adminIntegrityWeeklyHelp", t("weekly_days_help", "Used only when weekly is selected."));
+  setText(".admin-integrity-section--secondary .admin-integrity-section__title", t("integrity_report_title", "Report Retention"));
+  setText(".admin-integrity-section--secondary .admin-integrity-section__meta", t("integrity_report_meta", "Controls report retention period and operation notes."));
+  setText(".admin-integrity-section--secondary .admin-settings-field > span", t("field_report_retention_days", "Report retention days"));
+  setText(".admin-integrity-section--secondary .admin-settings-field__help", t("report_retention_hint", "Used as a guideline when cleaning up old JSON reports."));
+  setText(".admin-integrity-note-card__title", t("operation_note", "Operation Note"));
+  setText(".admin-integrity-note-card .admin-panel__meta", t("operation_note_body", "Queue manual runs from the dashboard. Actual scheduled execution is expected to be handled by a periodic dispatcher such as a systemd timer."));
+
+  setText("#adminSettingsApplyButton", t("apply_button", "Apply"));
+  setText("#adminSettingsApplyConfirmTitle", t("apply_confirm_title", "Apply these settings?"));
+  setText("#adminSettingsApplyConfirmMessage", t("apply_confirm_message", "Apply the current changes?"));
+  setText("#adminSettingsApplyConfirmApprove", t("apply_confirm_approve", "Apply"));
+  setText("#adminSettingsApplyConfirmCancel", t("apply_confirm_cancel", "Cancel"));
 }
 
 const GROUP_META = {
@@ -947,6 +1111,7 @@ function bindApplyEvents() {
 export async function initAdminSettingsPage() {
   defineMessages();
   applyGroupTranslations();
+  applyStaticTranslations();
   window.AdminApp?.dirtyGuard?.register?.("admin-settings-page", () => isAnyDirty());
   bindTabEvents();
   bindFieldEvents();
@@ -966,6 +1131,7 @@ document.addEventListener("admin:ready", () => {
   initAdminSettingsPage();
   window.addEventListener("gallery:language-changed", () => {
     applyGroupTranslations();
+    applyStaticTranslations();
     renderActiveTab();
     updateHeader();
   });

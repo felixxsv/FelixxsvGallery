@@ -187,6 +187,48 @@ const SHELL_MESSAGES = {
     "shell.static.cancel": "キャンセル",
     "shell.static.apply": "適用",
     "shell.static.add": "追加",
+    "shell.static.close": "閉じる",
+    "shell.static.login": "ログイン",
+    "shell.static.upload": "アップロード",
+    "shell.static.admin": "管理画面へ",
+    "shell.static.display_group": "表示",
+    "shell.static.language": "言語",
+    "shell.static.theme": "カラーテーマ",
+    "shell.static.image_group": "画像",
+    "shell.static.image_open_behavior": "クリック時の挙動",
+    "shell.static.image_open_modal": "モーダルで表示",
+    "shell.static.image_open_tab": "別タブで表示",
+    "shell.static.theme_system": "システム設定に合わせる",
+    "shell.static.theme_dark": "ダーク",
+    "shell.static.theme_light": "ライト",
+    "shell.static.backdrop_close": "背景クリックでモーダルを閉じる",
+    "shell.static.meta_pinned": "メタ情報バーを常時表示する",
+    "shell.static.credit_service": "サービス名",
+    "shell.static.credit_author": "作成者",
+    "shell.static.credit_stack": "使用技術",
+    "shell.static.credit_license": "ライセンス",
+    "shell.static.credit_updated_at": "更新日",
+    "shell.static.credit_version": "バージョン",
+    "shell.static.email": "メールアドレス",
+    "shell.static.created_at": "登録日時",
+    "shell.static.twofactor": "2段階認証",
+    "shell.static.role": "ロール",
+    "shell.static.profile_preview": "プロフィールを確認",
+    "shell.static.icon_change": "アイコンを変更",
+    "shell.static.display_name": "表示名",
+    "shell.static.user_id": "ユーザーID",
+    "shell.static.bio": "自己紹介",
+    "shell.static.bio_hint": "{count} / 300文字",
+    "shell.static.user_id_hint": "4〜20文字・英字始まり・英数字/アンダースコア/ハイフンのみ",
+    "shell.static.links": "リンク",
+    "shell.static.new_email": "新しいメールアドレス",
+    "shell.static.code_6digit": "確認コード（6桁）",
+    "shell.static.url": "URL",
+    "shell.static.url_hint": "https:// から始まるURLを入力してください",
+    "shell.static.avatar_adjust": "アイコンの調整",
+    "shell.static.zoom": "ズーム",
+    "shell.static.crop_hint": "ドラッグで位置を調整できます",
+    "shell.static.upload_disabled": "現在、画像投稿は無効化されています。",
   },
   "en-us": {
     "shell.resend": "Resend",
@@ -302,6 +344,48 @@ const SHELL_MESSAGES = {
     "shell.static.cancel": "Cancel",
     "shell.static.apply": "Apply",
     "shell.static.add": "Add",
+    "shell.static.close": "Close",
+    "shell.static.login": "Log In",
+    "shell.static.upload": "Upload",
+    "shell.static.admin": "Open Admin",
+    "shell.static.display_group": "Display",
+    "shell.static.language": "Language",
+    "shell.static.theme": "Theme",
+    "shell.static.image_group": "Images",
+    "shell.static.image_open_behavior": "Click Behavior",
+    "shell.static.image_open_modal": "Open in modal",
+    "shell.static.image_open_tab": "Open in new tab",
+    "shell.static.theme_system": "Follow system setting",
+    "shell.static.theme_dark": "Dark",
+    "shell.static.theme_light": "Light",
+    "shell.static.backdrop_close": "Close modal on backdrop click",
+    "shell.static.meta_pinned": "Keep the meta bar pinned",
+    "shell.static.credit_service": "Service",
+    "shell.static.credit_author": "Author",
+    "shell.static.credit_stack": "Tech Stack",
+    "shell.static.credit_license": "License",
+    "shell.static.credit_updated_at": "Updated",
+    "shell.static.credit_version": "Version",
+    "shell.static.email": "Email",
+    "shell.static.created_at": "Created",
+    "shell.static.twofactor": "Two-Factor Authentication",
+    "shell.static.role": "Role",
+    "shell.static.profile_preview": "Open profile",
+    "shell.static.icon_change": "Change icon",
+    "shell.static.display_name": "Display Name",
+    "shell.static.user_id": "User ID",
+    "shell.static.bio": "Bio",
+    "shell.static.bio_hint": "{count} / 300 chars",
+    "shell.static.user_id_hint": "4-20 chars, start with a letter, letters/numbers/_/- only",
+    "shell.static.links": "Links",
+    "shell.static.new_email": "New email address",
+    "shell.static.code_6digit": "Verification code (6 digits)",
+    "shell.static.url": "URL",
+    "shell.static.url_hint": "Enter a URL starting with https://",
+    "shell.static.avatar_adjust": "Adjust Icon",
+    "shell.static.zoom": "Zoom",
+    "shell.static.crop_hint": "Drag to adjust the position",
+    "shell.static.upload_disabled": "Image uploads are currently disabled.",
   },
 };
 
@@ -580,6 +664,7 @@ export function initUserShell(app) {
 
   function applyStaticTranslations() {
     const mappings = [
+      ["#userInfoTitle", 0, "shell.static.account_settings", "Account Settings"],
       ["[data-modal-id='settings'] .app-modal-title", 0, "shell.static.settings", "Settings"],
       ["[data-modal-id='help'] .app-modal-title", 0, "shell.static.help", "Help"],
       ["[data-modal-id='credits'] .app-modal-title", 0, "shell.static.credits", "Credits"],
@@ -602,10 +687,78 @@ export function initUserShell(app) {
       ["#shellAvatarCropCancelButton", 0, "shell.static.cancel", "Cancel"],
       ["#shellAvatarCropConfirmButton", 0, "shell.static.apply", "Apply"],
       ["#shellAddLinkSubmitButton", 0, "shell.static.add", "Add"],
+      ["#shellLoginButton", 0, "shell.static.login", "Log In"],
+      ["#shellUploadOpenButton", 0, "shell.static.upload", "Upload"],
+      ["#shellAccountOpenButton", 0, "shell.static.account_settings", "Account Settings"],
+      ["#shellAdminLink", 0, "shell.static.admin", "Open Admin"],
+      ["[data-modal-id='settings'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
+      ["[data-modal-id='help'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
+      ["[data-modal-id='credits'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
+      ["[data-modal-id='account-security'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
+      ["[data-modal-id='account'] .app-modal-footer .app-button--ghost", 0, "shell.static.cancel", "Cancel"],
+      ["[data-modal-id='email'] .app-modal-footer .app-button--ghost[data-modal-close='email']", 0, "shell.static.cancel", "Cancel"],
+      ["[data-modal-id='add-link'] .app-modal-footer .app-button--ghost", 0, "shell.static.cancel", "Cancel"],
     ];
     for (const [selector, index, key, fallback] of mappings) {
       const node = Array.from(document.querySelectorAll(selector))[index];
       if (node) node.textContent = t(key, fallback);
+    }
+
+    const setText = (selector, text) => {
+      const node = document.querySelector(selector);
+      if (node) node.textContent = text;
+    };
+    const setAttr = (selector, attr, value) => {
+      const node = document.querySelector(selector);
+      if (node) node.setAttribute(attr, value);
+    };
+
+    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(1) .shell-settings-group__title", t("shell.static.display_group", "Display"));
+    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(1) .app-field:nth-of-type(1) .app-field__label", t("shell.static.language", "Language"));
+    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(1) .app-field:nth-of-type(2) .app-field__label", t("shell.static.theme", "Theme"));
+    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(2) .shell-settings-group__title", t("shell.static.image_group", "Images"));
+    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(2) .app-field .app-field__label", t("shell.static.image_open_behavior", "Click Behavior"));
+    setText("[data-modal-id='settings'] .app-switch-row:nth-of-type(1) .app-switch-row__label", t("shell.static.backdrop_close", "Close modal on backdrop click"));
+    setText("[data-modal-id='settings'] .app-switch-row:nth-of-type(2) .app-switch-row__label", t("shell.static.meta_pinned", "Keep the meta bar pinned"));
+    setText("#shellSettingTheme option[value='system']", t("shell.static.theme_system", "Follow system setting"));
+    setText("#shellSettingTheme option[value='dark']", t("shell.static.theme_dark", "Dark"));
+    setText("#shellSettingTheme option[value='light']", t("shell.static.theme_light", "Light"));
+    setText("#shellSettingImageOpenBehavior option[value='modal']", t("shell.static.image_open_modal", "Open in modal"));
+    setText("#shellSettingImageOpenBehavior option[value='new_tab']", t("shell.static.image_open_tab", "Open in new tab"));
+
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(1) dt", t("shell.static.credit_service", "Service"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(2) dt", t("shell.static.credit_author", "Author"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(3) dt", t("shell.static.credit_stack", "Tech Stack"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(4) dt", t("shell.static.credit_license", "License"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(5) dt", t("shell.static.credit_updated_at", "Updated"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(6) dt", t("shell.static.credit_version", "Version"));
+
+    setText(".shell-user-card__meta-list .app-definition-list__row:nth-of-type(1) dt", t("shell.static.email", "Email"));
+    setText(".shell-user-card__meta-list .app-definition-list__row:nth-of-type(2) dt", t("shell.static.created_at", "Created"));
+    setText(".shell-user-card__meta-list .app-definition-list__row:nth-of-type(3) dt", t("shell.static.twofactor", "Two-Factor Authentication"));
+    setText("#shellUserRoleRow dt", t("shell.static.role", "Role"));
+    setText("#shellUploadDisabledMessage", t("shell.static.upload_disabled", "Image uploads are currently disabled."));
+
+    setAttr("#shellProfilePreviewButton", "aria-label", t("shell.static.profile_preview", "Open profile"));
+    setAttr("#shellAccountEditButton", "aria-label", t("shell.static.profile_edit", "Edit Profile"));
+
+    setText("[data-modal-id='account'] .shell-avatar-upload-label", t("shell.static.icon_change", "Change icon"));
+    setText("[data-modal-id='account'] .app-field:nth-of-type(1) .app-field__label", t("shell.static.display_name", "Display Name"));
+    setText("[data-modal-id='account'] .app-field:nth-of-type(2) .app-field__label", t("shell.static.user_id", "User ID"));
+    setText("[data-modal-id='account'] .app-field:nth-of-type(2) .app-field__hint", t("shell.static.user_id_hint", "4-20 chars, start with a letter, letters/numbers/_/- only"));
+    setText("[data-modal-id='account'] .app-field:nth-of-type(3) .app-field__label", t("shell.static.bio", "Bio"));
+    setText("[data-modal-id='account'] .shell-profile-links__title", t("shell.static.links", "Links"));
+    setText("[data-modal-id='email'] .app-field .app-field__label", t("shell.static.new_email", "New email address"));
+    setText("[data-modal-id='email'] #shellEmailStep2 .app-field .app-field__label", t("shell.static.code_6digit", "Verification code (6 digits)"));
+    setText("[data-modal-id='add-link'] .app-field__label", t("shell.static.url", "URL"));
+    setText("[data-modal-id='add-link'] .app-field__hint", t("shell.static.url_hint", "Enter a URL starting with https://"));
+    setText("#cropAvatarTitle", t("shell.static.avatar_adjust", "Adjust Icon"));
+    setText(".shell-avatar-crop__zoom-text", t("shell.static.zoom", "Zoom"));
+    setText(".shell-avatar-crop__hint", t("shell.static.crop_hint", "Drag to adjust the position"));
+    setText("#shellEmailSaveButton", refs.emailStep2?.hidden ? t("shell.email.send", "Send Verification Email") : t("shell.email.verify", "Verify"));
+    setText("#shellEmailResendButton", t("shell.email.resend", "Resend"));
+    if (refs.profileBioCount) {
+      setText("[data-modal-id='account'] .app-field:nth-of-type(3) .app-field__hint", t("shell.static.bio_hint", "{count} / 300 chars", { count: refs.profileBioCount.textContent || "0" }));
     }
   }
 

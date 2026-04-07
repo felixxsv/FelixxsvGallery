@@ -48,6 +48,30 @@ const USERS_MESSAGES = {
     created_ok: "仮ユーザーを作成しました。",
     close_create_confirm: "未保存の入力があります。閉じますか？",
     close_edit_confirm: "未保存の変更があります。閉じますか？",
+    search: "検索",
+    search_placeholder: "表示名 / ID / メールアドレスで検索",
+    role: "ロール",
+    status: "状態",
+    sort: "並び順",
+    all: "すべて",
+    created_desc: "新しい順",
+    created_asc: "古い順",
+    name_asc: "名前昇順",
+    name_desc: "名前降順",
+    last_seen_desc: "最終アクセス順",
+    reload: "再読込",
+    create_temp: "仮ユーザー作成",
+    list_title: "ユーザー一覧",
+    user_col: "ユーザー",
+    mail_col: "メール",
+    account_col: "利用状態",
+    login_col: "ログイン",
+    screen_col: "画面",
+    post_col: "投稿",
+    last_access_col: "最終アクセス",
+    action_col: "操作",
+    prev: "前へ",
+    next: "次へ",
   },
   "en-us": {
     active: "Active",
@@ -96,6 +120,30 @@ const USERS_MESSAGES = {
     created_ok: "Temporary user created.",
     close_create_confirm: "There is unsaved input. Close anyway?",
     close_edit_confirm: "There are unsaved changes. Close anyway?",
+    search: "Search",
+    search_placeholder: "Search display name / ID / email",
+    role: "Role",
+    status: "Status",
+    sort: "Sort",
+    all: "All",
+    created_desc: "Newest",
+    created_asc: "Oldest",
+    name_asc: "Name A-Z",
+    name_desc: "Name Z-A",
+    last_seen_desc: "Last Access",
+    reload: "Reload",
+    create_temp: "Create Temp User",
+    list_title: "User List",
+    user_col: "User",
+    mail_col: "Mail",
+    account_col: "Account",
+    login_col: "Login",
+    screen_col: "Screen",
+    post_col: "Upload",
+    last_access_col: "Last Access",
+    action_col: "Action",
+    prev: "Prev",
+    next: "Next",
   },
 };
 
@@ -732,8 +780,72 @@ async function initPage() {
 
 document.addEventListener("admin:ready", () => {
   defineMessages();
+  const labels = document.querySelectorAll(".admin-users-toolbar .admin-form-label");
+  if (labels[0]) labels[0].textContent = t("search", "Search");
+  if (labels[1]) labels[1].textContent = t("role", "Role");
+  if (labels[2]) labels[2].textContent = t("status", "Status");
+  if (labels[3]) labels[3].textContent = t("sort", "Sort");
+  const search = byId("adminUsersSearch");
+  if (search) search.placeholder = t("search_placeholder", "Search display name / ID / email");
+  const role = byId("adminUsersRoleFilter");
+  const status = byId("adminUsersStatusFilter");
+  const sort = byId("adminUsersSort");
+  if (role?.options[0]) role.options[0].text = t("all", "All");
+  if (status?.options[0]) status.options[0].text = t("all", "All");
+  if (sort?.options[0]) sort.options[0].text = t("created_desc", "Newest");
+  if (sort?.options[1]) sort.options[1].text = t("created_asc", "Oldest");
+  if (sort?.options[2]) sort.options[2].text = t("name_asc", "Name A-Z");
+  if (sort?.options[3]) sort.options[3].text = t("name_desc", "Name Z-A");
+  if (sort?.options[4]) sort.options[4].text = t("last_seen_desc", "Last Access");
+  const panelTitle = document.querySelector(".admin-users-list-head .admin-panel__title");
+  if (panelTitle) panelTitle.textContent = t("list_title", "User List");
+  const head = document.querySelectorAll(".admin-users-table thead th");
+  if (head[0]) head[0].textContent = t("user_col", "User");
+  if (head[1]) head[1].textContent = t("mail_col", "Mail");
+  if (head[2]) head[2].textContent = t("role", "Role");
+  if (head[3]) head[3].textContent = t("account_col", "Account");
+  if (head[4]) head[4].textContent = t("login_col", "Login");
+  if (head[5]) head[5].textContent = t("screen_col", "Screen");
+  if (head[7]) head[7].textContent = t("post_col", "Upload");
+  if (head[8]) head[8].textContent = t("last_access_col", "Last Access");
+  if (head[9]) head[9].textContent = t("action_col", "Action");
+  const reload = byId("adminUsersReloadButton");
+  if (reload) reload.textContent = t("reload", "Reload");
+  const create = byId("adminUsersCreateButton");
+  if (create) create.textContent = t("create_temp", "Create Temp User");
+  const prev = byId("adminUsersPrevPage");
+  if (prev) prev.textContent = t("prev", "Prev");
+  const next = byId("adminUsersNextPage");
+  if (next) next.textContent = t("next", "Next");
   initPage();
   window.addEventListener("gallery:language-changed", () => {
+    const labels = document.querySelectorAll(".admin-users-toolbar .admin-form-label");
+    if (labels[0]) labels[0].textContent = t("search", "Search");
+    if (labels[1]) labels[1].textContent = t("role", "Role");
+    if (labels[2]) labels[2].textContent = t("status", "Status");
+    if (labels[3]) labels[3].textContent = t("sort", "Sort");
+    if (search) search.placeholder = t("search_placeholder", "Search display name / ID / email");
+    if (role?.options[0]) role.options[0].text = t("all", "All");
+    if (status?.options[0]) status.options[0].text = t("all", "All");
+    if (sort?.options[0]) sort.options[0].text = t("created_desc", "Newest");
+    if (sort?.options[1]) sort.options[1].text = t("created_asc", "Oldest");
+    if (sort?.options[2]) sort.options[2].text = t("name_asc", "Name A-Z");
+    if (sort?.options[3]) sort.options[3].text = t("name_desc", "Name Z-A");
+    if (sort?.options[4]) sort.options[4].text = t("last_seen_desc", "Last Access");
+    if (panelTitle) panelTitle.textContent = t("list_title", "User List");
+    if (head[0]) head[0].textContent = t("user_col", "User");
+    if (head[1]) head[1].textContent = t("mail_col", "Mail");
+    if (head[2]) head[2].textContent = t("role", "Role");
+    if (head[3]) head[3].textContent = t("account_col", "Account");
+    if (head[4]) head[4].textContent = t("login_col", "Login");
+    if (head[5]) head[5].textContent = t("screen_col", "Screen");
+    if (head[7]) head[7].textContent = t("post_col", "Upload");
+    if (head[8]) head[8].textContent = t("last_access_col", "Last Access");
+    if (head[9]) head[9].textContent = t("action_col", "Action");
+    if (reload) reload.textContent = t("reload", "Reload");
+    if (create) create.textContent = t("create_temp", "Create Temp User");
+    if (prev) prev.textContent = t("prev", "Prev");
+    if (next) next.textContent = t("next", "Next");
     renderTable();
     if (state.currentUser) {
       renderLinksEditor();

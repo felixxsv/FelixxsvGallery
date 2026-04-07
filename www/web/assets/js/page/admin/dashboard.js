@@ -74,6 +74,40 @@ const DASHBOARD_MESSAGES = {
     dashboard_error: "Failed to load dashboard.",
     integrity_run_success: "Integrity check queued.",
     integrity_run_error: "Failed to queue integrity check.",
+    title_clock: "Clock",
+    meta_clock: "The display mode is stored per administrator.",
+    mode_digital: "Digital",
+    mode_analog: "Analog",
+    title_latest: "Latest Image",
+    meta_latest: "Shows the newest image.",
+    latest_empty: "No image available.",
+    title_summary: "Current Overview",
+    meta_summary: "Shows the gallery-wide counts and storage summary.",
+    stat_online_users: "Online Users",
+    stat_today_uploads: "Uploads Today",
+    stat_public_count: "Public Images",
+    stat_private_count: "Private Images",
+    stat_quarantine_count: "Quarantine",
+    stat_storage_used: "Storage Usage",
+    title_storage: "Storage Monitor",
+    meta_storage: "Automatically loads storage_root usage. Shares the refresh interval with the settings page.",
+    last_fetched: "Last fetched",
+    auto_refresh: "Auto refresh",
+    manual_only: "Manual only",
+    refresh: "Refresh",
+    metric_directory_size: "Directory size",
+    metric_filesystem_usage: "Used / Total",
+    metric_filesystem_free: "Free space",
+    title_integrity: "Integrity Check",
+    meta_integrity: "Shows the latest status, recent issues, and manual-run queue.",
+    stat_integrity_status: "Latest status",
+    stat_integrity_last_run: "Last run",
+    stat_integrity_last_success: "Last success",
+    stat_integrity_pending: "Pending jobs",
+    title_online_users: "Online Users",
+    meta_online_users: "Shows active users and their session duration.",
+    title_recent_logs: "Recent Activity Logs",
+    meta_recent_logs: "Shows recent audit logs.",
   },
 };
 
@@ -88,6 +122,70 @@ function defineMessages() {
   ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
     window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(DASHBOARD_MESSAGES["en-us"]).map(([key, value]) => [`admin_dashboard.${key}`, value])));
   });
+}
+
+function applyStaticTranslations() {
+  const setText = (selector, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = value;
+  };
+  const setClosestText = (selector, closestSelector, targetSelector, value) => {
+    const base = document.querySelector(selector);
+    const node = base?.closest(closestSelector)?.querySelector(targetSelector);
+    if (node) node.textContent = value;
+  };
+  const setAttr = (selector, attr, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.setAttribute(attr, value);
+  };
+  setText(".admin-dashboard-card--clock .admin-panel__title", t("title_clock", "Clock"));
+  setText(".admin-dashboard-card--clock .admin-panel__meta", t("meta_clock", "The display mode is stored per administrator."));
+  setText("#adminClockModeDigital", t("mode_digital", "Digital"));
+  setText("#adminClockModeAnalog", t("mode_analog", "Analog"));
+  setAttr(".admin-dashboard-card--clock .admin-segmented-control", "aria-label", t("title_clock", "Clock"));
+
+  setText(".admin-dashboard-card--latest .admin-panel__title", t("title_latest", "Latest Image"));
+  setText(".admin-dashboard-card--latest .admin-panel__meta", t("meta_latest", "Shows the newest image."));
+  setText("#adminDashboardLatestImagePlaceholder", t("latest_empty", "No image available."));
+
+  setText(".admin-dashboard-card--stats .admin-panel__title", t("title_summary", "Current Overview"));
+  setText(".admin-dashboard-card--stats .admin-panel__meta", t("meta_summary", "Shows the gallery-wide counts and storage summary."));
+  setClosestText("#adminStatOnlineUsers", ".admin-stat", ".admin-stat__label", t("stat_online_users", "Online Users"));
+  setClosestText("#adminStatTodayUploads", ".admin-stat", ".admin-stat__label", t("stat_today_uploads", "Uploads Today"));
+  setClosestText("#adminStatPublicCount", ".admin-stat", ".admin-stat__label", t("stat_public_count", "Public Images"));
+  setClosestText("#adminStatPrivateCount", ".admin-stat", ".admin-stat__label", t("stat_private_count", "Private Images"));
+  setClosestText("#adminStatQuarantineCount", ".admin-stat", ".admin-stat__label", t("stat_quarantine_count", "Quarantine"));
+  setClosestText("#adminStatStorageUsed", ".admin-stat", ".admin-stat__label", t("stat_storage_used", "Storage Usage"));
+
+  setText(".admin-dashboard-card--storage .admin-panel__title", t("title_storage", "Storage Monitor"));
+  setText(".admin-dashboard-card--storage .admin-panel__meta", t("meta_storage", "Automatically loads storage_root usage. Shares the refresh interval with the settings page."));
+  setText(".admin-dashboard-storage__timestamp", `${t("last_fetched", "Last fetched")}: `);
+  const storageGeneratedAt = document.getElementById("adminDashboardStorageGeneratedAt");
+  if (storageGeneratedAt?.parentElement) {
+    storageGeneratedAt.parentElement.firstChild.textContent = `${t("last_fetched", "Last fetched")}: `;
+  }
+  setText(".admin-dashboard-refresh-interval > span", t("auto_refresh", "Auto refresh"));
+  setAttr("#adminDashboardStorageRefreshInterval", "aria-label", t("auto_refresh", "Auto refresh"));
+  setText("#adminDashboardStorageRefreshInterval option[value='0']", t("manual_only", "Manual only"));
+  setText("#adminDashboardStorageRefreshButton", t("refresh", "Refresh"));
+  setText("#adminDashboardStorageLoading", t("storage_loading", "Loading storage usage..."));
+  setText("#adminDashboardStoragePrimaryPath", storageUsageState.loaded ? (document.getElementById("adminDashboardStoragePrimaryPath")?.textContent || "") : t("storage_placeholder", "Storage usage will appear here after loading."));
+  setClosestText("#adminDashboardStorageDirectorySize", ".admin-dashboard-storage__metric", "span", t("metric_directory_size", "Directory size"));
+  setClosestText("#adminDashboardStorageFilesystemUsage", ".admin-dashboard-storage__metric", "span", t("metric_filesystem_usage", "Used / Total"));
+  setClosestText("#adminDashboardStorageFilesystemFree", ".admin-dashboard-storage__metric", "span", t("metric_filesystem_free", "Free space"));
+
+  setText(".admin-dashboard-card--integrity .admin-panel__title", t("title_integrity", "Integrity Check"));
+  setText(".admin-dashboard-card--integrity .admin-panel__meta", t("meta_integrity", "Shows the latest status, recent issues, and manual-run queue."));
+  setText("#adminDashboardIntegrityRunButton", t("queue_run", "Queue Manual Run"));
+  setClosestText("#adminDashboardIntegrityStatus", ".admin-stat", ".admin-stat__label", t("stat_integrity_status", "Latest status"));
+  setClosestText("#adminDashboardIntegrityLastRun", ".admin-stat", ".admin-stat__label", t("stat_integrity_last_run", "Last run"));
+  setClosestText("#adminDashboardIntegrityLastSuccess", ".admin-stat", ".admin-stat__label", t("stat_integrity_last_success", "Last success"));
+  setClosestText("#adminDashboardIntegrityPending", ".admin-stat", ".admin-stat__label", t("stat_integrity_pending", "Pending jobs"));
+
+  setText(".admin-dashboard-card--users .admin-panel__title", t("title_online_users", "Online Users"));
+  setText(".admin-dashboard-card--users .admin-panel__meta", t("meta_online_users", "Shows active users and their session duration."));
+  setText(".admin-dashboard-card--logs .admin-panel__title", t("title_recent_logs", "Recent Activity Logs"));
+  setText(".admin-dashboard-card--logs .admin-panel__meta", t("meta_recent_logs", "Shows recent audit logs."));
 }
 
 function showClock(mode) {
@@ -866,6 +964,7 @@ function startDashboardLiveRefresh() {
 async function initDashboard() {
   if (!window.AdminApp || !window.AdminApp.ready) return;
   defineMessages();
+  applyStaticTranslations();
 
   bindClockButtons();
   bindLatestImage();
@@ -895,6 +994,7 @@ if (window.AdminApp?.ready) {
 }
 
 window.addEventListener("gallery:language-changed", () => {
+  applyStaticTranslations();
   renderDashboardStorageUsage();
   if (dashboardState.latestData) {
     renderStats({
