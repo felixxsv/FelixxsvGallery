@@ -2,36 +2,6 @@ import { createImageDetailModal } from "./image-detail-modal.js";
 import { escapeHtml } from "./dom.js";
 
 const STYLE_ID = "felixxsv-image-modal-style";
-const IMAGE_MODAL_MESSAGES = {
-  ja: {
-    close: "閉じる",
-    prev: "前の画像",
-    next: "次の画像",
-    zoom: "拡大率",
-    like: "いいねする",
-    unlike: "いいねを取り消す",
-    new_tab: "別タブで表示",
-    detail: "詳細",
-    untitled: "タイトル未設定",
-    unknown_user: "投稿者不明",
-    like_auth: "いいね機能はログイン後に利用できます。",
-    like_error: "いいねの更新に失敗しました。",
-  },
-  "en-us": {
-    close: "Close",
-    prev: "Previous image",
-    next: "Next image",
-    zoom: "Zoom",
-    like: "Like",
-    unlike: "Unlike",
-    new_tab: "Open in new tab",
-    detail: "Details",
-    untitled: "Untitled",
-    unknown_user: "Unknown uploader",
-    like_auth: "Likes are available after login.",
-    like_error: "Failed to update like.",
-  },
-};
 
 function t(app, key, fallback) {
   return app?.i18n?.t?.(`image_modal.${key}`, fallback) || fallback;
@@ -141,10 +111,6 @@ function normalizeItems(payload, options = {}) {
 }
 
 export function createImageModalController({ app, body = document.body } = {}) {
-  Object.entries(IMAGE_MODAL_MESSAGES).forEach(([locale, messages]) => app.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([k, v]) => [`image_modal.${k}`, v]))));
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(IMAGE_MODAL_MESSAGES["en-us"]).map(([k, v]) => [`image_modal.${k}`, v])));
-  });
   ensureStylesheet(app.appBase);
 
   const root = document.createElement("section");

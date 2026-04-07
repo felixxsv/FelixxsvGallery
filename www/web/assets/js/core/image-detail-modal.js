@@ -1,68 +1,5 @@
 import { escapeHtml } from "./dom.js";
 
-const DETAIL_MESSAGES = {
-  ja: {
-    title: "画像詳細",
-    like: "いいねする",
-    unlike: "いいねを取り消す",
-    close: "詳細を閉じる",
-    no_tags: "タグはありません。",
-    no_colors: "カラータグはありません。",
-    preview_open: "画像モーダルで表示",
-    preview_alt: "画像プレビュー",
-    preview_label: "画像プレビュー",
-    preview_hint: "クリックで画像表示へ戻る",
-    user_info: "ユーザー情報",
-    image_title: "タイトル",
-    alt: "説明文 (ALT)",
-    basic: "基本情報",
-    posted_at: "投稿日",
-    shot_at: "撮影日",
-    file_size: "データ容量",
-    image_size: "画像サイズ",
-    likes: "いいね数",
-    views: "閲覧数",
-    tags: "タグ",
-    color_tags: "カラータグ",
-    admin_meta: "内部メタ情報",
-    visibility: "公開状態",
-    public: "公開",
-    private: "非公開",
-    file_name: "ファイル名",
-    moderation: "モデレーション状態",
-  },
-  "en-us": {
-    title: "Image Details",
-    like: "Like",
-    unlike: "Unlike",
-    close: "Close details",
-    no_tags: "No tags.",
-    no_colors: "No color tags.",
-    preview_open: "Open in image modal",
-    preview_alt: "Image preview",
-    preview_label: "Image Preview",
-    preview_hint: "Click to return to image view",
-    user_info: "User",
-    image_title: "Title",
-    alt: "Description (ALT)",
-    basic: "Basic Info",
-    posted_at: "Posted At",
-    shot_at: "Shot At",
-    file_size: "File Size",
-    image_size: "Image Size",
-    likes: "Likes",
-    views: "Views",
-    tags: "Tags",
-    color_tags: "Color Tags",
-    admin_meta: "Internal Metadata",
-    visibility: "Visibility",
-    public: "Public",
-    private: "Private",
-    file_name: "File Name",
-    moderation: "Moderation",
-  },
-};
-
 function td(app, key, fallback) {
   return app?.i18n?.t?.(`image_detail.${key}`, fallback) || fallback;
 }
@@ -113,12 +50,6 @@ function normalizeColorTag(item) {
 }
 
 export function createImageDetailModal({ host, app, onOpen = null, onClose = null, onLikeToggle = null, onPreviewOpen = null }) {
-  Object.entries(DETAIL_MESSAGES).forEach(([locale, messages]) => {
-    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([k, v]) => [`image_detail.${k}`, v])));
-  });
-  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
-    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(DETAIL_MESSAGES["en-us"]).map(([k, v]) => [`image_detail.${k}`, v])));
-  });
   const overlay = document.createElement("section");
   overlay.className = "image-detail-modal";
   overlay.hidden = true;
