@@ -359,12 +359,13 @@ def perform_gallery_upload(
                     if "focal_y" in img_cols:
                         img_cols_list.append("focal_y")
                         img_vals.append(focal_y_val)
-                    if "uploader_user_id" in img_cols and actor is not None:
-                        img_cols_list.append("uploader_user_id")
-                        img_vals.append(int(actor.id))
-                    elif "owner_user_id" in img_cols and actor is not None:
-                        img_cols_list.append("owner_user_id")
-                        img_vals.append(int(actor.id))
+                    if actor is not None:
+                        if "uploader_user_id" in img_cols:
+                            img_cols_list.append("uploader_user_id")
+                            img_vals.append(int(actor.id))
+                        if "owner_user_id" in img_cols:
+                            img_cols_list.append("owner_user_id")
+                            img_vals.append(int(actor.id))
 
                     with conn.cursor() as cur:
                         cur.execute(
