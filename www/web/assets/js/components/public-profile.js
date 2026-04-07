@@ -2,10 +2,12 @@ import { byId } from "../core/dom.js";
 
 const PROFILE_MESSAGES = {
   ja: {
+    title: "プロフィール",
     loading: "読み込み中...",
     not_found: "ユーザーが見つかりませんでした。",
   },
   "en-us": {
+    title: "Profile",
     loading: "Loading...",
     not_found: "User not found.",
   },
@@ -91,6 +93,8 @@ export function initPublicProfileModal(app) {
   }
 
   function applyStaticTranslations() {
+    const title = byId("userProfileTitle");
+    if (title) title.textContent = t("title", "Profile");
     refs.loading.textContent = t("loading", "Loading...");
     refs.error.textContent = t("not_found", "User not found.");
   }

@@ -35,6 +35,16 @@ export function createI18n(settingsStore) {
       if (!key) return;
       node.setAttribute("placeholder", t(key, node.getAttribute("placeholder") || ""));
     });
+    root.querySelectorAll?.("[data-i18n-aria-label]").forEach((node) => {
+      const key = node.dataset.i18nAriaLabel;
+      if (!key) return;
+      node.setAttribute("aria-label", t(key, node.getAttribute("aria-label") || ""));
+    });
+    root.querySelectorAll?.("[data-i18n-title]").forEach((node) => {
+      const key = node.dataset.i18nTitle;
+      if (!key) return;
+      node.setAttribute("title", t(key, node.getAttribute("title") || ""));
+    });
   }
 
   return {

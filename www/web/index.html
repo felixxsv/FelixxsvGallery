@@ -21,11 +21,12 @@
   data-credit-license="TBD"
   data-credit-updated-at="2026-03-16"
 >
-    <button
+  <button
     id="homeSidebarToggle"
     class="app-icon-button app-shell-toggle"
     type="button"
     aria-label="サイドバーを展開"
+    data-i18n-aria-label="home.sidebar.open"
     aria-expanded="false"
   >
     <span aria-hidden="true">❯</span>
@@ -47,7 +48,7 @@
             <span class="home-search-field__icon" aria-hidden="true"></span>
             <div id="homeSearchOwnerBadge" class="home-search-owner-badge" hidden>
               <span id="homeSearchOwnerBadgeLabel" class="home-search-owner-badge__label"></span>
-              <button type="button" id="homeSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="ユーザーフィルターを解除">×</button>
+              <button type="button" id="homeSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="ユーザーフィルターを解除" data-i18n-aria-label="home.owner_filter.clear">×</button>
             </div>
             <input
               id="homeSearchInput"
@@ -94,13 +95,13 @@
     <div class="app-container">
       <div id="homeShellLayout" class="home-shell-layout">
         <div id="homeSidebarBackdrop" class="home-sidebar-backdrop" hidden></div>
-        <aside id="homeSidebar" class="home-sidebar" aria-label="画像一覧のフィルター">
+        <aside id="homeSidebar" class="home-sidebar" aria-label="画像一覧のフィルター" data-i18n-aria-label="home.sidebar.filter_aria">
   <div class="home-sidebar__header">
     <div class="home-sidebar__brand">
       <div class="home-sidebar__eyebrow">Gallery</div>
       <div class="home-sidebar__title">Browse</div>
     </div>
-    <button id="homeSidebarClose" class="home-sidebar__close app-icon-button" type="button" aria-label="サイドバーを閉じる">×</button>
+    <button id="homeSidebarClose" class="home-sidebar__close app-icon-button" type="button" aria-label="サイドバーを閉じる" data-i18n-aria-label="home.sidebar.close">×</button>
   </div>
 
   <div class="home-sidebar__body">
@@ -214,11 +215,11 @@
 
         <div class="home-shell-layout__content">
           <div class="home-mobile-toolbar" id="homeMobileToolbar">
-            <button type="button" id="homeMobileSearchBtn" class="home-mobile-toolbar__btn" aria-label="検索">
+            <button type="button" id="homeMobileSearchBtn" class="home-mobile-toolbar__btn" aria-label="検索" data-i18n-aria-label="home.mobile.search">
               <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--search" aria-hidden="true"></span>
               <span class="home-mobile-toolbar__label" data-i18n="home.mobile.search">検索</span>
             </button>
-            <button type="button" id="homeMobileFilterBtn" class="home-mobile-toolbar__btn" aria-label="フィルター">
+            <button type="button" id="homeMobileFilterBtn" class="home-mobile-toolbar__btn" aria-label="フィルター" data-i18n-aria-label="home.mobile.filter">
               <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--filter" aria-hidden="true"></span>
               <span class="home-mobile-toolbar__label" data-i18n="home.mobile.filter">フィルター</span>
             </button>
@@ -231,7 +232,7 @@
                   <span class="home-search-field__icon" aria-hidden="true"></span>
                   <div id="homeMobileSearchOwnerBadge" class="home-search-owner-badge" hidden>
                     <span id="homeMobileSearchOwnerBadgeLabel" class="home-search-owner-badge__label"></span>
-                    <button type="button" id="homeMobileSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="ユーザーフィルターを解除">×</button>
+                    <button type="button" id="homeMobileSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="ユーザーフィルターを解除" data-i18n-aria-label="home.owner_filter.clear">×</button>
                   </div>
                   <input
                     id="homeMobileSearchInput"
@@ -242,7 +243,7 @@
                     autocomplete="off"
                   >
                 </div>
-                <button type="button" id="homeMobileSearchClose" class="home-mobile-search-modal__close app-icon-button" aria-label="検索を閉じる">×</button>
+                <button type="button" id="homeMobileSearchClose" class="home-mobile-search-modal__close app-icon-button" aria-label="検索を閉じる" data-i18n-aria-label="home.search.close">×</button>
               </div>
               <div id="homeMobileSearchSugPanel" class="home-search-sug-panel home-search-sug-panel--mobile" hidden>
                 <div id="homeMobileSearchSugImages" class="home-search-sug-section" hidden>
@@ -291,11 +292,11 @@
         <option value="popular" data-i18n="home.sort.popular">人気順</option>
       </select>
     </label>
-    <div id="homeGridColumnsControls" class="home-grid-columns" aria-label="表示列切り替え">
-      <button type="button" class="home-grid-columns__button" data-grid-cols="1" aria-label="1列表示">1</button>
-      <button type="button" class="home-grid-columns__button" data-grid-cols="2" aria-label="2列表示">2</button>
-      <button type="button" class="home-grid-columns__button" data-grid-cols="3" aria-label="3列表示">3</button>
-      <button type="button" class="home-grid-columns__button" data-grid-cols="4" aria-label="4列表示">4</button>
+    <div id="homeGridColumnsControls" class="home-grid-columns" aria-label="表示列切り替え" data-i18n-aria-label="home.grid.switch">
+      <button type="button" class="home-grid-columns__button" data-grid-cols="1" aria-label="1列表示" data-i18n-aria-label="home.grid.1">1</button>
+      <button type="button" class="home-grid-columns__button" data-grid-cols="2" aria-label="2列表示" data-i18n-aria-label="home.grid.2">2</button>
+      <button type="button" class="home-grid-columns__button" data-grid-cols="3" aria-label="3列表示" data-i18n-aria-label="home.grid.3">3</button>
+      <button type="button" class="home-grid-columns__button" data-grid-cols="4" aria-label="4列表示" data-i18n-aria-label="home.grid.4">4</button>
     </div>
   </div>
 </section>
@@ -314,7 +315,7 @@
             <div id="homeGalleryGrid" class="home-gallery-grid" data-grid-cols="3" hidden></div>
           </section>
 
-          <section class="home-pagination" aria-label="ページ移動">
+          <section class="home-pagination" aria-label="ページ移動" data-i18n-aria-label="home.pagination.aria">
             <div id="homePaginationMeta" class="home-pagination__meta"></div>
             <div class="app-button-row app-button-row--end">
               <button id="homePrevPageButton" class="app-button app-button--ghost" type="button" data-i18n="home.pagination.prev">前へ</button>
