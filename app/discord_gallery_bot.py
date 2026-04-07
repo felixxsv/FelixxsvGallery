@@ -193,6 +193,7 @@ class UploadChoiceView(discord.ui.View):
         self.draft_tags = ""
         self.separate_index = 0
         self.separate_uploaded_ids: list[str] = []
+        self.separate_processed_count = 0
         self.separate_completed = False
         if self.suggested_tags:
             self.tag_select = UploadTagSelect(self, self.suggested_tags)
@@ -241,7 +242,7 @@ class UploadChoiceView(discord.ui.View):
         lines = [f"{count_text}をFelixxsv Gallery へアップロードしますか？"]
         if len(self.attachments) > 1:
             lines.append(f"1枚ずつ投稿の現在対象: {self._current_attachment_label()}")
-            lines.append(f"1枚ずつ投稿済み: {len(self.separate_uploaded_ids)}/{len(self.attachments)}")
+            lines.append(f"1枚ずつ投稿済み: {self.separate_processed_count}/{len(self.attachments)}")
         lines.extend(
             [
                 f"タイトル: {self.draft_title or '「内容を編集」から入力してください'}",
@@ -371,6 +372,7 @@ class UploadChoiceView(discord.ui.View):
                 is_public=self.selected_public,
             )
             if result.get("has_duplicates"):
+                self.separate_processed_count += 1
                 if self.separate_index + 1 >= len(self.attachments):
                     self.separate_completed = True
                 else:
@@ -387,6 +389,7 @@ class UploadChoiceView(discord.ui.View):
                 return
             created_ids = [str(item["image_id"]) for item in result.get("items") or [] if item.get("image_id")]
             self.separate_uploaded_ids.extend(created_ids)
+            self.separate_processed_count += 1
             if self.separate_index + 1 >= len(self.attachments):
                 self.separate_completed = True
             else:
