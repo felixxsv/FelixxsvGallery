@@ -403,6 +403,10 @@ export function initHomePage(app) {
     searchInput: byId("homeSearchInput"),
     sortSelect: byId("homeSortSelect"),
     statusText: byId("homeStatusText"),
+    statusQuery: byId("homeStatusQuery"),
+    statusSort: byId("homeStatusSort"),
+    statusRange: byId("homeStatusRange"),
+    statusTotal: byId("homeStatusTotal"),
     loadingState: byId("homeLoadingState"),
     errorState: byId("homeErrorState"),
     emptyState: byId("homeEmptyState"),
@@ -1206,8 +1210,27 @@ export function initHomePage(app) {
   function updateStatus() {
     const start = state.total === 0 ? 0 : (state.page - 1) * state.perPage + 1;
     const end = Math.min(state.page * state.perPage, state.total);
-    refs.statusText.textContent = `検索: ${state.q ? `"${state.q}"` : "なし"} / 並び順: ${state.sort} / ${start}-${end}件 / 総件数 ${state.total}件`;
-    refs.paginationMeta.textContent = `Page ${state.page}`;
+    const maxPage = Math.max(1, Math.ceil(state.total / Math.max(1, state.perPage)));
+    const sortLabels = {
+      latest: "新しい順",
+      oldest: "古い順",
+      popular: "人気順",
+      random: "ランダム",
+    };
+    refs.statusText.textContent = state.total > 0 ? "現在の条件で表示しています。" : "条件に一致する画像を探しています。";
+    if (refs.statusQuery) {
+      refs.statusQuery.textContent = state.q ? `"${state.q}"` : "なし";
+    }
+    if (refs.statusSort) {
+      refs.statusSort.textContent = sortLabels[state.sort] || state.sort || "新しい順";
+    }
+    if (refs.statusRange) {
+      refs.statusRange.textContent = `${start}-${end}件`;
+    }
+    if (refs.statusTotal) {
+      refs.statusTotal.textContent = `${state.total}件`;
+    }
+    refs.paginationMeta.textContent = `${state.page} / ${maxPage} ページ`;
     refs.prevPageButton.disabled = state.page <= 1;
     refs.nextPageButton.disabled = !state.hasNext;
   }

@@ -260,7 +260,28 @@
           </div>
 
           <section class="home-status" aria-live="polite">
-  <div id="homeStatusText" class="home-status__text">読み込み待機中です。</div>
+  <div class="home-status__summary">
+    <div class="home-status__eyebrow">Gallery Overview</div>
+    <div id="homeStatusText" class="home-status__text">読み込み待機中です。</div>
+    <div class="home-status__meta">
+      <span class="home-status-chip">
+        <span class="home-status-chip__label">検索</span>
+        <span id="homeStatusQuery" class="home-status-chip__value">なし</span>
+      </span>
+      <span class="home-status-chip">
+        <span class="home-status-chip__label">並び順</span>
+        <span id="homeStatusSort" class="home-status-chip__value">新しい順</span>
+      </span>
+      <span class="home-status-chip">
+        <span class="home-status-chip__label">表示</span>
+        <span id="homeStatusRange" class="home-status-chip__value">0-0件</span>
+      </span>
+      <span class="home-status-chip">
+        <span class="home-status-chip__label">総件数</span>
+        <span id="homeStatusTotal" class="home-status-chip__value">0件</span>
+      </span>
+    </div>
+  </div>
   <div class="home-status__actions">
     <label class="app-field home-status__sort-field">
       <span class="app-visually-hidden">並び順</span>
@@ -280,9 +301,15 @@
 </section>
 
           <section class="home-gallery-section">
-            <div id="homeLoadingState" class="home-state-card" hidden>読み込み中です。</div>
+            <div id="homeLoadingState" class="home-state-card home-state-card--loading" hidden>
+              <div class="home-loading-state__spinner" aria-hidden="true"></div>
+              <div class="home-loading-state__message">読み込み中です</div>
+            </div>
             <div id="homeErrorState" class="home-state-card home-state-card--error" hidden></div>
-            <div id="homeEmptyState" class="home-state-card" hidden>該当する画像がありません。</div>
+            <div id="homeEmptyState" class="home-state-card home-state-card--empty" hidden>
+              <div class="home-empty-state__icon" aria-hidden="true"></div>
+              <div class="home-empty-state__message">該当する画像がありません</div>
+            </div>
 
             <div id="homeGalleryGrid" class="home-gallery-grid" data-grid-cols="3" hidden></div>
           </section>
