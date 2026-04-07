@@ -4,6 +4,7 @@ import sys
 from galleryctl.integrity_check import run_integrity_check, run_integrity_dispatch
 from galleryctl.sync_full import run_sync_full
 from galleryctl.rebuild_colors import run_rebuild_colors
+from galleryctl.rebuild_contents import run_rebuild_contents
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,6 +23,14 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--from-id", type=int, default=None)
     r.add_argument("--to-id", type=int, default=None)
     r.add_argument("--limit", type=int, default=None)
+
+    rc = sub.add_parser("rebuild-contents")
+    rc.add_argument("--config", required=True)
+    rc.add_argument("--dry-run", action="store_true")
+    rc.add_argument("--all", action="store_true")
+    rc.add_argument("--from-id", type=int, default=None)
+    rc.add_argument("--to-id", type=int, default=None)
+    rc.add_argument("--limit", type=int, default=None)
 
     ic = sub.add_parser("integrity-check")
     ic.add_argument("--config", required=True)
@@ -48,6 +57,16 @@ def main(argv: list[str]) -> int:
 
     if args.cmd == "rebuild-colors":
         return run_rebuild_colors(
+            config_path=args.config,
+            dry_run=bool(args.dry_run),
+            rebuild_all=bool(args.all),
+            from_id=args.from_id,
+            to_id=args.to_id,
+            limit=args.limit,
+        )
+
+    if args.cmd == "rebuild-contents":
+        return run_rebuild_contents(
             config_path=args.config,
             dry_run=bool(args.dry_run),
             rebuild_all=bool(args.all),
