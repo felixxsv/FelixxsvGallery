@@ -11,6 +11,10 @@ const TAG_BROWSE_MODAL_ID = "tag-browse-modal";
 const DRAFT_KEY = "gallery.upload.draft.v1";
 const TAG_QUICK_LIMIT = 10;
 
+function t(app, key, fallback, vars = {}) {
+  return app?.i18n?.t?.(`upload.${key}`, fallback, vars) || fallback;
+}
+
 function highlightMatch(text, query) {
   if (!query) return escapeHtml(text);
   const lower = text.toLowerCase();
@@ -100,7 +104,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (state.mounted) return;
     const modalRoot = root();
     if (!modalRoot) {
-      throw new Error("appModalRoot が見つかりません。");
+      throw new Error("appModalRoot is missing.");
     }
 
     if (!modalRoot.querySelector(`[data-modal-id="${MODAL_ID}"]`)) {
@@ -115,7 +119,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
           <div class="app-modal-backdrop" data-modal-backdrop="${MODAL_ID}"></div>
           <div class="app-modal-dialog app-modal-dialog--upload" role="dialog" aria-modal="true" aria-labelledby="uploadModalTitle" tabindex="-1">
             <div class="app-modal-header">
-              <h2 id="uploadModalTitle" class="app-modal-title">画像をアップロード</h2>
+              <h2 id="uploadModalTitle" class="app-modal-title">${escapeHtml(t(app, "title", "Upload Images"))}</h2>
             </div>
             <div class="app-modal-body upload-modal">
               <div class="upload-modal__layout">
@@ -123,7 +127,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                 <!-- 上段: サムネイル + 画像追加 (1:1) -->
                 <div class="upload-modal__top">
                   <div class="upload-modal__thumb-col">
-                    <div class="upload-modal__field-label">サムネイル / 表示位置</div>
+                    <div class="upload-modal__field-label">${escapeHtml(t(app, "thumbnail_label", "Thumbnail / Focus"))}</div>
                     <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
                       <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
                       <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
@@ -135,13 +139,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                     </div>
                   </div>
                   <div class="upload-modal__drop-col">
-                    <div class="upload-modal__field-label">画像追加</div>
-                    <div id="uploadModalDropzone" class="upload-modal__dropzone" tabindex="0" role="button" aria-label="画像を選択またはドラッグアンドドロップ">
+                    <div class="upload-modal__field-label">${escapeHtml(t(app, "drop_label", "Add Images"))}</div>
+                    <div id="uploadModalDropzone" class="upload-modal__dropzone" tabindex="0" role="button" aria-label="${escapeHtml(t(app, "drop_aria", "Select images or drag and drop"))}">
                       <div class="upload-modal__dropzone-icon">↑</div>
-                      <p class="upload-modal__dropzone-text">ドラッグ＆ドロップ / クリックで選択</p>
-                      <p class="upload-modal__dropzone-sub">.png .jpg .jpeg .webp / 1枚50MBまで / 最大20枚</p>
+                      <p class="upload-modal__dropzone-text">${escapeHtml(t(app, "drop_text", "Drag and drop / click to select"))}</p>
+                      <p class="upload-modal__dropzone-sub">${escapeHtml(t(app, "drop_sub", ".png .jpg .jpeg .webp / up to 50MB each / max 20 files"))}</p>
                       <div class="upload-modal__dropzone-actions">
-                        <button id="uploadModalFileSelectButton" type="button" class="app-button app-button--primary">ファイルを選択</button>
+                        <button id="uploadModalFileSelectButton" type="button" class="app-button app-button--primary">${escapeHtml(t(app, "select_files", "Select Files"))}</button>
                       </div>
                       <input id="uploadModalFileInput" class="upload-modal__file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple>
                     </div>
@@ -151,46 +155,46 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                 <!-- 中段: 画像一覧 -->
                 <div class="upload-modal__strip-section">
                   <div class="upload-modal__strip-header">
-                    <div class="upload-modal__field-label">画像一覧</div>
-                    <span class="upload-modal__strip-hint">ドラッグで並び替え可能</span>
+                    <div class="upload-modal__field-label">${escapeHtml(t(app, "strip_label", "Images"))}</div>
+                    <span class="upload-modal__strip-hint">${escapeHtml(t(app, "strip_hint", "Drag to reorder"))}</span>
                   </div>
                   <div class="upload-modal__strip-wrap" id="uploadModalStripWrap">
-                    <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--prev" id="uploadModalStripPrev" hidden aria-label="前へ">&#8249;</button>
+                    <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--prev" id="uploadModalStripPrev" hidden aria-label="${escapeHtml(t(app, "prev", "Prev"))}">&#8249;</button>
                     <div id="uploadModalStrip" class="upload-modal__strip" aria-live="polite"></div>
-                    <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--next" id="uploadModalStripNext" hidden aria-label="次へ">&#8250;</button>
+                    <button type="button" class="upload-modal__strip-arrow upload-modal__strip-arrow--next" id="uploadModalStripNext" hidden aria-label="${escapeHtml(t(app, "next", "Next"))}">&#8250;</button>
                   </div>
-                  <div id="uploadModalSummary" class="upload-modal__summary">ファイルが未選択です。</div>
+                  <div id="uploadModalSummary" class="upload-modal__summary">${escapeHtml(t(app, "no_files", "No files selected."))}</div>
                 </div>
 
                 <!-- 下段: フォーム -->
                 <div class="upload-modal__fields">
                   <label class="app-field">
-                    <span class="app-field__label">タイトル <span class="upload-modal__required">*</span></span>
+                    <span class="app-field__label">${escapeHtml(t(app, "title_label", "Title"))} <span class="upload-modal__required">${escapeHtml(t(app, "required", "*"))}</span></span>
                     <div class="upload-modal__input-row">
-                      <input id="uploadModalTitleInput" class="app-input" type="text" placeholder="タイトルを入力" maxlength="${TITLE_MAX}">
+                      <input id="uploadModalTitleInput" class="app-input" type="text" placeholder="${escapeHtml(t(app, "title_placeholder", "Enter a title"))}" maxlength="${TITLE_MAX}">
                       <span id="uploadModalTitleCounter" class="upload-modal__counter">0/${TITLE_MAX}</span>
                     </div>
                   </label>
 
                   <label class="app-field">
-                    <span class="app-field__label">説明文（ALT）</span>
-                    <textarea id="uploadModalAltInput" class="app-input upload-modal__textarea" placeholder="説明文を入力"></textarea>
+                    <span class="app-field__label">${escapeHtml(t(app, "alt_label", "Description (ALT)"))}</span>
+                    <textarea id="uploadModalAltInput" class="app-input upload-modal__textarea" placeholder="${escapeHtml(t(app, "alt_placeholder", "Enter a description"))}"></textarea>
                   </label>
 
                   <div class="upload-modal__row">
                     <label class="app-field">
                       <span class="app-field__label">
-                        撮影日時
-                        <span id="uploadModalShotAtBadge" class="upload-modal__auto-badge" hidden>AUTO</span>
+                        ${escapeHtml(t(app, "shot_at_label", "Shot At"))}
+                        <span id="uploadModalShotAtBadge" class="upload-modal__auto-badge" hidden>${escapeHtml(t(app, "auto", "AUTO"))}</span>
                       </span>
                       <input id="uploadModalShotAtInput" class="app-input" type="datetime-local" step="1">
                     </label>
                     <div class="app-field">
-                      <span class="app-field__label">タグ</span>
+                      <span class="app-field__label">${escapeHtml(t(app, "tags_label", "Tags"))}</span>
                       <div class="upload-modal__tag-box" id="uploadModalTagBox">
                         <div class="upload-modal__tag-scroll" id="uploadModalTagChips"></div>
-                        <input class="upload-modal__tag-input" id="uploadModalTagInput" type="text" placeholder="タグを追加…" autocomplete="off">
-                        <button type="button" class="upload-modal__tag-add" id="uploadModalTagAdd" aria-label="タグを追加">+</button>
+                        <input class="upload-modal__tag-input" id="uploadModalTagInput" type="text" placeholder="${escapeHtml(t(app, "tags_placeholder", "Add tags..."))}" autocomplete="off">
+                        <button type="button" class="upload-modal__tag-add" id="uploadModalTagAdd" aria-label="${escapeHtml(t(app, "tags_add", "Add tag"))}">+</button>
                         <div class="upload-modal__tag-sug" id="uploadModalTagSug" hidden>
                           <div class="upload-modal__tag-sug-list" id="uploadModalTagSugList"></div>
                           <div class="upload-modal__tag-sug-more" id="uploadModalTagSugMore" hidden>
@@ -202,13 +206,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                   </div>
 
                   <div class="upload-modal__vis-toggle">
-                    <label class="upload-modal__vis-switch" for="uploadModalVisInput" aria-label="公開設定">
+                    <label class="upload-modal__vis-switch" for="uploadModalVisInput" aria-label="${escapeHtml(t(app, "visibility_aria", "Visibility"))}">
                       <input type="checkbox" class="upload-modal__vis-input" id="uploadModalVisInput" checked>
                       <span class="upload-modal__vis-track">
                         <span class="upload-modal__vis-thumb"></span>
                       </span>
                     </label>
-                    <span class="upload-modal__vis-label" id="uploadModalVisLabel">公開</span>
+                    <span class="upload-modal__vis-label" id="uploadModalVisLabel">${escapeHtml(t(app, "visibility_public", "Public"))}</span>
                   </div>
 
                   <div id="uploadModalInlineMessage" class="upload-modal__inline-message" hidden></div>
@@ -217,10 +221,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
               </div>
             </div>
             <div class="app-modal-footer upload-modal__footer">
-              <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">下書き保存</button>
+              <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "save_draft", "Save Draft"))}</button>
               <div class="upload-modal__footer-actions">
-                <button id="uploadModalCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-                <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">アップロード</button>
+                <button id="uploadModalCancelButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "cancel", "Cancel"))}</button>
+                <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">${escapeHtml(t(app, "submit", "Upload"))}</button>
               </div>
             </div>
           </div>
@@ -422,7 +426,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.tagChips.innerHTML = "";
     state.tagState.forEach((tag, i) => {
       const chip = createElement("span", { className: "upload-modal__tag-chip" });
-      chip.innerHTML = `${escapeHtml(tag)}<button type="button" data-tag-index="${i}" aria-label="${escapeHtml(tag)}を削除">\u00d7</button>`;
+      chip.innerHTML = `${escapeHtml(tag)}<button type="button" data-tag-index="${i}" aria-label="${escapeHtml(t(app, "remove_tag", "Remove {tag}", { tag }))}">\u00d7</button>`;
       refs.tagChips.appendChild(chip);
     });
   }
@@ -493,11 +497,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
           <div class="app-modal-backdrop" data-modal-backdrop="${TAG_BROWSE_MODAL_ID}"></div>
           <div class="app-modal-dialog app-modal-dialog--tag-browse" role="dialog" aria-modal="true" tabindex="-1">
             <div class="app-modal-header">
-              <h2 class="app-modal-title">タグを選択</h2>
-              <button type="button" class="app-modal-close" id="tagBrowseClose" aria-label="閉じる">×</button>
+              <h2 class="app-modal-title">${escapeHtml(t(app, "tag_select_title", "Select Tags"))}</h2>
+              <button type="button" class="app-modal-close" id="tagBrowseClose" aria-label="${escapeHtml(t(app, "close", "Close"))}">×</button>
             </div>
             <div class="tag-browse-modal__search-wrap">
-              <input id="tagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
+              <input id="tagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="${escapeHtml(t(app, "tag_search_placeholder", "Search tags..."))}" autocomplete="off">
               <div class="tag-browse-modal__sug" id="tagBrowseSug" hidden>
                 <div class="tag-browse-modal__sug-list" id="tagBrowseSugList"></div>
               </div>
@@ -631,7 +635,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     refs.tagBrowseList.innerHTML = "";
     if (!sorted.length) {
-      refs.tagBrowseList.innerHTML = `<p class="tag-browse-modal__empty">タグが見つかりません</p>`;
+      refs.tagBrowseList.innerHTML = `<p class="tag-browse-modal__empty">${escapeHtml(t(app, "tag_empty", "No tags found"))}</p>`;
       return;
     }
 
@@ -672,7 +676,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       savedAt: Date.now(),
     };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
-    app.toast?.info?.("下書きを保存しました。");
+    app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
   }
 
   function loadDraft() {
@@ -714,7 +718,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function updateVisLabel() {
     if (!refs.visLabel || !refs.visInput) return;
-    refs.visLabel.textContent = refs.visInput.checked ? "公開" : "非公開";
+    refs.visLabel.textContent = refs.visInput.checked
+      ? t(app, "visibility_public", "Public")
+      : t(app, "visibility_private", "Private");
   }
 
   function updateShotAtBadge() {
@@ -735,7 +741,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.uploading = Boolean(submitting);
     if (refs.submitButton) {
       refs.submitButton.disabled = state.uploading;
-      refs.submitButton.textContent = state.uploading ? "アップロード中..." : "アップロード";
+      refs.submitButton.textContent = state.uploading
+        ? t(app, "submitting", "Uploading...")
+        : t(app, "submit", "Upload");
     }
     if (refs.cancelButton) refs.cancelButton.disabled = state.uploading;
     if (refs.fileSelectButton) refs.fileSelectButton.disabled = state.uploading;
@@ -755,7 +763,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     }
     const user = currentUser();
     if (scope === "public" && authenticated && user && user.upload_enabled === false) {
-      app.toast?.warning?.("現在、画像投稿は無効化されています。");
+      app.toast?.warning?.(t(app, "disabled", "Image uploads are currently disabled."));
       return false;
     }
     return true;
@@ -864,7 +872,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     const remaining = Math.max(0, MAX_FILES - state.items.length);
     if (remaining <= 0) {
-      app.toast?.error?.(`画像は最大 ${MAX_FILES} 枚までです。`);
+      app.toast?.error?.(t(app, "max_files_error", "You can upload up to {count} images.", { count: MAX_FILES }));
       return;
     }
 
@@ -873,18 +881,18 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       if (accepted.length >= remaining) break;
       const ext = extractExtension(file.name);
       if (!ACCEPTED_EXTENSIONS.has(ext)) {
-        app.toast?.error?.(`${file.name} は対応していない形式です。`);
+        app.toast?.error?.(t(app, "unsupported_format", "{name} is not a supported format.", { name: file.name }));
         continue;
       }
       if (Number(file.size || 0) > MAX_FILE_BYTES) {
-        app.toast?.error?.(`${file.name} は 50MB を超えています。`);
+        app.toast?.error?.(t(app, "file_too_large", "{name} exceeds 50MB.", { name: file.name }));
         continue;
       }
       accepted.push(file);
     }
 
     if (accepted.length >= remaining && incoming.length > remaining) {
-      app.toast?.warning?.(`画像は最大 ${MAX_FILES} 枚までです。先頭 ${remaining} 枚のみ追加しました。`);
+      app.toast?.warning?.(t(app, "max_files_partial", "You can upload up to {count} images. Only the first {remaining} files were added.", { count: MAX_FILES, remaining }));
     }
 
     const items = accepted.map((file, offset) => ({
@@ -961,13 +969,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function renderSummary() {
     if (!refs.summary) return;
     if (!state.items.length) {
-      refs.summary.textContent = "ファイルが未選択です。";
+      refs.summary.textContent = t(app, "no_files", "No files selected.");
       return;
     }
     const totalBytes = state.items.reduce((sum, item) => sum + Number(item.file?.size || 0), 0);
     const dupCount = state.items.filter((item) => item.duplicate || item.serverDuplicate).length;
-    const parts = [`${state.items.length}枚/${MAX_FILES}枚`, formatBytes(totalBytes)];
-    if (dupCount > 0) parts.push(`DUP ${dupCount}枚`);
+    const parts = [t(app, "summary_count", "{count}/{max} files", { count: state.items.length, max: MAX_FILES }), formatBytes(totalBytes)];
+    if (dupCount > 0) parts.push(t(app, "summary_dup", "DUP {count}", { count: dupCount }));
     refs.summary.textContent = parts.join(" / ");
   }
 
@@ -978,7 +986,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (!state.items.length) {
       const empty = createElement("div", {
         className: "upload-modal__strip-empty",
-        text: "画像を追加するとここに表示されます。"
+        text: t(app, "empty_strip", "Added images will appear here.")
       });
       refs.strip.appendChild(empty);
       return;
@@ -992,13 +1000,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       });
 
       card.innerHTML = `
-        <div class="upload-modal__strip-thumb" data-action="thumbnail" data-index="${index}" role="button" tabindex="0" aria-label="${escapeHtml(index === 0 ? "現在のサムネイル" : "サムネイルに設定")}">
+        <div class="upload-modal__strip-thumb" data-action="thumbnail" data-index="${index}" role="button" tabindex="0" aria-label="${escapeHtml(index === 0 ? t(app, "thumb_current", "Current thumbnail") : t(app, "thumb_set", "Set as thumbnail"))}">
           <img src="${escapeHtml(item.objectUrl)}" alt="${escapeHtml(item.file.name || "image")}">
           ${index === 0 ? '<span class="upload-modal__strip-badge upload-modal__strip-badge--thumbnail">THUMB</span>' : ""}
           ${dup ? '<span class="upload-modal__strip-badge upload-modal__strip-badge--dup">DUP</span>' : ""}
-          <button type="button" class="upload-modal__strip-rm" data-action="remove" data-index="${index}" aria-label="削除">\u00d7</button>
+          <button type="button" class="upload-modal__strip-rm" data-action="remove" data-index="${index}" aria-label="${escapeHtml(t(app, "remove", "Remove"))}">\u00d7</button>
         </div>
-        <div class="upload-modal__strip-name">${escapeHtml(item.file.name || "(無名ファイル)")}</div>
+        <div class="upload-modal__strip-name">${escapeHtml(item.file.name || t(app, "unnamed_file", "(Unnamed file)"))}</div>
       `;
       refs.strip.appendChild(card);
     });
@@ -1018,9 +1026,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function collectDuplicateMessageFromPayload(payload) {
     const items = Array.isArray(payload?.items) ? payload.items : [];
     const first = items.find((item) => item?.duplicate);
-    if (!first) return "重複画像が検出されたため、アップロードを中止しました。";
+    if (!first) return t(app, "duplicate_abort", "Duplicate images were detected, so upload was cancelled.");
     const order = Number(first.index ?? 0) + 1;
-    return `${order}枚目の画像がすでにアップロードされています。`;
+    return t(app, "duplicate_existing_order", "Image #{order} has already been uploaded.", { order });
   }
 
   function applyServerDuplicateFlags(payload) {
@@ -1043,13 +1051,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const shotAt = refs.shotAtInput?.value || "";
 
     if (!title) {
-      const message = "タイトルを入力してください。";
+      const message = t(app, "title_required", "Enter a title.");
       setInlineMessage(message, "error");
       app.toast?.error?.(message);
       return;
     }
     if (!state.items.length) {
-      const message = "画像を選択してください。";
+      const message = t(app, "image_required", "Select at least one image.");
       setInlineMessage(message, "error");
       app.toast?.error?.(message);
       return;
@@ -1057,7 +1065,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     const localDupIndex = state.items.findIndex((item) => item.duplicate);
     if (localDupIndex >= 0) {
-      const message = `${localDupIndex + 1}枚目の画像が重複しています。`;
+      const message = t(app, "duplicate_local_order", "Image #{order} is duplicated.", { order: localDupIndex + 1 });
       setInlineMessage(message, "error");
       app.toast?.error?.(message);
       return;
@@ -1087,7 +1095,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const contentType = response.headers.get("content-type") || "";
       const payload = contentType.includes("application/json") ? await response.json().catch(() => null) : null;
       if (!response.ok || !payload || payload.ok === false) {
-        throw new Error(payload?.error?.message || payload?.detail || payload?.message || "アップロードに失敗しました。");
+        throw new Error(payload?.error?.message || payload?.detail || payload?.message || t(app, "submit_error", "Upload failed."));
       }
       if (payload.has_duplicates) {
         applyServerDuplicateFlags(payload);
@@ -1098,7 +1106,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       }
 
       const createdCount = Number(payload.count || state.items.length || 0);
-      const successMessage = createdCount > 0 ? `${createdCount} 枚の画像をアップロードしました。` : "アップロードが完了しました。";
+      const successMessage = createdCount > 0
+        ? t(app, "success_count", "Uploaded {count} images.", { count: createdCount })
+        : t(app, "success_default", "Upload completed.");
       setInlineMessage(successMessage, "success");
       app.toast?.success?.(successMessage);
       clearDraft();
@@ -1108,7 +1118,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         await uploadedCallback(payload);
       }
     } catch (error) {
-      const message = error?.message || "アップロードに失敗しました。";
+      const message = error?.message || t(app, "submit_error", "Upload failed.");
       setInlineMessage(message, "error");
       app.toast?.error?.(message);
     } finally {
