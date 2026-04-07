@@ -874,26 +874,27 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 .home-empty-state__icon::before {
   content: "";
   position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 48px;
-  height: 48px;
-  border: 6px solid currentColor;
+  top: 10px;
+  left: 10px;
+  width: 42px;
+  height: 42px;
+  border: 5px solid currentColor;
   border-radius: 50%;
   box-sizing: border-box;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .home-empty-state__icon::after {
   content: "";
   position: absolute;
-  right: 8px;
-  bottom: 10px;
-  width: 32px;
-  height: 8px;
+  left: 47px;
+  top: 48px;
+  width: 26px;
+  height: 5px;
   border-radius: 999px;
   background: currentColor;
   transform: rotate(45deg);
-  transform-origin: center;
+  transform-origin: left center;
 }
 
 .home-loading-state__message,
