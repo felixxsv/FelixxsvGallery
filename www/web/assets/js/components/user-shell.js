@@ -66,6 +66,12 @@ function nowMs() {
   return Date.now();
 }
 
+function dispatchLanguageChange(language) {
+  window.dispatchEvent(new CustomEvent("gallery:language-changed", {
+    detail: { language },
+  }));
+}
+
 export function initUserShell(app) {
   const session = app.session;
   const toast = app.toast;
@@ -1354,6 +1360,7 @@ export function initUserShell(app) {
       refs.settingLanguage.value = nextLanguage;
       document.documentElement.lang = nextLanguage;
       app.i18n?.setLanguage?.(nextLanguage);
+      dispatchLanguageChange(nextLanguage);
 
       if (!isAuthenticated()) {
         toast.success("言語設定を保存しました。");
@@ -1374,6 +1381,7 @@ export function initUserShell(app) {
         refs.settingLanguage.value = restoredLanguage;
         document.documentElement.lang = restoredLanguage;
         app.i18n?.setLanguage?.(restoredLanguage);
+        dispatchLanguageChange(restoredLanguage);
         toast.error(error?.message || "言語設定の保存に失敗しました。");
       }
     });

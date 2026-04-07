@@ -174,6 +174,9 @@ function applyTranslations() {
 function setLanguage(value) {
   currentLanguage = normalizeLanguage(value);
   settings.setLanguage(currentLanguage);
+  window.dispatchEvent(new CustomEvent("gallery:language-changed", {
+    detail: { language: currentLanguage },
+  }));
   applyTranslations();
   syncDynamicTexts();
 }
