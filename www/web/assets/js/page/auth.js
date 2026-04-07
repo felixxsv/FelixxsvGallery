@@ -1,4 +1,5 @@
 import { createSettingsStore, normalizeLanguageCode } from "../core/settings.js";
+import { fetchLocaleCatalogs } from "../core/i18n.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -135,6 +136,14 @@ const MESSAGES = {
     "auth.resendCountdown": "Resend ({seconds}s)",
   }
 };
+
+async function loadSharedMessages() {
+  const catalogs = await fetchLocaleCatalogs("/gallery/assets/i18n", ["ja", "en-us"]);
+  Object.entries(catalogs).forEach(([locale, messages]) => {
+    if (!MESSAGES[locale]) MESSAGES[locale] = {};
+    MESSAGES[locale] = { ...MESSAGES[locale], ...(messages || {}) };
+  });
+}
 
 function normalizeLanguage(value) {
   const lang = normalizeLanguageCode(value);
@@ -1042,7 +1051,12 @@ function initConfirmModal() {
   }
 }
 
-function init() {
+async function init() {
+  try {
+    await loadSharedMessages();
+  } catch {
+    // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
+  }
   currentLanguage = normalizeLanguage(settings.getLanguage());
   if (authLangSelect) {
     authLangSelect.value = currentLanguage;

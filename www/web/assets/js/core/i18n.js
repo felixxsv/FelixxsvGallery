@@ -19,9 +19,29 @@ export function createI18n(settingsStore) {
   function t(key, fallback = "", vars = {}) {
     const lang = String(getLanguage() || "ja").trim().toLowerCase();
     const dict = dictionaries.get(lang) || {};
+    const en = dictionaries.get("en-us") || {};
     const ja = dictionaries.get("ja") || {};
-    const template = dict[key] || ja[key] || fallback;
+    const template = dict[key] || en[key] || ja[key] || fallback;
     return String(template || "").replace(/\{(\w+)\}/g, (_m, name) => String(vars[name] ?? ""));
+  }
+
+  async function loadCatalog(locale, url) {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) {
+      throw new Error(`failed to load locale catalog: ${locale}`);
+    }
+    const messages = await response.json();
+    define(locale, messages && typeof messages === "object" ? messages : {});
+    return messages;
+  }
+
+  async function loadCatalogs(basePath, locales = ["ja", "en-us"]) {
+    const normalizedBasePath = String(basePath || "").replace(/\/+$/, "");
+    const entries = await Promise.all(locales.map(async (locale) => {
+      const messages = await loadCatalog(locale, `${normalizedBasePath}/${locale}.json`);
+      return [locale, messages];
+    }));
+    return Object.fromEntries(entries);
   }
 
   function apply(root = document) {
@@ -52,6 +72,21 @@ export function createI18n(settingsStore) {
     setLanguage,
     define,
     t,
+    loadCatalog,
+    loadCatalogs,
     apply,
   };
+}
+
+export async function fetchLocaleCatalogs(basePath, locales = ["ja", "en-us"]) {
+  const normalizedBasePath = String(basePath || "").replace(/\/+$/, "");
+  const entries = await Promise.all(locales.map(async (locale) => {
+    const response = await fetch(`${normalizedBasePath}/${locale}.json`, { credentials: "same-origin" });
+    if (!response.ok) {
+      throw new Error(`failed to load locale catalog: ${locale}`);
+    }
+    const messages = await response.json();
+    return [locale, messages && typeof messages === "object" ? messages : {}];
+  }));
+  return Object.fromEntries(entries);
 }

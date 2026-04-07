@@ -505,10 +505,6 @@ async function bootstrap() {
   const app = createAppContext();
   window.App = app;
   app.theme.init();
-  syncLanguagePreference(app, null);
-  window.addEventListener("gallery:language-changed", () => {
-    app.i18n.apply?.(document);
-  });
   initUserShell(app);
   initPublicProfileModal(app);
   ensureCustomScrollbars({ includeWindow: true, selectors: [".home-sidebar__body"] });
@@ -539,6 +535,17 @@ async function bootstrap() {
     initHomePage(app);
     initHomeGridColumns();
   }
+
+  try {
+    await app.i18n.loadCatalogs(`${app.appBase}/assets/i18n`, ["ja", "en-us"]);
+  } catch {
+    // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
+  }
+
+  syncLanguagePreference(app, null);
+  window.addEventListener("gallery:language-changed", () => {
+    app.i18n.apply?.(document);
+  });
 }
 
 bootstrap();

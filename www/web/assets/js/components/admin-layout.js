@@ -279,6 +279,13 @@ export async function initAdminLayout() {
   const app = createAdminContext();
   window.AdminApp = app;
   defineAdminLayoutMessages(app.i18n);
+
+  try {
+    await app.i18n.loadCatalogs(`${app.appBase}/assets/i18n`, ["ja", "en-us"]);
+  } catch {
+    // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
+  }
+
   syncLanguagePreference(app, null);
 
   const refs = {
