@@ -72,9 +72,253 @@ function dispatchLanguageChange(language) {
   }));
 }
 
+const SHELL_MESSAGES = {
+  ja: {
+    "shell.resend": "再送",
+    "shell.resend_countdown": "再送 ({seconds}秒)",
+    "shell.confirm.default": "実行する",
+    "shell.value.unregistered": "未登録",
+    "shell.value.enabled": "有効",
+    "shell.value.disabled": "無効",
+    "shell.value.admin": "管理者",
+    "shell.value.none": "未設定",
+    "shell.value.linked": "連携済み",
+    "shell.value.unlinked": "未連携",
+    "shell.value.password_set": "設定済み",
+    "shell.value.password_unset": "未設定",
+    "shell.value.route_unknown": "未判定",
+    "shell.value.route_discord_email": "Discord連携 + メール登録",
+    "shell.value.route_discord": "Discord連携アカウント",
+    "shell.value.route_email": "メール登録アカウント",
+    "shell.email.change": "メールアドレス変更",
+    "shell.email.register": "メールアドレス登録",
+    "shell.email.send": "確認メールを送信",
+    "shell.email.verify": "確認する",
+    "shell.email.resend": "再送する",
+    "shell.email.resend_countdown": "再送する（{seconds}秒後）",
+    "shell.email.code_info": "確認コードを {email} に送信しました。コードを入力してください。",
+    "shell.toast.save_language": "言語設定を保存しました。",
+    "shell.toast.save_language_error": "言語設定の保存に失敗しました。",
+    "shell.toast.save_theme": "テーマ設定を保存しました。",
+    "shell.toast.save_open_behavior": "画像の開き方を保存しました。",
+    "shell.toast.save_backdrop_close": "画像モーダルの背景クリック設定を保存しました。",
+    "shell.toast.save_meta_pinned": "画像モーダルのメタ情報バー設定を保存しました。",
+    "shell.toast.url_required": "URLを入力してください。",
+    "shell.toast.link_added": "リンクを追加しました。",
+    "shell.toast.link_add_error": "リンクの追加に失敗しました。",
+    "shell.toast.link_removed": "リンクを削除しました。",
+    "shell.toast.link_remove_error": "リンクの削除に失敗しました。",
+    "shell.toast.badge_limit": "バッジは最大3つまで選択できます。",
+    "shell.toast.badge_update_error": "バッジの更新に失敗しました。",
+    "shell.toast.session_error": "セッション情報の取得に失敗しました。",
+    "shell.toast.logout": "ログアウトしました。",
+    "shell.toast.logout_error": "ログアウトに失敗しました。",
+    "shell.toast.logout_all": "全端末からログアウトしました。",
+    "shell.toast.logout_all_error": "全端末ログアウトに失敗しました。",
+    "shell.toast.password_changed": "パスワードを変更しました。再ログインしてください。",
+    "shell.toast.password_change_error": "パスワード変更に失敗しました。",
+    "shell.toast.password_required": "パスワードを入力してください。",
+    "shell.toast.password_set": "パスワードを設定しました。メールアドレスとパスワードでもログインできます。",
+    "shell.toast.password_set_error": "パスワードの設定に失敗しました。",
+    "shell.toast.discord_link_url_error": "Discord連携URLの取得に失敗しました。",
+    "shell.toast.discord_link_start_error": "Discord連携の開始に失敗しました。",
+    "shell.toast.discord_unlinked": "Discord連携を解除しました。",
+    "shell.toast.discord_unlink_error": "Discord連携の解除に失敗しました。",
+    "shell.toast.login_required": "ログインが必要です。",
+    "shell.toast.2fa_email_required": "2段階認証にはメールアドレスの登録が必要です。設定からメールアドレスを登録してください。",
+    "shell.toast.verify_sent": "確認コードを送信しました。",
+    "shell.toast.verify_send_error": "確認コードの送信に失敗しました。",
+    "shell.toast.invalid_token": "確認トークンがありません。",
+    "shell.toast.wait_resend": "しばらく待ってから再送してください。",
+    "shell.toast.2fa_enabled": "2段階認証を有効化しました。",
+    "shell.toast.2fa_enable_error": "2段階認証の有効化に失敗しました。",
+    "shell.toast.code_resent": "確認コードを再送しました。",
+    "shell.toast.code_resend_error": "確認コードの再送に失敗しました。",
+    "shell.toast.2fa_disabled": "2段階認証を無効化しました。",
+    "shell.toast.2fa_disable_error": "2段階認証の無効化に失敗しました。",
+    "shell.toast.display_name_required": "表示名を入力してください。",
+    "shell.toast.user_key_required": "ユーザーIDを入力してください。",
+    "shell.toast.profile_updated": "プロフィールを更新しました。",
+    "shell.toast.profile_update_error": "プロフィールの更新に失敗しました。",
+    "shell.toast.avatar_updated": "アイコンを更新しました。",
+    "shell.toast.avatar_update_error": "アイコンのアップロードに失敗しました。",
+    "shell.toast.avatar_deleted": "アイコンを削除しました。",
+    "shell.toast.avatar_delete_error": "アイコンの削除に失敗しました。",
+    "shell.toast.code_required": "確認コードを入力してください。",
+    "shell.toast.email_changed": "メールアドレスを変更しました。",
+    "shell.toast.invalid_code": "確認コードが正しくありません。",
+    "shell.toast.email_required": "メールアドレスを入力してください。",
+    "shell.toast.email_send_error": "確認メールの送信に失敗しました。",
+    "shell.toast.resend_error": "再送に失敗しました。",
+    "shell.confirm.logout_all": "全端末からログアウトします。よろしいですか。",
+    "shell.confirm.logout": "ログアウト",
+    "shell.confirm.discord_unlink": "Discord連携を解除しますか？解除後はDiscordでのログインができなくなります。",
+    "shell.confirm.discord_unlink_approve": "解除する",
+    "shell.confirm.2fa_enable_send": "2段階認証の有効化確認コードを送信します。よろしいですか。",
+    "shell.confirm.2fa_disable_send": "2段階認証の無効化確認コードを送信します。よろしいですか。",
+    "shell.confirm.send_verify_code": "確認コードを送信",
+    "shell.confirm.2fa_abort_enable": "2段階認証の有効化確認を中断しますか？",
+    "shell.confirm.2fa_abort_disable": "2段階認証の無効化確認を中断しますか？",
+    "shell.confirm.abort": "中断する",
+    "shell.confirm.avatar_delete": "アイコンを削除しますか？",
+    "shell.toast.discord_linked": "Discordアカウントを連携しました。",
+    "shell.toast.discord_already": "このDiscordアカウントはすでに連携済みです。",
+    "shell.toast.discord_conflict": "このDiscordアカウントは別のアカウントに紐付いています。",
+    "shell.action.change": "変更",
+    "shell.action.register": "登録",
+    "shell.action.remove": "削除",
+    "shell.action.add_link": "リンクを追加",
+    "shell.static.settings": "設定",
+    "shell.static.help": "ヘルプ",
+    "shell.static.credits": "クレジット",
+    "shell.static.profile_edit": "プロフィール編集",
+    "shell.static.account_settings": "アカウント設定",
+    "shell.static.password_change": "パスワード変更",
+    "shell.static.password_set": "パスワード設定",
+    "shell.static.twofactor_setup": "2段階認証の確認",
+    "shell.static.twofactor_disable": "2段階認証の無効化",
+    "shell.static.logout_all": "全端末ログアウト",
+    "shell.static.logout": "ログアウト",
+    "shell.static.save": "保存",
+    "shell.static.change": "変更する",
+    "shell.static.set": "設定する",
+    "shell.static.verify": "確認",
+    "shell.static.disable": "無効化する",
+    "shell.static.cancel": "キャンセル",
+    "shell.static.apply": "適用",
+    "shell.static.add": "追加",
+  },
+  "en-us": {
+    "shell.resend": "Resend",
+    "shell.resend_countdown": "Resend ({seconds}s)",
+    "shell.confirm.default": "Confirm",
+    "shell.value.unregistered": "Not set",
+    "shell.value.enabled": "Enabled",
+    "shell.value.disabled": "Disabled",
+    "shell.value.admin": "Admin",
+    "shell.value.none": "Not set",
+    "shell.value.linked": "Linked",
+    "shell.value.unlinked": "Not linked",
+    "shell.value.password_set": "Set",
+    "shell.value.password_unset": "Not set",
+    "shell.value.route_unknown": "Unknown",
+    "shell.value.route_discord_email": "Discord + Email",
+    "shell.value.route_discord": "Discord account",
+    "shell.value.route_email": "Email account",
+    "shell.email.change": "Change Email",
+    "shell.email.register": "Add Email",
+    "shell.email.send": "Send Verification Email",
+    "shell.email.verify": "Verify",
+    "shell.email.resend": "Resend",
+    "shell.email.resend_countdown": "Resend ({seconds}s)",
+    "shell.email.code_info": "A verification code was sent to {email}. Enter the code.",
+    "shell.toast.save_language": "Language saved.",
+    "shell.toast.save_language_error": "Failed to save language.",
+    "shell.toast.save_theme": "Theme saved.",
+    "shell.toast.save_open_behavior": "Image open behavior saved.",
+    "shell.toast.save_backdrop_close": "Backdrop close setting saved.",
+    "shell.toast.save_meta_pinned": "Meta bar setting saved.",
+    "shell.toast.url_required": "Enter a URL.",
+    "shell.toast.link_added": "Link added.",
+    "shell.toast.link_add_error": "Failed to add link.",
+    "shell.toast.link_removed": "Link removed.",
+    "shell.toast.link_remove_error": "Failed to remove link.",
+    "shell.toast.badge_limit": "You can select up to 3 badges.",
+    "shell.toast.badge_update_error": "Failed to update badges.",
+    "shell.toast.session_error": "Failed to load session.",
+    "shell.toast.logout": "Logged out.",
+    "shell.toast.logout_error": "Failed to log out.",
+    "shell.toast.logout_all": "Logged out from all sessions.",
+    "shell.toast.logout_all_error": "Failed to log out from all sessions.",
+    "shell.toast.password_changed": "Password changed. Please sign in again.",
+    "shell.toast.password_change_error": "Failed to change password.",
+    "shell.toast.password_required": "Enter a password.",
+    "shell.toast.password_set": "Password set. You can now sign in with email and password.",
+    "shell.toast.password_set_error": "Failed to set password.",
+    "shell.toast.discord_link_url_error": "Failed to get Discord link URL.",
+    "shell.toast.discord_link_start_error": "Failed to start Discord linking.",
+    "shell.toast.discord_unlinked": "Discord unlinked.",
+    "shell.toast.discord_unlink_error": "Failed to unlink Discord.",
+    "shell.toast.login_required": "Login required.",
+    "shell.toast.2fa_email_required": "Two-factor authentication requires a registered email address.",
+    "shell.toast.verify_sent": "Verification code sent.",
+    "shell.toast.verify_send_error": "Failed to send verification code.",
+    "shell.toast.invalid_token": "Missing verification token.",
+    "shell.toast.wait_resend": "Please wait before resending.",
+    "shell.toast.2fa_enabled": "Two-factor authentication enabled.",
+    "shell.toast.2fa_enable_error": "Failed to enable two-factor authentication.",
+    "shell.toast.code_resent": "Verification code resent.",
+    "shell.toast.code_resend_error": "Failed to resend verification code.",
+    "shell.toast.2fa_disabled": "Two-factor authentication disabled.",
+    "shell.toast.2fa_disable_error": "Failed to disable two-factor authentication.",
+    "shell.toast.display_name_required": "Enter a display name.",
+    "shell.toast.user_key_required": "Enter a user ID.",
+    "shell.toast.profile_updated": "Profile updated.",
+    "shell.toast.profile_update_error": "Failed to update profile.",
+    "shell.toast.avatar_updated": "Avatar updated.",
+    "shell.toast.avatar_update_error": "Failed to upload avatar.",
+    "shell.toast.avatar_deleted": "Avatar deleted.",
+    "shell.toast.avatar_delete_error": "Failed to delete avatar.",
+    "shell.toast.code_required": "Enter the verification code.",
+    "shell.toast.email_changed": "Email address updated.",
+    "shell.toast.invalid_code": "Invalid verification code.",
+    "shell.toast.email_required": "Enter an email address.",
+    "shell.toast.email_send_error": "Failed to send verification email.",
+    "shell.toast.resend_error": "Failed to resend.",
+    "shell.confirm.logout_all": "Log out from all devices?",
+    "shell.confirm.logout": "Log out",
+    "shell.confirm.discord_unlink": "Unlink Discord? Discord login will no longer be available.",
+    "shell.confirm.discord_unlink_approve": "Unlink",
+    "shell.confirm.2fa_enable_send": "Send a verification code to enable two-factor authentication?",
+    "shell.confirm.2fa_disable_send": "Send a verification code to disable two-factor authentication?",
+    "shell.confirm.send_verify_code": "Send Code",
+    "shell.confirm.2fa_abort_enable": "Cancel two-factor activation?",
+    "shell.confirm.2fa_abort_disable": "Cancel two-factor deactivation?",
+    "shell.confirm.abort": "Cancel",
+    "shell.confirm.avatar_delete": "Delete the avatar?",
+    "shell.toast.discord_linked": "Discord account linked.",
+    "shell.toast.discord_already": "This Discord account is already linked.",
+    "shell.toast.discord_conflict": "This Discord account is linked to another account.",
+    "shell.action.change": "Change",
+    "shell.action.register": "Register",
+    "shell.action.remove": "Remove",
+    "shell.action.add_link": "Add link",
+    "shell.static.settings": "Settings",
+    "shell.static.help": "Help",
+    "shell.static.credits": "Credits",
+    "shell.static.profile_edit": "Edit Profile",
+    "shell.static.account_settings": "Account Settings",
+    "shell.static.password_change": "Change Password",
+    "shell.static.password_set": "Set Password",
+    "shell.static.twofactor_setup": "Two-Factor Verification",
+    "shell.static.twofactor_disable": "Disable Two-Factor Authentication",
+    "shell.static.logout_all": "Log Out All Devices",
+    "shell.static.logout": "Log Out",
+    "shell.static.save": "Save",
+    "shell.static.change": "Change",
+    "shell.static.set": "Set",
+    "shell.static.verify": "Verify",
+    "shell.static.disable": "Disable",
+    "shell.static.cancel": "Cancel",
+    "shell.static.apply": "Apply",
+    "shell.static.add": "Add",
+  },
+};
+
 export function initUserShell(app) {
+  Object.entries(SHELL_MESSAGES).forEach(([locale, messages]) => {
+    app.i18n?.define?.(locale, messages);
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    app.i18n?.define?.(locale, SHELL_MESSAGES["en-us"]);
+  });
+
   const session = app.session;
   const toast = app.toast;
+
+  function t(key, fallback = "", vars = {}) {
+    return app.i18n?.t?.(key, fallback, vars) || fallback;
+  }
 
   const refs = {
     userTrigger: byId("shellUserTrigger"),
@@ -267,13 +511,17 @@ export function initUserShell(app) {
     const setupRemain = getCooldownRemainingSec("setup");
     if (refs.twoFactorSetupResendButton) {
       refs.twoFactorSetupResendButton.disabled = setupRemain > 0;
-      refs.twoFactorSetupResendButton.textContent = setupRemain > 0 ? `再送 (${setupRemain}秒)` : "再送";
+      refs.twoFactorSetupResendButton.textContent = setupRemain > 0
+        ? t("shell.resend_countdown", `Resend (${setupRemain}s)`, { seconds: setupRemain })
+        : t("shell.resend", "Resend");
     }
 
     const disableRemain = getCooldownRemainingSec("disable");
     if (refs.twoFactorDisableResendButton) {
       refs.twoFactorDisableResendButton.disabled = disableRemain > 0;
-      refs.twoFactorDisableResendButton.textContent = disableRemain > 0 ? `再送 (${disableRemain}秒)` : "再送";
+      refs.twoFactorDisableResendButton.textContent = disableRemain > 0
+        ? t("shell.resend_countdown", `Resend (${disableRemain}s)`, { seconds: disableRemain })
+        : t("shell.resend", "Resend");
     }
   }
 
@@ -286,7 +534,7 @@ export function initUserShell(app) {
     }, 1000);
   }
 
-  function openActionConfirm(message, approveText = "実行する", danger = false) {
+  function openActionConfirm(message, approveText = t("shell.confirm.default", "Confirm"), danger = false) {
     if (!refs.actionConfirmApproveButton || !refs.actionConfirmCancelButton || !refs.actionConfirmMessage) {
       return Promise.resolve(window.confirm(message));
     }
@@ -328,6 +576,37 @@ export function initUserShell(app) {
     refs.creditLicense.textContent = document.body.dataset.creditLicense || "-";
     refs.creditUpdatedAt.textContent = document.body.dataset.creditUpdatedAt || "-";
     refs.creditVersion.textContent = document.body.dataset.appVersion || "-";
+  }
+
+  function applyStaticTranslations() {
+    const mappings = [
+      ["[data-modal-id='settings'] .app-modal-title", 0, "shell.static.settings", "Settings"],
+      ["[data-modal-id='help'] .app-modal-title", 0, "shell.static.help", "Help"],
+      ["[data-modal-id='credits'] .app-modal-title", 0, "shell.static.credits", "Credits"],
+      ["[data-modal-id='account'] .app-modal-title", 0, "shell.static.profile_edit", "Edit Profile"],
+      ["[data-modal-id='account-security'] .app-modal-title", 0, "shell.static.account_settings", "Account Settings"],
+      ["[data-modal-id='password'] .app-modal-title", 0, "shell.static.password_change", "Change Password"],
+      ["[data-modal-id='password-set'] .app-modal-title", 0, "shell.static.password_set", "Set Password"],
+      ["[data-modal-id='twofactor-setup'] .app-modal-title", 0, "shell.static.twofactor_setup", "Two-Factor Verification"],
+      ["[data-modal-id='twofactor-disable'] .app-modal-title", 0, "shell.static.twofactor_disable", "Disable Two-Factor Authentication"],
+      ["#shellLogoutAllButton", 0, "shell.static.logout_all", "Log Out All Devices"],
+      ["#shellLogoutButton", 0, "shell.static.logout", "Log Out"],
+      ["#shellProfileSaveButton", 0, "shell.static.save", "Save"],
+      ["#shellPasswordSaveButton", 0, "shell.static.change", "Change"],
+      ["#shellSetPasswordSaveButton", 0, "shell.static.set", "Set"],
+      ["#shellTwoFactorSetupConfirmButton", 0, "shell.static.verify", "Verify"],
+      ["#shellTwoFactorDisableConfirmButton", 0, "shell.static.disable", "Disable"],
+      ["#shellTwoFactorSetupCancelButton", 0, "shell.static.cancel", "Cancel"],
+      ["#shellTwoFactorDisableCancelButton", 0, "shell.static.cancel", "Cancel"],
+      ["#shellTwoFactorActionConfirmCancelButton", 0, "shell.static.cancel", "Cancel"],
+      ["#shellAvatarCropCancelButton", 0, "shell.static.cancel", "Cancel"],
+      ["#shellAvatarCropConfirmButton", 0, "shell.static.apply", "Apply"],
+      ["#shellAddLinkSubmitButton", 0, "shell.static.add", "Add"],
+    ];
+    for (const [selector, index, key, fallback] of mappings) {
+      const node = Array.from(document.querySelectorAll(selector))[index];
+      if (node) node.textContent = t(key, fallback);
+    }
   }
 
   function renderSettings() {
@@ -376,13 +655,13 @@ export function initUserShell(app) {
     refs.displayName.textContent = user.display_name || "-";
     refs.accountEditButton.hidden = false;
     refs.userKey.textContent = user.user_key || "-";
-    refs.email.textContent = user.primary_email || "未登録";
+    refs.email.textContent = user.primary_email || t("shell.value.unregistered", "Not set");
     refs.createdAt.textContent = formatDate(user.created_at);
-    refs.twoFactor.textContent = twoFactor.is_enabled ? "有効" : "無効";
+    refs.twoFactor.textContent = twoFactor.is_enabled ? t("shell.value.enabled", "Enabled") : t("shell.value.disabled", "Disabled");
 
     if (user.role === "admin") {
       refs.roleRow.hidden = false;
-      refs.role.textContent = "管理者";
+      refs.role.textContent = t("shell.value.admin", "Admin");
     } else {
       refs.roleRow.hidden = true;
       refs.role.textContent = "-";
@@ -461,7 +740,7 @@ export function initUserShell(app) {
     const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
     if (section) section.hidden = pool.length === 0;
     if (pool.length === 0) {
-      list.innerHTML = `<span class="shell-badge-pool__empty">バッジはまだありません</span>`;
+      list.innerHTML = `<span class="shell-badge-pool__empty">${t("shell.value.none", "Not set")}</span>`;
       return;
     }
 
@@ -488,7 +767,7 @@ export function initUserShell(app) {
       newDisplay = currentDisplay.filter((k) => k !== badgeKey);
     } else {
       if (currentDisplay.length >= 3) {
-        app.toast?.info?.("バッジは最大3つまで選択できます。");
+        app.toast?.info?.(t("shell.toast.badge_limit", "You can select up to 3 badges."));
         return;
       }
       newDisplay = [...currentDisplay, badgeKey];
@@ -499,7 +778,7 @@ export function initUserShell(app) {
       renderProfileBadgePool(user);
       renderDisplayBadges(user);
     } catch (err) {
-      app.toast?.error?.(err?.message || "バッジの更新に失敗しました。");
+      app.toast?.error?.(err?.message || t("shell.toast.badge_update_error", "Failed to update badges."));
     }
   }
 
@@ -519,7 +798,7 @@ export function initUserShell(app) {
         <a class="shell-link-box__link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}">
           <span class="shell-link-box__icon" style="--link-icon: url('${iconUrl}')"></span>
         </a>
-        <button class="shell-link-box__remove" type="button" aria-label="削除" data-link-id="${link.id}">×</button>
+        <button class="shell-link-box__remove" type="button" aria-label="${escapeHtml(t("shell.action.remove", "Remove"))}" data-link-id="${link.id}">×</button>
       `;
       grid.appendChild(box);
     }
@@ -527,7 +806,7 @@ export function initUserShell(app) {
     if (links.length < MAX_LINKS) {
       const addBox = document.createElement("div");
       addBox.className = "shell-link-box shell-link-box--add";
-      addBox.innerHTML = `<button class="shell-link-box__add" type="button" aria-label="リンクを追加">+</button>`;
+      addBox.innerHTML = `<button class="shell-link-box__add" type="button" aria-label="${escapeHtml(t("shell.action.add_link", "Add link"))}">+</button>`;
       addBox.querySelector(".shell-link-box__add").addEventListener("click", () => {
         refs.addLinkInput.value = "";
         app.modal.open("add-link");
@@ -543,7 +822,7 @@ export function initUserShell(app) {
   async function handleLinkAdd() {
     const url = refs.addLinkInput.value.trim();
     if (!url) {
-      toast.error("URLを入力してください。");
+      toast.error(t("shell.toast.url_required", "Enter a URL."));
       refs.addLinkInput.focus();
       return;
     }
@@ -555,10 +834,10 @@ export function initUserShell(app) {
       if (user) user.links = links;
       renderLinksGrid();
       app.modal.close("add-link");
-      toast.success(result?.message || "リンクを追加しました。");
+      toast.success(result?.message || t("shell.toast.link_added", "Link added."));
     } catch (error) {
       const fieldErrors = error?.payload?.error?.field_errors || [];
-      toast.error(fieldErrors[0]?.message || error.message || "リンクの追加に失敗しました。");
+      toast.error(fieldErrors[0]?.message || error.message || t("shell.toast.link_add_error", "Failed to add link."));
     } finally {
       refs.addLinkSubmitButton.disabled = false;
     }
@@ -571,9 +850,9 @@ export function initUserShell(app) {
       const user = getUser();
       if (user) user.links = links;
       renderLinksGrid();
-      toast.success("リンクを削除しました。");
+      toast.success(t("shell.toast.link_removed", "Link removed."));
     } catch (error) {
-      toast.error(error.message || "リンクの削除に失敗しました。");
+      toast.error(error.message || t("shell.toast.link_remove_error", "Failed to remove link."));
     }
   }
 
@@ -628,30 +907,30 @@ export function initUserShell(app) {
     const authProviders = Array.isArray(security.auth_providers) ? security.auth_providers : [];
     const registrationRoute = String(security.registration_route || "");
 
-    refs.accountEmail.textContent = email || "未登録";
-    refs.accountTwoFactor.textContent = twoFactor.is_enabled ? "有効" : "無効";
-    refs.emailActionButton.textContent = email ? "変更" : "登録";
+    refs.accountEmail.textContent = email || t("shell.value.unregistered", "Not set");
+    refs.accountTwoFactor.textContent = twoFactor.is_enabled ? t("shell.value.enabled", "Enabled") : t("shell.value.disabled", "Disabled");
+    refs.emailActionButton.textContent = email ? t("shell.action.change", "Change") : t("shell.action.register", "Register");
     refs.twoFactorEnableButton.hidden = twoFactor.is_enabled;
     refs.twoFactorDisableOpenButton.hidden = !twoFactor.is_enabled;
 
     if (refs.accountPasswordStatus) {
-      refs.accountPasswordStatus.textContent = hasPassword ? "設定済み" : "未設定";
+      refs.accountPasswordStatus.textContent = hasPassword ? t("shell.value.password_set", "Set") : t("shell.value.password_unset", "Not set");
     }
     if (refs.passwordChangeButton) refs.passwordChangeButton.hidden = !hasPassword;
     if (refs.passwordSetButton) refs.passwordSetButton.hidden = hasPassword;
 
     if (refs.accountDiscordStatus) {
-      refs.accountDiscordStatus.textContent = hasDiscord ? "連携済み" : "未連携";
+      refs.accountDiscordStatus.textContent = hasDiscord ? t("shell.value.linked", "Linked") : t("shell.value.unlinked", "Not linked");
     }
     if (refs.accountRegistrationRoute) {
       const providerSet = new Set(authProviders);
-      let routeText = "未判定";
+      let routeText = t("shell.value.route_unknown", "Unknown");
       if (registrationRoute === "discord_and_email" || (providerSet.has("discord") && providerSet.has("email_password"))) {
-        routeText = "Discord連携 + メール登録";
+        routeText = t("shell.value.route_discord_email", "Discord + Email");
       } else if (registrationRoute === "discord" || providerSet.has("discord")) {
-        routeText = "Discord連携アカウント";
+        routeText = t("shell.value.route_discord", "Discord account");
       } else if (registrationRoute === "email" || hasPassword || providerSet.has("email_password")) {
-        routeText = "メール登録アカウント";
+        routeText = t("shell.value.route_email", "Email account");
       }
       refs.accountRegistrationRoute.textContent = routeText;
     }
@@ -666,7 +945,7 @@ export function initUserShell(app) {
   function renderEmailModal() {
     if (!isAuthenticated()) return;
     const email = currentEmail();
-    const title = email ? "メールアドレス変更" : "メールアドレス登録";
+    const title = email ? t("shell.email.change", "Change Email") : t("shell.email.register", "Add Email");
     refs.emailTitle.textContent = title;
     refs.emailActionButton.textContent = title;
     _showEmailStep1();
@@ -679,16 +958,16 @@ export function initUserShell(app) {
     if (refs.emailStep2) refs.emailStep2.hidden = true;
     if (refs.emailResendButton) refs.emailResendButton.hidden = true;
     refs.emailInput.value = currentEmail();
-    refs.emailSaveButton.textContent = "確認メールを送信";
+    refs.emailSaveButton.textContent = t("shell.email.send", "Send Verification Email");
     refs.emailSaveButton.disabled = false;
   }
 
   function _showEmailStep2(maskedEmail, expiresInSec, resendCooldownSec) {
     if (refs.emailStep1) refs.emailStep1.hidden = true;
     if (refs.emailStep2) refs.emailStep2.hidden = false;
-    if (refs.emailCodeInfo) refs.emailCodeInfo.textContent = `確認コードを ${maskedEmail} に送信しました。コードを入力してください。`;
+    if (refs.emailCodeInfo) refs.emailCodeInfo.textContent = t("shell.email.code_info", `A verification code was sent to ${maskedEmail}. Enter the code.`, { email: maskedEmail });
     if (refs.emailCodeInput) refs.emailCodeInput.value = "";
-    refs.emailSaveButton.textContent = "確認する";
+    refs.emailSaveButton.textContent = t("shell.email.verify", "Verify");
     refs.emailSaveButton.disabled = false;
     _startEmailResendCooldown(resendCooldownSec);
   }
@@ -702,11 +981,11 @@ export function initUserShell(app) {
         clearInterval(emailResendCooldownTimer);
         emailResendCooldownTimer = null;
         refs.emailResendButton.disabled = false;
-        refs.emailResendButton.textContent = "再送する";
+        refs.emailResendButton.textContent = t("shell.email.resend", "Resend");
         refs.emailResendButton.hidden = false;
       } else {
         refs.emailResendButton.disabled = true;
-        refs.emailResendButton.textContent = `再送する（${remaining}秒後）`;
+        refs.emailResendButton.textContent = t("shell.email.resend_countdown", `Resend (${remaining}s)`, { seconds: remaining });
         refs.emailResendButton.hidden = false;
         remaining--;
       }
@@ -719,7 +998,7 @@ export function initUserShell(app) {
     try {
       await session.load();
     } catch (error) {
-      toast.error(error.message || "セッション情報の取得に失敗しました。");
+      toast.error(error.message || t("shell.toast.session_error", "Failed to load session."));
     }
   }
 
@@ -728,17 +1007,17 @@ export function initUserShell(app) {
       await app.api.post("/api/auth/logout");
       session.clear();
       renderUserCard();
-      toast.success("ログアウトしました。");
+      toast.success(t("shell.toast.logout", "Logged out."));
       window.setTimeout(() => {
         window.location.href = "/gallery/auth";
       }, 250);
     } catch (error) {
-      toast.error(error.message || "ログアウトに失敗しました。");
+      toast.error(error.message || t("shell.toast.logout_error", "Failed to log out."));
     }
   }
 
   async function handleLogoutAll() {
-    if (!await openActionConfirm("全端末からログアウトします。よろしいですか。", "ログアウト", true)) {
+    if (!await openActionConfirm(t("shell.confirm.logout_all", "Log out from all devices?"), t("shell.confirm.logout", "Log out"), true)) {
       return;
     }
 
@@ -746,12 +1025,12 @@ export function initUserShell(app) {
       await app.api.post("/api/auth/logout-all");
       session.clear();
       renderUserCard();
-      toast.success("全端末からログアウトしました。");
+      toast.success(t("shell.toast.logout_all", "Logged out from all sessions."));
       window.setTimeout(() => {
         window.location.href = "/gallery/auth";
       }, 250);
     } catch (error) {
-      toast.error(error.message || "全端末ログアウトに失敗しました。");
+      toast.error(error.message || t("shell.toast.logout_all_error", "Failed to log out from all sessions."));
     }
   }
 
@@ -761,19 +1040,19 @@ export function initUserShell(app) {
         current_password: refs.currentPasswordInput.value,
         new_password: refs.newPasswordInput.value
       });
-      toast.success("パスワードを変更しました。再ログインしてください。");
+      toast.success(t("shell.toast.password_changed", "Password changed. Please sign in again."));
       window.setTimeout(() => {
         window.location.href = "/gallery/auth";
       }, 300);
     } catch (error) {
-      toast.error(error.message || "パスワード変更に失敗しました。");
+      toast.error(error.message || t("shell.toast.password_change_error", "Failed to change password."));
     }
   }
 
   async function handleSetPasswordSave() {
     const password = refs.setPasswordInput?.value || "";
     if (!password) {
-      toast.error("パスワードを入力してください。");
+      toast.error(t("shell.toast.password_required", "Enter a password."));
       return;
     }
     try {
@@ -781,9 +1060,9 @@ export function initUserShell(app) {
       app.modal.close("password-set");
       await refreshSession();
       renderAccountSecurityModal();
-      toast.success("パスワードを設定しました。メールアドレスとパスワードでもログインできます。");
+      toast.success(t("shell.toast.password_set", "Password set. You can now sign in with email and password."));
     } catch (error) {
-      toast.error(error.message || "パスワードの設定に失敗しました。");
+      toast.error(error.message || t("shell.toast.password_set_error", "Failed to set password."));
     }
   }
 
@@ -794,33 +1073,33 @@ export function initUserShell(app) {
       if (redirectTo) {
         window.location.replace(redirectTo);
       } else {
-        toast.error("Discord連携URLの取得に失敗しました。");
+        toast.error(t("shell.toast.discord_link_url_error", "Failed to get Discord link URL."));
       }
     } catch (error) {
-      toast.error(error.message || "Discord連携の開始に失敗しました。");
+      toast.error(error.message || t("shell.toast.discord_link_start_error", "Failed to start Discord linking."));
     }
   }
 
   async function handleDiscordUnlink() {
-    const confirmed = await openActionConfirm("Discord連携を解除しますか？解除後はDiscordでのログインができなくなります。", "解除する", true);
+    const confirmed = await openActionConfirm(t("shell.confirm.discord_unlink", "Unlink Discord? Discord login will no longer be available."), t("shell.confirm.discord_unlink_approve", "Unlink"), true);
     if (!confirmed) return;
     try {
       await app.api.post("/api/auth/discord/unlink");
-      toast.success("Discord連携を解除しました。");
+      toast.success(t("shell.toast.discord_unlinked", "Discord unlinked."));
       await refreshSession();
     } catch (error) {
-      toast.error(error.message || "Discord連携の解除に失敗しました。");
+      toast.error(error.message || t("shell.toast.discord_unlink_error", "Failed to unlink Discord."));
     }
   }
 
   async function beginTwoFactorFlow(kind) {
     if (!isAuthenticated()) {
-      toast.error("ログインが必要です。");
+      toast.error(t("shell.toast.login_required", "Login required."));
       return;
     }
 
     if (!currentEmail()) {
-      toast.error("2段階認証にはメールアドレスの登録が必要です。設定からメールアドレスを登録してください。", 6000);
+      toast.error(t("shell.toast.2fa_email_required", "Two-factor authentication requires a registered email address."), 6000);
       if (refs.twoFactor) {
         app.modal.open("account");
         setTimeout(() => {
@@ -832,9 +1111,9 @@ export function initUserShell(app) {
     }
 
     const sendingMessage = kind === "setup"
-      ? "2段階認証の有効化確認コードを送信します。よろしいですか。"
-      : "2段階認証の無効化確認コードを送信します。よろしいですか。";
-    const approved = await openActionConfirm(sendingMessage, "確認コードを送信");
+      ? t("shell.confirm.2fa_enable_send", "Send a verification code to enable two-factor authentication?")
+      : t("shell.confirm.2fa_disable_send", "Send a verification code to disable two-factor authentication?");
+    const approved = await openActionConfirm(sendingMessage, t("shell.confirm.send_verify_code", "Send Code"));
     if (!approved) {
       return;
     }
@@ -847,21 +1126,21 @@ export function initUserShell(app) {
 
       if (kind === "setup") {
         shellState.twoFactorSetupTicket = verifyTicket;
-        refs.twoFactorSetupMessage.textContent = maskedEmail ? `${maskedEmail} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+        refs.twoFactorSetupMessage.textContent = maskedEmail ? t("shell.email.code_info", `A verification code was sent to ${maskedEmail}. Enter the code.`, { email: maskedEmail }) : t("shell.toast.code_required", "Enter the verification code.");
         refs.twoFactorCodeInput.value = "";
         setCooldownFromSeconds("setup", payload?.data?.resend_cooldown_sec);
         app.modal.open("twofactor-setup");
       } else {
         shellState.twoFactorDisableTicket = verifyTicket;
-        refs.twoFactorDisableMessage.textContent = maskedEmail ? `${maskedEmail} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+        refs.twoFactorDisableMessage.textContent = maskedEmail ? t("shell.email.code_info", `A verification code was sent to ${maskedEmail}. Enter the code.`, { email: maskedEmail }) : t("shell.toast.code_required", "Enter the verification code.");
         refs.twoFactorDisableCodeInput.value = "";
         setCooldownFromSeconds("disable", payload?.data?.resend_cooldown_sec);
         app.modal.open("twofactor-disable");
       }
 
-      toast.success(payload?.message || "確認コードを送信しました。");
+      toast.success(payload?.message || t("shell.toast.verify_sent", "Verification code sent."));
     } catch (error) {
-      toast.error(error.message || "確認コードの送信に失敗しました。");
+      toast.error(error.message || t("shell.toast.verify_send_error", "Failed to send verification code."));
     }
   }
 
@@ -871,7 +1150,7 @@ export function initUserShell(app) {
 
   async function handleTwoFactorSetupConfirm() {
     if (!shellState.twoFactorSetupTicket) {
-      toast.error("確認トークンがありません。");
+      toast.error(t("shell.toast.invalid_token", "Missing verification token."));
       return;
     }
 
@@ -889,19 +1168,19 @@ export function initUserShell(app) {
       await refreshSession();
       renderAccountModal();
       renderUserCard();
-      toast.success("2段階認証を有効化しました。");
+      toast.success(t("shell.toast.2fa_enabled", "Two-factor authentication enabled."));
     } catch (error) {
-      toast.error(error.message || "2段階認証の有効化に失敗しました。");
+      toast.error(error.message || t("shell.toast.2fa_enable_error", "Failed to enable two-factor authentication."));
     }
   }
 
   async function handleTwoFactorSetupResend() {
     if (!shellState.twoFactorSetupTicket) {
-      toast.error("確認トークンがありません。");
+      toast.error(t("shell.toast.invalid_token", "Missing verification token."));
       return;
     }
     if (getCooldownRemainingSec("setup") > 0) {
-      toast.error("しばらく待ってから再送してください。");
+      toast.error(t("shell.toast.wait_resend", "Please wait before resending."));
       return;
     }
 
@@ -910,16 +1189,18 @@ export function initUserShell(app) {
         verify_ticket: shellState.twoFactorSetupTicket
       });
       shellState.twoFactorSetupTicket = payload.data.verify_ticket;
-      refs.twoFactorSetupMessage.textContent = payload.data.masked_email ? `${payload.data.masked_email} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+      refs.twoFactorSetupMessage.textContent = payload.data.masked_email
+        ? t("shell.email.code_info", `A verification code was sent to ${payload.data.masked_email}. Enter the code.`, { email: payload.data.masked_email })
+        : t("shell.toast.code_required", "Enter the verification code.");
       refs.twoFactorCodeInput.value = "";
       setCooldownFromSeconds("setup", payload?.data?.resend_cooldown_sec);
-      toast.success(payload.message || "確認コードを再送しました。");
+      toast.success(payload.message || t("shell.toast.code_resent", "Verification code resent."));
     } catch (error) {
       const retryAfterSec = Number(error?.payload?.error?.retry_after_sec);
       if (Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
         setCooldownFromSeconds("setup", retryAfterSec);
       }
-      toast.error(error.message || "確認コードの再送に失敗しました。");
+      toast.error(error.message || t("shell.toast.code_resend_error", "Failed to resend verification code."));
     }
   }
 
@@ -929,7 +1210,7 @@ export function initUserShell(app) {
 
   async function handleTwoFactorDisableConfirm() {
     if (!shellState.twoFactorDisableTicket) {
-      toast.error("確認トークンがありません。");
+      toast.error(t("shell.toast.invalid_token", "Missing verification token."));
       return;
     }
 
@@ -947,19 +1228,19 @@ export function initUserShell(app) {
       await refreshSession();
       renderAccountModal();
       renderUserCard();
-      toast.success("2段階認証を無効化しました。");
+      toast.success(t("shell.toast.2fa_disabled", "Two-factor authentication disabled."));
     } catch (error) {
-      toast.error(error.message || "2段階認証の無効化に失敗しました。");
+      toast.error(error.message || t("shell.toast.2fa_disable_error", "Failed to disable two-factor authentication."));
     }
   }
 
   async function handleTwoFactorDisableResend() {
     if (!shellState.twoFactorDisableTicket) {
-      toast.error("確認トークンがありません。");
+      toast.error(t("shell.toast.invalid_token", "Missing verification token."));
       return;
     }
     if (getCooldownRemainingSec("disable") > 0) {
-      toast.error("しばらく待ってから再送してください。");
+      toast.error(t("shell.toast.wait_resend", "Please wait before resending."));
       return;
     }
 
@@ -968,24 +1249,26 @@ export function initUserShell(app) {
         verify_ticket: shellState.twoFactorDisableTicket
       });
       shellState.twoFactorDisableTicket = payload.data.verify_ticket;
-      refs.twoFactorDisableMessage.textContent = payload.data.masked_email ? `${payload.data.masked_email} に届いた確認コードを入力してください。` : "確認コードを入力してください。";
+      refs.twoFactorDisableMessage.textContent = payload.data.masked_email
+        ? t("shell.email.code_info", `A verification code was sent to ${payload.data.masked_email}. Enter the code.`, { email: payload.data.masked_email })
+        : t("shell.toast.code_required", "Enter the verification code.");
       refs.twoFactorDisableCodeInput.value = "";
       setCooldownFromSeconds("disable", payload?.data?.resend_cooldown_sec);
-      toast.success(payload.message || "確認コードを再送しました。");
+      toast.success(payload.message || t("shell.toast.code_resent", "Verification code resent."));
     } catch (error) {
       const retryAfterSec = Number(error?.payload?.error?.retry_after_sec);
       if (Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
         setCooldownFromSeconds("disable", retryAfterSec);
       }
-      toast.error(error.message || "確認コードの再送に失敗しました。");
+      toast.error(error.message || t("shell.toast.code_resend_error", "Failed to resend verification code."));
     }
   }
 
   async function requestDiscardVerificationFlow(kind) {
     const message = kind === "setup"
-      ? "2段階認証の有効化確認を中断しますか？"
-      : "2段階認証の無効化確認を中断しますか？";
-    const approved = await openActionConfirm(message, "中断する", true);
+      ? t("shell.confirm.2fa_abort_enable", "Cancel two-factor activation?")
+      : t("shell.confirm.2fa_abort_disable", "Cancel two-factor deactivation?");
+    const approved = await openActionConfirm(message, t("shell.confirm.abort", "Cancel"), true);
     if (!approved) {
       return;
     }
@@ -1015,12 +1298,12 @@ export function initUserShell(app) {
     const bio = refs.profileBioInput.value;
 
     if (!displayName) {
-      toast.error("表示名を入力してください。");
+      toast.error(t("shell.toast.display_name_required", "Enter a display name."));
       refs.profileDisplayNameInput.focus();
       return;
     }
     if (!userKey) {
-      toast.error("ユーザーIDを入力してください。");
+      toast.error(t("shell.toast.user_key_required", "Enter a user ID."));
       refs.profileUserKeyInput.focus();
       return;
     }
@@ -1035,14 +1318,14 @@ export function initUserShell(app) {
       await refreshSession();
       renderAccountModal();
       renderUserCard();
-      toast.success("プロフィールを更新しました。");
+      toast.success(t("shell.toast.profile_updated", "Profile updated."));
       app.modal.close("account");
     } catch (error) {
       const fieldErrors = error?.payload?.error?.field_errors || [];
       if (fieldErrors.length > 0) {
         toast.error(fieldErrors[0].message || error.message || "入力内容を確認してください。");
       } else {
-        toast.error(error.message || "プロフィールの更新に失敗しました。");
+        toast.error(error.message || t("shell.toast.profile_update_error", "Failed to update profile."));
       }
     } finally {
       refs.profileSaveButton.disabled = false;
@@ -1144,9 +1427,9 @@ export function initUserShell(app) {
       await refreshSession();
       renderAccountModal();
       renderUserCard();
-      toast.success("アイコンを更新しました。");
+      toast.success(t("shell.toast.avatar_updated", "Avatar updated."));
     } catch (error) {
-      toast.error(error.message || "アイコンのアップロードに失敗しました。");
+      toast.error(error.message || t("shell.toast.avatar_update_error", "Failed to upload avatar."));
     }
   }
 
@@ -1196,15 +1479,15 @@ export function initUserShell(app) {
   }
 
   async function handleAvatarDelete() {
-    if (!window.confirm("アイコンを削除しますか？")) return;
+    if (!window.confirm(t("shell.confirm.avatar_delete", "Delete the avatar?"))) return;
     try {
       await app.api.delete("/api/auth/avatar");
       await refreshSession();
       renderAccountModal();
       renderUserCard();
-      toast.success("アイコンを削除しました。");
+      toast.success(t("shell.toast.avatar_deleted", "Avatar deleted."));
     } catch (error) {
-      toast.error(error.message || "アイコンの削除に失敗しました。");
+      toast.error(error.message || t("shell.toast.avatar_delete_error", "Failed to delete avatar."));
     }
   }
 
@@ -1215,7 +1498,7 @@ export function initUserShell(app) {
     if (emailVerifyTicket) {
       const code = (refs.emailCodeInput?.value || "").trim();
       if (!code) {
-        toast.error("確認コードを入力してください。");
+        toast.error(t("shell.toast.code_required", "Enter the verification code."));
         refs.emailSaveButton.disabled = false;
         return;
       }
@@ -1225,9 +1508,9 @@ export function initUserShell(app) {
         await refreshSession();
         renderAccountSecurityModal();
         renderUserCard();
-        toast.success("メールアドレスを変更しました。");
+        toast.success(t("shell.toast.email_changed", "Email address updated."));
       } catch (error) {
-        toast.error(error.message || "確認コードが正しくありません。");
+        toast.error(error.message || t("shell.toast.invalid_code", "Invalid verification code."));
         refs.emailSaveButton.disabled = false;
       }
       return;
@@ -1236,7 +1519,7 @@ export function initUserShell(app) {
     // Step 1: 確認メール送信
     const newEmail = refs.emailInput.value.trim();
     if (!newEmail) {
-      toast.error("メールアドレスを入力してください。");
+      toast.error(t("shell.toast.email_required", "Enter an email address."));
       refs.emailSaveButton.disabled = false;
       return;
     }
@@ -1249,7 +1532,7 @@ export function initUserShell(app) {
         result.data?.resend_cooldown_sec || 60,
       );
     } catch (error) {
-      toast.error(error.message || "確認メールの送信に失敗しました。");
+      toast.error(error.message || t("shell.toast.email_send_error", "Failed to send verification email."));
       refs.emailSaveButton.disabled = false;
     }
   }
@@ -1261,9 +1544,9 @@ export function initUserShell(app) {
       const result = await app.api.post("/api/auth/verify/email/send", { verify_ticket: emailVerifyTicket });
       emailVerifyTicket = result.data?.verify_ticket || emailVerifyTicket;
       _startEmailResendCooldown(result.data?.resend_cooldown_sec || 60);
-      toast.success("確認コードを再送しました。");
+      toast.success(t("shell.toast.code_resent", "Verification code resent."));
     } catch (error) {
-      toast.error(error.message || "再送に失敗しました。");
+      toast.error(error.message || t("shell.toast.resend_error", "Failed to resend."));
       refs.emailResendButton.disabled = false;
     }
   }
@@ -1363,7 +1646,7 @@ export function initUserShell(app) {
       dispatchLanguageChange(nextLanguage);
 
       if (!isAuthenticated()) {
-        toast.success("言語設定を保存しました。");
+        toast.success(t("shell.toast.save_language", "Language saved."));
         return;
       }
 
@@ -1375,41 +1658,41 @@ export function initUserShell(app) {
         if (sessionState?.authenticated && sessionState.data?.user) {
           sessionState.data.user.preferred_language = nextLanguage;
         }
-        toast.success("言語設定を保存しました。");
+        toast.success(t("shell.toast.save_language", "Language saved."));
       } catch (error) {
         const restoredLanguage = app.settings.setLanguage(previousLanguage);
         refs.settingLanguage.value = restoredLanguage;
         document.documentElement.lang = restoredLanguage;
         app.i18n?.setLanguage?.(restoredLanguage);
         dispatchLanguageChange(restoredLanguage);
-        toast.error(error?.message || "言語設定の保存に失敗しました。");
+        toast.error(error?.message || t("shell.toast.save_language_error", "Failed to save language."));
       }
     });
 
     refs.settingTheme.addEventListener("change", () => {
       app.settings.setTheme(refs.settingTheme.value);
       app.theme.apply(refs.settingTheme.value);
-      toast.success("テーマ設定を保存しました。");
+      toast.success(t("shell.toast.save_theme", "Theme saved."));
     });
 
     if (refs.settingImageOpenBehavior) {
       refs.settingImageOpenBehavior.addEventListener("change", () => {
         app.settings.setImageOpenBehavior(refs.settingImageOpenBehavior.value);
-        toast.success("画像の開き方を保存しました。");
+        toast.success(t("shell.toast.save_open_behavior", "Image open behavior saved."));
       });
     }
 
     if (refs.settingImageBackdropClose) {
       refs.settingImageBackdropClose.addEventListener("change", () => {
         app.settings.setImageBackdropClose(refs.settingImageBackdropClose.checked);
-        toast.success("画像モーダルの背景クリック設定を保存しました。");
+        toast.success(t("shell.toast.save_backdrop_close", "Backdrop close setting saved."));
       });
     }
 
     if (refs.settingImageMetaPinned) {
       refs.settingImageMetaPinned.addEventListener("change", () => {
         app.settings.setImageMetaPinned(refs.settingImageMetaPinned.checked);
-        toast.success("画像モーダルのメタ情報バー設定を保存しました。");
+        toast.success(t("shell.toast.save_meta_pinned", "Meta bar setting saved."));
       });
     }
 
@@ -1462,9 +1745,16 @@ export function initUserShell(app) {
   renderCredits();
   renderSettings();
   renderUserCard();
+  applyStaticTranslations();
   refreshResendButtons();
   startCountdownTimer();
   bindEvents();
+  window.addEventListener("gallery:language-changed", () => {
+    applyStaticTranslations();
+    refreshResendButtons();
+    renderUserCard();
+    renderAccountSecurityModal();
+  });
 
   // Discord連携コールバック結果をトースト通知
   const _discordLinkParam = new URLSearchParams(location.search).get("discord_link");
@@ -1473,9 +1763,9 @@ export function initUserShell(app) {
     _url.searchParams.delete("discord_link");
     history.replaceState(null, "", _url.toString());
     setTimeout(() => {
-      if (_discordLinkParam === "ok") toast.success("Discordアカウントを連携しました。");
-      else if (_discordLinkParam === "already") toast.success("このDiscordアカウントはすでに連携済みです。");
-      else if (_discordLinkParam === "conflict") toast.error("このDiscordアカウントは別のアカウントに紐付いています。");
+      if (_discordLinkParam === "ok") toast.success(t("shell.toast.discord_linked", "Discord account linked."));
+      else if (_discordLinkParam === "already") toast.success(t("shell.toast.discord_already", "This Discord account is already linked."));
+      else if (_discordLinkParam === "conflict") toast.error(t("shell.toast.discord_conflict", "This Discord account is linked to another account."));
     }, 500);
   }
 }

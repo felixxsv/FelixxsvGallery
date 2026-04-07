@@ -17,6 +17,46 @@ const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
 const SIDEBAR_EDGE_PEEK_PX = 44;
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "gallery.admin.sidebar.collapsed";
 const ADMIN_SIDEBAR_INIT_KEY = "gallery.admin.sidebar.init.v2";
+const ADMIN_LAYOUT_MESSAGES = {
+  ja: {
+    page_title: "管理画面",
+    sidebar_expand: "サイドバーを展開する",
+    sidebar_close: "サイドバーを閉じる",
+    init_error: "管理画面の初期化に失敗しました。",
+    discard_move: "未保存の変更があります。破棄して移動しますか？",
+    user_info: "ユーザー情報",
+    nav_label: "管理画面ナビゲーション",
+    not_found_title: "404",
+    not_found_desc: "お探しのページは見つかりませんでした。",
+    home_back: "ホームへ戻る",
+    error_title: "初期化に失敗しました",
+    error_desc: "管理画面の初期化中にエラーが発生しました。",
+    reload: "再読み込み",
+    sidebar_footer: "管理画面は権限確認後にのみ表示します。",
+    discard_title: "確認",
+    discard_cancel: "キャンセル",
+    discard_approve: "破棄して移動",
+  },
+  "en-us": {
+    page_title: "Admin",
+    sidebar_expand: "Expand sidebar",
+    sidebar_close: "Close sidebar",
+    init_error: "Failed to initialize the admin console.",
+    discard_move: "You have unsaved changes. Discard them and continue?",
+    user_info: "User menu",
+    nav_label: "Admin navigation",
+    not_found_title: "404",
+    not_found_desc: "The page you requested was not found.",
+    home_back: "Back to Home",
+    error_title: "Initialization Failed",
+    error_desc: "An error occurred while initializing the admin console.",
+    reload: "Reload",
+    sidebar_footer: "The admin console is shown only after permission checks complete.",
+    discard_title: "Confirm",
+    discard_cancel: "Cancel",
+    discard_approve: "Discard and Continue",
+  },
+};
 
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
@@ -47,6 +87,15 @@ function createAdminContext() {
     bootstrapData: null,
     presence: null
   };
+}
+
+function defineAdminLayoutMessages(i18n) {
+  Object.entries(ADMIN_LAYOUT_MESSAGES).forEach(([locale, messages]) => {
+    i18n.define(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_layout.${key}`, value])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    i18n.define(locale, Object.fromEntries(Object.entries(ADMIN_LAYOUT_MESSAGES["en-us"]).map(([key, value]) => [`admin_layout.${key}`, value])));
+  });
 }
 
 function applyDocumentLanguage(language) {
@@ -229,6 +278,7 @@ function createPresenceController(app) {
 export async function initAdminLayout() {
   const app = createAdminContext();
   window.AdminApp = app;
+  defineAdminLayoutMessages(app.i18n);
   syncLanguagePreference(app, null);
 
   const refs = {
@@ -255,15 +305,40 @@ export async function initAdminLayout() {
 
   const shellState = {
     confirmResolver: null,
-    currentSidebarTitle: (refs.pageTitle?.textContent || "").trim() || "管理画面"
+    currentSidebarTitle: (refs.pageTitle?.textContent || "").trim() || app.i18n.t("admin_layout.page_title", "Admin")
   };
+
+  const t = (key, fallback, vars = {}) => app.i18n.t(`admin_layout.${key}`, fallback, vars);
+
+  function applyStaticTranslations() {
+    refs.headerUserName?.parentElement?.querySelector("#shellUserTrigger")?.setAttribute("aria-label", t("user_info", "User menu"));
+    refs.navList?.setAttribute("aria-label", t("nav_label", "Admin navigation"));
+    const notFoundTitle = refs.notFound?.querySelector(".admin-state-card__title");
+    const notFoundDesc = refs.notFound?.querySelector(".admin-state-card__description");
+    const notFoundButton = refs.notFound?.querySelector(".admin-state-card__actions .app-button");
+    const errorTitle = refs.error?.querySelector(".admin-state-card__title");
+    const errorDesc = refs.error?.querySelector(".admin-state-card__description");
+    if (notFoundTitle) notFoundTitle.textContent = t("not_found_title", "404");
+    if (notFoundDesc) notFoundDesc.textContent = t("not_found_desc", "The page you requested was not found.");
+    if (notFoundButton) notFoundButton.textContent = t("home_back", "Back to Home");
+    if (errorTitle) errorTitle.textContent = t("error_title", "Initialization Failed");
+    if (errorDesc && !refs.error?.dataset.dynamicMessage) errorDesc.textContent = t("error_desc", "An error occurred while initializing the admin console.");
+    if (refs.reloadButton) refs.reloadButton.textContent = t("reload", "Reload");
+    if (refs.sidebar?.querySelector(".admin-sidebar__footer")) {
+      refs.sidebar.querySelector(".admin-sidebar__footer").textContent = t("sidebar_footer", "The admin console is shown only after permission checks complete.");
+    }
+    const discardTitle = byId("adminDiscardConfirmTitle");
+    if (discardTitle) discardTitle.textContent = t("discard_title", "Confirm");
+    if (refs.confirmCancel) refs.confirmCancel.textContent = t("discard_cancel", "Cancel");
+    if (refs.confirmApprove) refs.confirmApprove.textContent = t("discard_approve", "Discard and Continue");
+  }
 
   function syncSidebarDisplay(nextTitle = null) {
     if (typeof nextTitle === "string" && nextTitle.trim()) {
       shellState.currentSidebarTitle = nextTitle.trim();
     }
 
-    const titleText = shellState.currentSidebarTitle || "管理画面";
+    const titleText = shellState.currentSidebarTitle || t("page_title", "Admin");
     const collapsed = app.sidebar?.isCollapsed?.() ?? refs.sidebar?.classList.contains("is-collapsed") ?? false;
 
     refs.appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
@@ -279,7 +354,7 @@ export async function initAdminLayout() {
 
     if (refs.sidebarToggle) {
       refs.sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
-      refs.sidebarToggle.setAttribute("aria-label", collapsed ? "サイドバーを展開する" : "サイドバーを閉じる");
+      refs.sidebarToggle.setAttribute("aria-label", collapsed ? t("sidebar_expand", "Expand sidebar") : t("sidebar_close", "Close sidebar"));
       const icon = refs.sidebarToggle.querySelector("span");
       if (icon) {
         icon.textContent = collapsed ? "❯" : "×";
@@ -345,7 +420,8 @@ export async function initAdminLayout() {
     show(refs.error);
     const description = refs.error?.querySelector(".admin-state-card__description");
     if (description) {
-      description.textContent = message || "管理画面の初期化に失敗しました。";
+      refs.error.dataset.dynamicMessage = message ? "1" : "";
+      description.textContent = message || t("init_error", "Failed to initialize the admin console.");
     }
     document.dispatchEvent(new CustomEvent("admin:error", { detail: { message } }));
   }
@@ -422,7 +498,7 @@ export async function initAdminLayout() {
     root: refs.sidebar,
     toggleButton: refs.sidebarToggle,
     onNavigate: async () => {
-      const ok = await dirtyGuard.confirmIfNeeded("未保存の変更があります。破棄して移動しますか？");
+      const ok = await dirtyGuard.confirmIfNeeded(t("discard_move", "You have unsaved changes. Discard them and continue?"));
       if (!ok) return false;
       dirtyGuard.allowNextLeave();
       return true;
@@ -449,7 +525,7 @@ export async function initAdminLayout() {
     const href = refs.homeLink.getAttribute("href") || "/gallery/";
     event.preventDefault();
 
-    const ok = await dirtyGuard.confirmIfNeeded("未保存の変更があります。破棄して移動しますか？");
+    const ok = await dirtyGuard.confirmIfNeeded(t("discard_move", "You have unsaved changes. Discard them and continue?"));
     if (!ok) return;
 
     dirtyGuard.allowNextLeave();
@@ -480,7 +556,7 @@ export async function initAdminLayout() {
     const data = payload.data || {};
     const currentUser = data.current_user || {};
     const page = data.page || {};
-    const pageTitle = page.title || refs.pageTitle?.textContent || "管理画面";
+    const pageTitle = page.title || refs.pageTitle?.textContent || t("page_title", "Admin");
 
     document.title = `${pageTitle} - Felixxsv Gallery`;
 
@@ -493,6 +569,11 @@ export async function initAdminLayout() {
 
     populateNavigation(data.navigation || []);
     syncSidebarDisplay(pageTitle);
+    applyStaticTranslations();
+    window.addEventListener("gallery:language-changed", () => {
+      syncSidebarDisplay();
+      applyStaticTranslations();
+    });
 
     app.bootstrapData = data;
     app.ready = true;
@@ -510,7 +591,7 @@ export async function initAdminLayout() {
       return;
     }
 
-    showError(error?.message || "管理画面の初期化に失敗しました。");
+    showError(error?.message || t("init_error", "Failed to initialize the admin console."));
   }
 }
 

@@ -1,7 +1,119 @@
 import { escapeHtml } from "../../core/dom.js";
 
+const USERS_MESSAGES = {
+  ja: {
+    active: "利用可",
+    locked: "ロック",
+    disabled: "停止",
+    deleted: "削除",
+    logged_in: "ログイン中",
+    logged_out: "未ログイン",
+    visible: "表示中",
+    hidden: "非表示",
+    remove: "削除",
+    no_badges: "バッジなし",
+    revoke: "剥奪",
+    select_badge: "バッジを選択...",
+    auto: "自動",
+    manual: "手動",
+    badge_grant_error: "バッジ付与に失敗しました。",
+    badge_granted: "バッジを付与しました。",
+    badge_revoke_error: "バッジ剥奪に失敗しました。",
+    badge_revoked: "バッジを剥奪しました。",
+    execute: "実行",
+    empty: "該当するユーザーがいません。",
+    user: "user",
+    unregistered: "未登録",
+    allow: "許可",
+    deny: "禁止",
+    edit: "編集",
+    total_count: "合計 {count} 件",
+    loading: "読み込み中です。",
+    load_error: "ユーザー一覧の取得に失敗しました。",
+    not_found: "対象ユーザーが見つかりません。",
+    detail_load_error: "ユーザー詳細の取得に失敗しました。",
+    update_confirm: "ユーザー情報を更新しますか？",
+    update: "更新",
+    profile_update_error: "プロフィール更新に失敗しました。",
+    links_update_error: "リンク更新に失敗しました。",
+    updated: "更新しました。",
+    update_error: "ユーザー情報の更新に失敗しました。",
+    delete_confirm: "「{name}」を削除しますか？",
+    delete_label: "削除",
+    delete_error: "ユーザー削除に失敗しました。",
+    deleted_ok: "削除しました。",
+    create_confirm: "仮ユーザーを作成しますか？",
+    create_label: "作成",
+    create_error: "仮ユーザー作成に失敗しました。",
+    created_ok: "仮ユーザーを作成しました。",
+    close_create_confirm: "未保存の入力があります。閉じますか？",
+    close_edit_confirm: "未保存の変更があります。閉じますか？",
+  },
+  "en-us": {
+    active: "Active",
+    locked: "Locked",
+    disabled: "Disabled",
+    deleted: "Deleted",
+    logged_in: "Logged in",
+    logged_out: "Logged out",
+    visible: "Visible",
+    hidden: "Hidden",
+    remove: "Remove",
+    no_badges: "No badges",
+    revoke: "Revoke",
+    select_badge: "Select a badge...",
+    auto: "Auto",
+    manual: "Manual",
+    badge_grant_error: "Failed to grant badge.",
+    badge_granted: "Badge granted.",
+    badge_revoke_error: "Failed to revoke badge.",
+    badge_revoked: "Badge revoked.",
+    execute: "Confirm",
+    empty: "No users found.",
+    user: "user",
+    unregistered: "Not registered",
+    allow: "Allowed",
+    deny: "Denied",
+    edit: "Edit",
+    total_count: "Total {count}",
+    loading: "Loading...",
+    load_error: "Failed to load users.",
+    not_found: "User not found.",
+    detail_load_error: "Failed to load user details.",
+    update_confirm: "Update this user?",
+    update: "Update",
+    profile_update_error: "Failed to update profile.",
+    links_update_error: "Failed to update links.",
+    updated: "Updated.",
+    update_error: "Failed to update user.",
+    delete_confirm: "Delete “{name}”?",
+    delete_label: "Delete",
+    delete_error: "Failed to delete user.",
+    deleted_ok: "Deleted.",
+    create_confirm: "Create a temporary user?",
+    create_label: "Create",
+    create_error: "Failed to create temporary user.",
+    created_ok: "Temporary user created.",
+    close_create_confirm: "There is unsaved input. Close anyway?",
+    close_edit_confirm: "There are unsaved changes. Close anyway?",
+  },
+};
+
 function byId(id) {
   return document.getElementById(id);
+}
+
+function t(key, fallback, vars = {}) {
+  return window.AdminApp?.i18n?.t?.(`admin_users.${key}`, fallback, vars) || fallback;
+}
+
+function defineMessages() {
+  Object.entries(USERS_MESSAGES).forEach(([locale, messages]) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_users.${key}`, value])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(USERS_MESSAGES["en-us"]).map(([key, value]) => [`admin_users.${key}`, value])));
+  });
 }
 
 function formatDateTime(value) {
@@ -18,24 +130,24 @@ function buildPill(text, mod) {
 function accountStatusLabel(value) {
   switch (String(value || "").toLowerCase()) {
     case "active":
-      return "利用可";
+      return t("active", "Active");
     case "locked":
-      return "ロック";
+      return t("locked", "Locked");
     case "disabled":
-      return "停止";
+      return t("disabled", "Disabled");
     case "deleted":
-      return "削除";
+      return t("deleted", "Deleted");
     default:
       return String(value || "-");
   }
 }
 
 function loginStatusLabel(value) {
-  return String(value || "") === "logged_in" ? "ログイン中" : "未ログイン";
+  return String(value || "") === "logged_in" ? t("logged_in", "Logged in") : t("logged_out", "Logged out");
 }
 
 function screenStatusLabel(value) {
-  return String(value || "") === "visible" ? "表示中" : "非表示";
+  return String(value || "") === "visible" ? t("visible", "Visible") : t("hidden", "Hidden");
 }
 
 const BADGE_COLOR_CLASS = {
@@ -107,7 +219,7 @@ function renderLinksEditor() {
     row.className = "admin-users-modal__link-row";
     row.innerHTML = `
       <input class="app-input admin-users-modal__link-input" type="url" placeholder="https://..." value="${escapeHtml(link.url || "")}" data-link-idx="${idx}"/>
-      <button type="button" class="app-button app-button--ghost admin-users-modal__link-remove" data-link-idx="${idx}" aria-label="削除">×</button>
+      <button type="button" class="app-button app-button--ghost admin-users-modal__link-remove" data-link-idx="${idx}" aria-label="${escapeHtml(t("remove", "Remove"))}">×</button>
     `;
     list.appendChild(row);
   });
@@ -136,13 +248,13 @@ function renderBadgePool() {
   if (!pool) return;
   pool.innerHTML = "";
   if (!state.editBadges.length) {
-    pool.innerHTML = `<span class="admin-users-modal__badge-empty">バッジなし</span>`;
+    pool.innerHTML = `<span class="admin-users-modal__badge-empty">${escapeHtml(t("no_badges", "No badges"))}</span>`;
   }
   for (const badge of state.editBadges) {
     const colorClass = BADGE_COLOR_CLASS[badge.color] || "admin-badge--gray";
     const span = document.createElement("span");
     span.className = `admin-badge ${colorClass}`;
-    span.innerHTML = `${escapeHtml(badge.name)}<button type="button" class="admin-badge__revoke" data-badge-key="${escapeHtml(badge.key)}" aria-label="剥奪">×</button>`;
+    span.innerHTML = `${escapeHtml(badge.name)}<button type="button" class="admin-badge__revoke" data-badge-key="${escapeHtml(badge.key)}" aria-label="${escapeHtml(t("revoke", "Revoke"))}">×</button>`;
     pool.appendChild(span);
   }
   pool.querySelectorAll(".admin-badge__revoke").forEach((btn) => {
@@ -151,12 +263,12 @@ function renderBadgePool() {
   // Update select options: exclude already-owned keys
   if (sel) {
     const ownedKeys = new Set(state.editBadges.map((b) => b.key));
-    sel.innerHTML = `<option value="">バッジを選択...</option>`;
+    sel.innerHTML = `<option value="">${escapeHtml(t("select_badge", "Select a badge..."))}</option>`;
     for (const item of state.badgeCatalog) {
       if (ownedKeys.has(item.key)) continue;
       const opt = document.createElement("option");
       opt.value = item.key;
-      opt.textContent = `${item.name}（${item.type === "auto" ? "自動" : "手動"}）`;
+      opt.textContent = `${item.name} (${item.type === "auto" ? t("auto", "Auto") : t("manual", "Manual")})`;
       sel.appendChild(opt);
     }
   }
@@ -174,12 +286,12 @@ async function grantBadge() {
       body: JSON.stringify({ badge_key: badgeKey }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) throw new Error(data?.error?.message || "バッジ付与に失敗しました。");
+    if (!res.ok || !data.ok) throw new Error(data?.error?.message || t("badge_grant_error", "Failed to grant badge."));
     state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges : state.editBadges;
     renderBadgePool();
-    window.AdminApp?.toast?.success?.("バッジを付与しました。");
+    window.AdminApp?.toast?.success?.(t("badge_granted", "Badge granted."));
   } catch (err) {
-    window.AdminApp?.toast?.error?.(err?.message || "バッジ付与に失敗しました。");
+    window.AdminApp?.toast?.error?.(err?.message || t("badge_grant_error", "Failed to grant badge."));
   }
 }
 
@@ -191,12 +303,12 @@ async function revokeBadge(badgeKey) {
       credentials: "same-origin",
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) throw new Error(data?.error?.message || "バッジ剥奪に失敗しました。");
+    if (!res.ok || !data.ok) throw new Error(data?.error?.message || t("badge_revoke_error", "Failed to revoke badge."));
     state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges : state.editBadges;
     renderBadgePool();
-    window.AdminApp?.toast?.success?.("バッジを剥奪しました。");
+    window.AdminApp?.toast?.success?.(t("badge_revoked", "Badge revoked."));
   } catch (err) {
-    window.AdminApp?.toast?.error?.(err?.message || "バッジ剥奪に失敗しました。");
+    window.AdminApp?.toast?.error?.(err?.message || t("badge_revoke_error", "Failed to revoke badge."));
   }
 }
 
@@ -237,11 +349,11 @@ function closeCreateModal() {
   resetCreateForm();
 }
 
-async function openActionConfirm(message, approveLabel = "実行") {
+async function openActionConfirm(message, approveLabel = null) {
   const msg = byId("adminUsersActionConfirmMessage");
   const approve = byId("adminUsersActionConfirmApprove");
   if (msg) msg.textContent = message;
-  if (approve) approve.textContent = approveLabel;
+  if (approve) approve.textContent = approveLabel || t("execute", "Confirm");
   window.AdminApp?.modal?.open?.("admin-users-action-confirm");
   return new Promise((resolve) => {
     state.pendingConfirm = resolve;
@@ -265,12 +377,12 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">該当するユーザーがいません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(t("empty", "No users found."))}</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
       const avatar = item.avatar_url
-        ? `<img src="${escapeHtml(item.avatar_url)}" alt="${escapeHtml(item.display_name || item.user_key || "user")}">`
+        ? `<img src="${escapeHtml(item.avatar_url)}" alt="${escapeHtml(item.display_name || item.user_key || t("user", "user"))}">`
         : `<span>${escapeHtml((item.display_name || item.user_key || "?").slice(0, 1).toUpperCase())}</span>`;
       const providers = Array.isArray(item.auth_providers) && item.auth_providers.length > 0 ? item.auth_providers.join(", ") : "-";
       const twoFactorText = item.two_factor?.is_enabled ? `${item.two_factor.method || "email"} / ON` : "OFF";
@@ -287,17 +399,17 @@ function renderTable() {
             </div>
           </div>
         </td>
-        <td>${escapeHtml(item.primary_email || "未登録")}</td>
+        <td>${escapeHtml(item.primary_email || t("unregistered", "Not registered"))}</td>
         <td>${buildPill(item.role || "-", item.role === "admin" ? "admin-users-pill--admin" : "admin-users-pill--user")}</td>
         <td>${buildPill(accountStatusLabel(accountStatus), `admin-users-pill--${escapeHtml(accountStatus || "active")}`)}</td>
         <td>${buildPill(loginStatusLabel(loginStatus), loginStatus === "logged_in" ? "admin-users-pill--logged-in" : "admin-users-pill--logged-out")}</td>
         <td>${buildPill(screenStatusLabel(screenStatus), screenStatus === "visible" ? "admin-users-pill--visible" : "admin-users-pill--hidden")}</td>
         <td>${escapeHtml(twoFactorText)}</td>
-        <td>${item.upload_enabled ? "許可" : "禁止"}</td>
+        <td>${item.upload_enabled ? t("allow", "Allowed") : t("deny", "Denied")}</td>
         <td>${escapeHtml(formatDateTime(item.last_access_at || item.last_seen_at))}</td>
         <td>
           <div class="admin-users-actions">
-            <button type="button" class="app-button app-button--ghost admin-users-mini-button" data-action="edit" data-user-id="${item.user_id}">編集</button>
+            <button type="button" class="app-button app-button--ghost admin-users-mini-button" data-action="edit" data-user-id="${item.user_id}">${escapeHtml(t("edit", "Edit"))}</button>
           </div>
         </td>
       `;
@@ -305,7 +417,7 @@ function renderTable() {
     }
   }
 
-  if (summary) summary.textContent = `合計 ${state.total} 件`;
+  if (summary) summary.textContent = t("total_count", "Total {count}", { count: state.total });
   if (pageInfo) pageInfo.textContent = `${state.page} / ${state.pages}`;
   if (prev) prev.disabled = state.page <= 1;
   if (next) next.disabled = state.page >= state.pages;
@@ -316,7 +428,7 @@ async function loadUsers() {
   const app = window.AdminApp;
   const tbody = byId("adminUsersTableBody");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">読み込み中です。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
   }
   try {
     const payload = await app.api.get(`/api/admin/users?${qs()}`);
@@ -326,7 +438,7 @@ async function loadUsers() {
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
     renderTable();
   } catch (error) {
-    const message = error?.message || "ユーザー一覧の取得に失敗しました。";
+    const message = error?.message || t("load_error", "Failed to load users.");
     window.AdminApp?.toast?.error?.(message);
     state.items = [];
     state.total = 0;
@@ -346,7 +458,7 @@ async function openEditModal(userId) {
       window.AdminApp.api.get(`/api/admin/users/${userId}/badges`).catch(() => null),
     ]);
     const user = detailPayload.data?.user;
-    if (!user) throw new Error("対象ユーザーが見つかりません。");
+    if (!user) throw new Error(t("not_found", "User not found."));
     state.currentUser = user;
     state.editOriginal = {
       display_name: user.display_name || "",
@@ -367,7 +479,7 @@ async function openEditModal(userId) {
     byId("adminUsersEditUploadEnabled").checked = state.editOriginal.upload_enabled;
     const bioEl = byId("adminUsersEditBio");
     if (bioEl) bioEl.value = state.editOriginal.bio;
-    byId("adminUsersEditEmail").textContent = user.primary_email || "未登録";
+    byId("adminUsersEditEmail").textContent = user.primary_email || t("unregistered", "Not registered");
     byId("adminUsersEditCreatedAt").textContent = formatDateTime(user.created_at);
     byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_seen_at);
     byId("adminUsersEditTwoFactor").textContent = user.two_factor?.is_enabled ? `${user.two_factor?.method || "email"} / ON` : "OFF";
@@ -379,7 +491,7 @@ async function openEditModal(userId) {
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
     window.AdminApp.modal.open("admin-users-edit");
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "ユーザー詳細の取得に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("detail_load_error", "Failed to load user details."));
   }
 }
 
@@ -408,7 +520,7 @@ async function saveEdit() {
     closeEditModal();
     return;
   }
-  const ok = await openActionConfirm("ユーザー情報を更新しますか？", "更新");
+  const ok = await openActionConfirm(t("update_confirm", "Update this user?"), t("update", "Update"));
   if (!ok) return;
   try {
     const tasks = [];
@@ -421,7 +533,7 @@ async function saveEdit() {
           body: JSON.stringify(profilePayload),
         }).then(async (r) => {
           const d = await r.json().catch(() => ({}));
-          if (!r.ok || !d.ok) throw new Error(d?.error?.message || "プロフィール更新に失敗しました。");
+          if (!r.ok || !d.ok) throw new Error(d?.error?.message || t("profile_update_error", "Failed to update profile."));
           return d;
         })
       );
@@ -436,23 +548,23 @@ async function saveEdit() {
           body: JSON.stringify({ links: validLinks }),
         }).then(async (r) => {
           const d = await r.json().catch(() => ({}));
-          if (!r.ok || !d.ok) throw new Error(d?.error?.message || "リンク更新に失敗しました。");
+          if (!r.ok || !d.ok) throw new Error(d?.error?.message || t("links_update_error", "Failed to update links."));
           return d;
         })
       );
     }
     await Promise.all(tasks);
-    window.AdminApp?.toast?.success?.("更新しました。");
+    window.AdminApp?.toast?.success?.(t("updated", "Updated."));
     closeEditModal();
     await loadUsers();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "ユーザー情報の更新に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("update_error", "Failed to update user."));
   }
 }
 
 async function deleteCurrentUser() {
   if (!state.currentUser) return;
-  const ok = await openActionConfirm(`「${state.currentUser.display_name || state.currentUser.user_key}」を削除しますか？`, "削除");
+  const ok = await openActionConfirm(t("delete_confirm", "Delete “{name}”?", { name: state.currentUser.display_name || state.currentUser.user_key }), t("delete_label", "Delete"));
   if (!ok) return;
   try {
     const response = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/delete`, {
@@ -463,13 +575,13 @@ async function deleteCurrentUser() {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) {
-      throw new Error(data?.error?.message || "ユーザー削除に失敗しました。");
+      throw new Error(data?.error?.message || t("delete_error", "Failed to delete user."));
     }
-    window.AdminApp?.toast?.success?.(data?.message || "削除しました。");
+    window.AdminApp?.toast?.success?.(data?.message || t("deleted_ok", "Deleted."));
     closeEditModal();
     await loadUsers();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "ユーザー削除に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("delete_error", "Failed to delete user."));
   }
 }
 
@@ -479,7 +591,7 @@ async function createTempUser() {
     role: byId("adminUsersCreateRole")?.value || "user",
     upload_enabled: Boolean(byId("adminUsersCreateUploadEnabled")?.checked),
   };
-  const ok = await openActionConfirm("仮ユーザーを作成しますか？", "作成");
+  const ok = await openActionConfirm(t("create_confirm", "Create a temporary user?"), t("create_label", "Create"));
   if (!ok) return;
   try {
     const response = await fetch(`${window.AdminApp.appBase}/api/admin/users/create`, {
@@ -490,19 +602,19 @@ async function createTempUser() {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) {
-      throw new Error(data?.error?.message || "仮ユーザー作成に失敗しました。");
+      throw new Error(data?.error?.message || t("create_error", "Failed to create temporary user."));
     }
     const creds = data?.data?.temporary_credentials || {};
     byId("adminUsersCreateResultUserKey").textContent = creds.user_key || "-";
     byId("adminUsersCreateResultPassword").textContent = creds.password || "-";
     const result = byId("adminUsersCreateResult");
     if (result) result.hidden = false;
-    window.AdminApp?.toast?.success?.(data?.message || "仮ユーザーを作成しました。");
+    window.AdminApp?.toast?.success?.(data?.message || t("created_ok", "Temporary user created."));
     state.createDirty = false;
     window.AdminApp?.dirtyGuard?.setDirty?.("admin-users-create", false);
     await loadUsers();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "仮ユーザー作成に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("create_error", "Failed to create temporary user."));
   }
 }
 
@@ -562,14 +674,14 @@ function bindModals() {
   });
 
   byId("adminUsersCreateCloseButton")?.addEventListener("click", async () => {
-    const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded("未保存の入力があります。閉じますか？");
+    const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded(t("close_create_confirm", "There is unsaved input. Close anyway?"));
     if (!ok) return;
     closeCreateModal();
   });
 
   byId("adminUsersCreateSubmitButton")?.addEventListener("click", createTempUser);
   byId("adminUsersEditCloseButton")?.addEventListener("click", async () => {
-    const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded("未保存の変更があります。閉じますか？");
+    const ok = await window.AdminApp.dirtyGuard.confirmIfNeeded(t("close_edit_confirm", "There are unsaved changes. Close anyway?"));
     if (!ok) return;
     closeEditModal();
   });
@@ -619,5 +731,13 @@ async function initPage() {
 }
 
 document.addEventListener("admin:ready", () => {
+  defineMessages();
   initPage();
+  window.addEventListener("gallery:language-changed", () => {
+    renderTable();
+    if (state.currentUser) {
+      renderLinksEditor();
+      renderBadgePool();
+    }
+  });
 });

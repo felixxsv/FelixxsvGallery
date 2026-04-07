@@ -2,6 +2,94 @@ function byId(id) {
   return document.getElementById(id);
 }
 
+const DASHBOARD_MESSAGES = {
+  ja: {
+    elapsed_hours: "{hours}時間 {minutes}分",
+    elapsed_minutes: "{minutes}分 {seconds}秒",
+    elapsed_seconds: "{seconds}秒",
+    not_set: "未設定",
+    usage_label: "使用率",
+    active_users_empty: "現在アクセス中のユーザーはいません。",
+    active_user_head_icon: "アイコン",
+    active_user_head_name: "表示名",
+    active_user_head_id: "ユーザーID",
+    active_user_head_status: "状態",
+    active_user_head_elapsed: "セッション時間",
+    online: "オンライン",
+    recent_logs_empty: "直近の操作ログはありません。",
+    recent_logs_head_date: "日時",
+    recent_logs_head_action: "操作種別",
+    recent_logs_head_summary: "概要",
+    recent_logs_head_result: "結果",
+    recent_logs_head_actor: "実行者",
+    storage_loading: "使用状況を読み込み中です…",
+    storage_idle: "使用状況はまだ読み込まれていません。",
+    storage_placeholder: "使用状況を取得するとここに表示します。",
+    storage_error: "ストレージ使用状況の取得に失敗しました。",
+    no_history: "まだ実行履歴がありません。",
+    none: "なし",
+    pending_exists: "実行待ちがあります",
+    queue_run: "手動実行を予約",
+    no_issues: "直近の問題はありません。",
+    no_detail: "詳細情報なし",
+    untitled: "タイトル未設定",
+    unknown_user: "投稿者不明",
+    clock_error: "時計設定の更新に失敗しました。",
+    dashboard_error: "ダッシュボードの取得に失敗しました。",
+    integrity_run_success: "整合性チェックを実行キューへ追加しました。",
+    integrity_run_error: "整合性チェックの実行予約に失敗しました。",
+  },
+  "en-us": {
+    elapsed_hours: "{hours}h {minutes}m",
+    elapsed_minutes: "{minutes}m {seconds}s",
+    elapsed_seconds: "{seconds}s",
+    not_set: "Not set",
+    usage_label: "Usage",
+    active_users_empty: "No users are currently active.",
+    active_user_head_icon: "Icon",
+    active_user_head_name: "Display Name",
+    active_user_head_id: "User ID",
+    active_user_head_status: "Status",
+    active_user_head_elapsed: "Session",
+    online: "Online",
+    recent_logs_empty: "There are no recent activity logs.",
+    recent_logs_head_date: "Date",
+    recent_logs_head_action: "Action",
+    recent_logs_head_summary: "Summary",
+    recent_logs_head_result: "Result",
+    recent_logs_head_actor: "Actor",
+    storage_loading: "Loading storage usage...",
+    storage_idle: "Storage usage has not been loaded yet.",
+    storage_placeholder: "Storage usage will appear here after loading.",
+    storage_error: "Failed to load storage usage.",
+    no_history: "No execution history yet.",
+    none: "None",
+    pending_exists: "A run is already queued",
+    queue_run: "Queue Manual Run",
+    no_issues: "No recent issues.",
+    no_detail: "No details",
+    untitled: "Untitled",
+    unknown_user: "Unknown uploader",
+    clock_error: "Failed to update clock setting.",
+    dashboard_error: "Failed to load dashboard.",
+    integrity_run_success: "Integrity check queued.",
+    integrity_run_error: "Failed to queue integrity check.",
+  },
+};
+
+function t(key, fallback, vars = {}) {
+  return window.AdminApp?.i18n?.t?.(`admin_dashboard.${key}`, fallback, vars) || fallback;
+}
+
+function defineMessages() {
+  Object.entries(DASHBOARD_MESSAGES).forEach(([locale, messages]) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_dashboard.${key}`, value])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(DASHBOARD_MESSAGES["en-us"]).map(([key, value]) => [`admin_dashboard.${key}`, value])));
+  });
+}
+
 function showClock(mode) {
   const digital = byId("adminDashboardClockDigital");
   const analog = byId("adminDashboardClockAnalog");
@@ -14,9 +102,9 @@ function formatElapsed(sec) {
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
-  if (hours > 0) return `${hours}時間 ${minutes}分`;
-  if (minutes > 0) return `${minutes}分 ${seconds}秒`;
-  return `${seconds}秒`;
+  if (hours > 0) return t("elapsed_hours", "{hours}h {minutes}m", { hours, minutes });
+  if (minutes > 0) return t("elapsed_minutes", "{minutes}m {seconds}s", { minutes, seconds });
+  return t("elapsed_seconds", "{seconds}s", { seconds });
 }
 
 function formatStorage(bytes) {
@@ -136,12 +224,12 @@ function setDashboardStorageRingUsage(element, ratio) {
 function renderDashboardStoragePath(element, pathText, percentText, ratio) {
   if (!element) return;
   const normalizedPercent = percentText || "-%";
-  const normalizedPath = pathText || "未設定";
+  const normalizedPath = pathText || t("not_set", "Not set");
   element.style.setProperty("--usage-ratio", String(clampRatio(ratio)));
   element.innerHTML = `
     <div class="admin-dashboard-storage__path-text"></div>
     <div class="admin-dashboard-storage__usage-row">
-      <span class="admin-dashboard-storage__usage-label">使用率</span>
+      <span class="admin-dashboard-storage__usage-label">${t("usage_label", "Usage")}</span>
       <span class="admin-dashboard-storage__usage-value">${normalizedPercent}</span>
     </div>
     <div class="admin-dashboard-storage__usage-bar" aria-hidden="true">
@@ -234,7 +322,7 @@ function renderActiveUsers(items) {
   if (!Array.isArray(items) || items.length === 0) {
     const empty = document.createElement("div");
     empty.className = "admin-list-empty";
-    empty.textContent = "現在アクセス中のユーザーはいません。";
+    empty.textContent = t("active_users_empty", "No users are currently active.");
     container.appendChild(empty);
     return;
   }
@@ -242,11 +330,11 @@ function renderActiveUsers(items) {
   const head = document.createElement("div");
   head.className = "admin-list-table-head admin-list-table-head--users";
   head.innerHTML = `
-    <span>アイコン</span>
-    <span>表示名</span>
-    <span>ユーザーID</span>
-    <span>状態</span>
-    <span>セッション時間</span>
+    <span>${t("active_user_head_icon", "Icon")}</span>
+    <span>${t("active_user_head_name", "Display Name")}</span>
+    <span>${t("active_user_head_id", "User ID")}</span>
+    <span>${t("active_user_head_status", "Status")}</span>
+    <span>${t("active_user_head_elapsed", "Session")}</span>
   `;
   container.appendChild(head);
 
@@ -260,7 +348,7 @@ function renderActiveUsers(items) {
       <div class="admin-active-user__avatar">${avatar}</div>
       <div class="admin-active-user__display">${item.display_name || "-"}</div>
       <div class="admin-active-user__id">@${item.user_key || "-"}</div>
-      <div class="admin-active-user__status"><span class="admin-status-badge admin-status-badge--online">オンライン</span></div>
+      <div class="admin-active-user__status"><span class="admin-status-badge admin-status-badge--online">${t("online", "Online")}</span></div>
       <div class="admin-active-user__elapsed" data-session-elapsed="${Number(item.session_elapsed_sec || 0)}">${formatElapsed(item.session_elapsed_sec)}</div>
     `;
     container.appendChild(row);
@@ -275,7 +363,7 @@ function renderAuditLogs(items) {
   if (!Array.isArray(items) || items.length === 0) {
     const empty = document.createElement("div");
     empty.className = "admin-list-empty";
-    empty.textContent = "直近の操作ログはありません。";
+    empty.textContent = t("recent_logs_empty", "There are no recent activity logs.");
     container.appendChild(empty);
     return;
   }
@@ -283,11 +371,11 @@ function renderAuditLogs(items) {
   const head = document.createElement("div");
   head.className = "admin-list-table-head admin-list-table-head--logs";
   head.innerHTML = `
-    <span>日時</span>
-    <span>操作種別</span>
-    <span>概要</span>
-    <span>結果</span>
-    <span>実行者</span>
+    <span>${t("recent_logs_head_date", "Date")}</span>
+    <span>${t("recent_logs_head_action", "Action")}</span>
+    <span>${t("recent_logs_head_summary", "Summary")}</span>
+    <span>${t("recent_logs_head_result", "Result")}</span>
+    <span>${t("recent_logs_head_actor", "Actor")}</span>
   `;
   container.appendChild(head);
 
@@ -340,7 +428,7 @@ function renderDashboardStorageUsage() {
   }
 
   loadingEl.hidden = !storageUsageState.loading && storageUsageState.loaded;
-  loadingEl.textContent = storageUsageState.loading ? "使用状況を読み込み中です…" : "使用状況はまだ読み込まれていません。";
+  loadingEl.textContent = storageUsageState.loading ? t("storage_loading", "Loading storage usage...") : t("storage_idle", "Storage usage has not been loaded yet.");
   messageEl.hidden = !storageUsageState.error;
   messageEl.textContent = storageUsageState.error || "";
   messageEl.classList.toggle("is-error", Boolean(storageUsageState.error));
@@ -349,7 +437,7 @@ function renderDashboardStorageUsage() {
   if (!storageUsageState.loaded || !storageUsageState.data) {
     if (generatedAtEl) generatedAtEl.textContent = "-";
     if (labelEl) labelEl.textContent = "storage_root";
-    renderDashboardStoragePath(pathEl, "使用状況を取得するとここに表示します。", "-%", 0);
+    renderDashboardStoragePath(pathEl, t("storage_placeholder", "Storage usage will appear here after loading."), "-%", 0);
     if (directorySizeEl) directorySizeEl.textContent = "-";
     if (filesystemUsageEl) filesystemUsageEl.textContent = "-";
     if (filesystemFreeEl) filesystemFreeEl.textContent = "-";
@@ -365,7 +453,7 @@ function renderDashboardStorageUsage() {
   if (!primary) return;
   if (labelEl) labelEl.textContent = primary.label || primary.key || "storage_root";
   const usagePercentText = formatPercent(primary.filesystem_usage_percent);
-  renderDashboardStoragePath(pathEl, primary.path || "未設定", usagePercentText, primary.filesystem_usage_ratio);
+  renderDashboardStoragePath(pathEl, primary.path || t("not_set", "Not set"), usagePercentText, primary.filesystem_usage_ratio);
   if (directorySizeEl) directorySizeEl.textContent = formatStorage(primary.directory_size_bytes);
   if (filesystemUsageEl) filesystemUsageEl.textContent = `${formatStorage(primary.filesystem_used_bytes)} / ${formatStorage(primary.filesystem_total_bytes)}`;
   if (filesystemFreeEl) filesystemFreeEl.textContent = formatStorage(primary.filesystem_free_bytes);
@@ -391,7 +479,7 @@ async function loadDashboardStorageUsage({ force = false, silent = false } = {})
     storageUsageState.data = payload.data || null;
     storageUsageState.loaded = true;
   } catch (error) {
-    storageUsageState.error = error.message || "ストレージ使用状況の取得に失敗しました。";
+    storageUsageState.error = error.message || t("storage_error", "Failed to load storage usage.");
     storageUsageState.data = null;
     storageUsageState.loaded = false;
     if (!silent) {
@@ -453,7 +541,7 @@ function renderIntegritySummary(summary) {
   if (latestRun) {
     const run = summary?.last_run;
     if (!run) {
-      latestRun.textContent = "まだ実行履歴がありません。";
+      latestRun.textContent = t("no_history", "No execution history yet.");
     } else {
       const severity = summary?.severity_counts || {};
       latestRun.textContent = `${formatDateTime(run.finished_at || run.started_at || run.requested_at)} / warning ${severity.warning || 0} / error ${severity.error || 0}`;
@@ -463,11 +551,11 @@ function renderIntegritySummary(summary) {
   if (pending) {
     pending.textContent = summary?.has_pending
       ? `${summary.pending_run?.status || "queued"} / ${formatDateTime(summary.pending_run?.requested_at || summary.pending_run?.started_at)}`
-      : "なし";
+      : t("none", "None");
   }
   if (action) {
     action.disabled = Boolean(summary?.has_pending);
-    action.textContent = summary?.has_pending ? "実行待ちがあります" : "手動実行を予約";
+    action.textContent = summary?.has_pending ? t("pending_exists", "A run is already queued") : t("queue_run", "Queue Manual Run");
   }
   if (!container) return;
 
@@ -476,7 +564,7 @@ function renderIntegritySummary(summary) {
   if (!Array.isArray(items) || items.length === 0) {
     const empty = document.createElement("div");
     empty.className = "admin-list-empty";
-    empty.textContent = "直近の問題はありません。";
+    empty.textContent = t("no_issues", "No recent issues.");
     container.appendChild(empty);
     return;
   }
@@ -493,7 +581,7 @@ function renderIntegritySummary(summary) {
     row.innerHTML = `
       <div class="admin-log-item__created">${formatDateTime(item.created_at)}</div>
       <div class="admin-log-item__action">${item.issue_code || "-"}</div>
-      <div class="admin-log-item__summary">${detail.join(" / ") || "詳細情報なし"}</div>
+      <div class="admin-log-item__summary">${detail.join(" / ") || t("no_detail", "No details")}</div>
       <div class="admin-log-item__result"><span class="admin-log-item__badge">${severity}</span></div>
       <div class="admin-log-item__actor">${item.gallery || "integrity"}</div>
     `;
@@ -504,14 +592,14 @@ function renderIntegritySummary(summary) {
 function buildDashboardDetail(item) {
   return {
     image_id: item.image_id || item.id || null,
-    title: item.title || "タイトル未設定",
+    title: item.title || t("untitled", "Untitled"),
     alt: item.alt || "",
     posted_at: item.posted_at || null,
     shot_at: item.shot_at || null,
     like_count: Number(item.like_count || 0),
     view_count: Number(item.view_count || 0),
     user: item.user || {
-      display_name: item.uploader_display_name || "投稿者不明",
+      display_name: item.uploader_display_name || t("unknown_user", "Unknown uploader"),
       user_key: item.uploader_user_key || "-",
       avatar_url: item.uploader_avatar_url || item.uploader_avatar_path || "",
     },
@@ -552,8 +640,8 @@ function renderLatestImage(item) {
 
   image.src = item.preview_url;
   image.alt = item.title || "latest image";
-  title.textContent = item.title || "タイトル未設定";
-  meta.textContent = `${formatDateTime(item.posted_at)} ・ ${item.user?.display_name || "投稿者不明"}`;
+  title.textContent = item.title || t("untitled", "Untitled");
+  meta.textContent = `${formatDateTime(item.posted_at)} ・ ${item.user?.display_name || t("unknown_user", "Unknown uploader")}`;
   stats.textContent = `♥ ${item.like_count_short || "0"} ・ ${item.view_count_short || "0"}`;
   card.hidden = false;
   placeholder.hidden = true;
@@ -569,7 +657,7 @@ async function saveClockMode(mode) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload.ok) {
-    throw new Error(payload?.error?.message || "時計設定の更新に失敗しました。");
+    throw new Error(payload?.error?.message || t("clock_error", "Failed to update clock setting."));
   }
   return payload;
 }
@@ -651,7 +739,7 @@ async function loadDashboard({ silent = false, force = false } = {}) {
     })
     .catch((error) => {
       if (!silent) {
-        window.AdminApp?.toast?.error?.(error?.message || "ダッシュボードの取得に失敗しました。");
+        window.AdminApp?.toast?.error?.(error?.message || t("dashboard_error", "Failed to load dashboard."));
       }
     })
     .finally(() => {
@@ -673,7 +761,7 @@ function bindClockButtons() {
         analogBtn?.classList.remove("is-active");
         showClock("digital");
       } catch (error) {
-        window.AdminApp?.toast?.error?.(error?.message || "時計表示の切り替えに失敗しました。");
+        window.AdminApp?.toast?.error?.(error?.message || t("clock_error", "Failed to update clock setting."));
       }
     });
   }
@@ -686,7 +774,7 @@ function bindClockButtons() {
         digitalBtn?.classList.remove("is-active");
         showClock("analog");
       } catch (error) {
-        window.AdminApp?.toast?.error?.(error?.message || "時計表示の切り替えに失敗しました。");
+        window.AdminApp?.toast?.error?.(error?.message || t("clock_error", "Failed to update clock setting."));
       }
     });
   }
@@ -721,12 +809,12 @@ function bindIntegrityButton() {
     button.disabled = true;
     try {
       const result = await queueIntegrityRun();
-      window.AdminApp?.toast?.success?.(result?.message || "整合性チェックを実行キューへ追加しました。");
+      window.AdminApp?.toast?.success?.(result?.message || t("integrity_run_success", "Integrity check queued."));
       dashboardState.lastSnapshot = "";
       await loadDashboard({ force: true });
     } catch (error) {
       button.disabled = false;
-      window.AdminApp?.toast?.error?.(error?.message || "整合性チェックの実行予約に失敗しました。");
+      window.AdminApp?.toast?.error?.(error?.message || t("integrity_run_error", "Failed to queue integrity check."));
     }
   });
 }
@@ -777,6 +865,7 @@ function startDashboardLiveRefresh() {
 
 async function initDashboard() {
   if (!window.AdminApp || !window.AdminApp.ready) return;
+  defineMessages();
 
   bindClockButtons();
   bindLatestImage();
@@ -793,7 +882,7 @@ async function initDashboard() {
     ]);
     startDashboardLiveRefresh();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "ダッシュボードの取得に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("dashboard_error", "Failed to load dashboard."));
   }
 }
 
@@ -804,3 +893,17 @@ if (window.AdminApp?.ready) {
     void initDashboard();
   }, { once: true });
 }
+
+window.addEventListener("gallery:language-changed", () => {
+  renderDashboardStorageUsage();
+  if (dashboardState.latestData) {
+    renderStats({
+      online_user_count: dashboardState.latestData.online_user_count ?? 0,
+      ...(dashboardState.latestData.stats || {}),
+    });
+    renderActiveUsers(dashboardState.latestData.active_users || []);
+    renderAuditLogs(dashboardState.latestData.recent_audit_logs || []);
+    renderLatestImage(dashboardState.latestData.latest_image || null);
+    renderIntegritySummary(dashboardState.latestData.integrity_summary || {});
+  }
+});

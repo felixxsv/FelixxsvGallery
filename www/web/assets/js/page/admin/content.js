@@ -1,8 +1,97 @@
 import { createUploadModalController } from "../../components/upload-modal.js";
 import { escapeHtml } from "../../core/dom.js";
 
+const CONTENT_MESSAGES = {
+  ja: {
+    untitled: "タイトル未設定",
+    unknown_user: "投稿者不明",
+    empty: "該当するコンテンツがありません。",
+    detail: "詳細",
+    total_count: "合計 {count} 件",
+    loading: "読み込み中です。",
+    load_error: "コンテンツ一覧の取得に失敗しました。",
+    content_not_found: "対象コンテンツが見つかりません。",
+    preview_open: "画像を開く",
+    preview_alt: "preview",
+    no_title: "(無題)",
+    make_private: "非公開にする",
+    make_public: "公開にする",
+    detail_load_error: "コンテンツ詳細の取得に失敗しました。",
+    no_files: "ファイルが未選択です。",
+    selected_summary: "{count} 件 / 合計 {size} を選択中です。",
+    submitting: "投稿中...",
+    submit: "投稿する",
+    upload_error: "投稿に失敗しました。",
+    duplicate_short: "重複画像が検出されたため、投稿は行われませんでした。",
+    title_required: "タイトルを入力してください。",
+    image_required: "画像ファイルを選択してください。",
+    max_files: "画像は最大 {count} 枚までです。",
+    uploaded_count: "{count} 件の画像を投稿しました。",
+    action_execute: "実行",
+    action_confirm: "この操作を実行しますか？",
+    action_visibility_private: "このコンテンツを非公開にしますか？",
+    action_visibility_public: "このコンテンツを公開しますか？",
+    action_change: "変更",
+    action_quarantine: "このコンテンツを隔離しますか？",
+    action_quarantine_label: "隔離",
+    action_restore: "このコンテンツを復元しますか？",
+    action_restore_label: "復元",
+    action_delete: "このコンテンツを削除状態にしますか？",
+    action_delete_label: "削除",
+    updated: "更新しました。",
+    update_error: "更新に失敗しました。",
+    new_post: "新規投稿",
+    reload: "再読込",
+  },
+  "en-us": {
+    untitled: "Untitled",
+    unknown_user: "Unknown uploader",
+    empty: "No content found.",
+    detail: "Details",
+    total_count: "Total {count}",
+    loading: "Loading...",
+    load_error: "Failed to load content.",
+    content_not_found: "Content not found.",
+    preview_open: "Open image",
+    preview_alt: "preview",
+    no_title: "(Untitled)",
+    make_private: "Make Private",
+    make_public: "Make Public",
+    detail_load_error: "Failed to load content details.",
+    no_files: "No files selected.",
+    selected_summary: "{count} selected / {size}",
+    submitting: "Uploading...",
+    submit: "Upload",
+    upload_error: "Upload failed.",
+    duplicate_short: "Duplicate images were detected, so nothing was uploaded.",
+    title_required: "Enter a title.",
+    image_required: "Select image files.",
+    max_files: "You can upload up to {count} images.",
+    uploaded_count: "Uploaded {count} images.",
+    action_execute: "Confirm",
+    action_confirm: "Do you want to continue?",
+    action_visibility_private: "Make this content private?",
+    action_visibility_public: "Make this content public?",
+    action_change: "Change",
+    action_quarantine: "Quarantine this content?",
+    action_quarantine_label: "Quarantine",
+    action_restore: "Restore this content?",
+    action_restore_label: "Restore",
+    action_delete: "Mark this content as deleted?",
+    action_delete_label: "Delete",
+    updated: "Updated.",
+    update_error: "Update failed.",
+    new_post: "New Post",
+    reload: "Reload",
+  },
+};
+
 function byId(id) {
   return document.getElementById(id);
+}
+
+function t(key, fallback, vars = {}) {
+  return window.AdminApp?.i18n?.t?.(`admin_content.${key}`, fallback, vars) || fallback;
 }
 
 function formatDateTime(value) {
@@ -34,7 +123,7 @@ function buildImageModalPayload(item) {
   const uploader = item?.uploader || item?.user || {};
   return {
     image_id: imageId || item?.image_id || item?.id || null,
-    title: item?.title || item?.alt || "タイトル未設定",
+    title: item?.title || item?.alt || t("untitled", "Untitled"),
     alt: item?.alt ?? "",
     preview_url: item?.preview_url || item?.original_url || (imageId ? `/media/original/${imageId}` : ""),
     original_url: item?.original_url || item?.preview_url || (imageId ? `/media/original/${imageId}` : ""),
@@ -43,7 +132,7 @@ function buildImageModalPayload(item) {
     like_count: Number(item?.like_count ?? 0),
     view_count: Number(item?.view_count ?? 0),
     user: {
-      display_name: uploader.display_name || uploader.user_key || "投稿者不明",
+      display_name: uploader.display_name || uploader.user_key || t("unknown_user", "Unknown uploader"),
       user_key: uploader.user_key || "-",
       avatar_url: uploader.avatar_url || uploader.avatar_path || ""
     },
@@ -96,19 +185,19 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="admin-content-table__empty">該当するコンテンツがありません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="admin-content-table__empty">${escapeHtml(t("empty", "No content found."))}</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
       const preview = item.preview_url
-        ? `<div class="admin-content-thumb" data-image-open="true" data-image-id="${item.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title || "画像を開く")}"><img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || "preview")}"></div>`
+        ? `<div class="admin-content-thumb" data-image-open="true" data-image-id="${item.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || t("preview_alt", "preview"))}"></div>`
         : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">NO IMAGE</div></div>`;
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
       tr.innerHTML = `
         <td>${preview}</td>
         <td>
           <div class="admin-content-main">
-            <div class="admin-content-main__title">${escapeHtml(item.title || "(無題)")}</div>
+            <div class="admin-content-main__title">${escapeHtml(item.title || t("no_title", "(Untitled)"))}</div>
             <div class="admin-content-main__sub">${escapeHtml(uploaderLabel)} ・ ${escapeHtml(formatDateTime(item.posted_at))}</div>
           </div>
         </td>
@@ -119,7 +208,7 @@ function renderTable() {
         <td>${escapeHtml(formatDateTime(item.posted_at))}</td>
         <td>
           <div class="admin-content-actions">
-            <button type="button" class="app-button app-button--ghost admin-content-mini-button" data-action="detail" data-image-id="${item.image_id}">詳細</button>
+            <button type="button" class="app-button app-button--ghost admin-content-mini-button" data-action="detail" data-image-id="${item.image_id}">${escapeHtml(t("detail", "Details"))}</button>
           </div>
         </td>
       `;
@@ -127,7 +216,7 @@ function renderTable() {
     }
   }
 
-  if (summary) summary.textContent = `合計 ${state.total} 件`;
+  if (summary) summary.textContent = t("total_count", "Total {count}", { count: state.total });
   if (pageInfo) pageInfo.textContent = `${state.page} / ${state.pages}`;
   if (prev) prev.disabled = state.page <= 1;
   if (next) next.disabled = state.page >= state.pages;
@@ -135,7 +224,7 @@ function renderTable() {
 
 async function loadContents() {
   const tbody = byId("adminContentTableBody");
-  if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="admin-content-table__empty">読み込み中です。</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="admin-content-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
   try {
     const payload = await window.AdminApp.api.get(`/api/admin/content?${qs()}`);
     state.total = Number(payload.data?.total || 0);
@@ -144,7 +233,7 @@ async function loadContents() {
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
     renderTable();
   } catch (error) {
-    const message = error?.message || "コンテンツ一覧の取得に失敗しました。";
+    const message = error?.message || t("load_error", "Failed to load content.");
     window.AdminApp?.toast?.error?.(message);
     state.items = [];
     state.total = 0;
@@ -158,7 +247,7 @@ async function loadContentDetail(imageId) {
   const payload = await window.AdminApp.api.get(`/api/admin/content/${imageId}`);
   const content = payload.data?.content;
   if (!content) {
-    throw new Error("対象コンテンツが見つかりません。");
+    throw new Error(t("content_not_found", "Content not found."));
   }
   return content;
 }
@@ -169,15 +258,15 @@ function setDetail(content) {
   const preview = byId("adminContentDetailPreview");
   if (preview) {
     preview.src = content.preview_url || "";
-    preview.alt = content.title || "preview";
+    preview.alt = content.title || t("preview_alt", "preview");
     preview.dataset.imageId = String(content.image_id || "");
     preview.tabIndex = content.preview_url ? 0 : -1;
     preview.setAttribute("role", content.preview_url ? "button" : "img");
-    preview.setAttribute("aria-label", content.preview_url ? "画像を開く" : "preview");
+    preview.setAttribute("aria-label", content.preview_url ? t("preview_open", "Open image") : t("preview_alt", "preview"));
     preview.style.cursor = content.preview_url ? "zoom-in" : "";
   }
 
-  byId("adminContentDetailName").textContent = content.title || "(無題)";
+  byId("adminContentDetailName").textContent = content.title || t("no_title", "(Untitled)");
   byId("adminContentDetailSubline").textContent = `${content.uploader?.display_name || content.uploader?.user_key || "-"} ・ ${formatDateTime(content.posted_at)}`;
   byId("adminContentDetailFieldTitle").textContent = content.title || "-";
   byId("adminContentDetailFieldAlt").textContent = content.alt || "-";
@@ -195,7 +284,7 @@ function setDetail(content) {
 
   const visibilityButton = byId("adminContentVisibilityButton");
   if (visibilityButton) {
-    visibilityButton.textContent = content.visibility === "public" ? "非公開にする" : "公開にする";
+    visibilityButton.textContent = content.visibility === "public" ? t("make_private", "Make Private") : t("make_public", "Make Public");
   }
 }
 
@@ -205,7 +294,7 @@ async function openDetail(imageId) {
     setDetail(content);
     window.AdminApp.modal.open("admin-content-detail");
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "コンテンツ詳細の取得に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("detail_load_error", "Failed to load content details."));
   }
 }
 
@@ -245,13 +334,13 @@ function renderUploadSelection() {
 
   list.innerHTML = "";
   if (files.length === 0) {
-    summary.textContent = "ファイルが未選択です。";
+    summary.textContent = t("no_files", "No files selected.");
     list.hidden = true;
     return;
   }
 
   const totalBytes = files.reduce((sum, file) => sum + Number(file?.size || 0), 0);
-  summary.textContent = `${files.length} 件 / 合計 ${formatBytes(totalBytes)} を選択中です。`;
+  summary.textContent = t("selected_summary", "{count} selected / {size}", { count: files.length, size: formatBytes(totalBytes) });
 
   for (const file of files) {
     const li = document.createElement("li");
@@ -277,7 +366,7 @@ function setUploadSubmitting(submitting) {
   const openButton = byId("adminContentUploadOpenButton");
   if (submit) {
     submit.disabled = state.uploadSubmitting;
-    submit.textContent = state.uploadSubmitting ? "投稿中..." : "投稿する";
+    submit.textContent = state.uploadSubmitting ? t("submitting", "Uploading...") : t("submit", "Upload");
   }
   if (cancel) cancel.disabled = state.uploadSubmitting;
   if (openButton) openButton.disabled = state.uploadSubmitting;
@@ -297,7 +386,7 @@ async function uploadWithFormData(formData) {
   }
 
   if (!response.ok || !payload || payload.ok === false) {
-    const message = payload?.error?.message || payload?.detail || payload?.message || "投稿に失敗しました。";
+    const message = payload?.error?.message || payload?.detail || payload?.message || t("upload_error", "Upload failed.");
     throw new Error(message);
   }
 
@@ -307,7 +396,7 @@ async function uploadWithFormData(formData) {
 function buildDuplicateMessage(items) {
   const duplicates = Array.isArray(items) ? items.filter((item) => item?.duplicate) : [];
   if (duplicates.length === 0) {
-    return "重複画像が検出されたため、投稿は行われませんでした。";
+    return t("duplicate_short", "Duplicate images were detected, so nothing was uploaded.");
   }
 
   const lines = duplicates.slice(0, 10).map((item) => {
@@ -318,7 +407,7 @@ function buildDuplicateMessage(items) {
     lines.push(`- 他 ${duplicates.length - 10} 件`);
   }
 
-  return [`重複画像が検出されたため、投稿は行われませんでした。`, ...lines].join("\n");
+  return [t("duplicate_short", "Duplicate images were detected, so nothing was uploaded."), ...lines].join("\n");
 }
 
 async function submitUpload() {
@@ -332,15 +421,15 @@ async function submitUpload() {
   const files = Array.from(fileInput?.files || []);
 
   if (!title) {
-    setUploadResult("タイトルを入力してください。", "error");
+    setUploadResult(t("title_required", "Enter a title."), "error");
     return;
   }
   if (files.length === 0) {
-    setUploadResult("画像ファイルを選択してください。", "error");
+    setUploadResult(t("image_required", "Select image files."), "error");
     return;
   }
   if (files.length > MAX_UPLOAD_FILES) {
-    setUploadResult(`画像は最大 ${MAX_UPLOAD_FILES} 枚までです。`, "error");
+    setUploadResult(t("max_files", "You can upload up to {count} images.", { count: MAX_UPLOAD_FILES }), "error");
     return;
   }
 
@@ -360,13 +449,13 @@ async function submitUpload() {
     const payload = await uploadWithFormData(formData);
     if (payload.has_duplicates) {
       setUploadResult(buildDuplicateMessage(payload.items), "error");
-      window.AdminApp?.toast?.error?.("重複画像が検出されたため、投稿は行われませんでした。");
+      window.AdminApp?.toast?.error?.(t("duplicate_short", "Duplicate images were detected, so nothing was uploaded."));
       return;
     }
 
     const created = Number(payload.count || files.length || 0);
-    setUploadResult(`${created} 件の画像を投稿しました。`, "success");
-    window.AdminApp?.toast?.success?.(`${created} 件の画像を投稿しました。`);
+    setUploadResult(t("uploaded_count", "Uploaded {count} images.", { count: created }), "success");
+    window.AdminApp?.toast?.success?.(t("uploaded_count", "Uploaded {count} images.", { count: created }));
     state.page = 1;
     await loadContents();
     window.setTimeout(() => {
@@ -374,16 +463,16 @@ async function submitUpload() {
       resetUploadForm();
     }, 300);
   } catch (error) {
-    setUploadResult(error?.message || "投稿に失敗しました。", "error");
-    window.AdminApp?.toast?.error?.(error?.message || "投稿に失敗しました。");
+    setUploadResult(error?.message || t("upload_error", "Upload failed."), "error");
+    window.AdminApp?.toast?.error?.(error?.message || t("upload_error", "Upload failed."));
   } finally {
     setUploadSubmitting(false);
   }
 }
 
-async function openActionConfirm(message, approveLabel = "実行") {
+async function openActionConfirm(message, approveLabel = null) {
   byId("adminContentActionConfirmMessage").textContent = message;
-  byId("adminContentActionConfirmApprove").textContent = approveLabel;
+  byId("adminContentActionConfirmApprove").textContent = approveLabel || t("action_execute", "Confirm");
   window.AdminApp.modal.open("admin-content-action-confirm");
   return new Promise((resolve) => {
     state.pendingConfirm = resolve;
@@ -404,27 +493,27 @@ async function applyAction(kind) {
   let path = null;
   let body = undefined;
   let method = "POST";
-  let confirmText = "この操作を実行しますか？";
-  let approveLabel = "実行";
+  let confirmText = t("action_confirm", "Do you want to continue?");
+  let approveLabel = t("action_execute", "Confirm");
 
   if (kind === "visibility") {
     path = `/api/admin/content/${item.image_id}/visibility`;
     body = { is_public: item.visibility !== "public" };
     method = "PATCH";
-    confirmText = item.visibility === "public" ? "このコンテンツを非公開にしますか？" : "このコンテンツを公開しますか？";
-    approveLabel = "変更";
+    confirmText = item.visibility === "public" ? t("action_visibility_private", "Make this content private?") : t("action_visibility_public", "Make this content public?");
+    approveLabel = t("action_change", "Change");
   } else if (kind === "quarantine") {
     path = `/api/admin/content/${item.image_id}/quarantine`;
-    confirmText = "このコンテンツを隔離しますか？";
-    approveLabel = "隔離";
+    confirmText = t("action_quarantine", "Quarantine this content?");
+    approveLabel = t("action_quarantine_label", "Quarantine");
   } else if (kind === "restore") {
     path = `/api/admin/content/${item.image_id}/restore`;
-    confirmText = "このコンテンツを復元しますか？";
-    approveLabel = "復元";
+    confirmText = t("action_restore", "Restore this content?");
+    approveLabel = t("action_restore_label", "Restore");
   } else if (kind === "delete") {
     path = `/api/admin/content/${item.image_id}/delete`;
-    confirmText = "このコンテンツを削除状態にしますか？";
-    approveLabel = "削除";
+    confirmText = t("action_delete", "Mark this content as deleted?");
+    approveLabel = t("action_delete_label", "Delete");
   }
 
   const ok = await openActionConfirm(confirmText, approveLabel);
@@ -441,11 +530,27 @@ async function applyAction(kind) {
     if (content) {
       setDetail(content);
     }
-    window.AdminApp?.toast?.success?.(payload.message || "更新しました。");
+    window.AdminApp?.toast?.success?.(payload.message || t("updated", "Updated."));
     await loadContents();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "更新に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("update_error", "Update failed."));
   }
+}
+
+function applyStaticTranslations() {
+  Object.entries(CONTENT_MESSAGES).forEach(([locale, messages]) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_content.${key}`, value])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(CONTENT_MESSAGES["en-us"]).map(([key, value]) => [`admin_content.${key}`, value])));
+  });
+
+  const setText = (id, key, fallback, vars = {}) => {
+    const node = byId(id);
+    if (node) node.textContent = t(key, fallback, vars);
+  };
+  setText("adminContentUploadOpenButton", "new_post", "New Post");
+  setText("adminContentReloadButton", "reload", "Reload");
 }
 
 function bindFilters() {
@@ -562,6 +667,7 @@ function bindModals() {
 }
 
 async function initPage() {
+  applyStaticTranslations();
   state.uploadModalController = createUploadModalController({ app: window.AdminApp, scope: "admin" });
   bindFilters();
   bindTableEvents();

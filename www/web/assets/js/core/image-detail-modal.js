@@ -1,5 +1,72 @@
 import { escapeHtml } from "./dom.js";
 
+const DETAIL_MESSAGES = {
+  ja: {
+    title: "画像詳細",
+    like: "いいねする",
+    unlike: "いいねを取り消す",
+    close: "詳細を閉じる",
+    no_tags: "タグはありません。",
+    no_colors: "カラータグはありません。",
+    preview_open: "画像モーダルで表示",
+    preview_alt: "画像プレビュー",
+    preview_label: "画像プレビュー",
+    preview_hint: "クリックで画像表示へ戻る",
+    user_info: "ユーザー情報",
+    image_title: "タイトル",
+    alt: "説明文 (ALT)",
+    basic: "基本情報",
+    posted_at: "投稿日",
+    shot_at: "撮影日",
+    file_size: "データ容量",
+    image_size: "画像サイズ",
+    likes: "いいね数",
+    views: "閲覧数",
+    tags: "タグ",
+    color_tags: "カラータグ",
+    admin_meta: "内部メタ情報",
+    visibility: "公開状態",
+    public: "公開",
+    private: "非公開",
+    file_name: "ファイル名",
+    moderation: "モデレーション状態",
+  },
+  "en-us": {
+    title: "Image Details",
+    like: "Like",
+    unlike: "Unlike",
+    close: "Close details",
+    no_tags: "No tags.",
+    no_colors: "No color tags.",
+    preview_open: "Open in image modal",
+    preview_alt: "Image preview",
+    preview_label: "Image Preview",
+    preview_hint: "Click to return to image view",
+    user_info: "User",
+    image_title: "Title",
+    alt: "Description (ALT)",
+    basic: "Basic Info",
+    posted_at: "Posted At",
+    shot_at: "Shot At",
+    file_size: "File Size",
+    image_size: "Image Size",
+    likes: "Likes",
+    views: "Views",
+    tags: "Tags",
+    color_tags: "Color Tags",
+    admin_meta: "Internal Metadata",
+    visibility: "Visibility",
+    public: "Public",
+    private: "Private",
+    file_name: "File Name",
+    moderation: "Moderation",
+  },
+};
+
+function td(app, key, fallback) {
+  return app?.i18n?.t?.(`image_detail.${key}`, fallback) || fallback;
+}
+
 function textOrDash(value) {
   if (value === undefined || value === null || value === "") return "-";
   return String(value);
@@ -46,20 +113,26 @@ function normalizeColorTag(item) {
 }
 
 export function createImageDetailModal({ host, app, onOpen = null, onClose = null, onLikeToggle = null, onPreviewOpen = null }) {
+  Object.entries(DETAIL_MESSAGES).forEach(([locale, messages]) => {
+    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([k, v]) => [`image_detail.${k}`, v])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(DETAIL_MESSAGES["en-us"]).map(([k, v]) => [`image_detail.${k}`, v])));
+  });
   const overlay = document.createElement("section");
   overlay.className = "image-detail-modal";
   overlay.hidden = true;
   overlay.innerHTML = `
     <div class="image-detail-modal__backdrop"></div>
-    <div class="image-detail-modal__dialog" role="dialog" aria-modal="true" aria-label="画像詳細" tabindex="-1">
+    <div class="image-detail-modal__dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(td(app, "title", "Image Details"))}" tabindex="-1">
       <div class="image-detail-modal__header">
-        <h2 class="image-detail-modal__title">画像詳細</h2>
+        <h2 class="image-detail-modal__title">${escapeHtml(td(app, "title", "Image Details"))}</h2>
         <div class="image-detail-modal__header-actions">
-          <button type="button" class="image-detail-modal__like" aria-label="いいねする" aria-pressed="false">
+          <button type="button" class="image-detail-modal__like" aria-label="${escapeHtml(td(app, "like", "Like"))}" aria-pressed="false">
             <span class="image-detail-modal__like-icon" aria-hidden="true">♡</span>
             <span class="image-detail-modal__like-count">0</span>
           </button>
-          <button type="button" class="image-detail-modal__close" aria-label="詳細を閉じる">×</button>
+          <button type="button" class="image-detail-modal__close" aria-label="${escapeHtml(td(app, "close", "Close details"))}">×</button>
         </div>
       </div>
       <div class="image-detail-modal__body"></div>
@@ -85,7 +158,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     likeButton.disabled = likePending;
     likeButton.hidden = !authenticated;
     likeButton.setAttribute("aria-pressed", String(liked));
-    likeButton.setAttribute("aria-label", liked ? "いいねを取り消す" : "いいねする");
+    likeButton.setAttribute("aria-label", liked ? td(app, "unlike", "Unlike") : td(app, "like", "Like"));
     likeIcon.textContent = liked ? "♥" : "♡";
     likeCount.textContent = formatCount(detail.like_count ?? 0);
   }
@@ -108,12 +181,12 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
   }
 
   function renderTagList(items) {
-    if (!items?.length) return '<div class="image-detail-modal__empty">タグはありません。</div>';
+    if (!items?.length) return `<div class="image-detail-modal__empty">${escapeHtml(td(app, "no_tags", "No tags."))}</div>`;
     return `<div class="image-detail-modal__chips">${items.map((item) => `<span class="image-detail-modal__chip">${escapeHtml(item)}</span>`).join("")}</div>`;
   }
 
   function renderColorTags(items) {
-    if (!items?.length) return '<div class="image-detail-modal__empty">カラータグはありません。</div>';
+    if (!items?.length) return `<div class="image-detail-modal__empty">${escapeHtml(td(app, "no_colors", "No color tags."))}</div>`;
     return `<div class="image-detail-modal__chips image-detail-modal__chips--colors">${items.map((item) => {
       const color = normalizeColorTag(item);
       if (!color) return "";
@@ -138,7 +211,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     }
 
     const buttonAttrs = typeof onPreviewOpen === "function"
-      ? ' type="button" class="image-detail-modal__preview-button" data-detail-preview-open="" aria-label="画像モーダルで表示"'
+      ? ` type="button" class="image-detail-modal__preview-button" data-detail-preview-open="" aria-label="${escapeHtml(td(app, "preview_open", "Open in image modal"))}"`
       : ' type="button" class="image-detail-modal__preview-button is-static" disabled aria-hidden="true" tabindex="-1"';
 
     return `
@@ -146,12 +219,12 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
         <button${buttonAttrs}>
           <span class="image-detail-modal__preview-frame">
             <span class="image-detail-modal__preview-media">
-              <img class="image-detail-modal__preview-image" src="${escapeHtml(previewUrl)}" alt="${escapeHtml(detail.alt || detail.title || "画像プレビュー")}">
+              <img class="image-detail-modal__preview-image" src="${escapeHtml(previewUrl)}" alt="${escapeHtml(detail.alt || detail.title || td(app, "preview_alt", "Image preview"))}">
             </span>
           </span>
           <span class="image-detail-modal__preview-meta">
-            <span class="image-detail-modal__preview-label">画像プレビュー</span>
-            <span class="image-detail-modal__preview-hint">クリックで画像表示へ戻る</span>
+            <span class="image-detail-modal__preview-label">${escapeHtml(td(app, "preview_label", "Image Preview"))}</span>
+            <span class="image-detail-modal__preview-hint">${escapeHtml(td(app, "preview_hint", "Click to return to image view"))}</span>
           </span>
         </button>
       </section>
@@ -170,7 +243,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     const summaryBlock = `
       <section class="image-detail-modal__section image-detail-modal__section--summary">
         <div class="image-detail-modal__summary-group image-detail-modal__summary-group--user">
-          <div class="image-detail-modal__summary-label">ユーザー情報</div>
+          <div class="image-detail-modal__summary-label">${escapeHtml(td(app, "user_info", "User"))}</div>
           <button type="button" class="image-detail-modal__user image-detail-modal__user--compact${user.user_key ? " is-clickable" : ""}" data-user-key="${escapeHtml(user.user_key || "")}">
             ${user.avatar_url ? `<img class="image-detail-modal__avatar" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
             <div class="image-detail-modal__user-meta">
@@ -181,11 +254,11 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
         </div>
         <div class="image-detail-modal__summary-divider"></div>
         <div class="image-detail-modal__summary-group">
-          <div class="image-detail-modal__summary-label">タイトル</div>
+          <div class="image-detail-modal__summary-label">${escapeHtml(td(app, "image_title", "Title"))}</div>
           <div class="image-detail-modal__summary-value">${escapeHtml(textOrDash(detail.title))}</div>
         </div>
         <div class="image-detail-modal__summary-group">
-          <div class="image-detail-modal__summary-label">説明文 (ALT)</div>
+          <div class="image-detail-modal__summary-label">${escapeHtml(td(app, "alt", "Description (ALT)"))}</div>
           <div class="image-detail-modal__summary-value image-detail-modal__summary-value--multiline">${escapeHtml(textOrDash(detail.alt))}</div>
         </div>
       </section>
@@ -197,28 +270,28 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
 
     const infoBlock = `
       <section class="image-detail-modal__section">
-        <h3 class="image-detail-modal__section-title">基本情報</h3>
+        <h3 class="image-detail-modal__section-title">${escapeHtml(td(app, "basic", "Basic Info"))}</h3>
         <dl class="image-detail-modal__list">
-          ${renderRow("投稿日", formatDateTime(detail.posted_at))}
-          ${renderRow("撮影日", formatDateTime(detail.shot_at))}
-          ${renderRow("データ容量", formatBytes(detail.file_size_bytes))}
-          ${renderRow("画像サイズ", formatImageSize(detail.image_width, detail.image_height))}
-          ${renderRow("いいね数", formatCount(detail.like_count))}
-          ${renderRow("閲覧数", formatCount(detail.view_count))}
+          ${renderRow(td(app, "posted_at", "Posted At"), formatDateTime(detail.posted_at))}
+          ${renderRow(td(app, "shot_at", "Shot At"), formatDateTime(detail.shot_at))}
+          ${renderRow(td(app, "file_size", "File Size"), formatBytes(detail.file_size_bytes))}
+          ${renderRow(td(app, "image_size", "Image Size"), formatImageSize(detail.image_width, detail.image_height))}
+          ${renderRow(td(app, "likes", "Likes"), formatCount(detail.like_count))}
+          ${renderRow(td(app, "views", "Views"), formatCount(detail.view_count))}
         </dl>
       </section>
     `;
 
     const tagsBlock = `
       <section class="image-detail-modal__section">
-        <h3 class="image-detail-modal__section-title">タグ</h3>
+        <h3 class="image-detail-modal__section-title">${escapeHtml(td(app, "tags", "Tags"))}</h3>
         ${renderTagList(detail.tags || [])}
       </section>
     `;
 
     const colorsBlock = `
       <section class="image-detail-modal__section">
-        <h3 class="image-detail-modal__section-title">カラータグ</h3>
+        <h3 class="image-detail-modal__section-title">${escapeHtml(td(app, "color_tags", "Color Tags"))}</h3>
         ${renderColorTags(detail.color_tags || [])}
       </section>
     `;
@@ -226,11 +299,11 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     const adminBlock = isAdmin && (adminMeta.is_public !== undefined || adminMeta.file_name || adminMeta.moderation_status)
       ? `
         <section class="image-detail-modal__section">
-          <h3 class="image-detail-modal__section-title">内部メタ情報</h3>
+          <h3 class="image-detail-modal__section-title">${escapeHtml(td(app, "admin_meta", "Internal Metadata"))}</h3>
           <dl class="image-detail-modal__list">
-            ${adminMeta.is_public !== undefined ? renderRow("公開状態", adminMeta.is_public ? "公開" : "非公開") : ""}
-            ${adminMeta.file_name ? renderRow("ファイル名", adminMeta.file_name) : ""}
-            ${adminMeta.moderation_status ? renderRow("モデレーション状態", adminMeta.moderation_status) : ""}
+            ${adminMeta.is_public !== undefined ? renderRow(td(app, "visibility", "Visibility"), adminMeta.is_public ? td(app, "public", "Public") : td(app, "private", "Private")) : ""}
+            ${adminMeta.file_name ? renderRow(td(app, "file_name", "File Name"), adminMeta.file_name) : ""}
+            ${adminMeta.moderation_status ? renderRow(td(app, "moderation", "Moderation"), adminMeta.moderation_status) : ""}
           </dl>
         </section>
       `

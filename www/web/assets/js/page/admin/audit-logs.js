@@ -1,7 +1,41 @@
 import { escapeHtml } from "../../core/dom.js";
 
+const AUDIT_MESSAGES = {
+  ja: {
+    empty: "該当する監査ログがありません。",
+    detail: "詳細",
+    total_count: "合計 {count} 件",
+    loading: "読み込み中です。",
+    load_error: "監査ログの取得に失敗しました。",
+    not_found: "監査ログが見つかりません。",
+    detail_load_error: "監査ログ詳細の取得に失敗しました。",
+  },
+  "en-us": {
+    empty: "No audit logs found.",
+    detail: "Details",
+    total_count: "Total {count}",
+    loading: "Loading...",
+    load_error: "Failed to load audit logs.",
+    not_found: "Audit log not found.",
+    detail_load_error: "Failed to load audit log details.",
+  },
+};
+
 function byId(id) {
   return document.getElementById(id);
+}
+
+function t(key, fallback, vars = {}) {
+  return window.AdminApp?.i18n?.t?.(`admin_audit.${key}`, fallback, vars) || fallback;
+}
+
+function defineMessages() {
+  Object.entries(AUDIT_MESSAGES).forEach(([locale, messages]) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_audit.${key}`, value])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(AUDIT_MESSAGES["en-us"]).map(([key, value]) => [`admin_audit.${key}`, value])));
+  });
 }
 
 function formatDateTime(value) {
@@ -79,7 +113,7 @@ function renderTable(errorMessage = "") {
   if (errorMessage) {
     tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__empty">${escapeHtml(errorMessage)}</td></tr>`;
   } else if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__empty">該当する監査ログがありません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__empty">${escapeHtml(t("empty", "No audit logs found."))}</td></tr>`;
   } else {
     tbody.innerHTML = state.items.map((item) => {
       const actor = item.actor?.display_name || item.actor?.user_key || "-";
@@ -92,14 +126,14 @@ function renderTable(errorMessage = "") {
           <td>${resultPill(item.result)}</td>
           <td>${escapeHtml(item.summary || "-")}</td>
           <td>
-            <button type="button" class="app-button app-button--ghost app-button--sm" data-action="detail" data-log-id="${Number(item.id || 0)}">詳細</button>
+            <button type="button" class="app-button app-button--ghost app-button--sm" data-action="detail" data-log-id="${Number(item.id || 0)}">${escapeHtml(t("detail", "Details"))}</button>
           </td>
         </tr>
       `;
     }).join("");
   }
 
-  if (summary) summary.textContent = `合計 ${state.total} 件`;
+  if (summary) summary.textContent = t("total_count", "Total {count}", { count: state.total });
   if (pageInfo) pageInfo.textContent = `${state.page} / ${state.pages}`;
   if (prev) prev.disabled = state.page <= 1;
   if (next) next.disabled = state.page >= state.pages;
@@ -135,7 +169,7 @@ async function loadAuditLogs({ silent = false, force = false } = {}) {
 
   const tbody = byId("adminAuditTableBody");
   if (tbody && !silent) {
-    tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__empty">読み込み中です。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="admin-audit-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
   }
 
   state.loadPromise = window.AdminApp.api.get(`/api/admin/audit-logs?${buildQuery()}`)
@@ -155,9 +189,9 @@ async function loadAuditLogs({ silent = false, force = false } = {}) {
       state.items = [];
       state.total = 0;
       state.pages = 1;
-      renderTable(error?.message || "監査ログの取得に失敗しました。");
+      renderTable(error?.message || t("load_error", "Failed to load audit logs."));
       if (!silent) {
-        window.AdminApp?.toast?.error?.(error?.message || "監査ログの取得に失敗しました。");
+        window.AdminApp?.toast?.error?.(error?.message || t("load_error", "Failed to load audit logs."));
       }
     })
     .finally(() => {
@@ -183,11 +217,11 @@ async function openDetail(logId) {
   try {
     const payload = await window.AdminApp.api.get(`/api/admin/audit-logs/${logId}`);
     const item = payload.data?.item;
-    if (!item) throw new Error("監査ログが見つかりません。");
+    if (!item) throw new Error(t("not_found", "Audit log not found."));
     fillDetail(item);
     window.AdminApp.modal.open("admin-audit-detail");
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || "監査ログ詳細の取得に失敗しました。");
+    window.AdminApp?.toast?.error?.(error?.message || t("detail_load_error", "Failed to load audit log details."));
   }
 }
 
@@ -268,7 +302,12 @@ function startLiveRefresh() {
 }
 
 document.addEventListener("admin:ready", async () => {
+  defineMessages();
   bindEvents();
   await loadAuditLogs({ force: true });
   startLiveRefresh();
+  window.addEventListener("gallery:language-changed", () => {
+    syncLiveRefreshControl();
+    renderTable("");
+  });
 });

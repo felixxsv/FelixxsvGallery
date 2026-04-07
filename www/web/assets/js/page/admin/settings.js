@@ -2,6 +2,139 @@ import { createApiClient } from "../../core/api.js";
 
 const appBase = document.body.dataset.appBase || "/gallery";
 const api = createApiClient({ baseUrl: appBase });
+const SETTINGS_MESSAGES = {
+  ja: {
+    group_general: "全般",
+    group_general_desc: "サイト名や画像モーダルの既定値を管理します。",
+    group_security: "セキュリティ",
+    group_security_desc: "パスワードポリシーやセッション関連の既定値を管理します。",
+    group_smtp: "メール (SMTP)",
+    group_smtp_desc: "送信元や SMTP 接続先を管理します。SMTP パスワードは後続フェーズです。",
+    group_storage: "ストレージ",
+    group_storage_desc: "ストレージ関連の参照パスとアップロード上限を管理します。",
+    group_integrity: "整合性チェック",
+    group_integrity_desc: "日次整合性チェックの有効化、周期、実行時刻、保持期間を管理します。",
+    mon: "月", tue: "火", wed: "水", thu: "木", fri: "金", sat: "土", sun: "日",
+    not_set: "未設定",
+    exists: "存在",
+    file: "ファイル",
+    not_created: "未作成",
+    storage_loading: "使用状況を読み込み中です…",
+    storage_idle: "使用状況はまだ読み込まれていません。",
+    storage_placeholder: "使用状況を取得するとここに表示します。",
+    storage_error: "使用状況の取得に失敗しました。",
+    save_loading: "読み込み中…",
+    save_loaded: "読み込み完了",
+    load_error: "設定の読み込みに失敗しました。",
+    load_failed: "読み込みに失敗しました。",
+    discard_move: "未保存の変更があります。破棄して移動しますか？",
+    apply_confirm: "{title} の変更を適用します。よろしいですか？",
+    save_saving: "保存中…",
+    save_done: "保存済み ({date})",
+    save_success: "設定を更新しました。",
+    save_failed: "保存に失敗しました。",
+    save_error: "設定の保存に失敗しました。",
+    path_unset_help: "このパスは未設定です。保存済みの設定にパスを入れると使用状況を表示します。",
+    path_missing_usage: "パスが存在せず、使用率を算出できませんでした。",
+    path_special_file: "特殊ファイルのため、ディレクトリ容量の集計対象外です。",
+    path_directory_usage: "ディレクトリ配下の実ファイル合計と、配置先ファイルシステムの使用率を表示しています。",
+    path_file_usage: "単一ファイルのサイズと、配置先ファイルシステムの使用率を表示しています。",
+    directory: "ディレクトリ",
+    integrity_disabled: "現在は無効です。保存後も定期実行は行われません。設定内容はこのまま保持されます。",
+    integrity_run_at_hint: "実行時刻を設定すると、ここに次回以降の実行ルールを表示します。",
+    integrity_every_days: "{days}日ごとに {time} に実行します。",
+    integrity_weekday_required: "曜日指定が未選択です。少なくとも 1 つ曜日を選択してください。",
+    integrity_weekly: "毎週 {days} の {time} に実行します。",
+    integrity_daily: "毎日 {time} に実行します。",
+    integrity_help_interval: "指定した日数ごとに、同じ時刻で実行します。",
+    integrity_help_weekly: "選んだ曜日だけ、指定した時刻で実行します。",
+    integrity_help_daily: "毎日、指定した時刻に 1 回実行します。",
+    integrity_selected: "選択中: {days}",
+    not_saved_yet: "まだ保存されていません。",
+  },
+  "en-us": {
+    group_general: "General",
+    group_general_desc: "Manage the site name and default image modal behavior.",
+    group_security: "Security",
+    group_security_desc: "Manage password policy and session defaults.",
+    group_smtp: "Mail (SMTP)",
+    group_smtp_desc: "Manage sender information and SMTP connection settings.",
+    group_storage: "Storage",
+    group_storage_desc: "Manage storage paths and upload limits.",
+    group_integrity: "Integrity Check",
+    group_integrity_desc: "Manage scheduled integrity checks, cadence, run time, and retention.",
+    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
+    not_set: "Not set",
+    exists: "Exists",
+    file: "File",
+    not_created: "Not created",
+    storage_loading: "Loading usage...",
+    storage_idle: "Usage has not been loaded yet.",
+    storage_placeholder: "Usage information will appear here after loading.",
+    storage_error: "Failed to load usage information.",
+    save_loading: "Loading...",
+    save_loaded: "Loaded",
+    load_error: "Failed to load settings.",
+    load_failed: "Load failed.",
+    discard_move: "You have unsaved changes. Discard them and continue?",
+    apply_confirm: "Apply changes to {title}?",
+    save_saving: "Saving...",
+    save_done: "Saved ({date})",
+    save_success: "Settings updated.",
+    save_failed: "Save failed.",
+    save_error: "Failed to save settings.",
+    path_unset_help: "This path is not configured. Save a path to show usage information here.",
+    path_missing_usage: "The path does not exist, so usage could not be calculated.",
+    path_special_file: "This is a special file and is excluded from directory usage calculations.",
+    path_directory_usage: "Shows total real files under the directory and the destination filesystem usage.",
+    path_file_usage: "Shows the file size and the destination filesystem usage.",
+    directory: "Directory",
+    integrity_disabled: "This is currently disabled. No scheduled run will occur after saving, but the settings are kept.",
+    integrity_run_at_hint: "Set a run time to show the future execution rule here.",
+    integrity_every_days: "Runs every {days} days at {time}.",
+    integrity_weekday_required: "No weekdays selected. Select at least one weekday.",
+    integrity_weekly: "Runs every week on {days} at {time}.",
+    integrity_daily: "Runs every day at {time}.",
+    integrity_help_interval: "Runs at the same time every specified number of days.",
+    integrity_help_weekly: "Runs at the specified time only on the selected weekdays.",
+    integrity_help_daily: "Runs once a day at the specified time.",
+    integrity_selected: "Selected: {days}",
+    not_saved_yet: "Not saved yet.",
+  },
+};
+
+function t(key, fallback, vars = {}) {
+  return window.AdminApp?.i18n?.t?.(`admin_settings.${key}`, fallback, vars) || fallback;
+}
+
+function defineMessages() {
+  Object.entries(SETTINGS_MESSAGES).forEach(([locale, messages]) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_settings.${key}`, value])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(SETTINGS_MESSAGES["en-us"]).map(([key, value]) => [`admin_settings.${key}`, value])));
+  });
+}
+
+function applyGroupTranslations() {
+  GROUP_META.general.title = t("group_general", "General");
+  GROUP_META.general.description = t("group_general_desc", "Manage the site name and default image modal behavior.");
+  GROUP_META.security.title = t("group_security", "Security");
+  GROUP_META.security.description = t("group_security_desc", "Manage password policy and session defaults.");
+  GROUP_META.smtp.title = t("group_smtp", "Mail (SMTP)");
+  GROUP_META.smtp.description = t("group_smtp_desc", "Manage sender information and SMTP connection settings.");
+  GROUP_META.storage.title = t("group_storage", "Storage");
+  GROUP_META.storage.description = t("group_storage_desc", "Manage storage paths and upload limits.");
+  GROUP_META.integrity.title = t("group_integrity", "Integrity Check");
+  GROUP_META.integrity.description = t("group_integrity_desc", "Manage scheduled integrity checks, cadence, run time, and retention.");
+  WEEKDAY_LABELS.mon = t("mon", "Mon");
+  WEEKDAY_LABELS.tue = t("tue", "Tue");
+  WEEKDAY_LABELS.wed = t("wed", "Wed");
+  WEEKDAY_LABELS.thu = t("thu", "Thu");
+  WEEKDAY_LABELS.fri = t("fri", "Fri");
+  WEEKDAY_LABELS.sat = t("sat", "Sat");
+  WEEKDAY_LABELS.sun = t("sun", "Sun");
+}
 
 const GROUP_META = {
   general: {
@@ -226,26 +359,26 @@ function scheduleStorageUsageAutoRefresh() {
 }
 
 function buildStoragePathStatus(item) {
-  if (!item?.path) return "未設定";
-  if (item.exists) return item.is_directory ? "存在" : item.is_file ? "ファイル" : "存在";
-  return "未作成";
+  if (!item?.path) return t("not_set", "Not set");
+  if (item.exists) return item.is_directory ? t("exists", "Exists") : item.is_file ? t("file", "File") : t("exists", "Exists");
+  return t("not_created", "Not created");
 }
 
 function buildStoragePathNote(item) {
   if (!item?.path) {
-    return "このパスは未設定です。保存済みの設定にパスを入れると使用状況を表示します。";
+    return t("path_unset_help", "This path is not configured. Save a path to show usage information here.");
   }
   if (!item.exists) {
     return item.usage_base_path
       ? `パス自体はまだ存在しません。使用率は親ディレクトリ ${item.usage_base_path} を基準に表示しています。`
-      : "パスが存在せず、使用率を算出できませんでした。";
+      : t("path_missing_usage", "The path does not exist, so usage could not be calculated.");
   }
   if (!item.is_directory && !item.is_file) {
-    return "特殊ファイルのため、ディレクトリ容量の集計対象外です。";
+    return t("path_special_file", "This is a special file and is excluded from directory usage calculations.");
   }
   return item.is_directory
-    ? "ディレクトリ配下の実ファイル合計と、配置先ファイルシステムの使用率を表示しています。"
-    : "単一ファイルのサイズと、配置先ファイルシステムの使用率を表示しています。";
+    ? t("path_directory_usage", "Shows total real files under the directory and the destination filesystem usage.")
+    : t("path_file_usage", "Shows the file size and the destination filesystem usage.");
 }
 
 function setStorageRingUsage(element, ratio) {
@@ -265,7 +398,7 @@ function createStorageUsageCard(item) {
 
   const title = document.createElement("h4");
   title.className = "admin-storage-card__title";
-  title.textContent = item.label || item.key || "ディレクトリ";
+  title.textContent = item.label || item.key || t("directory", "Directory");
 
   const status = document.createElement("span");
   status.className = "admin-storage-card__status";
@@ -282,7 +415,7 @@ function createStorageUsageCard(item) {
 
   const path = document.createElement("p");
   path.className = "admin-storage-card__path";
-  path.textContent = item.path || "未設定";
+  path.textContent = item.path || t("not_set", "Not set");
 
   header.append(heading, path);
 
@@ -353,7 +486,7 @@ function renderStorageUsage() {
     intervalSelect.value = String(getStorageUsageRefreshInterval());
   }
   loadingEl.hidden = !loading && loaded;
-  loadingEl.textContent = loading ? "使用状況を読み込み中です…" : "使用状況はまだ読み込まれていません。";
+  loadingEl.textContent = loading ? t("storage_loading", "Loading usage...") : t("storage_idle", "Usage has not been loaded yet.");
   messageEl.hidden = !error;
   messageEl.textContent = error || "";
   messageEl.classList.toggle("is-error", Boolean(error));
@@ -363,7 +496,7 @@ function renderStorageUsage() {
     if (cardsEl) cardsEl.replaceChildren();
     if (generatedAtEl) generatedAtEl.textContent = "-";
     if (primaryLabelEl) primaryLabelEl.textContent = "storage_root";
-    if (primaryPathEl) primaryPathEl.textContent = "使用状況を取得するとここに表示します。";
+    if (primaryPathEl) primaryPathEl.textContent = t("storage_placeholder", "Usage information will appear here after loading.");
     if (primaryDirectorySizeEl) primaryDirectorySizeEl.textContent = "-";
     if (primaryUsageEl) primaryUsageEl.textContent = "-";
     if (primaryFreeEl) primaryFreeEl.textContent = "-";
@@ -379,7 +512,7 @@ function renderStorageUsage() {
   }
   if (primary) {
     if (primaryLabelEl) primaryLabelEl.textContent = primary.label || primary.key || "storage_root";
-    if (primaryPathEl) primaryPathEl.textContent = primary.path || "未設定";
+    if (primaryPathEl) primaryPathEl.textContent = primary.path || t("not_set", "Not set");
     if (primaryDirectorySizeEl) primaryDirectorySizeEl.textContent = formatBytes(primary.directory_size_bytes);
     if (primaryUsageEl) {
       primaryUsageEl.textContent = `${formatBytes(primary.filesystem_used_bytes)} / ${formatBytes(primary.filesystem_total_bytes)}`;
@@ -410,7 +543,7 @@ async function loadStorageUsage({ force = false, silent = false } = {}) {
     state.storageUsage.data = result.data || null;
     state.storageUsage.loaded = true;
   } catch (error) {
-    state.storageUsage.error = error.message || "使用状況の取得に失敗しました。";
+    state.storageUsage.error = error.message || t("storage_error", "Failed to load usage information.");
     state.storageUsage.data = null;
     state.storageUsage.loaded = false;
     if (!silent) {
@@ -530,31 +663,31 @@ function selectedIntegrityWeekdayLabels() {
 
 function formatIntegrityRunTime() {
   const runAt = document.getElementById("adminSettingsIntegrityRunAt")?.value?.trim() || "";
-  return runAt || "未設定";
+  return runAt || t("not_set", "Not set");
 }
 
 function buildIntegritySummary({ enabled, scheduleType, intervalDays, weeklyLabels, runAt }) {
   if (!enabled) {
-    return `現在は無効です。保存後も定期実行は行われません。設定内容はこのまま保持されます。`;
+    return t("integrity_disabled", "This is currently disabled. No scheduled run will occur after saving, but the settings are kept.");
   }
 
-  if (!runAt || runAt === "未設定") {
-    return `実行時刻を設定すると、ここに次回以降の実行ルールを表示します。`;
+  if (!runAt || runAt === t("not_set", "Not set")) {
+    return t("integrity_run_at_hint", "Set a run time to show the future execution rule here.");
   }
 
   if (scheduleType === "every_n_days") {
     const days = Number(intervalDays) || 1;
-    return `${days}日ごとに ${runAt} に実行します。`;
+    return t("integrity_every_days", "Runs every {days} days at {time}.", { days, time: runAt });
   }
 
   if (scheduleType === "weekly") {
     if (!weeklyLabels.length) {
-      return `曜日指定が未選択です。少なくとも 1 つ曜日を選択してください。`;
+      return t("integrity_weekday_required", "No weekdays selected. Select at least one weekday.");
     }
-    return `毎週 ${weeklyLabels.join("・")} の ${runAt} に実行します。`;
+    return t("integrity_weekly", "Runs every week on {days} at {time}.", { days: weeklyLabels.join(" / "), time: runAt });
   }
 
-  return `毎日 ${runAt} に実行します。`;
+  return t("integrity_daily", "Runs every day at {time}.", { time: runAt });
 }
 
 function syncIntegrityFieldState() {
@@ -589,18 +722,18 @@ function syncIntegrityFieldState() {
 
   if (scheduleHelp) {
     if (scheduleType === "every_n_days") {
-      scheduleHelp.textContent = "指定した日数ごとに、同じ時刻で実行します。";
+      scheduleHelp.textContent = t("integrity_help_interval", "Runs at the same time every specified number of days.");
     } else if (scheduleType === "weekly") {
-      scheduleHelp.textContent = "選んだ曜日だけ、指定した時刻で実行します。";
+      scheduleHelp.textContent = t("integrity_help_weekly", "Runs at the specified time only on the selected weekdays.");
     } else {
-      scheduleHelp.textContent = "毎日、指定した時刻に 1 回実行します。";
+      scheduleHelp.textContent = t("integrity_help_daily", "Runs once a day at the specified time.");
     }
   }
 
   if (weeklyHelp) {
     weeklyHelp.textContent = weeklyLabels.length
-      ? `選択中: ${weeklyLabels.join("・")}`
-      : "少なくとも 1 つ曜日を選択してください。";
+      ? t("integrity_selected", "Selected: {days}", { days: weeklyLabels.join(" / ") })
+      : t("integrity_weekday_required", "No weekdays selected. Select at least one weekday.");
   }
 
   form.dataset.scheduleType = scheduleType;
@@ -628,7 +761,7 @@ function updateHeader() {
   if (updatedMeta) {
     updatedMeta.textContent = entry?.updated_at
       ? `最終更新: ${formatDateTime(entry.updated_at)}`
-      : "まだ保存されていません。";
+      : t("not_saved_yet", "Not saved yet.");
   }
 
   const applyButton = $("#adminSettingsApplyButton");
@@ -690,14 +823,14 @@ async function loadGroup(group) {
 
 async function loadAll() {
   setMessage("");
-  setSaveState("読み込み中…");
+  setSaveState(t("save_loading", "Loading..."));
   try {
     await Promise.all(Object.keys(GROUP_META).map((group) => loadGroup(group)));
     renderActiveTab();
-    setSaveState("読み込み完了");
+    setSaveState(t("save_loaded", "Loaded"));
   } catch (error) {
-    setMessage(error.message || "設定の読み込みに失敗しました。", true);
-    setSaveState("読み込みに失敗しました。", "error");
+    setMessage(error.message || t("load_error", "Failed to load settings."), true);
+    setSaveState(t("load_failed", "Load failed."), "error");
   }
 }
 
@@ -705,7 +838,7 @@ async function switchTab(nextTab) {
   if (!GROUP_META[nextTab] || nextTab === state.activeTab) return;
 
   if (isGroupDirty(state.activeTab)) {
-    const ok = await window.AdminApp?.dirtyGuard?.confirmIfNeeded?.("未保存の変更があります。破棄して移動しますか？");
+    const ok = await window.AdminApp?.dirtyGuard?.confirmIfNeeded?.(t("discard_move", "You have unsaved changes. Discard them and continue?"));
     if (!ok) return;
     const entry = state.groups[state.activeTab];
     entry.current = deepClone(entry.initial || {});
@@ -746,7 +879,7 @@ function bindFieldEvents() {
 function openApplyConfirm() {
   const msg = $("#adminSettingsApplyConfirmMessage");
   if (msg) {
-    msg.textContent = `${activeGroupMeta().title} の変更を適用します。よろしいですか？`;
+    msg.textContent = t("apply_confirm", "Apply changes to {title}?", { title: activeGroupMeta().title });
   }
   window.AdminApp?.modal?.open?.("admin-settings-apply-confirm");
   return new Promise((resolve) => {
@@ -774,7 +907,7 @@ async function applyActiveTab() {
 
   state.saving = true;
   updateHeader();
-  setSaveState("保存中…");
+  setSaveState(t("save_saving", "Saving..."));
   setMessage("");
 
   try {
@@ -794,11 +927,11 @@ async function applyActiveTab() {
       state.storageUsage.loaded = false;
       await loadStorageUsage({ force: true, silent: true });
     }
-    setSaveState(`保存済み (${formatDateTime(data.updated_at)})`);
-    setMessage(result.message || "設定を更新しました。");
+    setSaveState(t("save_done", "Saved ({date})", { date: formatDateTime(data.updated_at) }));
+    setMessage(result.message || t("save_success", "Settings updated."));
   } catch (error) {
-    setSaveState("保存に失敗しました。", "error");
-    setMessage(error.message || "設定の保存に失敗しました。", true);
+    setSaveState(t("save_failed", "Save failed."), "error");
+    setMessage(error.message || t("save_error", "Failed to save settings."), true);
   } finally {
     state.saving = false;
     updateHeader();
@@ -812,6 +945,8 @@ function bindApplyEvents() {
 }
 
 export async function initAdminSettingsPage() {
+  defineMessages();
+  applyGroupTranslations();
   window.AdminApp?.dirtyGuard?.register?.("admin-settings-page", () => isAnyDirty());
   bindTabEvents();
   bindFieldEvents();
@@ -829,4 +964,9 @@ export async function initAdminSettingsPage() {
 
 document.addEventListener("admin:ready", () => {
   initAdminSettingsPage();
+  window.addEventListener("gallery:language-changed", () => {
+    applyGroupTranslations();
+    renderActiveTab();
+    updateHeader();
+  });
 });

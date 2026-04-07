@@ -2,6 +2,40 @@ import { createImageDetailModal } from "./image-detail-modal.js";
 import { escapeHtml } from "./dom.js";
 
 const STYLE_ID = "felixxsv-image-modal-style";
+const IMAGE_MODAL_MESSAGES = {
+  ja: {
+    close: "閉じる",
+    prev: "前の画像",
+    next: "次の画像",
+    zoom: "拡大率",
+    like: "いいねする",
+    unlike: "いいねを取り消す",
+    new_tab: "別タブで表示",
+    detail: "詳細",
+    untitled: "タイトル未設定",
+    unknown_user: "投稿者不明",
+    like_auth: "いいね機能はログイン後に利用できます。",
+    like_error: "いいねの更新に失敗しました。",
+  },
+  "en-us": {
+    close: "Close",
+    prev: "Previous image",
+    next: "Next image",
+    zoom: "Zoom",
+    like: "Like",
+    unlike: "Unlike",
+    new_tab: "Open in new tab",
+    detail: "Details",
+    untitled: "Untitled",
+    unknown_user: "Unknown uploader",
+    like_auth: "Likes are available after login.",
+    like_error: "Failed to update like.",
+  },
+};
+
+function t(app, key, fallback) {
+  return app?.i18n?.t?.(`image_modal.${key}`, fallback) || fallback;
+}
 
 function ensureStylesheet(appBase) {
   if (document.getElementById(STYLE_ID)) return;
@@ -58,7 +92,8 @@ function withAppBase(path) {
 function normalizePayload(item, options = {}) {
   const normalized = { ...(item || {}) };
   normalized.image_id = item?.image_id ?? item?.id ?? null;
-  normalized.title = item?.title || item?.alt || "タイトル未設定";
+  const app = window.App || window.AdminApp || null;
+  normalized.title = item?.title || item?.alt || t(app, "untitled", "Untitled");
   normalized.alt = item?.alt ?? "";
   normalized.preview_url = withAppBase(
     item?.preview_url ||
@@ -80,7 +115,7 @@ function normalizePayload(item, options = {}) {
   normalized.viewer_liked = Boolean(item?.viewer_liked);
   normalized.view_count = Number(item?.view_count || 0);
   normalized.user = item?.user || {
-    display_name: item?.uploader_display_name || item?.display_name || "投稿者不明",
+    display_name: item?.uploader_display_name || item?.display_name || t(app, "unknown_user", "Unknown uploader"),
     user_key: normalizeUserKey(item?.uploader_user_key || item?.user_key),
     avatar_url: withAppBase(item?.uploader_avatar_url || item?.uploader_avatar_path || item?.avatar_url || ""),
   };
@@ -106,6 +141,10 @@ function normalizeItems(payload, options = {}) {
 }
 
 export function createImageModalController({ app, body = document.body } = {}) {
+  Object.entries(IMAGE_MODAL_MESSAGES).forEach(([locale, messages]) => app.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([k, v]) => [`image_modal.${k}`, v]))));
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    app.i18n?.define?.(locale, Object.fromEntries(Object.entries(IMAGE_MODAL_MESSAGES["en-us"]).map(([k, v]) => [`image_modal.${k}`, v])));
+  });
   ensureStylesheet(app.appBase);
 
   const root = document.createElement("section");
@@ -114,14 +153,14 @@ export function createImageModalController({ app, body = document.body } = {}) {
   root.innerHTML = `
     <div class="image-modal__backdrop"></div>
     <div class="image-modal__viewport" tabindex="-1">
-      <button type="button" class="image-modal__close" aria-label="閉じる">×</button>
-      <button type="button" class="image-modal__nav image-modal__nav--prev" data-action="prev" aria-label="前の画像">‹</button>
-      <button type="button" class="image-modal__nav image-modal__nav--next" data-action="next" aria-label="次の画像">›</button>
+      <button type="button" class="image-modal__close" aria-label="${escapeHtml(t(app, "close", "Close"))}">×</button>
+      <button type="button" class="image-modal__nav image-modal__nav--prev" data-action="prev" aria-label="${escapeHtml(t(app, "prev", "Previous image"))}">‹</button>
+      <button type="button" class="image-modal__nav image-modal__nav--next" data-action="next" aria-label="${escapeHtml(t(app, "next", "Next image"))}">›</button>
       <div class="image-modal__stage">
         <img class="image-modal__image" alt="">
       </div>
       <div class="image-modal__slider-wrap" hidden>
-        <input class="image-modal__slider" type="range" min="100" max="300" step="10" value="100" aria-label="拡大率">
+        <input class="image-modal__slider" type="range" min="100" max="300" step="10" value="100" aria-label="${escapeHtml(t(app, "zoom", "Zoom"))}">
       </div>
       <div class="image-modal__footer">
         <div class="image-modal__meta">
@@ -140,10 +179,10 @@ export function createImageModalController({ app, body = document.body } = {}) {
           </div>
         </div>
         <div class="image-modal__actions">
-          <button type="button" class="image-modal__action image-modal__action--like" data-action="like" aria-label="いいねする" aria-pressed="false">♡</button>
+          <button type="button" class="image-modal__action image-modal__action--like" data-action="like" aria-label="${escapeHtml(t(app, "like", "Like"))}" aria-pressed="false">♡</button>
           <span class="image-modal__stat"><span class="image-modal__like-count">0</span></span>
-          <button type="button" class="image-modal__action image-modal__action--ghost" data-action="new-tab" aria-label="別タブで表示">↗</button>
-          <button type="button" class="image-modal__action image-modal__action--ghost" data-action="detail" aria-label="詳細">…</button>
+          <button type="button" class="image-modal__action image-modal__action--ghost" data-action="new-tab" aria-label="${escapeHtml(t(app, "new_tab", "Open in new tab"))}">↗</button>
+          <button type="button" class="image-modal__action image-modal__action--ghost" data-action="detail" aria-label="${escapeHtml(t(app, "detail", "Details"))}">…</button>
         </div>
       </div>
     </div>
@@ -319,7 +358,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     likeButton.classList.toggle("is-pending", state.likePending);
     likeButton.disabled = state.likePending;
     likeButton.setAttribute("aria-pressed", String(liked));
-    likeButton.setAttribute("aria-label", liked ? "いいねを取り消す" : "いいねする");
+    likeButton.setAttribute("aria-label", liked ? t(app, "unlike", "Unlike") : t(app, "like", "Like"));
     likeButton.textContent = liked ? "♥" : "♡";
     likeCountNode.textContent = formatCompactCount(current.like_count || 0);
     detailModal.setLikePending(state.likePending);
@@ -327,7 +366,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   function populateFooter() {
     const item = currentItem() || {};
-    titleNode.textContent = item.title || "タイトル未設定";
+    titleNode.textContent = item.title || t(app, "untitled", "Untitled");
     postedAtNode.textContent = formatDateTime(item.posted_at);
     const user = item.user || {};
     const avatarUrl = user.avatar_url ? withAppBase(user.avatar_url) : "";
@@ -405,7 +444,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
     const sessionState = app.session?.getState?.() || { authenticated: false };
     if (!sessionState.authenticated) {
-      app.toast.error("いいね機能はログイン後に利用できます。");
+      app.toast.error(t(app, "like_auth", "Likes are available after login."));
       return;
     }
 
@@ -441,7 +480,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
       }
     } catch (error) {
       applyLikeState(previous);
-      app.toast.error(error.message || "いいねの更新に失敗しました。");
+      app.toast.error(error.message || t(app, "like_error", "Failed to update like."));
     } finally {
       state.likePending = false;
       syncLikeUi();

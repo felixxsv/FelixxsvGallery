@@ -1,6 +1,69 @@
 import { createApiClient } from "../../core/api.js";
 import { escapeHtml } from "../../core/dom.js";
 
+const MAIL_MESSAGES = {
+  ja: {
+    no_draft: "下書きはありません。",
+    everyone: "全員",
+    none_selected: "選択なし",
+    user: "ユーザー",
+    selected_count: "{count}名選択",
+    selected_more: "{first} ほか{count}名",
+    recipients_empty: "該当するユーザーがいません。",
+    can_send: "送信可",
+    cannot_send: "送信不可",
+    select_user: "{name} を選択",
+    history_empty: "送信履歴はまだありません。",
+    sender: "送信者",
+    recipients: "宛先",
+    success: "成功",
+    failure: "失敗",
+    draft_saved: "下書きを保存済み ({date})",
+    sender_meta: "送信元: {sender}",
+    template_error: "メール設定の取得に失敗しました。",
+    draft_load_error: "下書きの取得に失敗しました。",
+    recipient_error: "宛先一覧の取得に失敗しました。",
+    history_error: "送信履歴の取得に失敗しました。",
+    draft_saving: "下書きを保存中...",
+    draft_save_error: "下書きの保存に失敗しました。",
+    subject_required: "件名を入力してください。",
+    body_required: "本文を入力してください。",
+    recipient_required: "送信先を選択してください。",
+    sent_ok: "メールを送信しました。",
+    send_error: "メール送信に失敗しました。",
+  },
+  "en-us": {
+    no_draft: "No draft.",
+    everyone: "Everyone",
+    none_selected: "None selected",
+    user: "User",
+    selected_count: "{count} selected",
+    selected_more: "{first} and {count} more",
+    recipients_empty: "No users found.",
+    can_send: "Can send",
+    cannot_send: "Cannot send",
+    select_user: "Select {name}",
+    history_empty: "No mail history yet.",
+    sender: "Sender",
+    recipients: "Recipients",
+    success: "Success",
+    failure: "Failure",
+    draft_saved: "Draft saved ({date})",
+    sender_meta: "From: {sender}",
+    template_error: "Failed to load mail settings.",
+    draft_load_error: "Failed to load draft.",
+    recipient_error: "Failed to load recipients.",
+    history_error: "Failed to load history.",
+    draft_saving: "Saving draft...",
+    draft_save_error: "Failed to save draft.",
+    subject_required: "Enter a subject.",
+    body_required: "Enter a message body.",
+    recipient_required: "Select recipients.",
+    sent_ok: "Mail sent.",
+    send_error: "Failed to send mail.",
+  },
+};
+
 const appBase = document.body.dataset.appBase || "/gallery";
 const api = createApiClient({ baseUrl: appBase });
 
@@ -27,6 +90,19 @@ const state = {
 
 const $ = (selector) => document.querySelector(selector);
 
+function t(key, fallback, vars = {}) {
+  return window.AdminApp?.i18n?.t?.(`admin_mail.${key}`, fallback, vars) || fallback;
+}
+
+function defineMessages() {
+  Object.entries(MAIL_MESSAGES).forEach(([locale, messages]) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(messages).map(([key, value]) => [`admin_mail.${key}`, value])));
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    window.AdminApp?.i18n?.define?.(locale, Object.fromEntries(Object.entries(MAIL_MESSAGES["en-us"]).map(([key, value]) => [`admin_mail.${key}`, value])));
+  });
+}
+
 function setMessage(message, isError = false) {
   const el = $("#adminMailMessage");
   if (!el) return;
@@ -38,7 +114,7 @@ function setMessage(message, isError = false) {
 function setDraftStatus(message) {
   const el = $("#adminMailDraftStatus");
   if (!el) return;
-  el.textContent = message || "下書きはありません。";
+  el.textContent = message || t("no_draft", "No draft.");
 }
 
 function formatDate(value) {
@@ -105,23 +181,23 @@ function updateSummary() {
 
   if (state.recipientScope === "everyone") {
     $("#adminMailSummaryRecipients").textContent = "@everyone";
-    $("#adminMailSummaryCount").textContent = "全員";
+    $("#adminMailSummaryCount").textContent = t("everyone", "Everyone");
     return;
   }
 
   const count = state.selectedIds.size;
   if (count === 0) {
-    $("#adminMailSummaryRecipients").textContent = "選択なし";
+    $("#adminMailSummaryRecipients").textContent = t("none_selected", "None selected");
     $("#adminMailSummaryCount").textContent = "0";
     return;
   }
 
   const first = state.selectedRecipientsSnapshot[0];
   const firstLabel = first
-    ? `${first.display_name || first.user_key || "ユーザー"}${first.user_key ? ` (${first.user_key})` : ""}`
-    : `${count}名選択`;
+    ? `${first.display_name || first.user_key || t("user", "User")}${first.user_key ? ` (${first.user_key})` : ""}`
+    : t("selected_count", "{count} selected", { count });
 
-  $("#adminMailSummaryRecipients").textContent = count === 1 ? firstLabel : `${firstLabel} ほか${count - 1}名`;
+  $("#adminMailSummaryRecipients").textContent = count === 1 ? firstLabel : t("selected_more", "{first} and {count} more", { first: firstLabel, count: count - 1 });
   $("#adminMailSummaryCount").textContent = String(count);
 }
 
@@ -151,7 +227,7 @@ function renderRecipients() {
   if (!tbody) return;
 
   if (!state.recipients.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="admin-mail-empty">該当するユーザーがいません。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-mail-empty">${escapeHtml(t("recipients_empty", "No users found."))}</td></tr>`;
     $("#adminMailRecipientTotal").textContent = String(state.recipientsTotal);
     $("#adminMailRecipientPage").textContent = String(state.recipientsPage);
     applyRecipientScopeToDom();
@@ -162,12 +238,12 @@ function renderRecipients() {
     const checked = state.selectedIds.has(item.user_id) ? "checked" : "";
     const disabled = state.recipientScope === "everyone" ? "disabled" : "";
     const stateLabel = item.can_receive_mail
-      ? '<span class="admin-mail-recipient-state" data-state="ok">送信可</span>'
-      : '<span class="admin-mail-recipient-state" data-state="ng">送信不可</span>';
+      ? `<span class="admin-mail-recipient-state" data-state="ok">${escapeHtml(t("can_send", "Can send"))}</span>`
+      : `<span class="admin-mail-recipient-state" data-state="ng">${escapeHtml(t("cannot_send", "Cannot send"))}</span>`;
     return `
       <tr>
         <td class="admin-mail-recipient-table__checkbox">
-          <input type="checkbox" data-recipient-checkbox value="${item.user_id}" ${checked} ${disabled} aria-label="${escapeHtml(item.display_name)} を選択">
+          <input type="checkbox" data-recipient-checkbox value="${item.user_id}" ${checked} ${disabled} aria-label="${escapeHtml(t("select_user", "Select {name}", { name: item.display_name }))}">
         </td>
         <td>${escapeHtml(item.display_name)}<br><small>${escapeHtml(item.user_key)}</small></td>
         <td>${escapeHtml(item.primary_email || "-")}</td>
@@ -187,7 +263,7 @@ function renderHistory() {
   const root = $("#adminMailHistoryList");
   if (!root) return;
   if (!state.historyItems.length) {
-    root.innerHTML = '<div class="admin-mail-empty">送信履歴はまだありません。</div>';
+    root.innerHTML = `<div class="admin-mail-empty">${escapeHtml(t("history_empty", "No mail history yet."))}</div>`;
     return;
   }
   root.innerHTML = state.historyItems.map((item) => `
@@ -196,11 +272,11 @@ function renderHistory() {
         <div class="admin-mail-history-card__subject">${escapeHtml(item.subject)}</div>
         <div class="admin-mail-history-card__meta">${escapeHtml(formatDate(item.sent_at || item.created_at))}</div>
       </div>
-      <div class="admin-mail-history-card__meta">送信者: ${escapeHtml(item.sender?.display_name || "-")} / 宛先: ${escapeHtml(item.recipient_summary || "-")}</div>
+      <div class="admin-mail-history-card__meta">${escapeHtml(t("sender", "Sender"))}: ${escapeHtml(item.sender?.display_name || "-")} / ${escapeHtml(t("recipients", "Recipients"))}: ${escapeHtml(item.recipient_summary || "-")}</div>
       <div class="admin-mail-history-card__body">${escapeHtml(item.body)}</div>
       <div class="admin-mail-history-card__stats">
-        <span>成功: ${escapeHtml(item.success_count)}</span>
-        <span>失敗: ${escapeHtml(item.failure_count)}</span>
+        <span>${escapeHtml(t("success", "Success"))}: ${escapeHtml(item.success_count)}</span>
+        <span>${escapeHtml(t("failure", "Failure"))}: ${escapeHtml(item.failure_count)}</span>
       </div>
     </article>
   `).join("");
@@ -222,7 +298,7 @@ function applyDraftToForm(draft) {
   state.lastSavedFingerprint = fingerprint;
 
   if (state.draftUpdatedAt) {
-    setDraftStatus(`下書きを保存済み (${formatDate(state.draftUpdatedAt)})`);
+    setDraftStatus(t("draft_saved", "Draft saved ({date})", { date: formatDate(state.draftUpdatedAt) }));
   } else {
     setDraftStatus("下書きはありません。");
   }
@@ -236,9 +312,9 @@ async function loadTemplates() {
     const senderText = state.sender.from_name
       ? `${state.sender.from_name} <${state.sender.from_email}>`
       : (state.sender.from_email || "-");
-    $("#adminMailSenderMeta").textContent = `送信元: ${senderText}`;
+    $("#adminMailSenderMeta").textContent = t("sender_meta", "From: {sender}", { sender: senderText });
   } catch (error) {
-    setMessage(error.message || "メール設定の取得に失敗しました。", true);
+    setMessage(error.message || t("template_error", "Failed to load mail settings."), true);
   }
 }
 
@@ -247,7 +323,7 @@ async function loadDraft() {
     const payload = await api.get("/api/admin/mail/draft");
     applyDraftToForm(payload.data?.draft || null);
   } catch (error) {
-    setDraftStatus("下書きの取得に失敗しました。");
+    setDraftStatus(t("draft_load_error", "Failed to load draft."));
   }
 }
 
@@ -271,7 +347,7 @@ async function loadRecipients() {
     state.recipients = [];
     state.recipientsTotal = 0;
     renderRecipients();
-    setMessage(error.message || "宛先一覧の取得に失敗しました。", true);
+    setMessage(error.message || t("recipient_error", "Failed to load recipients."), true);
   }
 }
 
@@ -283,7 +359,7 @@ async function loadHistory() {
   } catch (error) {
     state.historyItems = [];
     renderHistory();
-    setMessage(error.message || "送信履歴の取得に失敗しました。", true);
+    setMessage(error.message || t("history_error", "Failed to load history."), true);
   }
 }
 
@@ -303,7 +379,7 @@ async function saveDraft(options = {}) {
   }
 
   state.draftSaveInFlight = true;
-  setDraftStatus("下書きを保存中...");
+  setDraftStatus(t("draft_saving", "Saving draft..."));
 
   try {
     const res = await api.put("/api/admin/mail/draft", payload);
@@ -311,7 +387,7 @@ async function saveDraft(options = {}) {
     applyDraftToForm(draft);
     state.lastSavedFingerprint = fingerprintPayload(currentPayload());
   } catch (error) {
-    setDraftStatus("下書きの保存に失敗しました。");
+    setDraftStatus(t("draft_save_error", "Failed to save draft."));
   } finally {
     state.draftSaveInFlight = false;
   }
@@ -363,15 +439,15 @@ function syncSelectedIdsFromDom() {
 function openSendConfirm() {
   const payload = currentPayload();
   if (!payload.subject) {
-    setMessage("件名を入力してください。", true);
+    setMessage(t("subject_required", "Enter a subject."), true);
     return;
   }
   if (!payload.body.trim()) {
-    setMessage("本文を入力してください。", true);
+    setMessage(t("body_required", "Enter a message body."), true);
     return;
   }
   if (payload.recipient_scope === "selected" && payload.recipient_user_ids.length === 0) {
-    setMessage("送信先を選択してください。", true);
+    setMessage(t("recipient_required", "Select recipients."), true);
     return;
   }
 
@@ -384,9 +460,9 @@ function openSendConfirm() {
     refreshSelectedSnapshot();
     if (state.selectedIds.size === 1 && state.selectedRecipientsSnapshot[0]) {
       const item = state.selectedRecipientsSnapshot[0];
-      recipientLabel = `${item.display_name || item.user_key || "ユーザー"}${item.user_key ? ` (${item.user_key})` : ""}`;
+      recipientLabel = `${item.display_name || item.user_key || t("user", "User")}${item.user_key ? ` (${item.user_key})` : ""}`;
     } else {
-      recipientLabel = state.selectedIds.size > 0 ? `${state.selectedIds.size}名選択` : "選択なし";
+      recipientLabel = state.selectedIds.size > 0 ? t("selected_count", "{count} selected", { count: state.selectedIds.size }) : t("none_selected", "None selected");
     }
   }
 
@@ -402,13 +478,13 @@ async function submitSend() {
   try {
     const res = await api.post("/api/admin/mail/send", payload);
     window.AdminApp?.modal?.close("admin-mail-send-confirm");
-    setMessage(res.message || "メールを送信しました。", false);
+    setMessage(res.message || t("sent_ok", "Mail sent."), false);
     applyDraftToForm(null);
     $("#adminMailRecipientSelectAll").checked = false;
     renderRecipients();
     await loadHistory();
   } catch (error) {
-    setMessage(error.message || "メール送信に失敗しました。", true);
+    setMessage(error.message || t("send_error", "Failed to send mail."), true);
   }
 }
 
@@ -474,6 +550,7 @@ function bindEvents() {
 }
 
 async function init() {
+  defineMessages();
   bindEvents();
   await Promise.all([loadTemplates(), loadDraft()]);
   await loadRecipients();
@@ -481,4 +558,16 @@ async function init() {
   applyRecipientScopeToDom();
 }
 
-document.addEventListener("admin:ready", init, { once: true });
+document.addEventListener("admin:ready", () => {
+  void init();
+  window.addEventListener("gallery:language-changed", () => {
+    updateSummary();
+    renderRecipients();
+    renderHistory();
+    applyDraftToForm({
+      ...currentPayload(),
+      selected_recipients: state.selectedRecipientsSnapshot,
+      updated_at: state.draftUpdatedAt,
+    });
+  });
+}, { once: true });
