@@ -851,7 +851,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   min-height: inherit;
   display: grid;
   place-items: center;
-  gap: 18px;
+  gap: 10px;
   text-align: center;
 }
 
