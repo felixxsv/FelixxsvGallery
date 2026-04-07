@@ -58,11 +58,18 @@ function applyDocumentLanguage(language) {
   document.documentElement.lang = String(language || "ja").trim().toLowerCase() || "ja";
 }
 
+function dispatchLanguageChange(language) {
+  window.dispatchEvent(new CustomEvent("gallery:language-changed", {
+    detail: { language },
+  }));
+}
+
 function syncLanguagePreference(app, sessionState) {
   const preferredLanguage = sessionState?.data?.user?.preferred_language || null;
   const resolvedLanguage = preferredLanguage ? app.settings.setLanguage(preferredLanguage) : app.settings.getLanguage();
   app.i18n.setLanguage(resolvedLanguage);
   applyDocumentLanguage(resolvedLanguage);
+  dispatchLanguageChange(resolvedLanguage);
   return resolvedLanguage;
 }
 

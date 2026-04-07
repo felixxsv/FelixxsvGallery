@@ -5,6 +5,147 @@ const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
 const DEFAULT_ROW_COUNT = 30;
 
+const HOME_MESSAGES = {
+  ja: {
+    "home.actions.upload": "アップロード",
+    "home.search.placeholder": "タイトル / alt / タグ / ユーザーを検索",
+    "home.search.images": "画像",
+    "home.search.tags": "タグ",
+    "home.search.users": "ユーザー",
+    "home.search.none": "該当なし",
+    "home.search.no_results": "「{query}」に一致する画像・タグ・ユーザーは見つかりませんでした。",
+    "home.sidebar.open": "サイドバーを展開",
+    "home.sidebar.close": "サイドバーを閉じる",
+    "home.sidebar.filter_aria": "画像一覧のフィルター",
+    "home.sidebar.shortcuts": "ギャラリーショートカット",
+    "home.sidebar.all": "すべて",
+    "home.sidebar.current_month": "今月の投稿",
+    "home.sidebar.favorites": "お気に入り",
+    "home.sidebar.random": "ランダム",
+    "home.sidebar.filters": "フィルター",
+    "home.sidebar.clear": "条件クリア",
+    "home.sidebar.tags": "タグ",
+    "home.sidebar.tag_search": "タグを絞り込み",
+    "home.sidebar.colors": "カラータグ",
+    "home.sidebar.shot_date": "撮影日",
+    "home.sidebar.posted_date": "投稿日",
+    "home.sidebar.none": "指定なし",
+    "home.sidebar.this_month": "今月",
+    "home.sidebar.this_year": "今年",
+    "home.sidebar.archive": "日付アーカイブ",
+    "home.sidebar.archive_shot": "撮影日",
+    "home.sidebar.archive_posted": "投稿日",
+    "home.mobile.search": "検索",
+    "home.mobile.filter": "フィルター",
+    "home.status.query": "検索",
+    "home.status.none": "なし",
+    "home.status.sort": "並び",
+    "home.status.showing": "表示中",
+    "home.status.total": "総数",
+    "home.sort.latest": "新しい順",
+    "home.sort.oldest": "古い順",
+    "home.sort.popular": "人気順",
+    "home.sort.random": "ランダム",
+    "home.loading": "読み込み中です",
+    "home.empty": "該当する画像がありません",
+    "home.pagination.prev": "前へ",
+    "home.pagination.next": "次へ",
+    "home.pagination.meta": "{page} / {maxPage} ページ",
+    "home.status.range": "{start}-{end}件",
+    "home.status.total_count": "{count}件",
+    "home.archive.empty": "アーカイブ対象がありません。",
+    "home.archive.error": "アーカイブを取得できませんでした。",
+    "home.tags.browse_title": "タグを選択",
+    "home.tags.browse_close": "閉じる",
+    "home.tags.browse_search": "タグを検索…",
+    "home.tags.browse_empty": "タグが見つかりません",
+    "home.image.untitled": "タイトル未設定",
+    "home.image.unknown_user": "投稿者不明",
+    "home.like.add": "いいねする",
+    "home.like.remove": "いいねを取り消す",
+    "home.like.title": "いいね {count}件",
+    "home.like.auth_required": "いいね機能はログイン後に利用できます。",
+    "home.like.error": "いいねの更新に失敗しました。",
+    "home.list.error": "画像一覧の取得に失敗しました。",
+    "home.image.count": "画像 {count} 枚",
+    "home.profile.open": "{name} のプロフィール",
+  },
+  "en-us": {
+    "home.actions.upload": "Upload",
+    "home.search.placeholder": "Search title / alt / tags / users",
+    "home.search.images": "Images",
+    "home.search.tags": "Tags",
+    "home.search.users": "Users",
+    "home.search.none": "No matches",
+    "home.search.no_results": "No images, tags, or users matched “{query}”.",
+    "home.sidebar.open": "Open sidebar",
+    "home.sidebar.close": "Close sidebar",
+    "home.sidebar.filter_aria": "Image list filters",
+    "home.sidebar.shortcuts": "Gallery Shortcuts",
+    "home.sidebar.all": "All",
+    "home.sidebar.current_month": "This Month",
+    "home.sidebar.favorites": "Favorites",
+    "home.sidebar.random": "Random",
+    "home.sidebar.filters": "Filters",
+    "home.sidebar.clear": "Clear Filters",
+    "home.sidebar.tags": "Tags",
+    "home.sidebar.tag_search": "Filter tags",
+    "home.sidebar.colors": "Color Tags",
+    "home.sidebar.shot_date": "Shot Date",
+    "home.sidebar.posted_date": "Posted Date",
+    "home.sidebar.none": "Any",
+    "home.sidebar.this_month": "This Month",
+    "home.sidebar.this_year": "This Year",
+    "home.sidebar.archive": "Date Archive",
+    "home.sidebar.archive_shot": "Shot Date",
+    "home.sidebar.archive_posted": "Posted Date",
+    "home.mobile.search": "Search",
+    "home.mobile.filter": "Filter",
+    "home.status.query": "Query",
+    "home.status.none": "None",
+    "home.status.sort": "Sort",
+    "home.status.showing": "Showing",
+    "home.status.total": "Total",
+    "home.sort.latest": "Latest",
+    "home.sort.oldest": "Oldest",
+    "home.sort.popular": "Popular",
+    "home.sort.random": "Random",
+    "home.loading": "Loading",
+    "home.empty": "No matching images found",
+    "home.pagination.prev": "Prev",
+    "home.pagination.next": "Next",
+    "home.pagination.meta": "{page} / {maxPage} pages",
+    "home.status.range": "{start}-{end} items",
+    "home.status.total_count": "{count} items",
+    "home.archive.empty": "No archive entries available.",
+    "home.archive.error": "Failed to load archives.",
+    "home.tags.browse_title": "Select Tags",
+    "home.tags.browse_close": "Close",
+    "home.tags.browse_search": "Search tags...",
+    "home.tags.browse_empty": "No tags found",
+    "home.image.untitled": "Untitled",
+    "home.image.unknown_user": "Unknown uploader",
+    "home.like.add": "Like",
+    "home.like.remove": "Unlike",
+    "home.like.title": "{count} likes",
+    "home.like.auth_required": "Likes are available after login.",
+    "home.like.error": "Failed to update like.",
+    "home.list.error": "Failed to load images.",
+    "home.image.count": "{count} images",
+    "home.profile.open": "{name}'s profile",
+  },
+};
+
+function registerHomeMessages(i18n) {
+  if (!i18n) return;
+  Object.entries(HOME_MESSAGES).forEach(([locale, messages]) => {
+    i18n.define(locale, messages);
+  });
+  ["de", "fr", "ru", "es", "zh-cn", "ko"].forEach((locale) => {
+    i18n.define(locale, HOME_MESSAGES["en-us"]);
+  });
+}
+
 function normalizeUserKey(value) {
   const userKey = typeof value === "string" ? value.trim() : "";
   return userKey && userKey !== "-" ? userKey : "";
@@ -269,7 +410,7 @@ function buildPublicDetail(image) {
 
   return {
     image_id: image.id ?? null,
-    title: image.title || "タイトル未設定",
+    title: image.title || homeT("home.image.untitled", "Untitled"),
     alt: image.alt || "",
     posted_at: image.created_at || image.posted_at || image.shot_at || null,
     shot_at: image.shot_at || null,
@@ -282,7 +423,7 @@ function buildPublicDetail(image) {
     image_width: image.image_width ?? image.width ?? null,
     image_height: image.image_height ?? image.height ?? null,
     user: image.user || {
-      display_name: image.uploader_display_name || image.display_name || "投稿者不明",
+      display_name: image.uploader_display_name || image.display_name || homeT("home.image.unknown_user", "Unknown uploader"),
       user_key: normalizeUserKey(image.uploader_user_key || image.user_key),
       avatar_url: withAppBase(image.uploader_avatar_url || image.uploader_avatar_path || image.avatar_url || ""),
     },
@@ -343,8 +484,18 @@ function formatCompactCount(value) {
   return `${(count / 1_000_000_000).toFixed(count >= 10_000_000_000 ? 0 : 1).replace(".0", "")}B`;
 }
 
+function homeT(key, fallback, vars = {}) {
+  try {
+    return window.App?.i18n?.t?.(key, fallback, vars) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function likeButtonLabel(liked) {
-  return liked ? "いいねを取り消す" : "いいねする";
+  return liked
+    ? homeT("home.like.remove", "Unlike")
+    : homeT("home.like.add", "Like");
 }
 
 function applyLikeButtonState(button, iconNode, countNode, image, pending = false) {
@@ -359,7 +510,7 @@ function applyLikeButtonState(button, iconNode, countNode, image, pending = fals
   button.classList.toggle("is-pending", pending);
   button.setAttribute("aria-pressed", String(liked));
   button.setAttribute("aria-label", likeButtonLabel(liked));
-  button.setAttribute("title", `いいね ${formatCount(count)}件`);
+  button.setAttribute("title", homeT("home.like.title", `${formatCount(count)} likes`, { count: formatCount(count) }));
   button.disabled = pending;
 
   if (iconNode) {
@@ -399,6 +550,7 @@ function readActiveButton(container, selector = "[data-ui-segment-button], [data
 }
 
 export function initHomePage(app) {
+  registerHomeMessages(app.i18n);
   const refs = {
     contentShell: document.querySelector(".home-shell-layout__content"),
     searchInput: byId("homeSearchInput"),
@@ -458,6 +610,72 @@ export function initHomePage(app) {
     mobileSearchOwnerBadgeLabel: byId("homeMobileSearchOwnerBadgeLabel"),
     mobileSearchOwnerBadgeClear: byId("homeMobileSearchOwnerBadgeClear"),
   };
+
+  function t(key, fallback = "", vars = {}) {
+    return app.i18n?.t?.(key, fallback, vars) || fallback;
+  }
+
+  function applyStaticTranslations() {
+    const uploadButton = byId("shellHeaderUploadButton");
+    if (uploadButton) uploadButton.textContent = t("home.actions.upload", uploadButton.textContent || "Upload");
+    if (refs.searchInput) refs.searchInput.placeholder = t("home.search.placeholder", refs.searchInput.placeholder || "");
+    if (refs.mobileSearchInput) refs.mobileSearchInput.placeholder = t("home.search.placeholder", refs.mobileSearchInput.placeholder || "");
+    if (refs.tagSearchInput) refs.tagSearchInput.placeholder = t("home.sidebar.tag_search", refs.tagSearchInput.placeholder || "");
+    byId("homeSidebarToggle")?.setAttribute("aria-label", t("home.sidebar.open", "Open sidebar"));
+    byId("homeSidebar")?.setAttribute("aria-label", t("home.sidebar.filter_aria", "Image list filters"));
+    byId("homeSidebarClose")?.setAttribute("aria-label", t("home.sidebar.close", "Close sidebar"));
+
+    const mappings = [
+      [".home-sidebar__section-title", 0, "home.sidebar.shortcuts"],
+      [".home-sidebar__section-title", 1, "home.sidebar.filters"],
+      [".home-sidebar__section-title", 2, "home.sidebar.archive"],
+      ["[data-shortcut][data-default]", 0, "home.sidebar.all"],
+      ["[data-shortcut='current_month']", 0, "home.sidebar.current_month"],
+      ["[data-shortcut='favorites']", 0, "home.sidebar.favorites"],
+      ["[data-shortcut='random']", 0, "home.sidebar.random"],
+      ["#homeClearFiltersButton", 0, "home.sidebar.clear"],
+      [".home-filter-block__title", 0, "home.sidebar.tags"],
+      [".home-filter-block__title", 1, "home.sidebar.colors"],
+      [".home-filter-block__title", 2, "home.sidebar.shot_date"],
+      [".home-filter-block__title", 3, "home.sidebar.posted_date"],
+      ["[data-date-presets='shot'] [data-preset='none']", 0, "home.sidebar.none"],
+      ["[data-date-presets='shot'] [data-preset='this_month']", 0, "home.sidebar.this_month"],
+      ["[data-date-presets='shot'] [data-preset='this_year']", 0, "home.sidebar.this_year"],
+      ["[data-date-presets='posted'] [data-preset='none']", 0, "home.sidebar.none"],
+      ["[data-date-presets='posted'] [data-preset='this_month']", 0, "home.sidebar.this_month"],
+      ["[data-date-presets='posted'] [data-preset='this_year']", 0, "home.sidebar.this_year"],
+      ["[data-archive-kind='shot']", 0, "home.sidebar.archive_shot"],
+      ["[data-archive-kind='posted']", 0, "home.sidebar.archive_posted"],
+      [".home-mobile-toolbar__label", 0, "home.mobile.search"],
+      [".home-mobile-toolbar__label", 1, "home.mobile.filter"],
+      ["#homeSearchSugImages .home-search-sug-section__heading", 0, "home.search.images"],
+      ["#homeSearchSugTags .home-search-sug-section__heading", 0, "home.search.tags"],
+      ["#homeSearchSugUsers .home-search-sug-section__heading", 0, "home.search.users"],
+      ["#homeMobileSearchSugImages .home-search-sug-section__heading", 0, "home.search.images"],
+      ["#homeMobileSearchSugTags .home-search-sug-section__heading", 0, "home.search.tags"],
+      ["#homeMobileSearchSugUsers .home-search-sug-section__heading", 0, "home.search.users"],
+      [".home-status-chip__label", 0, "home.status.query"],
+      [".home-status-chip__label", 1, "home.status.sort"],
+      [".home-status-chip__label", 2, "home.status.showing"],
+      [".home-status-chip__label", 3, "home.status.total"],
+      ["#homeSortSelect option[value='latest']", 0, "home.sort.latest"],
+      ["#homeSortSelect option[value='oldest']", 0, "home.sort.oldest"],
+      ["#homeSortSelect option[value='popular']", 0, "home.sort.popular"],
+      ["#homePrevPageButton", 0, "home.pagination.prev"],
+      ["#homeNextPageButton", 0, "home.pagination.next"],
+    ];
+
+    for (const [selector, index, key] of mappings) {
+      const node = Array.from(document.querySelectorAll(selector))[index];
+      if (node) node.textContent = t(key, node.textContent || "");
+    }
+
+    const loadingMessage = refs.loadingState?.querySelector(".home-loading-state__message");
+    if (loadingMessage) loadingMessage.textContent = t("home.loading", loadingMessage.textContent || "Loading");
+    const emptyMessage = refs.emptyState?.querySelector(".home-empty-state__message");
+    if (emptyMessage) emptyMessage.textContent = t("home.empty", emptyMessage.textContent || "No matching images found");
+    updateStatus();
+  }
 
   const gridMedia = window.matchMedia(MOBILE_GRID_MEDIA);
 
@@ -790,7 +1008,7 @@ export function initHomePage(app) {
       if (!items.length) {
         const empty = document.createElement("div");
         empty.className = "home-search-sug-empty";
-        empty.textContent = "該当なし";
+        empty.textContent = t("home.search.none", "No matches");
         list.appendChild(empty);
       } else {
         for (const item of items) renderItem(list, item);
@@ -810,7 +1028,7 @@ export function initHomePage(app) {
         panel.appendChild(noResult);
       }
       noResult.hidden = false;
-      noResult.textContent = `「${q}」に一致する画像・タグ・ユーザーは見つかりませんでした。`;
+      noResult.textContent = t("home.search.no_results", `No images, tags, or users matched “${q}”.`, { query: q });
     } else {
       const noResult = panel.querySelector(".home-search-sug-noresult");
       if (noResult) noResult.hidden = true;
@@ -1022,11 +1240,11 @@ export function initHomePage(app) {
         <div class="app-modal-backdrop" data-modal-backdrop="${HOME_TAG_BROWSE_ID}"></div>
         <div class="app-modal-dialog app-modal-dialog--tag-browse" role="dialog" aria-modal="true" tabindex="-1">
           <div class="app-modal-header">
-            <h2 class="app-modal-title">タグを選択</h2>
-            <button type="button" class="app-modal-close" id="homeTagBrowseClose" aria-label="閉じる">×</button>
+            <h2 class="app-modal-title">${escapeHtml(t("home.tags.browse_title", "Select Tags"))}</h2>
+            <button type="button" class="app-modal-close" id="homeTagBrowseClose" aria-label="${escapeHtml(t("home.tags.browse_close", "Close"))}">×</button>
           </div>
           <div class="tag-browse-modal__search-wrap">
-            <input id="homeTagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="タグを検索…" autocomplete="off">
+            <input id="homeTagBrowseSearch" class="app-input tag-browse-modal__search" type="search" placeholder="${escapeHtml(t("home.tags.browse_search", "Search tags..."))}" autocomplete="off">
             <div class="tag-browse-modal__sug" id="homeTagBrowseSug" hidden>
               <div class="tag-browse-modal__sug-list" id="homeTagBrowseSugList"></div>
             </div>
@@ -1082,7 +1300,7 @@ export function initHomePage(app) {
       );
       browseList.innerHTML = "";
       if (!sorted.length) {
-        browseList.innerHTML = `<p class="tag-browse-modal__empty">タグが見つかりません</p>`;
+        browseList.innerHTML = `<p class="tag-browse-modal__empty">${escapeHtml(t("home.tags.browse_empty", "No tags found"))}</p>`;
         return;
       }
       const groups = buildTagChipGroups(sorted);
@@ -1173,7 +1391,7 @@ export function initHomePage(app) {
     if (!Array.isArray(groups) || !groups.length) {
       const empty = document.createElement("div");
       empty.className = "home-state-card";
-      empty.textContent = "アーカイブ対象がありません。";
+      empty.textContent = t("home.archive.empty", "No archive entries available.");
       refs.archiveList.appendChild(empty);
       return;
     }
@@ -1227,24 +1445,24 @@ export function initHomePage(app) {
     const end = Math.min(state.page * state.perPage, state.total);
     const maxPage = Math.max(1, Math.ceil(state.total / Math.max(1, state.perPage)));
     const sortLabels = {
-      latest: "新しい順",
-      oldest: "古い順",
-      popular: "人気順",
-      random: "ランダム",
+      latest: t("home.sort.latest", "Latest"),
+      oldest: t("home.sort.oldest", "Oldest"),
+      popular: t("home.sort.popular", "Popular"),
+      random: t("home.sort.random", "Random"),
     };
     if (refs.statusQuery) {
-      refs.statusQuery.textContent = state.q ? `"${state.q}"` : "なし";
+      refs.statusQuery.textContent = state.q ? `"${state.q}"` : t("home.status.none", "None");
     }
     if (refs.statusSort) {
       refs.statusSort.textContent = sortLabels[state.sort] || state.sort || "新しい順";
     }
     if (refs.statusRange) {
-      refs.statusRange.textContent = `${start}-${end}件`;
+      refs.statusRange.textContent = t("home.status.range", `${start}-${end} items`, { start, end });
     }
     if (refs.statusTotal) {
-      refs.statusTotal.textContent = `${state.total}件`;
+      refs.statusTotal.textContent = t("home.status.total_count", `${state.total} items`, { count: state.total });
     }
-    refs.paginationMeta.textContent = `${state.page} / ${maxPage} ページ`;
+    refs.paginationMeta.textContent = t("home.pagination.meta", `${state.page} / ${maxPage} pages`, { page: state.page, maxPage });
     refs.prevPageButton.disabled = state.page <= 1;
     refs.nextPageButton.disabled = !state.hasNext;
   }
@@ -1287,7 +1505,7 @@ export function initHomePage(app) {
     if (badge && badgeCount) {
       badge.hidden = imageCount <= 1;
       badgeCount.textContent = String(imageCount);
-      badge.setAttribute("aria-label", `画像 ${imageCount} 枚`);
+      badge.setAttribute("aria-label", t("home.image.count", `${imageCount} images`, { count: imageCount }));
     }
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
@@ -1299,7 +1517,7 @@ export function initHomePage(app) {
       const userKey = normalizeUserKey(user.user_key);
       if (userKey) {
         userButton.dataset.userKey = userKey;
-        userButton.setAttribute("aria-label", `${user.display_name || userKey} のプロフィール`);
+        userButton.setAttribute("aria-label", t("home.profile.open", `${user.display_name || userKey}'s profile`, { name: user.display_name || userKey }));
         userButton.hidden = false;
         const avatarEl = userButton.querySelector("[data-card-user-avatar]");
         if (avatarEl) {
@@ -1404,7 +1622,7 @@ export function initHomePage(app) {
     if (sessionState.authenticated) {
       return true;
     }
-    app.toast.error("いいね機能はログイン後に利用できます。");
+    app.toast.error(t("home.like.auth_required", "Likes are available after login."));
     return false;
   }
 
@@ -1455,7 +1673,7 @@ export function initHomePage(app) {
       }
     } catch (error) {
       syncImageLikeState(imageId, previousState);
-      app.toast.error(error.message || "いいねの更新に失敗しました。");
+      app.toast.error(error.message || t("home.like.error", "Failed to update like."));
     } finally {
       state.pendingLikeIds.delete(key);
       syncCardLikeState(imageId);
@@ -1600,7 +1818,7 @@ export function initHomePage(app) {
       refs.archiveList.textContent = "";
       const empty = document.createElement("div");
       empty.className = "home-state-card home-state-card--error";
-      empty.textContent = "アーカイブを取得できませんでした。";
+      empty.textContent = t("home.archive.error", "Failed to load archives.");
       refs.archiveList.appendChild(empty);
     }
   }
@@ -1654,8 +1872,8 @@ export function initHomePage(app) {
     } catch (error) {
       setGridVisible(false);
       setEmpty(false);
-      setError(error.message || "画像一覧の取得に失敗しました。");
-      app.toast.error(error.message || "画像一覧の取得に失敗しました。");
+      setError(error.message || t("home.list.error", "Failed to load images."));
+      app.toast.error(error.message || t("home.list.error", "Failed to load images."));
     } finally {
       setLoading(false);
     }
@@ -2021,6 +2239,8 @@ export function initHomePage(app) {
   bindSidebarEvents();
   applyLayoutPageSize();
   syncGridColumnsUi();
+  applyStaticTranslations();
+  window.addEventListener("gallery:language-changed", applyStaticTranslations);
 
   Promise.all([hydrateSidebarOptions(), loadArchives()]).finally(() => {
     load();
