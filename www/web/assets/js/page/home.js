@@ -403,7 +403,6 @@ export function initHomePage(app) {
     contentShell: document.querySelector(".home-shell-layout__content"),
     searchInput: byId("homeSearchInput"),
     sortSelect: byId("homeSortSelect"),
-    statusText: byId("homeStatusText"),
     statusQuery: byId("homeStatusQuery"),
     statusSort: byId("homeStatusSort"),
     statusRange: byId("homeStatusRange"),
@@ -1233,9 +1232,6 @@ export function initHomePage(app) {
       popular: "人気順",
       random: "ランダム",
     };
-    if (refs.statusText) {
-      refs.statusText.textContent = state.total > 0 ? "現在の条件で表示しています。" : "条件に一致する画像を探しています。";
-    }
     if (refs.statusQuery) {
       refs.statusQuery.textContent = state.q ? `"${state.q}"` : "なし";
     }
@@ -1659,9 +1655,6 @@ export function initHomePage(app) {
       setGridVisible(false);
       setEmpty(false);
       setError(error.message || "画像一覧の取得に失敗しました。");
-      if (refs.statusText) {
-        refs.statusText.textContent = "画像一覧を取得できませんでした。";
-      }
       app.toast.error(error.message || "画像一覧の取得に失敗しました。");
     } finally {
       setLoading(false);
