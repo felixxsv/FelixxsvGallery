@@ -109,9 +109,11 @@ body[data-page="home"] {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: calc(100vh - var(--header-height));
-  min-height: calc(100dvh - var(--header-height));
+  height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   padding: 4px var(--home-content-inline-end) 8px calc(var(--home-sidebar-width) + var(--home-sidebar-content-gap));
+  box-sizing: border-box;
+  overflow: hidden;
   transition: padding-left var(--home-sidebar-transition-ms) ease;
 }
 
@@ -1214,7 +1216,8 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   .home-shell-layout__content,
   .home-shell-layout.is-sidebar-collapsed .home-shell-layout__content {
     padding: 12px 0 0;
-    min-height: 0;
+    height: auto;
+    overflow: visible;
   }
 
   .home-sidebar {
