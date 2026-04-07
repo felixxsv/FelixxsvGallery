@@ -443,7 +443,7 @@ class UploadTagSelect(discord.ui.Select):
             min_values=0,
             max_values=min(5, len(options)),
             options=options,
-            row=0,
+            row=3,
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
