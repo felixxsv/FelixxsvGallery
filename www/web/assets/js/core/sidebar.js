@@ -47,7 +47,13 @@ export function initSidebar({ root, toggleButton, storageKey = DEFAULT_STORAGE_K
 
   function updateToggleUi(collapsed) {
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
-    toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
+    const t = window.AdminApp?.i18n?.t?.bind(window.AdminApp.i18n);
+    toggleButton.setAttribute(
+      "aria-label",
+      collapsed
+        ? (t?.("admin_layout.sidebar_expand", "Expand sidebar") || "Expand sidebar")
+        : (t?.("admin_layout.sidebar_collapse", "Collapse sidebar") || "Collapse sidebar")
+    );
 
     const icon = toggleButton.querySelector("span");
     if (icon) {
