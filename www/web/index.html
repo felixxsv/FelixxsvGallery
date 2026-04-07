@@ -43,7 +43,7 @@
       <div class="app-site-header__center app-site-header__center--search">
         <div class="home-header-search-wrap">
           <div class="home-header-search-field app-site-header__search home-search-field">
-            <span class="app-visually-hidden">検索</span>
+            <span class="app-visually-hidden" data-i18n="home.mobile.search">検索</span>
             <span class="home-search-field__icon" aria-hidden="true"></span>
             <div id="homeSearchOwnerBadge" class="home-search-owner-badge" hidden>
               <span id="homeSearchOwnerBadgeLabel" class="home-search-owner-badge__label"></span>
@@ -54,6 +54,7 @@
               class="app-input home-header-search-input"
               type="search"
               placeholder="タイトル / alt / タグ / ユーザーを検索"
+              data-i18n-placeholder="home.search.placeholder"
               autocomplete="off"
             >
           </div>
@@ -75,7 +76,7 @@
       </div>
 
       <div class="app-site-header__right">
-        <button id="shellHeaderUploadButton" class="app-button app-button--ghost app-upload-launch-button" type="button">アップロード</button>
+        <button id="shellHeaderUploadButton" class="app-button app-button--ghost app-upload-launch-button" type="button" data-i18n="home.actions.upload">アップロード</button>
         <button
           id="shellUserTrigger"
           class="app-icon-button"
@@ -105,25 +106,25 @@
   <div class="home-sidebar__body">
     <section class="home-sidebar__section">
       <div class="home-sidebar__section-heading">
-        <h2 class="home-sidebar__section-title">ギャラリーショートカット</h2>
+        <h2 class="home-sidebar__section-title" data-i18n="home.sidebar.shortcuts">ギャラリーショートカット</h2>
       </div>
       <div class="home-sidebar__shortcut-list" data-ui-shortcut-list id="homeShortcutList">
-        <button type="button" class="home-sidebar__shortcut is-active" data-ui-shortcut data-default aria-pressed="true">すべて</button>
-        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="current_month" aria-pressed="false">今月の投稿</button>
-        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="favorites" aria-pressed="false">お気に入り</button>
-        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="random" aria-pressed="false">ランダム</button>
+        <button type="button" class="home-sidebar__shortcut is-active" data-ui-shortcut data-default aria-pressed="true" data-i18n="home.sidebar.all">すべて</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="current_month" aria-pressed="false" data-i18n="home.sidebar.current_month">今月の投稿</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="favorites" aria-pressed="false" data-i18n="home.sidebar.favorites">お気に入り</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="random" aria-pressed="false" data-i18n="home.sidebar.random">ランダム</button>
       </div>
     </section>
 
     <section class="home-sidebar__section">
       <div class="home-sidebar__section-heading">
-        <h2 class="home-sidebar__section-title">フィルター</h2>
-        <button id="homeClearFiltersButton" class="home-sidebar__clear-button" type="button">条件クリア</button>
+        <h2 class="home-sidebar__section-title" data-i18n="home.sidebar.filters">フィルター</h2>
+        <button id="homeClearFiltersButton" class="home-sidebar__clear-button" type="button" data-i18n="home.sidebar.clear">条件クリア</button>
       </div>
 
       <div class="home-filter-block">
         <div class="home-filter-block__header">
-          <h3 class="home-filter-block__title">タグ</h3>
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.tags">タグ</h3>
           <div class="home-segmented" data-ui-segment data-filter-mode="tags">
             <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-mode="or" aria-pressed="true">OR</button>
             <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
@@ -133,7 +134,7 @@
           <label class="app-field home-search-field home-search-field--sidebar">
             <span class="app-visually-hidden">タグ検索</span>
             <span class="home-search-field__icon" aria-hidden="true"></span>
-            <input id="homeTagSearchInput" class="app-input" type="search" placeholder="タグを絞り込み" autocomplete="off">
+            <input id="homeTagSearchInput" class="app-input" type="search" placeholder="タグを絞り込み" data-i18n-placeholder="home.sidebar.tag_search" autocomplete="off">
           </label>
           <div id="homeTagSugPanel" class="home-tag-sug-panel" hidden>
             <div id="homeTagSugList" class="home-tag-sug-list"></div>
@@ -145,7 +146,7 @@
 
       <div class="home-filter-block">
         <div class="home-filter-block__header">
-          <h3 class="home-filter-block__title">カラータグ</h3>
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.colors">カラータグ</h3>
           <div class="home-segmented" data-ui-segment data-filter-mode="colors">
             <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-mode="or" aria-pressed="true">OR</button>
             <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
@@ -156,11 +157,11 @@
 
       <div class="home-filter-block">
         <div class="home-filter-block__header">
-          <h3 class="home-filter-block__title">撮影日</h3>
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.shot_date">撮影日</h3>
           <div class="home-filter-preset-list" data-ui-option-group data-date-presets="shot">
-            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true">指定なし</button>
-            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false">今月</button>
-            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false">今年</button>
+            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true" data-i18n="home.sidebar.none">指定なし</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false" data-i18n="home.sidebar.this_month">今月</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false" data-i18n="home.sidebar.this_year">今年</button>
           </div>
         </div>
         <div class="home-filter-date-grid" data-date-grid="shot">
@@ -177,11 +178,11 @@
 
       <div class="home-filter-block">
         <div class="home-filter-block__header">
-          <h3 class="home-filter-block__title">投稿日</h3>
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.posted_date">投稿日</h3>
           <div class="home-filter-preset-list" data-ui-option-group data-date-presets="posted">
-            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true">指定なし</button>
-            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false">今月</button>
-            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false">今年</button>
+            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true" data-i18n="home.sidebar.none">指定なし</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false" data-i18n="home.sidebar.this_month">今月</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false" data-i18n="home.sidebar.this_year">今年</button>
           </div>
         </div>
         <div class="home-filter-date-grid" data-date-grid="posted">
@@ -199,10 +200,10 @@
 
     <section class="home-sidebar__section">
       <div class="home-sidebar__section-heading">
-        <h2 class="home-sidebar__section-title">日付アーカイブ</h2>
+        <h2 class="home-sidebar__section-title" data-i18n="home.sidebar.archive">日付アーカイブ</h2>
         <div class="home-segmented" data-ui-segment id="homeArchiveKindSegment">
-          <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-archive-kind="shot" aria-pressed="true">撮影日</button>
-          <button type="button" class="home-segmented__button" data-ui-segment-button data-archive-kind="posted" aria-pressed="false">投稿日</button>
+          <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-archive-kind="shot" aria-pressed="true" data-i18n="home.sidebar.archive_shot">撮影日</button>
+          <button type="button" class="home-segmented__button" data-ui-segment-button data-archive-kind="posted" aria-pressed="false" data-i18n="home.sidebar.archive_posted">投稿日</button>
         </div>
       </div>
 
@@ -215,11 +216,11 @@
           <div class="home-mobile-toolbar" id="homeMobileToolbar">
             <button type="button" id="homeMobileSearchBtn" class="home-mobile-toolbar__btn" aria-label="検索">
               <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--search" aria-hidden="true"></span>
-              <span class="home-mobile-toolbar__label">検索</span>
+              <span class="home-mobile-toolbar__label" data-i18n="home.mobile.search">検索</span>
             </button>
             <button type="button" id="homeMobileFilterBtn" class="home-mobile-toolbar__btn" aria-label="フィルター">
               <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--filter" aria-hidden="true"></span>
-              <span class="home-mobile-toolbar__label">フィルター</span>
+              <span class="home-mobile-toolbar__label" data-i18n="home.mobile.filter">フィルター</span>
             </button>
           </div>
 
@@ -237,6 +238,7 @@
                     class="app-input home-mobile-search-modal__input"
                     type="search"
                     placeholder="タイトル / alt / タグ / ユーザーを検索"
+                    data-i18n-placeholder="home.search.placeholder"
                     autocomplete="off"
                   >
                 </div>
@@ -244,15 +246,15 @@
               </div>
               <div id="homeMobileSearchSugPanel" class="home-search-sug-panel home-search-sug-panel--mobile" hidden>
                 <div id="homeMobileSearchSugImages" class="home-search-sug-section" hidden>
-                  <div class="home-search-sug-section__heading">画像</div>
+                  <div class="home-search-sug-section__heading" data-i18n="home.search.images">画像</div>
                   <div id="homeMobileSearchSugImagesList" class="home-search-sug-section__list"></div>
                 </div>
                 <div id="homeMobileSearchSugTags" class="home-search-sug-section" hidden>
-                  <div class="home-search-sug-section__heading">タグ</div>
+                  <div class="home-search-sug-section__heading" data-i18n="home.search.tags">タグ</div>
                   <div id="homeMobileSearchSugTagsList" class="home-search-sug-section__list"></div>
                 </div>
                 <div id="homeMobileSearchSugUsers" class="home-search-sug-section" hidden>
-                  <div class="home-search-sug-section__heading">ユーザー</div>
+                  <div class="home-search-sug-section__heading" data-i18n="home.search.users">ユーザー</div>
                   <div id="homeMobileSearchSugUsersList" class="home-search-sug-section__list"></div>
                 </div>
               </div>
@@ -263,19 +265,19 @@
   <div class="home-status__summary">
     <div class="home-status__meta">
       <span class="home-status-chip">
-        <span class="home-status-chip__label">検索</span>
-        <span id="homeStatusQuery" class="home-status-chip__value">なし</span>
+        <span class="home-status-chip__label" data-i18n="home.status.query">検索</span>
+        <span id="homeStatusQuery" class="home-status-chip__value" data-i18n="home.status.none">なし</span>
       </span>
       <span class="home-status-chip">
-        <span class="home-status-chip__label">並び</span>
+        <span class="home-status-chip__label" data-i18n="home.status.sort">並び</span>
         <span id="homeStatusSort" class="home-status-chip__value">新しい順</span>
       </span>
       <span class="home-status-chip">
-        <span class="home-status-chip__label">表示中</span>
+        <span class="home-status-chip__label" data-i18n="home.status.showing">表示中</span>
         <span id="homeStatusRange" class="home-status-chip__value">0-0件</span>
       </span>
       <span class="home-status-chip">
-        <span class="home-status-chip__label">総数</span>
+        <span class="home-status-chip__label" data-i18n="home.status.total">総数</span>
         <span id="homeStatusTotal" class="home-status-chip__value">0件</span>
       </span>
     </div>
@@ -284,9 +286,9 @@
     <label class="app-field home-status__sort-field">
       <span class="app-visually-hidden">並び順</span>
       <select id="homeSortSelect" class="app-select">
-        <option value="latest">新しい順</option>
-        <option value="oldest">古い順</option>
-        <option value="popular">人気順</option>
+        <option value="latest" data-i18n="home.sort.latest">新しい順</option>
+        <option value="oldest" data-i18n="home.sort.oldest">古い順</option>
+        <option value="popular" data-i18n="home.sort.popular">人気順</option>
       </select>
     </label>
     <div id="homeGridColumnsControls" class="home-grid-columns" aria-label="表示列切り替え">
@@ -301,12 +303,12 @@
           <section class="home-gallery-section">
             <div id="homeLoadingState" class="home-state-card home-state-card--loading" hidden>
               <div class="home-loading-state__spinner" aria-hidden="true"></div>
-              <div class="home-loading-state__message">読み込み中です</div>
+              <div class="home-loading-state__message" data-i18n="home.loading">読み込み中です</div>
             </div>
             <div id="homeErrorState" class="home-state-card home-state-card--error" hidden></div>
             <div id="homeEmptyState" class="home-state-card home-state-card--empty" hidden>
               <div class="home-empty-state__icon" aria-hidden="true"></div>
-              <div class="home-empty-state__message">該当する画像がありません</div>
+              <div class="home-empty-state__message" data-i18n="home.empty">該当する画像がありません</div>
             </div>
 
             <div id="homeGalleryGrid" class="home-gallery-grid" data-grid-cols="3" hidden></div>
@@ -315,8 +317,8 @@
           <section class="home-pagination" aria-label="ページ移動">
             <div id="homePaginationMeta" class="home-pagination__meta"></div>
             <div class="app-button-row app-button-row--end">
-              <button id="homePrevPageButton" class="app-button app-button--ghost" type="button">前へ</button>
-              <button id="homeNextPageButton" class="app-button app-button--ghost" type="button">次へ</button>
+              <button id="homePrevPageButton" class="app-button app-button--ghost" type="button" data-i18n="home.pagination.prev">前へ</button>
+              <button id="homeNextPageButton" class="app-button app-button--ghost" type="button" data-i18n="home.pagination.next">次へ</button>
             </div>
           </section>
         </div>

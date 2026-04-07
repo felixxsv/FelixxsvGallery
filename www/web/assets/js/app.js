@@ -69,6 +69,7 @@ function syncLanguagePreference(app, sessionState) {
   const resolvedLanguage = preferredLanguage ? app.settings.setLanguage(preferredLanguage) : app.settings.getLanguage();
   app.i18n.setLanguage(resolvedLanguage);
   applyDocumentLanguage(resolvedLanguage);
+  app.i18n.apply?.(document);
   dispatchLanguageChange(resolvedLanguage);
   return resolvedLanguage;
 }
@@ -505,6 +506,9 @@ async function bootstrap() {
   window.App = app;
   app.theme.init();
   syncLanguagePreference(app, null);
+  window.addEventListener("gallery:language-changed", () => {
+    app.i18n.apply?.(document);
+  });
   initUserShell(app);
   initPublicProfileModal(app);
   ensureCustomScrollbars({ includeWindow: true, selectors: [".home-sidebar__body"] });
