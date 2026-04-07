@@ -1,61 +1,238 @@
+import { createSettingsStore } from "../core/settings.js";
 
-const el = (id) => document.getElementById(id)
+const el = (id) => document.getElementById(id);
 
-const tabLogin = el("tabLogin")
-const tabSignup = el("tabSignup")
-const paneLogin = el("paneLogin")
-const paneSignup = el("paneSignup")
+const settings = createSettingsStore();
+const SUPPORTED_LANGUAGES = new Set(["ja", "en"]);
 
-const loginStageCredentials = el("loginStageCredentials")
-const loginStageTwoFactor = el("loginStageTwoFactor")
-const loginEmail = el("loginEmail")
-const loginPass = el("loginPass")
-const loginBtn = el("loginBtn")
-const loginTwoFactorMessage = el("loginTwoFactorMessage")
-const loginTwoFactorCode = el("loginTwoFactorCode")
-const loginTwoFactorVerifyBtn = el("loginTwoFactorVerifyBtn")
-const loginTwoFactorResendBtn = el("loginTwoFactorResendBtn")
-const loginBackBtn = el("loginBackBtn")
+const MESSAGES = {
+  ja: {
+    "auth.meta.title": "Felixxsv Gallery",
+    "auth.header.back": "← ギャラリーへ",
+    "auth.hero.sub": "VRChatの思い出を、ここに。",
+    "auth.tabs.login": "ログイン",
+    "auth.tabs.signup": "新規登録",
+    "auth.fields.email": "メールアドレス",
+    "auth.fields.password": "パスワード",
+    "auth.fields.verificationCode": "認証コード",
+    "auth.fields.userKey": "ユーザーキー",
+    "auth.fields.displayName": "表示名",
+    "auth.actions.login": "ログイン",
+    "auth.actions.loginDiscord": "Discordでログイン",
+    "auth.actions.signupDiscord": "Discordで登録",
+    "auth.actions.sendCode": "認証コードを送信",
+    "auth.actions.verify": "確認",
+    "auth.actions.verifyEmail": "認証する",
+    "auth.actions.back": "戻る",
+    "auth.actions.createAccount": "アカウントを作成",
+    "auth.actions.confirm": "実行する",
+    "auth.actions.cancel": "キャンセル",
+    "auth.common.or": "または",
+    "auth.placeholders.userKey": "4〜20文字 (A-Za-z0-9_-)",
+    "auth.discord.previewNote": "Discordのアイコンをプレビュー表示中。登録後に変更できます。",
+    "auth.confirm.title": "確認",
+    "auth.confirm.defaultMessage": "本当に実行しますか？",
+    "auth.confirm.sendCodeTitle": "認証コード送信の確認",
+    "auth.confirm.send": "送信する",
+    "auth.confirm.abort": "中断する",
+    "auth.confirm.continue": "続ける",
+    "auth.confirm.loginCode": "入力したメールアドレス宛に認証コードを送信します。よろしいですか？",
+    "auth.flow.enterCode": "認証コードを入力してください。",
+    "auth.flow.enterCodeSent": "{email} に送信した認証コードを入力してください。",
+    "auth.flow.enterMailCode": "メールに届いた認証コードを入力してください。",
+    "auth.flow.enterMailCodeMasked": "{email} に届いた認証コードを入力してください。",
+    "auth.flow.completeRegistration": "アカウント情報を入力してください。",
+    "auth.flow.completeRegistrationForEmail": "{email} のアカウント情報を入力してください。",
+    "auth.flow.discordRegistration": "Discordアカウントでアカウントを作成します。パスワードを設定してください。",
+    "auth.flow.discordRegistrationWithEmail": "Discordアカウント ({email}) でアカウントを作成します。",
+    "auth.flow.leaveCreate": "アカウント作成を中断して画面を離れますか？",
+    "auth.flow.leaveVerify": "認証コード入力を中断して画面を離れますか？",
+    "auth.flow.leave2fa": "2段階認証を中断して画面を離れますか？",
+    "auth.flow.leaveDefault": "この操作を中断して画面を離れますか？",
+    "auth.errors.requiredEmailPassword": "email/password を入力してください。",
+    "auth.errors.requiredCode": "認証コードを入力してください。",
+    "auth.errors.waitResend": "しばらく待ってから再送してください。",
+    "auth.errors.oauthUrl": "Discord認証URLの取得に失敗しました。",
+    "auth.errors.requiredEmail": "メールアドレスを入力してください。",
+    "auth.errors.requiredProfileDiscord": "user_key / display_name を入力してください。",
+    "auth.errors.requiredProfile": "user_key / display_name / password を入力してください。",
+    "auth.errors.missingVerifyTicket": "verify_ticket がありません。",
+    "auth.errors.missingChallenge": "認証トークンがありません。",
+    "auth.toast.checkCode": "認証コードを確認してください。",
+    "auth.toast.discordLinkedAfterLogin": "Discordアカウントを連携しました。",
+    "auth.toast.loggedIn": "ログインしました。",
+    "auth.toast.codeResent": "認証コードを再送しました。",
+    "auth.toast.codeSent": "確認コードを送信しました。",
+    "auth.toast.mailVerified": "メール認証が完了しました。",
+    "auth.toast.discordRegistered": "Discordアカウントで登録しました。",
+    "auth.toast.accountCreated": "アカウントを作成しました。",
+    "auth.toast.linkAfterLogin": "このメールアドレスはすでに登録されています。ログインするとDiscordが自動的に連携されます。",
+    "auth.resend": "再送",
+    "auth.resendCountdown": "再送 ({seconds}秒)",
+  },
+  en: {
+    "auth.meta.title": "Felixxsv Gallery",
+    "auth.header.back": "← Back to Gallery",
+    "auth.hero.sub": "A place to keep your VRChat memories.",
+    "auth.tabs.login": "Login",
+    "auth.tabs.signup": "Sign Up",
+    "auth.fields.email": "Email Address",
+    "auth.fields.password": "Password",
+    "auth.fields.verificationCode": "Verification Code",
+    "auth.fields.userKey": "User Key",
+    "auth.fields.displayName": "Display Name",
+    "auth.actions.login": "Login",
+    "auth.actions.loginDiscord": "Login with Discord",
+    "auth.actions.signupDiscord": "Sign Up with Discord",
+    "auth.actions.sendCode": "Send Verification Code",
+    "auth.actions.verify": "Verify",
+    "auth.actions.verifyEmail": "Verify Email",
+    "auth.actions.back": "Back",
+    "auth.actions.createAccount": "Create Account",
+    "auth.actions.confirm": "Confirm",
+    "auth.actions.cancel": "Cancel",
+    "auth.common.or": "or",
+    "auth.placeholders.userKey": "4-20 chars (A-Za-z0-9_-)",
+    "auth.discord.previewNote": "Previewing your Discord icon. You can change it after registration.",
+    "auth.confirm.title": "Confirm",
+    "auth.confirm.defaultMessage": "Are you sure you want to continue?",
+    "auth.confirm.sendCodeTitle": "Send verification code",
+    "auth.confirm.send": "Send",
+    "auth.confirm.abort": "Leave",
+    "auth.confirm.continue": "Stay",
+    "auth.confirm.loginCode": "Send a verification code to this email address?",
+    "auth.flow.enterCode": "Enter the verification code.",
+    "auth.flow.enterCodeSent": "Enter the verification code sent to {email}.",
+    "auth.flow.enterMailCode": "Enter the verification code sent to your email.",
+    "auth.flow.enterMailCodeMasked": "Enter the verification code sent to {email}.",
+    "auth.flow.completeRegistration": "Enter your account details.",
+    "auth.flow.completeRegistrationForEmail": "Enter account details for {email}.",
+    "auth.flow.discordRegistration": "Create your account with Discord. You can set a password later.",
+    "auth.flow.discordRegistrationWithEmail": "Create your account with Discord ({email}).",
+    "auth.flow.leaveCreate": "Leave this page and discard account creation?",
+    "auth.flow.leaveVerify": "Leave this page and discard verification?",
+    "auth.flow.leave2fa": "Leave this page and discard two-factor verification?",
+    "auth.flow.leaveDefault": "Leave this page and discard the current flow?",
+    "auth.errors.requiredEmailPassword": "Enter both email and password.",
+    "auth.errors.requiredCode": "Enter the verification code.",
+    "auth.errors.waitResend": "Please wait before resending.",
+    "auth.errors.oauthUrl": "Failed to get the Discord authorization URL.",
+    "auth.errors.requiredEmail": "Enter your email address.",
+    "auth.errors.requiredProfileDiscord": "Enter user_key and display_name.",
+    "auth.errors.requiredProfile": "Enter user_key, display_name, and password.",
+    "auth.errors.missingVerifyTicket": "Missing verify_ticket.",
+    "auth.errors.missingChallenge": "Missing challenge token.",
+    "auth.toast.checkCode": "Check the verification code.",
+    "auth.toast.discordLinkedAfterLogin": "Discord account linked.",
+    "auth.toast.loggedIn": "Logged in.",
+    "auth.toast.codeResent": "Verification code resent.",
+    "auth.toast.codeSent": "Verification code sent.",
+    "auth.toast.mailVerified": "Email verification completed.",
+    "auth.toast.discordRegistered": "Registered with Discord.",
+    "auth.toast.accountCreated": "Account created.",
+    "auth.toast.linkAfterLogin": "This email is already registered. Log in to link your Discord account automatically.",
+    "auth.resend": "Resend",
+    "auth.resendCountdown": "Resend ({seconds}s)",
+  }
+};
 
-const signupStageStart = el("signupStageStart")
-const signupStageVerify = el("signupStageVerify")
-const signupStageComplete = el("signupStageComplete")
-const signupEmail = el("signupEmail")
-const signupStartBtn = el("signupStartBtn")
-const signupVerifyMessage = el("signupVerifyMessage")
-const signupVerifyCode = el("signupVerifyCode")
-const signupVerifyBtn = el("signupVerifyBtn")
-const signupResendBtn = el("signupResendBtn")
-const signupRestartBtn = el("signupRestartBtn")
-const signupCompleteMessage = el("signupCompleteMessage")
-const completeUserKey = el("completeUserKey")
-const completeDisplayName = el("completeDisplayName")
-const completePassword = el("completePassword")
-const completeRegisterBtn = el("completeRegisterBtn")
-const authHeaderBackButton = el("authHeaderBackButton")
+function normalizeLanguage(value) {
+  const lang = String(value || "").trim().toLowerCase();
+  return SUPPORTED_LANGUAGES.has(lang) ? lang : "ja";
+}
 
-const loginDiscordBtn = el("loginDiscordBtn")
-const signupDiscordBtn = el("signupDiscordBtn")
-const discordAvatarPreview = el("discordAvatarPreview")
-const discordAvatarImg = el("discordAvatarImg")
-const completePasswordRow = el("completePasswordRow")
+let currentLanguage = normalizeLanguage(settings.getLanguage());
 
-const authConfirmLayer = el("authConfirmLayer")
-const authConfirmTitle = el("authConfirmTitle")
-const authConfirmMessage = el("authConfirmMessage")
-const authConfirmApproveBtn = el("authConfirmApproveBtn")
-const authConfirmCancelBtn = el("authConfirmCancelBtn")
+function t(key, vars = {}) {
+  const dict = MESSAGES[currentLanguage] || MESSAGES.ja;
+  const fallback = MESSAGES.ja[key] || key;
+  const template = dict[key] || fallback;
+  return template.replace(/\{(\w+)\}/g, (_m, name) => String(vars[name] ?? ""));
+}
 
-let toastWrap = null
-let toastBox = null
-let toastTimer = null
-let confirmResolver = null
-let countdownTimer = null
-let leaveGuardPrimed = false
-let allowBrowserLeave = false
-let popstateBypass = false
+function applyTranslations() {
+  document.documentElement.lang = currentLanguage;
 
-const STORAGE_KEY = "felixxsv-gallery-auth-flow"
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.dataset.i18n;
+    if (!key) return;
+    const text = t(key);
+    node.textContent = text;
+    if (node.tagName === "TITLE") {
+      document.title = text;
+    }
+  });
+
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    const key = node.dataset.i18nPlaceholder;
+    if (!key) return;
+    node.setAttribute("placeholder", t(key));
+  });
+}
+
+function setLanguage(value) {
+  currentLanguage = normalizeLanguage(value);
+  settings.setLanguage(currentLanguage);
+  applyTranslations();
+  syncDynamicTexts();
+}
+
+const authLangSelect = el("authLangSelect");
+const tabLogin = el("tabLogin");
+const tabSignup = el("tabSignup");
+const paneLogin = el("paneLogin");
+const paneSignup = el("paneSignup");
+
+const loginStageCredentials = el("loginStageCredentials");
+const loginStageTwoFactor = el("loginStageTwoFactor");
+const loginEmail = el("loginEmail");
+const loginPass = el("loginPass");
+const loginBtn = el("loginBtn");
+const loginTwoFactorMessage = el("loginTwoFactorMessage");
+const loginTwoFactorCode = el("loginTwoFactorCode");
+const loginTwoFactorVerifyBtn = el("loginTwoFactorVerifyBtn");
+const loginTwoFactorResendBtn = el("loginTwoFactorResendBtn");
+const loginBackBtn = el("loginBackBtn");
+
+const signupStageStart = el("signupStageStart");
+const signupStageVerify = el("signupStageVerify");
+const signupStageComplete = el("signupStageComplete");
+const signupEmail = el("signupEmail");
+const signupStartBtn = el("signupStartBtn");
+const signupVerifyMessage = el("signupVerifyMessage");
+const signupVerifyCode = el("signupVerifyCode");
+const signupVerifyBtn = el("signupVerifyBtn");
+const signupResendBtn = el("signupResendBtn");
+const signupRestartBtn = el("signupRestartBtn");
+const signupCompleteMessage = el("signupCompleteMessage");
+const completeUserKey = el("completeUserKey");
+const completeDisplayName = el("completeDisplayName");
+const completePassword = el("completePassword");
+const completeRegisterBtn = el("completeRegisterBtn");
+const authHeaderBackButton = el("authHeaderBackButton");
+
+const loginDiscordBtn = el("loginDiscordBtn");
+const signupDiscordBtn = el("signupDiscordBtn");
+const discordAvatarPreview = el("discordAvatarPreview");
+const discordAvatarImg = el("discordAvatarImg");
+const completePasswordRow = el("completePasswordRow");
+
+const authConfirmLayer = el("authConfirmLayer");
+const authConfirmTitle = el("authConfirmTitle");
+const authConfirmMessage = el("authConfirmMessage");
+const authConfirmApproveBtn = el("authConfirmApproveBtn");
+const authConfirmCancelBtn = el("authConfirmCancelBtn");
+
+let toastWrap = null;
+let toastBox = null;
+let toastTimer = null;
+let confirmResolver = null;
+let countdownTimer = null;
+let leaveGuardPrimed = false;
+let allowBrowserLeave = false;
+let popstateBypass = false;
+
+const STORAGE_KEY = "felixxsv-gallery-auth-flow";
 
 const state = {
   verifyTicket: "",
@@ -67,84 +244,84 @@ const state = {
   loginResendAvailableAt: 0,
   isDiscordRegistration: false,
   discordLinkRegistrationToken: "",
-}
+};
 
 function ensureToast() {
-  if (toastWrap && toastBox) return
-  toastWrap = document.createElement("div")
-  toastWrap.className = "uptoastwrap"
-  toastBox = document.createElement("div")
-  toastBox.className = "uptoast"
-  toastWrap.appendChild(toastBox)
-  document.body.appendChild(toastWrap)
+  if (toastWrap && toastBox) return;
+  toastWrap = document.createElement("div");
+  toastWrap.className = "uptoastwrap";
+  toastBox = document.createElement("div");
+  toastBox.className = "uptoast";
+  toastWrap.appendChild(toastBox);
+  document.body.appendChild(toastWrap);
 }
 
 function showToast(text, ms, kind) {
-  const s = String(text || "").trim()
-  if (!s) return
-  ensureToast()
-  toastBox.textContent = s
-  toastBox.classList.remove("is-off", "is-err", "is-ok")
-  if (kind === "err") toastBox.classList.add("is-err")
-  if (kind === "ok") toastBox.classList.add("is-ok")
-  toastBox.classList.add("is-on")
-  if (toastTimer) clearTimeout(toastTimer)
-  const dur = Number(ms) > 0 ? Number(ms) : 3200
+  const s = String(text || "").trim();
+  if (!s) return;
+  ensureToast();
+  toastBox.textContent = s;
+  toastBox.classList.remove("is-off", "is-err", "is-ok");
+  if (kind === "err") toastBox.classList.add("is-err");
+  if (kind === "ok") toastBox.classList.add("is-ok");
+  toastBox.classList.add("is-on");
+  if (toastTimer) clearTimeout(toastTimer);
+  const dur = Number(ms) > 0 ? Number(ms) : 3200;
   toastTimer = setTimeout(() => {
-    toastBox.classList.remove("is-on")
-    toastBox.classList.add("is-off")
-  }, dur)
+    toastBox.classList.remove("is-on");
+    toastBox.classList.add("is-off");
+  }, dur);
 }
 
 function showToastErr(text, ms) {
-  showToast(text, ms || 5200, "err")
+  showToast(text, ms || 5200, "err");
 }
 
 function showToastOk(text, ms) {
-  showToast(text, ms || 2600, "ok")
+  showToast(text, ms || 2600, "ok");
 }
 
 function getErrorMessage(data, fallback) {
-  return String(data?.error?.message || data?.message || data?.detail || fallback)
+  return String(data?.error?.message || data?.message || data?.detail || fallback);
 }
 
 function nowMs() {
-  return Date.now()
+  return Date.now();
 }
 
 function setCooldownFromSeconds(kind, seconds) {
-  const safe = Math.max(0, Number(seconds) || 0)
-  const until = nowMs() + safe * 1000
-  if (kind === "signup") state.signupResendAvailableAt = until
-  if (kind === "login") state.loginResendAvailableAt = until
-  persistState()
-  refreshResendButtons()
+  const safe = Math.max(0, Number(seconds) || 0);
+  const until = nowMs() + safe * 1000;
+  if (kind === "signup") state.signupResendAvailableAt = until;
+  if (kind === "login") state.loginResendAvailableAt = until;
+  persistState();
+  refreshResendButtons();
 }
 
 function getCooldownRemainingSec(kind) {
-  const until = kind === "signup" ? state.signupResendAvailableAt : state.loginResendAvailableAt
-  return Math.max(0, Math.ceil((Number(until || 0) - nowMs()) / 1000))
+  const until = kind === "signup" ? state.signupResendAvailableAt : state.loginResendAvailableAt;
+  return Math.max(0, Math.ceil((Number(until || 0) - nowMs()) / 1000));
 }
 
 function refreshResendButtons() {
-  const signupRemain = getCooldownRemainingSec("signup")
+  const signupRemain = getCooldownRemainingSec("signup");
   if (signupResendBtn) {
-    signupResendBtn.disabled = signupRemain > 0
-    signupResendBtn.textContent = signupRemain > 0 ? `再送 (${signupRemain}秒)` : "再送"
+    signupResendBtn.disabled = signupRemain > 0;
+    signupResendBtn.textContent = signupRemain > 0 ? t("auth.resendCountdown", { seconds: signupRemain }) : t("auth.resend");
   }
 
-  const loginRemain = getCooldownRemainingSec("login")
+  const loginRemain = getCooldownRemainingSec("login");
   if (loginTwoFactorResendBtn) {
-    loginTwoFactorResendBtn.disabled = loginRemain > 0
-    loginTwoFactorResendBtn.textContent = loginRemain > 0 ? `再送 (${loginRemain}秒)` : "再送"
+    loginTwoFactorResendBtn.disabled = loginRemain > 0;
+    loginTwoFactorResendBtn.textContent = loginRemain > 0 ? t("auth.resendCountdown", { seconds: loginRemain }) : t("auth.resend");
   }
 }
 
 function startCountdownTicker() {
-  if (countdownTimer) clearInterval(countdownTimer)
+  if (countdownTimer) clearInterval(countdownTimer);
   countdownTimer = setInterval(() => {
-    refreshResendButtons()
-  }, 1000)
+    refreshResendButtons();
+  }, 1000);
 }
 
 function persistState() {
@@ -158,30 +335,31 @@ function persistState() {
     loginResendAvailableAt: state.loginResendAvailableAt,
     isDiscordRegistration: state.isDiscordRegistration,
     discordLinkRegistrationToken: state.discordLinkRegistrationToken,
-  }
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+  };
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
 
 function restorePersistedState() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return
-    const saved = JSON.parse(raw)
-    state.verifyTicket = String(saved?.verifyTicket || "")
-    state.registrationToken = String(saved?.registrationToken || "")
-    state.signupEmail = String(saved?.signupEmail || "")
-    state.challengeToken = String(saved?.challengeToken || "")
-    state.challengeMaskedEmail = String(saved?.challengeMaskedEmail || "")
-    state.signupResendAvailableAt = Number(saved?.signupResendAvailableAt || 0)
-    state.loginResendAvailableAt = Number(saved?.loginResendAvailableAt || 0)
-    state.isDiscordRegistration = Boolean(saved?.isDiscordRegistration || false)
-    state.discordLinkRegistrationToken = String(saved?.discordLinkRegistrationToken || "")
-  } catch (_error) {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    state.verifyTicket = String(saved?.verifyTicket || "");
+    state.registrationToken = String(saved?.registrationToken || "");
+    state.signupEmail = String(saved?.signupEmail || "");
+    state.challengeToken = String(saved?.challengeToken || "");
+    state.challengeMaskedEmail = String(saved?.challengeMaskedEmail || "");
+    state.signupResendAvailableAt = Number(saved?.signupResendAvailableAt || 0);
+    state.loginResendAvailableAt = Number(saved?.loginResendAvailableAt || 0);
+    state.isDiscordRegistration = Boolean(saved?.isDiscordRegistration || false);
+    state.discordLinkRegistrationToken = String(saved?.discordLinkRegistrationToken || "");
+  } catch {
+    return;
   }
 }
 
 function clearPersistedState() {
-  sessionStorage.removeItem(STORAGE_KEY)
+  sessionStorage.removeItem(STORAGE_KEY);
 }
 
 function postJson(url, payload) {
@@ -189,13 +367,13 @@ function postJson(url, payload) {
     method: "POST",
     credentials: "same-origin",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   }).then(async (res) => {
-    const data = await res.json().catch(() => ({}))
-    return { res, data }
-  })
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  });
 }
 
 function getJson(url) {
@@ -203,480 +381,520 @@ function getJson(url) {
     method: "GET",
     credentials: "same-origin",
     headers: {
-      "Accept": "application/json"
-    }
+      Accept: "application/json",
+    },
   }).then(async (res) => {
-    const data = await res.json().catch(() => ({}))
-    return { res, data }
-  })
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  });
 }
 
 function safeRelativePath(path) {
-  const raw = String(path || "").trim()
-  if (!raw) return "/gallery/"
-  if (!raw.startsWith("/")) return "/gallery/"
-  if (raw.startsWith("//")) return "/gallery/"
-  return raw
+  const raw = String(path || "").trim();
+  if (!raw) return "/gallery/";
+  if (!raw.startsWith("/")) return "/gallery/";
+  if (raw.startsWith("//")) return "/gallery/";
+  return raw;
 }
 
 function nextUrl() {
-  const u = new URL(location.href)
-  return safeRelativePath(u.searchParams.get("next"))
+  const u = new URL(location.href);
+  return safeRelativePath(u.searchParams.get("next"));
 }
 
 function setQuery(params) {
-  const url = new URL(location.href)
-  const next = url.searchParams.get("next")
-  url.search = ""
+  const url = new URL(location.href);
+  const next = url.searchParams.get("next");
+  url.search = "";
   if (next) {
-    url.searchParams.set("next", safeRelativePath(next))
+    url.searchParams.set("next", safeRelativePath(next));
   }
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, value)
+      url.searchParams.set(key, value);
     }
-  })
-  history.replaceState(history.state, "", url.toString())
+  });
+  history.replaceState(history.state, "", url.toString());
 }
 
 function setTab(which) {
-  const isLogin = which === "login"
-  tabLogin.classList.toggle("is-on", isLogin)
-  tabSignup.classList.toggle("is-on", !isLogin)
-  paneLogin.classList.toggle("is-on", isLogin)
-  paneSignup.classList.toggle("is-on", !isLogin)
+  const isLogin = which === "login";
+  tabLogin.classList.toggle("is-on", isLogin);
+  tabSignup.classList.toggle("is-on", !isLogin);
+  paneLogin.classList.toggle("is-on", isLogin);
+  paneSignup.classList.toggle("is-on", !isLogin);
 }
 
 function setLoginStage(which) {
-  loginStageCredentials.hidden = which !== "credentials"
-  loginStageTwoFactor.hidden = which !== "twofactor"
-  persistState()
-  refreshLeaveGuard()
+  loginStageCredentials.hidden = which !== "credentials";
+  loginStageTwoFactor.hidden = which !== "twofactor";
+  persistState();
+  refreshLeaveGuard();
 }
 
 function setSignupStage(which) {
-  signupStageStart.hidden = which !== "start"
-  signupStageVerify.hidden = which !== "verify"
-  signupStageComplete.hidden = which !== "complete"
-  persistState()
-  refreshLeaveGuard()
+  signupStageStart.hidden = which !== "start";
+  signupStageVerify.hidden = which !== "verify";
+  signupStageComplete.hidden = which !== "complete";
+  persistState();
+  refreshLeaveGuard();
 }
 
 function setDiscordRegistrationMode(enabled) {
-  state.isDiscordRegistration = enabled
-  if (discordAvatarPreview) discordAvatarPreview.hidden = !enabled
-  if (completePasswordRow) completePasswordRow.hidden = enabled
+  state.isDiscordRegistration = enabled;
+  if (discordAvatarPreview) discordAvatarPreview.hidden = !enabled;
+  if (completePasswordRow) completePasswordRow.hidden = enabled;
+}
+
+function setLoginTwoFactorPrompt(maskedEmail = state.challengeMaskedEmail) {
+  loginTwoFactorMessage.textContent = maskedEmail
+    ? t("auth.flow.enterCodeSent", { email: maskedEmail })
+    : t("auth.flow.enterCode");
+}
+
+function setSignupVerifyPrompt(maskedEmail) {
+  signupVerifyMessage.textContent = maskedEmail
+    ? t("auth.flow.enterMailCodeMasked", { email: maskedEmail })
+    : t("auth.flow.enterMailCode");
+}
+
+function setSignupCompletePrompt() {
+  if (state.isDiscordRegistration) {
+    const email = discordAvatarImg?.dataset.providerEmail || "";
+    signupCompleteMessage.textContent = email
+      ? t("auth.flow.discordRegistrationWithEmail", { email })
+      : t("auth.flow.discordRegistration");
+    return;
+  }
+
+  signupCompleteMessage.textContent = state.signupEmail
+    ? t("auth.flow.completeRegistrationForEmail", { email: state.signupEmail })
+    : t("auth.flow.completeRegistration");
+}
+
+function syncDynamicTexts() {
+  setLoginTwoFactorPrompt();
+
+  if (!signupStageVerify.hidden) {
+    setSignupVerifyPrompt(signupVerifyMessage.dataset.maskedEmail || "");
+  }
+
+  if (!signupStageComplete.hidden) {
+    setSignupCompletePrompt();
+  }
+
+  refreshResendButtons();
 }
 
 function resetSignupState() {
-  state.verifyTicket = ""
-  state.registrationToken = ""
-  state.signupResendAvailableAt = 0
-  state.isDiscordRegistration = false
-  if (signupVerifyCode) signupVerifyCode.value = ""
-  if (completeUserKey) completeUserKey.value = ""
-  if (completeDisplayName) completeDisplayName.value = ""
-  if (completePassword) completePassword.value = ""
-  if (discordAvatarPreview) discordAvatarPreview.hidden = true
-  if (discordAvatarImg) discordAvatarImg.src = ""
-  if (completePasswordRow) completePasswordRow.hidden = false
-  persistState()
-  refreshResendButtons()
+  state.verifyTicket = "";
+  state.registrationToken = "";
+  state.signupResendAvailableAt = 0;
+  state.isDiscordRegistration = false;
+  if (signupVerifyCode) signupVerifyCode.value = "";
+  if (completeUserKey) completeUserKey.value = "";
+  if (completeDisplayName) completeDisplayName.value = "";
+  if (completePassword) completePassword.value = "";
+  if (discordAvatarPreview) discordAvatarPreview.hidden = true;
+  if (discordAvatarImg) {
+    discordAvatarImg.src = "";
+    delete discordAvatarImg.dataset.providerEmail;
+  }
+  if (completePasswordRow) completePasswordRow.hidden = false;
+  signupVerifyMessage.dataset.maskedEmail = "";
+  persistState();
+  refreshResendButtons();
 }
 
 function resetLoginTwoFactorState() {
-  state.challengeToken = ""
-  state.challengeMaskedEmail = ""
-  state.loginResendAvailableAt = 0
-  loginTwoFactorCode.value = ""
-  loginTwoFactorMessage.textContent = "認証コードを入力してください。"
-  persistState()
-  refreshResendButtons()
+  state.challengeToken = "";
+  state.challengeMaskedEmail = "";
+  state.loginResendAvailableAt = 0;
+  loginTwoFactorCode.value = "";
+  setLoginTwoFactorPrompt("");
+  persistState();
+  refreshResendButtons();
 }
 
 function isSignupVerificationActive() {
-  return paneSignup.classList.contains("is-on") && !signupStageVerify.hidden && !!state.verifyTicket
+  return paneSignup.classList.contains("is-on") && !signupStageVerify.hidden && !!state.verifyTicket;
 }
 
 function isSignupCompleteActive() {
-  return paneSignup.classList.contains("is-on") && !signupStageComplete.hidden && !!state.registrationToken
+  return paneSignup.classList.contains("is-on") && !signupStageComplete.hidden && !!state.registrationToken;
 }
 
 function isLoginTwoFactorActive() {
-  return paneLogin.classList.contains("is-on") && !loginStageTwoFactor.hidden && !!state.challengeToken
+  return paneLogin.classList.contains("is-on") && !loginStageTwoFactor.hidden && !!state.challengeToken;
 }
 
 function hasPendingFlow() {
-  return isSignupVerificationActive() || isSignupCompleteActive() || isLoginTwoFactorActive()
+  return isSignupVerificationActive() || isSignupCompleteActive() || isLoginTwoFactorActive();
 }
 
 function describePendingFlow() {
-  if (isSignupCompleteActive()) {
-    return "アカウント作成を中断して画面を離れますか？"
-  }
-  if (isSignupVerificationActive()) {
-    return "認証コード入力を中断して画面を離れますか？"
-  }
-  if (isLoginTwoFactorActive()) {
-    return "2段階認証を中断して画面を離れますか？"
-  }
-  return "この操作を中断して画面を離れますか？"
+  if (isSignupCompleteActive()) return t("auth.flow.leaveCreate");
+  if (isSignupVerificationActive()) return t("auth.flow.leaveVerify");
+  if (isLoginTwoFactorActive()) return t("auth.flow.leave2fa");
+  return t("auth.flow.leaveDefault");
 }
 
 function openConfirmModal(options) {
   if (!authConfirmLayer || !authConfirmTitle || !authConfirmMessage || !authConfirmApproveBtn || !authConfirmCancelBtn) {
-    return Promise.resolve(window.confirm(String(options?.message || "本当に実行しますか？")))
+    return Promise.resolve(window.confirm(String(options?.message || t("auth.confirm.defaultMessage"))));
   }
 
   if (confirmResolver) {
-    confirmResolver(false)
-    confirmResolver = null
+    confirmResolver(false);
+    confirmResolver = null;
   }
 
-  authConfirmTitle.textContent = String(options?.title || "確認")
-  authConfirmMessage.textContent = String(options?.message || "本当に実行しますか？")
-  authConfirmApproveBtn.textContent = String(options?.approveText || "実行する")
-  authConfirmCancelBtn.textContent = String(options?.cancelText || "キャンセル")
-  authConfirmApproveBtn.classList.remove("btn-danger")
-  if (options?.danger) authConfirmApproveBtn.classList.add("btn-danger")
-  authConfirmLayer.style.display = "flex"
+  authConfirmTitle.textContent = String(options?.title || t("auth.confirm.title"));
+  authConfirmMessage.textContent = String(options?.message || t("auth.confirm.defaultMessage"));
+  authConfirmApproveBtn.textContent = String(options?.approveText || t("auth.actions.confirm"));
+  authConfirmCancelBtn.textContent = String(options?.cancelText || t("auth.actions.cancel"));
+  authConfirmApproveBtn.classList.remove("btn-danger");
+  if (options?.danger) authConfirmApproveBtn.classList.add("btn-danger");
+  authConfirmLayer.style.display = "flex";
 
   return new Promise((resolve) => {
-    confirmResolver = resolve
-  })
+    confirmResolver = resolve;
+  });
 }
 
 function closeConfirmModal(result) {
-  if (authConfirmLayer) authConfirmLayer.style.display = "none"
+  if (authConfirmLayer) authConfirmLayer.style.display = "none";
   if (confirmResolver) {
-    const resolve = confirmResolver
-    confirmResolver = null
-    resolve(Boolean(result))
+    const resolve = confirmResolver;
+    confirmResolver = null;
+    resolve(Boolean(result));
   }
 }
 
 async function confirmSendCode(message) {
   return openConfirmModal({
-    title: "認証コード送信の確認",
+    title: t("auth.confirm.sendCodeTitle"),
     message,
-    approveText: "送信する",
-    cancelText: "キャンセル"
-  })
+    approveText: t("auth.confirm.send"),
+    cancelText: t("auth.actions.cancel"),
+  });
 }
 
 async function confirmLeaveFlow(message) {
   return openConfirmModal({
-    title: "確認",
+    title: t("auth.confirm.title"),
     message,
-    approveText: "中断する",
-    cancelText: "続ける",
-    danger: true
-  })
+    approveText: t("auth.confirm.abort"),
+    cancelText: t("auth.confirm.continue"),
+    danger: true,
+  });
 }
 
 async function getVerifyStatus(mode, token) {
-  if (!token) return null
-  const key = mode === "2fa" ? "challenge" : "ticket"
-  const { res, data } = await getJson(`/gallery/api/auth/verify/status?mode=${encodeURIComponent(mode)}&${key}=${encodeURIComponent(token)}`)
-  if (!res.ok) return null
-  return data?.data || null
+  if (!token) return null;
+  const key = mode === "2fa" ? "challenge" : "ticket";
+  const { res, data } = await getJson(`/gallery/api/auth/verify/status?mode=${encodeURIComponent(mode)}&${key}=${encodeURIComponent(token)}`);
+  if (!res.ok) return null;
+  return data?.data || null;
 }
 
 async function hydrateSignupVerifyStatus() {
-  if (!state.verifyTicket) return
-  const status = await getVerifyStatus("email", state.verifyTicket)
-  if (!status) return
-  signupVerifyMessage.textContent = status.masked_email ? `${status.masked_email} に届いた認証コードを入力してください。` : "メールに届いた認証コードを入力してください。"
-  setCooldownFromSeconds("signup", status.resend_cooldown_sec)
+  if (!state.verifyTicket) return;
+  const status = await getVerifyStatus("email", state.verifyTicket);
+  if (!status) return;
+  signupVerifyMessage.dataset.maskedEmail = String(status.masked_email || "");
+  setSignupVerifyPrompt(signupVerifyMessage.dataset.maskedEmail);
+  setCooldownFromSeconds("signup", status.resend_cooldown_sec);
 }
 
 async function hydrateLoginTwoFactorStatus() {
-  if (!state.challengeToken) return
-  const status = await getVerifyStatus("2fa", state.challengeToken)
-  if (!status) return
-  state.challengeMaskedEmail = String(status.masked_email || state.challengeMaskedEmail || "")
-  loginTwoFactorMessage.textContent = state.challengeMaskedEmail ? `${state.challengeMaskedEmail} に送信した認証コードを入力してください。` : "認証コードを入力してください。"
-  setCooldownFromSeconds("login", status.resend_cooldown_sec)
+  if (!state.challengeToken) return;
+  const status = await getVerifyStatus("2fa", state.challengeToken);
+  if (!status) return;
+  state.challengeMaskedEmail = String(status.masked_email || state.challengeMaskedEmail || "");
+  setLoginTwoFactorPrompt(state.challengeMaskedEmail);
+  setCooldownFromSeconds("login", status.resend_cooldown_sec);
 }
 
 function discardSignupVerifyFlow() {
-  resetSignupState()
-  setSignupStage("start")
-  setQuery({})
+  resetSignupState();
+  setSignupStage("start");
+  setQuery({});
 }
 
 function discardLoginTwoFactorFlow() {
-  resetLoginTwoFactorState()
-  setLoginStage("credentials")
-  setQuery({})
+  resetLoginTwoFactorState();
+  setLoginStage("credentials");
+  setQuery({});
 }
 
 async function handleLeaveCurrentFlow(afterDiscard) {
   if (!hasPendingFlow()) {
-    afterDiscard()
-    return
+    afterDiscard();
+    return;
   }
 
-  const ok = await confirmLeaveFlow(describePendingFlow())
-  if (!ok) return
+  const ok = await confirmLeaveFlow(describePendingFlow());
+  if (!ok) return;
 
   if (isSignupVerificationActive() || isSignupCompleteActive()) {
-    discardSignupVerifyFlow()
+    discardSignupVerifyFlow();
   }
   if (isLoginTwoFactorActive()) {
-    discardLoginTwoFactorFlow()
+    discardLoginTwoFactorFlow();
   }
-  afterDiscard()
+  afterDiscard();
 }
 
 function refreshLeaveGuard() {
-  const active = hasPendingFlow()
+  const active = hasPendingFlow();
   if (active && !leaveGuardPrimed) {
-    history.pushState({ authLeaveGuard: true }, "", location.href)
-    leaveGuardPrimed = true
+    history.pushState({ authLeaveGuard: true }, "", location.href);
+    leaveGuardPrimed = true;
   }
   if (!active) {
-    leaveGuardPrimed = false
-    allowBrowserLeave = false
-    popstateBypass = false
+    leaveGuardPrimed = false;
+    allowBrowserLeave = false;
+    popstateBypass = false;
   }
 }
 
 async function doLogin() {
-  const em = String(loginEmail.value || "").trim()
-  const pw = String(loginPass.value || "")
+  const em = String(loginEmail.value || "").trim();
+  const pw = String(loginPass.value || "");
 
   if (!em || !pw) {
-    showToastErr("email/password を入力してください。", 4200)
-    return
+    showToastErr(t("auth.errors.requiredEmailPassword"), 4200);
+    return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/login", { email: em, password: pw })
+  const { res, data } = await postJson("/gallery/api/auth/login", { email: em, password: pw });
 
   if (!res.ok) {
-    showToastErr(getErrorMessage(data, `login failed (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `login failed (${res.status})`), 5200);
+    return;
   }
 
   if (data?.next?.kind === "verify_2fa" || data?.data?.challenge_token) {
-    state.challengeToken = String(data?.data?.challenge_token || "")
-    state.challengeMaskedEmail = String(data?.data?.masked_email || "")
-    loginTwoFactorCode.value = ""
-    loginTwoFactorMessage.textContent = state.challengeMaskedEmail ? `${state.challengeMaskedEmail} に送信した認証コードを入力してください。` : "認証コードを入力してください。"
-    setTab("login")
-    setLoginStage("twofactor")
-    setQuery({ step: "verify-2fa", challenge: state.challengeToken })
-    setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec)
-    showToastOk(String(data?.message || "認証コードを確認してください。"), 1800)
-    return
+    state.challengeToken = String(data?.data?.challenge_token || "");
+    state.challengeMaskedEmail = String(data?.data?.masked_email || "");
+    loginTwoFactorCode.value = "";
+    setLoginTwoFactorPrompt(state.challengeMaskedEmail);
+    setTab("login");
+    setLoginStage("twofactor");
+    setQuery({ step: "verify-2fa", challenge: state.challengeToken });
+    setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec);
+    showToastOk(String(data?.message || t("auth.toast.checkCode")), 1800);
+    return;
   }
 
-  // Discord email-conflict: auto-link after login
   if (state.discordLinkRegistrationToken) {
-    const linkToken = state.discordLinkRegistrationToken
-    clearPersistedState()
-    const { res: lRes, data: lData } = await postJson("/gallery/api/auth/discord/link/via-token", { registration_token: linkToken })
+    const linkToken = state.discordLinkRegistrationToken;
+    clearPersistedState();
+    const { res: lRes, data: lData } = await postJson("/gallery/api/auth/discord/link/via-token", { registration_token: linkToken });
     if (!lRes.ok) {
-      showToastErr(getErrorMessage(lData, "Discord連携に失敗しました。"), 6000)
-      setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 1200)
-      return
+      showToastErr(getErrorMessage(lData, "Discord link failed."), 6000);
+      setTimeout(() => { location.replace(data?.next?.to || nextUrl()); }, 1200);
+      return;
     }
-    showToastOk("Discordアカウントを連携しました。", 2400)
-    setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 900)
-    return
+    showToastOk(t("auth.toast.discordLinkedAfterLogin"), 2400);
+    setTimeout(() => { location.replace(data?.next?.to || nextUrl()); }, 900);
+    return;
   }
 
-  showToastOk(String(data?.message || "ログインしました。"), 1600)
-  clearPersistedState()
-  setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 450)
+  showToastOk(String(data?.message || t("auth.toast.loggedIn")), 1600);
+  clearPersistedState();
+  setTimeout(() => { location.replace(data?.next?.to || nextUrl()); }, 450);
 }
 
 async function doLoginTwoFactorVerify() {
-  const code = String(loginTwoFactorCode.value || "").trim()
+  const code = String(loginTwoFactorCode.value || "").trim();
   if (!state.challengeToken || !code) {
-    showToastErr("認証コードを入力してください。", 4200)
-    return
+    showToastErr(t("auth.errors.requiredCode"), 4200);
+    return;
   }
 
   const { res, data } = await postJson("/gallery/api/auth/2fa/challenge/verify", {
     challenge_token: state.challengeToken,
     code,
-    remember_for_30_days: false
-  })
+    remember_for_30_days: false,
+  });
 
   if (!res.ok) {
-    showToastErr(getErrorMessage(data, `2fa verify failed (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `2fa verify failed (${res.status})`), 5200);
+    return;
   }
 
-  resetLoginTwoFactorState()
-  setQuery({})
-  clearPersistedState()
-  showToastOk(String(data?.message || "ログインしました。"), 1600)
-  setTimeout(() => { location.replace(data?.next?.to || nextUrl()) }, 450)
+  resetLoginTwoFactorState();
+  setQuery({});
+  clearPersistedState();
+  showToastOk(String(data?.message || t("auth.toast.loggedIn")), 1600);
+  setTimeout(() => { location.replace(data?.next?.to || nextUrl()); }, 450);
 }
 
 async function doLoginTwoFactorResend() {
   if (!state.challengeToken) {
-    showToastErr("認証トークンがありません。", 4200)
-    return
+    showToastErr(t("auth.errors.missingChallenge"), 4200);
+    return;
   }
   if (getCooldownRemainingSec("login") > 0) {
-    showToastErr("しばらく待ってから再送してください。", 3000)
-    return
+    showToastErr(t("auth.errors.waitResend"), 3000);
+    return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/2fa/challenge/send", { challenge_token: state.challengeToken })
+  const { res, data } = await postJson("/gallery/api/auth/2fa/challenge/send", { challenge_token: state.challengeToken });
 
   if (!res.ok) {
     if (res.status === 429) {
-      setCooldownFromSeconds("login", data?.error?.retry_after_sec)
+      setCooldownFromSeconds("login", data?.error?.retry_after_sec);
     }
-    showToastErr(getErrorMessage(data, `2fa resend failed (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `2fa resend failed (${res.status})`), 5200);
+    return;
   }
 
-  state.challengeToken = String(data?.data?.challenge_token || state.challengeToken)
-  state.challengeMaskedEmail = String(data?.data?.masked_email || state.challengeMaskedEmail)
-  loginTwoFactorMessage.textContent = state.challengeMaskedEmail ? `${state.challengeMaskedEmail} に送信した認証コードを入力してください。` : "認証コードを入力してください。"
-  setQuery({ step: "verify-2fa", challenge: state.challengeToken })
-  setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec)
-  showToastOk(String(data?.message || "認証コードを再送しました。"), 1800)
+  state.challengeToken = String(data?.data?.challenge_token || state.challengeToken);
+  state.challengeMaskedEmail = String(data?.data?.masked_email || state.challengeMaskedEmail);
+  setLoginTwoFactorPrompt(state.challengeMaskedEmail);
+  setQuery({ step: "verify-2fa", challenge: state.challengeToken });
+  setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec);
+  showToastOk(String(data?.message || t("auth.toast.codeResent")), 1800);
 }
 
 async function startDiscordOAuth() {
-  const { res, data } = await postJson("/gallery/api/auth/discord/start", {})
+  const { res, data } = await postJson("/gallery/api/auth/discord/start", {});
 
   if (!res.ok) {
-    showToastErr(getErrorMessage(data, `Discord OAuth 開始に失敗しました (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `Discord OAuth start failed (${res.status})`), 5200);
+    return;
   }
 
-  const redirectTo = data?.next?.to
+  const redirectTo = data?.next?.to;
   if (redirectTo) {
-    allowBrowserLeave = true
-    location.replace(redirectTo)
-    return
+    allowBrowserLeave = true;
+    location.replace(redirectTo);
+    return;
   }
 
-  showToastErr("Discord認証URLの取得に失敗しました。", 5200)
+  showToastErr(t("auth.errors.oauthUrl"), 5200);
 }
 
 async function startRegistration() {
-  const email = String(signupEmail.value || "").trim()
+  const email = String(signupEmail.value || "").trim();
   if (!email) {
-    showToastErr("メールアドレスを入力してください。", 4200)
-    return
+    showToastErr(t("auth.errors.requiredEmail"), 4200);
+    return;
   }
 
-  const ok = await confirmSendCode("入力したメールアドレス宛に認証コードを送信します。よろしいですか？")
-  if (!ok) return
+  const ok = await confirmSendCode(t("auth.confirm.loginCode"));
+  if (!ok) return;
 
-  const { res, data } = await postJson("/gallery/api/auth/register/start", { email })
+  const { res, data } = await postJson("/gallery/api/auth/register/start", { email });
 
   if (!res.ok) {
-    showToastErr(getErrorMessage(data, `register start failed (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `register start failed (${res.status})`), 5200);
+    return;
   }
 
-  state.signupEmail = email
-  state.verifyTicket = String(data?.data?.verify_ticket || "")
-  signupVerifyCode.value = ""
-  signupVerifyMessage.textContent = data?.data?.masked_email ? `${data.data.masked_email} に届いた認証コードを入力してください。` : "メールに届いた認証コードを入力してください。"
-  setTab("signup")
-  setSignupStage("verify")
-  setQuery({ step: "verify-email", ticket: state.verifyTicket })
-  setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec)
-  showToastOk(String(data?.message || "確認コードを送信しました。"), 1800)
+  state.signupEmail = email;
+  state.verifyTicket = String(data?.data?.verify_ticket || "");
+  signupVerifyCode.value = "";
+  signupVerifyMessage.dataset.maskedEmail = String(data?.data?.masked_email || "");
+  setSignupVerifyPrompt(signupVerifyMessage.dataset.maskedEmail);
+  setTab("signup");
+  setSignupStage("verify");
+  setQuery({ step: "verify-email", ticket: state.verifyTicket });
+  setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec);
+  showToastOk(String(data?.message || t("auth.toast.codeSent")), 1800);
 }
 
 async function resendRegistrationCode() {
   if (!state.verifyTicket) {
-    showToastErr("verify_ticket がありません。", 4200)
-    return
+    showToastErr(t("auth.errors.missingVerifyTicket"), 4200);
+    return;
   }
   if (getCooldownRemainingSec("signup") > 0) {
-    showToastErr("しばらく待ってから再送してください。", 3000)
-    return
+    showToastErr(t("auth.errors.waitResend"), 3000);
+    return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/verify/email/send", { verify_ticket: state.verifyTicket })
+  const { res, data } = await postJson("/gallery/api/auth/verify/email/send", { verify_ticket: state.verifyTicket });
 
   if (!res.ok) {
     if (res.status === 429) {
-      setCooldownFromSeconds("signup", data?.error?.retry_after_sec)
+      setCooldownFromSeconds("signup", data?.error?.retry_after_sec);
     }
-    showToastErr(getErrorMessage(data, `verify resend failed (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `verify resend failed (${res.status})`), 5200);
+    return;
   }
 
-  state.verifyTicket = String(data?.data?.verify_ticket || state.verifyTicket)
-  signupVerifyMessage.textContent = data?.data?.masked_email ? `${data.data.masked_email} に届いた認証コードを入力してください。` : "メールに届いた認証コードを入力してください。"
-  setQuery({ step: "verify-email", ticket: state.verifyTicket })
-  setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec)
-  showToastOk(String(data?.message || "確認コードを再送しました。"), 1800)
+  state.verifyTicket = String(data?.data?.verify_ticket || state.verifyTicket);
+  signupVerifyMessage.dataset.maskedEmail = String(data?.data?.masked_email || "");
+  setSignupVerifyPrompt(signupVerifyMessage.dataset.maskedEmail);
+  setQuery({ step: "verify-email", ticket: state.verifyTicket });
+  setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec);
+  showToastOk(String(data?.message || t("auth.toast.codeResent")), 1800);
 }
 
 async function confirmRegistrationCode() {
-  const code = String(signupVerifyCode.value || "").trim()
+  const code = String(signupVerifyCode.value || "").trim();
   if (!state.verifyTicket || !code) {
-    showToastErr("認証コードを入力してください。", 4200)
-    return
+    showToastErr(t("auth.errors.requiredCode"), 4200);
+    return;
   }
 
   const { res, data } = await postJson("/gallery/api/auth/verify/email/confirm", {
     verify_ticket: state.verifyTicket,
-    code
-  })
+    code,
+  });
 
   if (!res.ok) {
-    showToastErr(getErrorMessage(data, `verify failed (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `verify failed (${res.status})`), 5200);
+    return;
   }
 
-  state.registrationToken = String(data?.data?.registration_token || "")
-  if (data?.data?.email) state.signupEmail = String(data.data.email)
-  signupCompleteMessage.textContent = state.signupEmail ? `${state.signupEmail} のアカウント情報を入力してください。` : "アカウント情報を入力してください。"
-  setTab("signup")
-  setSignupStage("complete")
-  setQuery({ step: "complete-registration", registration: state.registrationToken })
-  showToastOk(String(data?.message || "メール認証が完了しました。"), 1800)
+  state.registrationToken = String(data?.data?.registration_token || "");
+  if (data?.data?.email) state.signupEmail = String(data.data.email);
+  setSignupCompletePrompt();
+  setTab("signup");
+  setSignupStage("complete");
+  setQuery({ step: "complete-registration", registration: state.registrationToken });
+  showToastOk(String(data?.message || t("auth.toast.mailVerified")), 1800);
 }
 
 async function completeRegistration() {
-  const userKey = String(completeUserKey.value || "").trim()
-  const displayName = String(completeDisplayName.value || "").trim()
+  const userKey = String(completeUserKey.value || "").trim();
+  const displayName = String(completeDisplayName.value || "").trim();
 
   if (state.isDiscordRegistration) {
     if (!state.registrationToken || !userKey || !displayName) {
-      showToastErr("user_key / display_name を入力してください。", 5200)
-      return
+      showToastErr(t("auth.errors.requiredProfileDiscord"), 5200);
+      return;
     }
 
     const { res, data } = await postJson("/gallery/api/auth/register/discord", {
       registration_token: state.registrationToken,
       user_key: userKey,
       display_name: displayName,
-    })
+    });
 
     if (!res.ok) {
-      showToastErr(getErrorMessage(data, `Discord登録に失敗しました (${res.status})`), 5200)
-      return
+      showToastErr(getErrorMessage(data, `Discord registration failed (${res.status})`), 5200);
+      return;
     }
 
-    showToastOk(String(data?.message || "Discordアカウントで登録しました。"), 2200)
-    resetSignupState()
-    setQuery({})
-    clearPersistedState()
-    const nextTo = data?.next?.to
-    setTimeout(() => { location.replace(nextTo || "/gallery/") }, 600)
-    return
+    showToastOk(String(data?.message || t("auth.toast.discordRegistered")), 2200);
+    resetSignupState();
+    setQuery({});
+    clearPersistedState();
+    const nextTo = data?.next?.to;
+    setTimeout(() => { location.replace(nextTo || "/gallery/"); }, 600);
+    return;
   }
 
-  const password = String(completePassword.value || "")
+  const password = String(completePassword.value || "");
   if (!state.registrationToken || !userKey || !displayName || !password) {
-    showToastErr("user_key / display_name / password を入力してください。", 5200)
-    return
+    showToastErr(t("auth.errors.requiredProfile"), 5200);
+    return;
   }
 
   const { res, data } = await postJson("/gallery/api/auth/register/complete", {
@@ -684,230 +902,235 @@ async function completeRegistration() {
     user_key: userKey,
     display_name: displayName,
     password,
-    terms_agreed: true
-  })
+    terms_agreed: true,
+  });
 
   if (!res.ok) {
-    showToastErr(getErrorMessage(data, `register complete failed (${res.status})`), 5200)
-    return
+    showToastErr(getErrorMessage(data, `register complete failed (${res.status})`), 5200);
+    return;
   }
 
-  showToastOk(String(data?.message || "アカウントを作成しました。"), 2200)
-  resetSignupState()
-  setTab("login")
-  setLoginStage("credentials")
-  setSignupStage("start")
-  loginEmail.value = state.signupEmail || ""
-  loginPass.value = ""
-  setQuery({})
-  clearPersistedState()
+  showToastOk(String(data?.message || t("auth.toast.accountCreated")), 2200);
+  resetSignupState();
+  setTab("login");
+  setLoginStage("credentials");
+  setSignupStage("start");
+  loginEmail.value = state.signupEmail || "";
+  loginPass.value = "";
+  setQuery({});
+  clearPersistedState();
 }
 
 async function hydrateDiscordRegistrationPrefill() {
-  if (!state.registrationToken) return
-  const { res, data } = await getJson(
-    `/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.registrationToken)}`
-  )
-  if (!res.ok || !data?.data?.prefill) return
-  const prefill = data.data.prefill
+  if (!state.registrationToken) return;
+  const { res, data } = await getJson(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.registrationToken)}`);
+  if (!res.ok || !data?.data?.prefill) return;
+  const prefill = data.data.prefill;
   if (completeUserKey && prefill.user_key && !completeUserKey.value) {
-    completeUserKey.value = prefill.user_key
+    completeUserKey.value = prefill.user_key;
   }
   if (completeDisplayName && prefill.display_name && !completeDisplayName.value) {
-    completeDisplayName.value = prefill.display_name
+    completeDisplayName.value = prefill.display_name;
   }
-  const profile = data.data.discord_profile
+  const profile = data.data.discord_profile;
   if (profile?.provider_avatar_url && discordAvatarImg) {
-    discordAvatarImg.src = profile.provider_avatar_url
-    if (discordAvatarPreview) discordAvatarPreview.hidden = false
+    discordAvatarImg.src = profile.provider_avatar_url;
+    discordAvatarImg.dataset.providerEmail = String(profile.provider_email || "");
+    if (discordAvatarPreview) discordAvatarPreview.hidden = false;
   }
-  if (profile?.provider_email) {
-    if (signupCompleteMessage) signupCompleteMessage.textContent = `Discordアカウント (${profile.provider_email}) でアカウントを作成します。`
-  } else {
-    if (signupCompleteMessage) signupCompleteMessage.textContent = "Discordアカウントでアカウントを作成します。パスワードを設定してください。"
-  }
+  setSignupCompletePrompt();
 }
 
 async function restoreFromLocation() {
-  restorePersistedState()
-  if (state.signupEmail && signupEmail) signupEmail.value = state.signupEmail
+  restorePersistedState();
+  if (state.signupEmail && signupEmail) signupEmail.value = state.signupEmail;
 
-  const url = new URL(location.href)
-  const step = String(url.searchParams.get("step") || "")
+  const url = new URL(location.href);
+  const step = String(url.searchParams.get("step") || "");
   if (step === "verify-email") {
-    state.verifyTicket = String(url.searchParams.get("ticket") || state.verifyTicket || "")
-    setTab("signup")
-    setSignupStage("verify")
-    setLoginStage("credentials")
-    await hydrateSignupVerifyStatus()
-    persistState()
-    return
+    state.verifyTicket = String(url.searchParams.get("ticket") || state.verifyTicket || "");
+    setTab("signup");
+    setSignupStage("verify");
+    setLoginStage("credentials");
+    await hydrateSignupVerifyStatus();
+    persistState();
+    return;
   }
   if (step === "complete-registration") {
-    state.registrationToken = String(url.searchParams.get("registration") || state.registrationToken || "")
-    const provider = String(url.searchParams.get("provider") || "")
-    const conflict = String(url.searchParams.get("conflict") || "")
+    state.registrationToken = String(url.searchParams.get("registration") || state.registrationToken || "");
+    const provider = String(url.searchParams.get("provider") || "");
+    const conflict = String(url.searchParams.get("conflict") || "");
 
     if (provider === "discord" && conflict === "email_exists") {
-      // Email already exists: ask user to login to link Discord
-      state.discordLinkRegistrationToken = state.registrationToken
-      state.registrationToken = ""
-      // Pre-fill email from Discord profile if available
+      state.discordLinkRegistrationToken = state.registrationToken;
+      state.registrationToken = "";
       try {
-        const statusRes = await fetch(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.discordLinkRegistrationToken)}`)
-        const statusData = await statusRes.json()
-        const email = statusData?.data?.discord_profile?.provider_email || ""
-        if (email && loginEmail) loginEmail.value = email
-      } catch (_) {}
-      setTab("login")
-      setLoginStage("credentials")
-      setSignupStage("start")
-      persistState()
-      showToast("このメールアドレスはすでに登録されています。ログインするとDiscordが自動的に連携されます。", 8000, "ok")
-      return
+        const statusRes = await fetch(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.discordLinkRegistrationToken)}`);
+        const statusData = await statusRes.json();
+        const email = statusData?.data?.discord_profile?.provider_email || "";
+        if (email && loginEmail) loginEmail.value = email;
+      } catch {
+        return;
+      }
+      setTab("login");
+      setLoginStage("credentials");
+      setSignupStage("start");
+      persistState();
+      showToast(t("auth.toast.linkAfterLogin"), 8000, "ok");
+      return;
     }
 
-    setDiscordRegistrationMode(provider === "discord")
-    setTab("signup")
-    setSignupStage("complete")
-    setLoginStage("credentials")
+    setDiscordRegistrationMode(provider === "discord");
+    setTab("signup");
+    setSignupStage("complete");
+    setLoginStage("credentials");
     if (provider === "discord" && state.registrationToken) {
-      await hydrateDiscordRegistrationPrefill()
+      await hydrateDiscordRegistrationPrefill();
+    } else {
+      setSignupCompletePrompt();
     }
-    persistState()
-    refreshLeaveGuard()
-    return
+    persistState();
+    refreshLeaveGuard();
+    return;
   }
   if (step === "verify-2fa") {
-    state.challengeToken = String(url.searchParams.get("challenge") || state.challengeToken || "")
-    setTab("login")
-    setLoginStage("twofactor")
-    await hydrateLoginTwoFactorStatus()
-    persistState()
-    return
+    state.challengeToken = String(url.searchParams.get("challenge") || state.challengeToken || "");
+    setTab("login");
+    setLoginStage("twofactor");
+    await hydrateLoginTwoFactorStatus();
+    persistState();
+    return;
   }
-  setTab("login")
-  setLoginStage("credentials")
-  setSignupStage("start")
-  persistState()
+  setTab("login");
+  setLoginStage("credentials");
+  setSignupStage("start");
+  persistState();
 }
 
 function handleBeforeUnload(event) {
-  if (!hasPendingFlow() || allowBrowserLeave) return
-  event.preventDefault()
-  event.returnValue = ""
+  if (!hasPendingFlow() || allowBrowserLeave) return;
+  event.preventDefault();
+  event.returnValue = "";
 }
 
 function handlePopState() {
   if (popstateBypass) {
-    popstateBypass = false
-    return
+    popstateBypass = false;
+    return;
   }
-  if (!hasPendingFlow()) return
-  history.pushState({ authLeaveGuard: true }, "", location.href)
+  if (!hasPendingFlow()) return;
+  history.pushState({ authLeaveGuard: true }, "", location.href);
   confirmLeaveFlow(describePendingFlow()).then((ok) => {
-    if (!ok) return
-    allowBrowserLeave = true
-    popstateBypass = true
-    window.history.back()
-  })
+    if (!ok) return;
+    allowBrowserLeave = true;
+    popstateBypass = true;
+    window.history.back();
+  });
 }
 
 function initConfirmModal() {
-  if (authConfirmApproveBtn) authConfirmApproveBtn.addEventListener("click", () => closeConfirmModal(true))
-  if (authConfirmCancelBtn) authConfirmCancelBtn.addEventListener("click", () => closeConfirmModal(false))
+  if (authConfirmApproveBtn) authConfirmApproveBtn.addEventListener("click", () => closeConfirmModal(true));
+  if (authConfirmCancelBtn) authConfirmCancelBtn.addEventListener("click", () => closeConfirmModal(false));
   if (authConfirmLayer) {
     authConfirmLayer.addEventListener("click", (event) => {
-      if (event.target === authConfirmLayer) closeConfirmModal(false)
-    })
+      if (event.target === authConfirmLayer) closeConfirmModal(false);
+    });
   }
 }
 
 function init() {
-  initConfirmModal()
-  startCountdownTicker()
+  currentLanguage = normalizeLanguage(settings.getLanguage());
+  if (authLangSelect) {
+    authLangSelect.value = currentLanguage;
+    authLangSelect.addEventListener("change", () => setLanguage(authLangSelect.value));
+  }
+  applyTranslations();
+
+  initConfirmModal();
+  startCountdownTicker();
 
   if (tabLogin) {
     tabLogin.addEventListener("click", () => {
       handleLeaveCurrentFlow(() => {
-        resetLoginTwoFactorState()
-        setTab("login")
-        setLoginStage("credentials")
-        setQuery({})
-      })
-    })
+        resetLoginTwoFactorState();
+        setTab("login");
+        setLoginStage("credentials");
+        setQuery({});
+      });
+    });
   }
 
   if (tabSignup) {
     tabSignup.addEventListener("click", () => {
       handleLeaveCurrentFlow(() => {
-        resetSignupState()
-        setTab("signup")
-        setSignupStage("start")
-        setQuery({})
-      })
-    })
+        resetSignupState();
+        setTab("signup");
+        setSignupStage("start");
+        setQuery({});
+      });
+    });
   }
 
   if (authHeaderBackButton) {
     authHeaderBackButton.addEventListener("click", () => {
       handleLeaveCurrentFlow(() => {
-        allowBrowserLeave = true
-        location.href = "/gallery/"
-      })
-    })
+        allowBrowserLeave = true;
+        location.href = "/gallery/";
+      });
+    });
   }
 
-  if (loginDiscordBtn) loginDiscordBtn.addEventListener("click", startDiscordOAuth)
-  if (signupDiscordBtn) signupDiscordBtn.addEventListener("click", startDiscordOAuth)
+  if (loginDiscordBtn) loginDiscordBtn.addEventListener("click", startDiscordOAuth);
+  if (signupDiscordBtn) signupDiscordBtn.addEventListener("click", startDiscordOAuth);
 
-  if (loginBtn) loginBtn.addEventListener("click", doLogin)
-  if (loginTwoFactorVerifyBtn) loginTwoFactorVerifyBtn.addEventListener("click", doLoginTwoFactorVerify)
-  if (loginTwoFactorResendBtn) loginTwoFactorResendBtn.addEventListener("click", doLoginTwoFactorResend)
+  if (loginBtn) loginBtn.addEventListener("click", doLogin);
+  if (loginTwoFactorVerifyBtn) loginTwoFactorVerifyBtn.addEventListener("click", doLoginTwoFactorVerify);
+  if (loginTwoFactorResendBtn) loginTwoFactorResendBtn.addEventListener("click", doLoginTwoFactorResend);
   if (loginBackBtn) {
     loginBackBtn.addEventListener("click", () => {
       handleLeaveCurrentFlow(() => {
-        discardLoginTwoFactorFlow()
-      })
-    })
+        discardLoginTwoFactorFlow();
+      });
+    });
   }
 
-  if (signupStartBtn) signupStartBtn.addEventListener("click", startRegistration)
-  if (signupVerifyBtn) signupVerifyBtn.addEventListener("click", confirmRegistrationCode)
-  if (signupResendBtn) signupResendBtn.addEventListener("click", resendRegistrationCode)
+  if (signupStartBtn) signupStartBtn.addEventListener("click", startRegistration);
+  if (signupVerifyBtn) signupVerifyBtn.addEventListener("click", confirmRegistrationCode);
+  if (signupResendBtn) signupResendBtn.addEventListener("click", resendRegistrationCode);
   if (signupRestartBtn) {
     signupRestartBtn.addEventListener("click", () => {
       handleLeaveCurrentFlow(() => {
-        discardSignupVerifyFlow()
-      })
-    })
+        discardSignupVerifyFlow();
+      });
+    });
   }
-  if (completeRegisterBtn) completeRegisterBtn.addEventListener("click", completeRegistration)
+  if (completeRegisterBtn) completeRegisterBtn.addEventListener("click", completeRegistration);
 
-  window.addEventListener("beforeunload", handleBeforeUnload)
-  window.addEventListener("popstate", handlePopState)
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("popstate", handlePopState);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && confirmResolver) {
-      closeConfirmModal(false)
-      return
+      closeConfirmModal(false);
+      return;
     }
-    if (e.key !== "Enter") return
+    if (e.key !== "Enter") return;
     if (paneLogin.classList.contains("is-on")) {
-      if (!loginStageCredentials.hidden) return void doLogin()
-      if (!loginStageTwoFactor.hidden) return void doLoginTwoFactorVerify()
+      if (!loginStageCredentials.hidden) return void doLogin();
+      if (!loginStageTwoFactor.hidden) return void doLoginTwoFactorVerify();
     }
     if (paneSignup.classList.contains("is-on")) {
-      if (!signupStageStart.hidden) return void startRegistration()
-      if (!signupStageVerify.hidden) return void confirmRegistrationCode()
-      if (!signupStageComplete.hidden) return void completeRegistration()
+      if (!signupStageStart.hidden) return void startRegistration();
+      if (!signupStageVerify.hidden) return void confirmRegistrationCode();
+      if (!signupStageComplete.hidden) return void completeRegistration();
     }
-  })
+  });
 
-  restoreFromLocation()
-  refreshResendButtons()
+  restoreFromLocation().finally(() => {
+    syncDynamicTexts();
+    refreshResendButtons();
+  });
 }
 
-init()
-if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
-
+init();
+if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow();
