@@ -16,7 +16,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
     stack.forEach((id, index) => {
       const layer = layers.get(id);
       if (!layer) return;
-      layer.style.zIndex = String(1000 + index * 10);
+      layer.style.zIndex = String(4000 + index * 10);
     });
 
     closeButton.hidden = stack.length === 0;
@@ -45,6 +45,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
       firstFocusable.focus();
       return;
     }
+
     const dialog = layer.querySelector("[role='dialog']");
     if (dialog) {
       dialog.focus();
@@ -69,11 +70,9 @@ export function createModalManager({ root, closeButton, body = document.body } =
     }
 
     previousFocus.set(id, document.activeElement instanceof HTMLElement ? document.activeElement : null);
-
     stack.push(id);
     layer.hidden = false;
     layer.setAttribute("aria-hidden", "false");
-
     refreshLayerOrder();
     focusLayer(id);
     dispatch("app:modal-open", { id, stack: [...stack] });
@@ -167,6 +166,6 @@ export function createModalManager({ root, closeButton, body = document.body } =
     },
     getStack() {
       return [...stack];
-    }
+    },
   };
 }
