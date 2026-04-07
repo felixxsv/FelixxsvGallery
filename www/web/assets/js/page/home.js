@@ -5,6 +5,11 @@ const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
 const DEFAULT_ROW_COUNT = 30;
 
+function normalizeUserKey(value) {
+  const userKey = typeof value === "string" ? value.trim() : "";
+  return userKey && userKey !== "-" ? userKey : "";
+}
+
 function highlightMatch(text, query) {
   if (!query) return escapeHtml(text);
   const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -242,7 +247,7 @@ function buildPublicDetail(image) {
     image_height: image.image_height ?? image.height ?? null,
     user: image.user || {
       display_name: image.uploader_display_name || image.display_name || "投稿者不明",
-      user_key: image.uploader_user_key || image.user_key || "-",
+      user_key: normalizeUserKey(image.uploader_user_key || image.user_key),
       avatar_url: withAppBase(image.uploader_avatar_url || image.uploader_avatar_path || image.avatar_url || ""),
     },
   };
@@ -1209,17 +1214,23 @@ export function initHomePage(app) {
 
     const detail = buildPublicDetail(image);
     const user = detail.user || {};
-    if (userButton && user.user_key) {
-      userButton.dataset.userKey = user.user_key;
-      userButton.setAttribute("aria-label", `${user.display_name || user.user_key} のプロフィール`);
-      userButton.hidden = false;
-      const avatarEl = userButton.querySelector("[data-card-user-avatar]");
-      if (avatarEl) {
-        if (user.avatar_url) {
-          avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="">`;
-        } else {
-          avatarEl.textContent = (user.display_name || "?").slice(0, 1).toUpperCase();
+    if (userButton) {
+      const userKey = normalizeUserKey(user.user_key);
+      if (userKey) {
+        userButton.dataset.userKey = userKey;
+        userButton.setAttribute("aria-label", `${user.display_name || userKey} のプロフィール`);
+        userButton.hidden = false;
+        const avatarEl = userButton.querySelector("[data-card-user-avatar]");
+        if (avatarEl) {
+          if (user.avatar_url) {
+            avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="">`;
+          } else {
+            avatarEl.textContent = (user.display_name || "?").slice(0, 1).toUpperCase();
+          }
         }
+      } else {
+        userButton.dataset.userKey = "";
+        userButton.hidden = true;
       }
     }
 
@@ -1793,7 +1804,7 @@ export function initHomePage(app) {
 
     const userButton = event.target.closest("[data-card-user]");
     if (userButton && refs.galleryGrid.contains(userButton)) {
-      const userKey = userButton.dataset.userKey;
+      const userKey = normalizeUserKey(userButton.dataset.userKey);
       if (userKey) {
         event.preventDefault();
         event.stopPropagation();

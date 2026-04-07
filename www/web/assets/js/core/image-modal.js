@@ -34,6 +34,11 @@ function formatCompactCount(value) {
   return `${(n / 1_000_000_000).toFixed(n >= 10_000_000_000 ? 0 : 1).replace(".0", "")}B`;
 }
 
+function normalizeUserKey(value) {
+  const userKey = typeof value === "string" ? value.trim() : "";
+  return userKey && userKey !== "-" ? userKey : "";
+}
+
 function normalizeLikeCount(value) {
   const count = Number(value || 0);
   return Number.isFinite(count) && count >= 0 ? count : 0;
@@ -76,7 +81,7 @@ function normalizePayload(item, options = {}) {
   normalized.view_count = Number(item?.view_count || 0);
   normalized.user = item?.user || {
     display_name: item?.uploader_display_name || item?.display_name || "投稿者不明",
-    user_key: item?.uploader_user_key || item?.user_key || "-",
+    user_key: normalizeUserKey(item?.uploader_user_key || item?.user_key),
     avatar_url: withAppBase(item?.uploader_avatar_url || item?.uploader_avatar_path || item?.avatar_url || ""),
   };
   normalized.tags = Array.isArray(item?.tags) ? item.tags : [];
@@ -334,8 +339,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
     userTextNode.textContent = `${textOrDash(user.display_name)} / @${textOrDash(user.user_key)}`;
     const userSpan = root.querySelector(".image-modal__user");
     if (userSpan) {
-      userSpan.dataset.userKey = user.user_key || "";
-      userSpan.classList.toggle("is-clickable", Boolean(user.user_key));
+      const userKey = normalizeUserKey(user.user_key);
+      userSpan.dataset.userKey = userKey;
+      userSpan.classList.toggle("is-clickable", Boolean(userKey));
     }
     syncPagerUi();
     syncLikeUi();
@@ -669,7 +675,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
   });
 
   root.querySelector(".image-modal__user").addEventListener("click", (event) => {
-    const userKey = event.currentTarget.dataset.userKey;
+    const userKey = normalizeUserKey(event.currentTarget.dataset.userKey);
     if (!userKey) return;
     document.dispatchEvent(new CustomEvent("app:open-user-profile", { detail: { userKey } }));
   });
