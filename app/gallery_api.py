@@ -122,6 +122,40 @@ def _palette_from_conf(conf: dict) -> list[dict]:
     return out
 
 
+def _serialize_color_tags(color_rows: list[dict] | None) -> list[dict]:
+    rows = color_rows or []
+    if not rows:
+        return []
+
+    palette_map = {
+        int(item["id"]): {
+            "id": int(item["id"]),
+            "name": str(item.get("name") or f"Color {item['id']}"),
+            "hex": str(item.get("hex") or ""),
+        }
+        for item in _palette_from_conf(CONF)
+        if item.get("id") is not None
+    }
+
+    color_tags: list[dict] = []
+    for row in rows:
+        try:
+            color_id = int(row.get("color_id"))
+        except Exception:
+            continue
+        palette_item = palette_map.get(color_id, {})
+        color_tags.append({
+            "id": color_id,
+            "label": palette_item.get("name") or f"Color {color_id}",
+            "name": palette_item.get("name") or f"Color {color_id}",
+            "hex": palette_item.get("hex") or "",
+            "ratio": float(row.get("ratio") or 0),
+            "rank_no": int(row.get("rank_no") or len(color_tags) + 1),
+        })
+
+    return color_tags
+
+
 def _escape_like(s: str) -> str:
     return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
@@ -844,6 +878,7 @@ ORDER BY rank_no ASC
                 (image_id,),
             )
             img["colors"] = cur.fetchall()
+            img["color_tags"] = _serialize_color_tags(img["colors"])
 
         return img
     finally:

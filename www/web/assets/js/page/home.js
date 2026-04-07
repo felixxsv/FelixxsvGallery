@@ -1,6 +1,6 @@
 import { byId, escapeHtml } from "../core/dom.js";
 
-const GRID_COLS_STORAGE_KEY = "gallery.home.gridCols";
+const GRID_COLS_STORAGE_KEY = "gallery.home.gridColumns";
 const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
 const DEFAULT_ROW_COUNT = 30;
@@ -197,6 +197,24 @@ function monthKey(year, month) {
   return `${year}-${pad2(month)}`;
 }
 
+function detectPreset(from, to) {
+  if (!from && !to) {
+    return "none";
+  }
+
+  const month = thisMonthRange();
+  if (from === month.from && to === month.to) {
+    return "this_month";
+  }
+
+  const year = thisYearRange();
+  if (from === year.from && to === year.to) {
+    return "this_year";
+  }
+
+  return null;
+}
+
 function detectMonthKey(from, to) {
   if (!from || !to) {
     return null;
@@ -231,6 +249,17 @@ function maxPageFor(total, perPage) {
 }
 
 function buildPublicDetail(image) {
+  const colorTags = Array.isArray(image.color_tags) && image.color_tags.length
+    ? image.color_tags
+    : Array.isArray(image.colors)
+      ? image.colors.map((item) => ({
+        id: item?.id ?? item?.color_id ?? null,
+        label: item?.label || item?.name || (item?.color_id ? `Color ${item.color_id}` : "Color"),
+        hex: item?.hex || item?.swatch || "",
+        ratio: item?.ratio ?? null,
+      }))
+      : [];
+
   return {
     image_id: image.id ?? null,
     title: image.title || "タイトル未設定",
@@ -241,7 +270,7 @@ function buildPublicDetail(image) {
     viewer_liked: Boolean(image.viewer_liked),
     view_count: Number(image.view_count || 0),
     tags: Array.isArray(image.tags) ? image.tags : [],
-    color_tags: Array.isArray(image.color_tags) ? image.color_tags : [],
+    color_tags: colorTags,
     file_size_bytes: image.file_size_bytes ?? null,
     image_width: image.image_width ?? image.width ?? null,
     image_height: image.image_height ?? image.height ?? null,
@@ -618,6 +647,20 @@ export function initHomePage(app) {
     clearSingleSelect(container, "[data-ui-option]");
   }
 
+  function syncDateFilterUi(kind) {
+    const from = kind === "shot" ? refs.shotDateFrom?.value || "" : refs.postedDateFrom?.value || "";
+    const to = kind === "shot" ? refs.shotDateTo?.value || "" : refs.postedDateTo?.value || "";
+    const preset = detectPreset(from, to);
+
+    if (preset) {
+      setDatePresetSelection(kind, preset);
+    } else {
+      clearDatePresetSelection(kind);
+    }
+
+    syncArchiveSelectionFromInputs(kind);
+  }
+
   function setDatePresetSelection(kind, preset) {
     const container = document.querySelector(`[data-date-presets="${kind}"]`);
     const button = container?.querySelector(`[data-preset="${preset}"]`) || null;
@@ -627,15 +670,9 @@ export function initHomePage(app) {
   function applyDatePreset(kind, preset) {
     const range = rangeForPreset(preset);
     setDateInputs(kind, range.from, range.to);
-    if (preset === "none") {
-      setDatePresetSelection(kind, "none");
-    } else {
-      setDatePresetSelection(kind, preset);
-    }
+    setDatePresetSelection(kind, preset === "none" ? "none" : preset);
     clearArchiveSelection(kind);
-    if (preset !== "none") {
-      syncArchiveSelectionFromInputs(kind);
-    }
+    syncDateFilterUi(kind);
   }
 
   function resetUiOnlyFilters() {
@@ -1508,17 +1545,13 @@ export function initHomePage(app) {
       kind: filters.archiveKind,
     });
 
-    applyFiltersToQuery(query, filters, {
-      includeShot: filters.archiveKind !== "shot",
-      includePosted: filters.archiveKind !== "posted",
-      includeShortcut: !(filters.archiveKind === "posted" && filters.shortcut === "current_month"),
-    });
+    applyFiltersToQuery(query, filters);
 
     try {
       const payload = await app.api.get(`/api/content-archives?${query.toString()}`);
       const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data?.items) ? payload.data.items : [];
       renderArchives(items, filters.archiveKind);
-      syncArchiveSelectionFromInputs(filters.archiveKind);
+      syncDateFilterUi(filters.archiveKind);
     } catch {
       refs.archiveList.textContent = "";
       const empty = document.createElement("div");
@@ -1756,17 +1789,17 @@ export function initHomePage(app) {
           item.classList.remove("is-active");
           item.setAttribute("aria-pressed", "false");
         });
-        setDatePresetSelection(kind, "none");
+        syncDateFilterUi(kind);
       } else {
         const range = monthRange(year, month);
         state.archiveSelected[kind] = key;
         setDateInputs(kind, range.from, range.to);
-        clearDatePresetSelection(kind);
         refs.archiveList.querySelectorAll(`[data-archive-kind="${kind}"]`).forEach((item) => {
           const active = item === button;
           item.classList.toggle("is-active", active);
           item.setAttribute("aria-pressed", String(active));
         });
+        syncDateFilterUi(kind);
       }
 
       reloadFromFilters();
@@ -1774,16 +1807,14 @@ export function initHomePage(app) {
 
     [refs.shotDateFrom, refs.shotDateTo].forEach((input) => {
       input?.addEventListener("change", () => {
-        clearDatePresetSelection("shot");
-        syncArchiveSelectionFromInputs("shot");
+        syncDateFilterUi("shot");
         reloadFromFilters();
       });
     });
 
     [refs.postedDateFrom, refs.postedDateTo].forEach((input) => {
       input?.addEventListener("change", () => {
-        clearDatePresetSelection("posted");
-        syncArchiveSelectionFromInputs("posted");
+        syncDateFilterUi("posted");
         reloadFromFilters();
       });
     });

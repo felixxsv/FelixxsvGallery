@@ -422,10 +422,6 @@
               hidden
             >アカウント設定</button>
           </div>
-          <div class="shell-user-footer__actions">
-            <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
-            <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
-          </div>
         </div>
       </div>
     </section>
@@ -534,7 +530,32 @@
           <h2 id="helpTitle" class="app-modal-title">ヘルプ</h2>
         </div>
         <div class="app-modal-body">
-          <div class="shell-empty-block"></div>
+          <div class="shell-help-content">
+            <section>
+              <h3>検索とフィルター</h3>
+              <ul>
+                <li>ヘッダー検索ではタイトル・ALT・タグ・ユーザーを横断して絞り込めます。</li>
+                <li>サイドバーではタグ、カラータグ、撮影日、投稿日、アーカイブを組み合わせて一覧を切り替えられます。</li>
+                <li>アーカイブは現在の検索条件に合わせて再計算されます。条件を変えたあとに月一覧も同期して更新されます。</li>
+              </ul>
+            </section>
+            <section>
+              <h3>画像の見かた</h3>
+              <ul>
+                <li>カードを開くと画像モーダルから拡大表示できます。</li>
+                <li>詳細ボタンから、撮影日・投稿日・タグ・カラータグなどの情報を確認できます。</li>
+                <li>投稿者アイコンを押すとプロフィールモーダルを開けます。</li>
+              </ul>
+            </section>
+            <section>
+              <h3>アカウントと設定</h3>
+              <ul>
+                <li>右上のユーザーアイコンから、プロフィール編集、表示設定、アカウント設定を開けます。</li>
+                <li>メールアドレス変更、Discord 連携、2段階認証、ログアウト操作はアカウント設定にまとまっています。</li>
+                <li>認証ページは <code>/gallery/auth/</code> を正規フローとして扱います。</li>
+              </ul>
+            </section>
+          </div>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
           <button type="button" class="app-button app-button--primary" data-modal-close="help">閉じる</button>
@@ -694,6 +715,14 @@
                 <button id="shellTwoFactorEnableButton" type="button" class="app-button app-button--ghost app-button--small">有効化</button>
                 <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button app-button--ghost app-button--small" hidden>無効化</button>
               </div>
+            </div>
+          </div>
+
+          <div class="shell-security-section">
+            <h3 class="shell-security-section__title">セッション</h3>
+            <div class="shell-account-actions">
+              <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
+              <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
             </div>
           </div>
 
