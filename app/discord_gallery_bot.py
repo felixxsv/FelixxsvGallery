@@ -161,28 +161,19 @@ class UploadMetadataModal(discord.ui.Modal):
         self.shot_at_input = discord.ui.TextInput(
             label="撮影日",
             default=view_ref.draft_shot_at or candidate_shot_at,
-            placeholder="YYYY-MM-DDTHH:MM",
+            placeholder="YYYY/MM/DD-HH:MM",
             max_length=16,
-            required=False,
-        )
-        self.tags_input = discord.ui.TextInput(
-            label="タグ",
-            default=view_ref.draft_tags,
-            placeholder=", ".join(view_ref.suggested_tags[:3]) if view_ref.suggested_tags else "tag1, tag2",
-            max_length=300,
             required=False,
         )
         self.add_item(self.title_input)
         self.add_item(self.alt_input)
         self.add_item(self.shot_at_input)
-        self.add_item(self.tags_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
         self.view_ref.draft_title = str(self.title_input.value or "").strip()
         self.view_ref.draft_alt = str(self.alt_input.value or "").strip()
         self.view_ref.draft_shot_at = str(self.shot_at_input.value or "").strip()
-        self.view_ref.draft_tags = str(self.tags_input.value or "").strip()
         await self.view_ref.refresh_prompt_message()
 
 
@@ -247,22 +238,18 @@ class UploadChoiceView(discord.ui.View):
 
     def _build_prompt_text(self) -> str:
         count_text = "この画像" if len(self.attachments) == 1 else f"この {len(self.attachments)} 枚"
-        lines = [f"{count_text} を Felixxsv Gallery へ送りますか？"]
+        lines = [f"{count_text}をFelixxsv Gallery へアップロードしますか？"]
         if len(self.attachments) > 1:
             lines.append(f"1枚ずつ投稿の現在対象: {self._current_attachment_label()}")
             lines.append(f"1枚ずつ投稿済み: {len(self.separate_uploaded_ids)}/{len(self.attachments)}")
         lines.extend(
             [
-                f"タイトル: {self.draft_title or '上の「内容を編集」から入力してください'}",
-                f"説明文: {self.draft_alt or '必要なら「内容を編集」から入力してください'}",
-                f"撮影日: {self.draft_shot_at or '自動候補を確認して、必要なら「内容を編集」から直してください'}",
-                f"公開設定: {'公開' if self.selected_public else '非公開'}",
-                f"タグ: {self.draft_tags or '上のタグ候補を選ぶか、「内容を編集」から入力してください'}",
+                f"タイトル: {self.draft_title or '「内容を編集」から入力してください'}",
+                f"説明文: {self.draft_alt or '「内容を編集」から入力してください(任意)'}",
+                f"タグ: {self.draft_tags or '「タグ候補を選択」から選択してください(任意)'}",
             ]
         )
-        if self.suggested_tags:
-            lines.append("タグ候補は上の select から選べます。必要なら「内容を編集」で直接入力してください。")
-        lines.append("入力ができたら、下の投稿ボタンで確定できます。")
+        lines.append("入力後「Galleryへ投稿」からアップロードが可能です。")
         return "\n".join(lines)
 
     async def refresh_prompt_message(self) -> None:
@@ -325,7 +312,7 @@ class UploadChoiceView(discord.ui.View):
         self.draft_tags = ""
         self.draft_shot_at = await self._candidate_shot_at(self.separate_index)
 
-    @discord.ui.button(label="内容を編集", style=discord.ButtonStyle.primary, row=0)
+    @discord.ui.button(label="内容を編集", style=discord.ButtonStyle.primary, row=1)
     async def edit_metadata(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
         if not await self._ensure_author(interaction):
             return
@@ -443,7 +430,7 @@ class UploadTagSelect(discord.ui.Select):
             min_values=0,
             max_values=min(5, len(options)),
             options=options,
-            row=3,
+            row=0,
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:

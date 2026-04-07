@@ -152,7 +152,16 @@ def parse_shot_at_input(shot_at: str | None) -> datetime | None:
     shot_at_str = str(shot_at or "").strip()
     if not shot_at_str:
         return None
-    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%Y/%m/%d-%H:%M",
+        "%Y/%m/%d %H:%M",
+        "%Y/%m/%d-%H:%M:%S",
+        "%Y/%m/%d %H:%M:%S",
+    ):
         try:
             return datetime.strptime(shot_at_str, fmt)
         except ValueError:
@@ -173,13 +182,13 @@ def extract_candidate_shot_at_from_image_bytes(filename: str, content: bytes, co
                 value = str(raw).strip()
                 for fmt_in in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
                     try:
-                        return datetime.strptime(value, fmt_in).strftime("%Y-%m-%dT%H:%M")
+                        return datetime.strptime(value, fmt_in).strftime("%Y/%m/%d-%H:%M")
                     except ValueError:
                         continue
     except Exception:
         logger.exception("Failed to extract EXIF shot_at")
 
-    return _parse_file_shot_at(filename, conf).strftime("%Y-%m-%dT%H:%M")
+    return _parse_file_shot_at(filename, conf).strftime("%Y/%m/%d-%H:%M")
 
 
 def perform_gallery_upload(

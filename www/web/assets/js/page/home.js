@@ -62,6 +62,13 @@ function textOrDash(value) {
   return String(value);
 }
 
+function formatDisplayDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return textOrDash(value);
+  return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
 function withAppBase(path) {
   const appBase = document.body.dataset.appBase || "/gallery";
   if (!path) {
@@ -1247,7 +1254,7 @@ export function initHomePage(app) {
     }
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
-    metaNode.textContent = textOrDash(image.shot_at || image.created_at || image.date || "");
+    metaNode.textContent = formatDisplayDateTime(image.shot_at || image.created_at || image.date || "");
 
     const detail = buildPublicDetail(image);
     const user = detail.user || {};
