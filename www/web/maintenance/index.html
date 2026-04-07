@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>工事中 - Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/special-page.css">
+</head>
+<body
+  class="app-page special-page"
+  data-app-base="/gallery"
+  data-page-kind="maintenance"
+  data-page-title="このページは工事中です"
+>
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <a href="/gallery/" class="app-site-logo" aria-label="Felixxsv Gallery">
+          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+          <span class="app-site-logo__label">Felixxsv Gallery</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="special-page__main">
+    <div class="app-container">
+      <div class="special-page__layout">
+        <section class="special-page__panel" aria-labelledby="specialTitle">
+          <div class="special-page__eyebrow">Under Construction</div>
+          <div class="special-page__status special-page__status--warning" id="specialStatusCode">WIP</div>
+          <h1 class="special-page__title" id="specialTitle">このページは工事中です</h1>
+          <p class="special-page__description" id="specialDescription">
+            まだ公開準備中のため、この導線は一時的に閉じています。Gallery 本体や既存の公開ページは引き続き利用できます。
+          </p>
+          <div class="special-page__meta" id="specialMeta">未公開機能や作業中ページ向けの案内ページです。</div>
+          <div class="special-page__actions">
+            <a class="app-button app-button--primary" href="/gallery/">ギャラリートップへ戻る</a>
+            <button class="app-button" type="button" data-special-action="back">前の画面へ戻る</button>
+          </div>
+        </section>
+
+        <aside class="special-page__aside" aria-label="工事中の説明">
+          <h2 class="special-page__aside-title">想定用途</h2>
+          <p class="special-page__aside-copy">未公開の管理導線、調整中のフロント機能、移行途中の画面を一時的に案内する用途を想定しています。</p>
+          <div class="special-page__list">
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">公開前機能</span>
+              <span class="special-page__list-value">機能自体は開発中だが、URL は先に存在するケース</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">移行中</span>
+              <span class="special-page__list-value">旧導線から新導線へ切り替える間の一時停止案内</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">世界観</span>
+              <span class="special-page__list-value">Gallery 本体の配色・タイポ感を崩さずに案内を表示</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/gallery/assets/js/page/special-page.js"></script>
+</body>
+</html>

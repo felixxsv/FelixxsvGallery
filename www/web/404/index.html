@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>404 - Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/special-page.css">
+</head>
+<body
+  class="app-page special-page"
+  data-app-base="/gallery"
+  data-page-kind="not-found"
+  data-page-title="ページが見つかりません"
+>
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <a href="/gallery/" class="app-site-logo" aria-label="Felixxsv Gallery">
+          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+          <span class="app-site-logo__label">Felixxsv Gallery</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="special-page__main">
+    <div class="app-container">
+      <div class="special-page__layout">
+        <section class="special-page__panel" aria-labelledby="specialTitle">
+          <div class="special-page__eyebrow">Not Found</div>
+          <div class="special-page__status" id="specialStatusCode">404</div>
+          <h1 class="special-page__title" id="specialTitle">ページが見つかりません</h1>
+          <p class="special-page__description" id="specialDescription">
+            URL が変更されたか、公開が終了した可能性があります。Gallery のトップから目的の画像やプロフィールを再度探してください。
+          </p>
+          <div class="special-page__meta" id="specialMeta">/gallery 配下の公開ページ向け not found です。</div>
+          <div class="special-page__actions">
+            <a class="app-button app-button--primary" href="/gallery/">ギャラリートップへ戻る</a>
+            <button class="app-button" type="button" data-special-action="back">前の画面へ戻る</button>
+          </div>
+        </section>
+
+        <aside class="special-page__aside" aria-label="案内">
+          <h2 class="special-page__aside-title">確認ポイント</h2>
+          <p class="special-page__aside-copy">次の順に確認すると、リンク切れと公開範囲の違いを切り分けやすくなります。</p>
+          <div class="special-page__list">
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">リンク</span>
+              <span class="special-page__list-value">URL の末尾や `/gallery/` 配下のパスが正しいか確認する</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">公開状態</span>
+              <span class="special-page__list-value">対象画像やプロフィールが非公開・隔離になっていないか確認する</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">再探索</span>
+              <span class="special-page__list-value">トップ画面の検索・タグ・アーカイブから再度たどる</span>
+            </div>
+          </div>
+          <p class="special-page__footer-note">サーバー側の自動 404 返却設定は、Apache / リバースプロキシ側の設定と組み合わせて利用します。</p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/gallery/assets/js/page/special-page.js"></script>
+</body>
+</html>

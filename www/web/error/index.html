@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>エラー - Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/special-page.css">
+</head>
+<body
+  class="app-page special-page"
+  data-app-base="/gallery"
+  data-page-kind="error"
+  data-page-title="エラーが発生しました"
+  data-page-description="処理中に問題が発生しました。時間をおいて再試行してください。"
+>
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <a href="/gallery/" class="app-site-logo" aria-label="Felixxsv Gallery">
+          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+          <span class="app-site-logo__label">Felixxsv Gallery</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="special-page__main">
+    <div class="app-container">
+      <div class="special-page__layout">
+        <section class="special-page__panel" aria-labelledby="specialTitle">
+          <div class="special-page__eyebrow">System Error</div>
+          <div class="special-page__status special-page__status--danger" id="specialStatusCode">500</div>
+          <h1 class="special-page__title" id="specialTitle">エラーが発生しました</h1>
+          <p class="special-page__description" id="specialDescription">
+            一時的な障害、またはアクセス条件の不整合が発生しています。繰り返し失敗する場合は request id を控えて確認してください。
+          </p>
+          <div class="special-page__meta" id="specialMeta" hidden></div>
+          <div class="special-page__actions">
+            <button class="app-button app-button--primary" type="button" data-special-action="reload">再読み込み</button>
+            <a class="app-button" href="/gallery/">ギャラリートップへ戻る</a>
+          </div>
+        </section>
+
+        <aside class="special-page__aside" aria-label="エラー案内">
+          <h2 class="special-page__aside-title">使い分け</h2>
+          <p class="special-page__aside-copy">トーストで済む軽微な失敗と、専用ページに切り分けたい障害表示を分けるためのページです。</p>
+          <div class="special-page__list">
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">軽微な失敗</span>
+              <span class="special-page__list-value">一覧再取得や入力不備は既存トースト・モーダルで案内</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">専用ページ向け</span>
+              <span class="special-page__list-value">初期化不能、権限制御外の障害、保守中導線など</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">可変表示</span>
+              <span class="special-page__list-value">`?code=` `?title=` `?message=` `?request_id=` を付けて内容を調整可能</span>
+            </div>
+          </div>
+          <p class="special-page__footer-note">例: `/gallery/error/?code=503&title=一時停止中&request_id=abc123`</p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/gallery/assets/js/page/special-page.js"></script>
+</body>
+</html>
