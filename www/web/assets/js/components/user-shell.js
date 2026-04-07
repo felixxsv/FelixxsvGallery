@@ -158,6 +158,7 @@ export function initUserShell(app) {
     setPasswordSaveButton: byId("shellSetPasswordSaveButton"),
 
     accountDiscordStatus: byId("shellAccountDiscordStatus"),
+    accountRegistrationRoute: byId("shellAccountRegistrationRoute"),
     discordLinkButton: byId("shellDiscordLinkButton"),
     discordUnlinkButton: byId("shellDiscordUnlinkButton"),
 
@@ -618,6 +619,8 @@ export function initUserShell(app) {
     const email = user.primary_email || "";
     const hasPassword = !!security.has_password;
     const hasDiscord = !!security.has_discord;
+    const authProviders = Array.isArray(security.auth_providers) ? security.auth_providers : [];
+    const registrationRoute = String(security.registration_route || "");
 
     refs.accountEmail.textContent = email || "未登録";
     refs.accountTwoFactor.textContent = twoFactor.is_enabled ? "有効" : "無効";
@@ -633,6 +636,18 @@ export function initUserShell(app) {
 
     if (refs.accountDiscordStatus) {
       refs.accountDiscordStatus.textContent = hasDiscord ? "連携済み" : "未連携";
+    }
+    if (refs.accountRegistrationRoute) {
+      const providerSet = new Set(authProviders);
+      let routeText = "未判定";
+      if (registrationRoute === "discord_and_email" || (providerSet.has("discord") && providerSet.has("email_password"))) {
+        routeText = "Discord連携 + メール登録";
+      } else if (registrationRoute === "discord" || providerSet.has("discord")) {
+        routeText = "Discord連携アカウント";
+      } else if (registrationRoute === "email" || hasPassword || providerSet.has("email_password")) {
+        routeText = "メール登録アカウント";
+      }
+      refs.accountRegistrationRoute.textContent = routeText;
     }
     if (refs.discordLinkButton) refs.discordLinkButton.hidden = hasDiscord;
     if (refs.discordUnlinkButton) refs.discordUnlinkButton.hidden = !hasDiscord;

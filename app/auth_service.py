@@ -3203,6 +3203,20 @@ def handle_discord_callback(
                 )
 
             update_auth_identity_last_used(conn, identity["id"], now_dt)
+
+            two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+            if _is_two_factor_required(two_factor_settings):
+                two_factor_result = _build_login_two_factor_result(
+                    conn=conn,
+                    user=user,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    now_dt=now_dt,
+                )
+                conn.commit()
+                _dispatch_mail_job(two_factor_result["mail_job"])
+                return two_factor_result["result"]
+
             result = _create_authenticated_session_result(
                 conn=conn,
                 user=user,
@@ -3862,7 +3876,21 @@ def get_current_user_profile(
             pass
 
         pw_creds = get_password_credentials_by_user_id(conn, user["id"])
+        email_identity = get_identity_by_user_and_provider(conn, user["id"], "email_password")
         discord_identity = get_identity_by_user_and_provider(conn, user["id"], "discord")
+        enabled_auth_providers: list[str] = []
+        if email_identity is not None and bool(email_identity.get("is_enabled")):
+            enabled_auth_providers.append("email_password")
+        if discord_identity is not None and bool(discord_identity.get("is_enabled")):
+            enabled_auth_providers.append("discord")
+
+        registration_route = "unknown"
+        if "discord" in enabled_auth_providers and "email_password" in enabled_auth_providers:
+            registration_route = "discord_and_email"
+        elif "discord" in enabled_auth_providers:
+            registration_route = "discord"
+        elif "email_password" in enabled_auth_providers or pw_creds is not None:
+            registration_route = "email"
 
         return build_service_success(
             data={
@@ -3888,6 +3916,8 @@ def get_current_user_profile(
                     },
                     "has_password": pw_creds is not None,
                     "has_discord": discord_identity is not None and bool(discord_identity.get("is_enabled")),
+                    "auth_providers": enabled_auth_providers,
+                    "registration_route": registration_route,
                 },
                 "features": {
                     "can_open_admin": can_open_admin,
