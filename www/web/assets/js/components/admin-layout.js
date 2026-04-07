@@ -63,6 +63,7 @@ function syncLanguagePreference(app, sessionState) {
   const resolvedLanguage = preferredLanguage ? app.settings.setLanguage(preferredLanguage) : app.settings.getLanguage();
   app.i18n.setLanguage(resolvedLanguage);
   applyDocumentLanguage(resolvedLanguage);
+  app.i18n.apply?.(document);
   dispatchLanguageChange(resolvedLanguage);
   return resolvedLanguage;
 }

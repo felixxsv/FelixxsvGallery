@@ -178,6 +178,12 @@ function applyTranslations() {
     if (!key) return;
     node.setAttribute("placeholder", t(key));
   });
+
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+    const key = node.dataset.i18nAriaLabel;
+    if (!key) return;
+    node.setAttribute("aria-label", t(key));
+  });
 }
 
 function setLanguage(value) {

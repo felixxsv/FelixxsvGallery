@@ -464,8 +464,8 @@
           <h2 id="userProfileTitle" class="app-modal-title" data-i18n="shell.static.profile">プロフィール</h2>
         </div>
         <div class="app-modal-body">
-          <div id="userProfileLoading" class="shell-user-profile__loading">読み込み中...</div>
-          <div id="userProfileError" class="shell-user-profile__error" hidden>ユーザーが見つかりませんでした。</div>
+          <div id="userProfileLoading" class="shell-user-profile__loading" data-i18n="public_profile.loading">読み込み中...</div>
+          <div id="userProfileError" class="shell-user-profile__error" hidden data-i18n="public_profile.not_found">ユーザーが見つかりませんでした。</div>
           <div id="userProfileContent" class="shell-user-profile" hidden>
             <div class="shell-user-profile__left">
               <div id="userProfileAvatar" class="shell-user-profile__avatar" aria-hidden="true">
@@ -589,7 +589,7 @@
               <ul>
                 <li data-i18n="shell.help.account_item1">右上のユーザーアイコンから、プロフィール編集、表示設定、アカウント設定を開けます。</li>
                 <li data-i18n="shell.help.account_item2">メールアドレス変更、Discord 連携、2段階認証、ログアウト操作はアカウント設定にまとまっています。</li>
-                <li data-i18n="shell.help.account_item3">認証ページは <code>/gallery/auth/</code> を正規フローとして扱います。</li>
+                <li data-i18n-html="shell.help.account_item3">認証ページは <code>/gallery/auth/</code> を正規フローとして扱います。</li>
               </ul>
             </section>
           </div>
@@ -762,16 +762,16 @@
           </div>
 
           <div class="shell-security-section">
-            <h3 class="shell-security-section__title">セッション</h3>
+            <h3 class="shell-security-section__title" data-i18n="shell.static.session">セッション</h3>
             <div class="shell-account-actions">
-              <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
-              <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
+              <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.logout_all">全端末ログアウト</button>
+              <button id="shellLogoutButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.logout">ログアウト</button>
             </div>
           </div>
 
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--primary" data-modal-close="account-security">閉じる</button>
+          <button type="button" class="app-button app-button--primary" data-modal-close="account-security" data-i18n="shell.static.close">閉じる</button>
         </div>
       </div>
     </section>
@@ -780,14 +780,14 @@
       <div class="app-modal-backdrop" data-modal-backdrop="email"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="emailTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="emailTitle" class="app-modal-title">メールアドレス変更</h2>
+          <h2 id="emailTitle" class="app-modal-title" data-i18n="shell.static.email_change">メールアドレス変更</h2>
         </div>
         <div class="app-modal-body">
           <!-- Step 1: 新しいメールアドレス入力 -->
           <div id="shellEmailStep1">
             <div class="app-form-stack">
               <label class="app-field">
-                <span class="app-field__label">新しいメールアドレス</span>
+                <span class="app-field__label" data-i18n="shell.static.new_email">新しいメールアドレス</span>
                 <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
               </label>
             </div>
@@ -797,17 +797,17 @@
             <div class="app-form-stack">
               <p id="shellEmailCodeInfo" class="app-field__hint"></p>
               <label class="app-field">
-                <span class="app-field__label">確認コード（6桁）</span>
+                <span class="app-field__label" data-i18n="shell.static.code_6digit">確認コード（6桁）</span>
                 <input id="shellEmailCodeInput" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
               </label>
             </div>
           </div>
         </div>
         <div class="app-modal-footer">
-          <button id="shellEmailResendButton" type="button" class="app-button app-button--ghost" hidden>再送する</button>
+          <button id="shellEmailResendButton" type="button" class="app-button app-button--ghost" hidden data-i18n="shell.static.resend">再送する</button>
           <div class="app-modal-footer__spacer"></div>
-          <button type="button" class="app-button app-button--ghost" data-modal-close="email">キャンセル</button>
-          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">確認メールを送信</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="email" data-i18n="shell.static.cancel">キャンセル</button>
+          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.send_confirmation_email">確認メールを送信</button>
         </div>
       </div>
     </section>
@@ -816,20 +816,20 @@
       <div class="app-modal-backdrop" data-modal-backdrop="add-link"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="addLinkTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="addLinkTitle" class="app-modal-title">リンクを追加</h2>
+          <h2 id="addLinkTitle" class="app-modal-title" data-i18n="shell.action.add_link">リンクを追加</h2>
         </div>
         <div class="app-modal-body">
           <form class="app-form-stack" id="shellAddLinkForm">
             <label class="app-field">
-              <span class="app-field__label">URL</span>
+              <span class="app-field__label" data-i18n="shell.static.url">URL</span>
               <input id="shellAddLinkInput" class="app-input" type="url" placeholder="https://x.com/yourname" autocomplete="off">
-              <span class="app-field__hint">https:// から始まるURLを入力してください</span>
+              <span class="app-field__hint" data-i18n="shell.static.url_hint">https:// から始まるURLを入力してください</span>
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--ghost" data-modal-close="add-link">キャンセル</button>
-          <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary">追加</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="add-link" data-i18n="shell.static.cancel">キャンセル</button>
+          <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.add">追加</button>
         </div>
       </div>
     </section>
@@ -838,7 +838,7 @@
       <div class="app-modal-backdrop" data-modal-backdrop="crop-avatar"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="cropAvatarTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="cropAvatarTitle" class="app-modal-title">アイコンの調整</h2>
+          <h2 id="cropAvatarTitle" class="app-modal-title" data-i18n="shell.static.avatar_adjust">アイコンの調整</h2>
         </div>
         <div class="app-modal-body">
           <div class="shell-avatar-crop">
@@ -847,16 +847,16 @@
             </div>
             <div class="shell-avatar-crop__controls">
               <label class="shell-avatar-crop__zoom-label">
-                <span class="shell-avatar-crop__zoom-text">ズーム</span>
+                <span class="shell-avatar-crop__zoom-text" data-i18n="shell.static.zoom">ズーム</span>
                 <input id="shellAvatarZoomSlider" type="range" class="shell-avatar-crop__zoom" min="0" max="100" value="0">
               </label>
             </div>
-            <p class="shell-avatar-crop__hint">ドラッグで位置を調整できます</p>
+            <p class="shell-avatar-crop__hint" data-i18n="shell.static.crop_hint">ドラッグで位置を調整できます</p>
           </div>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--ghost" id="shellAvatarCropCancelButton">キャンセル</button>
-          <button type="button" class="app-button app-button--primary" id="shellAvatarCropConfirmButton">適用</button>
+          <button type="button" class="app-button app-button--ghost" id="shellAvatarCropCancelButton" data-i18n="shell.static.cancel">キャンセル</button>
+          <button type="button" class="app-button app-button--primary" id="shellAvatarCropConfirmButton" data-i18n="shell.static.apply">適用</button>
         </div>
       </div>
     </section>
@@ -865,24 +865,24 @@
       <div class="app-modal-backdrop" data-modal-backdrop="password"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="passwordTitle" class="app-modal-title">パスワード変更</h2>
+          <h2 id="passwordTitle" class="app-modal-title" data-i18n="shell.static.password_change">パスワード変更</h2>
         </div>
         <div class="app-modal-body">
           <form class="app-form-stack">
             <label class="app-field">
-              <span class="app-field__label">現在のパスワード</span>
+              <span class="app-field__label" data-i18n="shell.static.current_password">現在のパスワード</span>
               <input id="shellCurrentPasswordInput" class="app-input" type="password" autocomplete="current-password">
             </label>
 
             <label class="app-field">
-              <span class="app-field__label">新しいパスワード</span>
+              <span class="app-field__label" data-i18n="shell.static.new_password">新しいパスワード</span>
               <input id="shellNewPasswordInput" class="app-input" type="password" autocomplete="new-password">
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--ghost" data-modal-close="password">キャンセル</button>
-          <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary">変更する</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="password" data-i18n="shell.static.cancel">キャンセル</button>
+          <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.change">変更する</button>
         </div>
       </div>
     </section>
@@ -891,20 +891,20 @@
       <div class="app-modal-backdrop" data-modal-backdrop="password-set"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordSetTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="passwordSetTitle" class="app-modal-title">パスワード設定</h2>
+          <h2 id="passwordSetTitle" class="app-modal-title" data-i18n="shell.static.password_set">パスワード設定</h2>
         </div>
         <div class="app-modal-body">
-          <p class="app-modal-desc">パスワードを設定すると、メールアドレスとパスワードでもログインできるようになります。</p>
+          <p class="app-modal-desc" data-i18n="shell.static.password_set_desc">パスワードを設定すると、メールアドレスとパスワードでもログインできるようになります。</p>
           <form class="app-form-stack">
             <label class="app-field">
-              <span class="app-field__label">新しいパスワード</span>
+              <span class="app-field__label" data-i18n="shell.static.new_password">新しいパスワード</span>
               <input id="shellSetPasswordInput" class="app-input" type="password" autocomplete="new-password">
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--ghost" data-modal-close="password-set">キャンセル</button>
-          <button id="shellSetPasswordSaveButton" type="button" class="app-button app-button--primary">設定する</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="password-set" data-i18n="shell.static.cancel">キャンセル</button>
+          <button id="shellSetPasswordSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.set">設定する</button>
         </div>
       </div>
     </section>
@@ -913,21 +913,21 @@
       <div class="app-modal-backdrop" data-modal-backdrop="twofactor-setup"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorSetupTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="twofactorSetupTitle" class="app-modal-title">2段階認証の確認</h2>
+          <h2 id="twofactorSetupTitle" class="app-modal-title" data-i18n="shell.static.twofactor_setup">2段階認証の確認</h2>
         </div>
         <div class="app-modal-body">
           <p id="shellTwoFactorSetupMessage" class="shell-inline-message"></p>
           <form class="app-form-stack">
             <label class="app-field">
-              <span class="app-field__label">確認コード</span>
+              <span class="app-field__label" data-i18n="shell.static.verify_code">確認コード</span>
               <input id="shellTwoFactorCodeInput" class="app-input" type="text" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost">再送</button>
-          <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-          <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary">確認</button>
+          <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.resend">再送</button>
+          <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">キャンセル</button>
+          <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.verify">確認</button>
         </div>
       </div>
     </section>
@@ -936,21 +936,21 @@
       <div class="app-modal-backdrop" data-modal-backdrop="twofactor-disable"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorDisableTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="twofactorDisableTitle" class="app-modal-title">2段階認証の無効化</h2>
+          <h2 id="twofactorDisableTitle" class="app-modal-title" data-i18n="shell.static.twofactor_disable">2段階認証の無効化</h2>
         </div>
         <div class="app-modal-body">
           <form class="app-form-stack">
-            <p id="shellTwoFactorDisableMessage" class="app-form-message">確認コードを送信します。</p>
+            <p id="shellTwoFactorDisableMessage" class="app-form-message" data-i18n="shell.static.send_verify_code_notice">確認コードを送信します。</p>
             <label class="app-field">
-              <span class="app-field__label">確認コード</span>
+              <span class="app-field__label" data-i18n="shell.static.verify_code">確認コード</span>
               <input id="shellTwoFactorDisableCodeInput" class="app-input" type="text" inputmode="numeric" autocomplete="one-time-code">
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost">再送</button>
-          <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-          <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger">無効化する</button>
+          <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.resend">再送</button>
+          <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">キャンセル</button>
+          <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.disable">無効化する</button>
         </div>
       </div>
     </section>
@@ -959,14 +959,14 @@
       <div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorActionConfirmTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="twofactorActionConfirmTitle" class="app-modal-title">確認</h2>
+          <h2 id="twofactorActionConfirmTitle" class="app-modal-title" data-i18n="auth.confirm.title">確認</h2>
         </div>
         <div class="app-modal-body">
-          <p id="shellTwoFactorActionConfirmMessage" class="app-form-message">本当に実行しますか？</p>
+          <p id="shellTwoFactorActionConfirmMessage" class="app-form-message" data-i18n="auth.confirm.defaultMessage">本当に実行しますか？</p>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-          <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary">実行する</button>
+          <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">キャンセル</button>
+          <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary" data-i18n="auth.actions.confirm">実行する</button>
         </div>
       </div>
     </section>

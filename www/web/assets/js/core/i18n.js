@@ -50,6 +50,11 @@ export function createI18n(settingsStore) {
       if (!key) return;
       node.textContent = t(key, node.textContent || "");
     });
+    root.querySelectorAll?.("[data-i18n-html]").forEach((node) => {
+      const key = node.dataset.i18nHtml;
+      if (!key) return;
+      node.innerHTML = t(key, node.innerHTML || "");
+    });
     root.querySelectorAll?.("[data-i18n-placeholder]").forEach((node) => {
       const key = node.dataset.i18nPlaceholder;
       if (!key) return;
@@ -64,6 +69,9 @@ export function createI18n(settingsStore) {
       const key = node.dataset.i18nTitle;
       if (!key) return;
       node.setAttribute("title", t(key, node.getAttribute("title") || ""));
+    });
+    root.querySelectorAll?.("input[type=\"date\"], input[type=\"datetime-local\"], input[type=\"time\"]").forEach((node) => {
+      node.setAttribute("lang", getLanguage());
     });
   }
 
