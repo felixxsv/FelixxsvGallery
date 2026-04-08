@@ -562,7 +562,7 @@ export function initUserShell(app) {
       if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = true;
       refs.accountOpenButton.hidden = true;
       if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = true;
-      refs.adminLink.hidden = true;
+      if (refs.adminLink) refs.adminLink.hidden = true;
       refs.userFooter.hidden = true;
       return;
     }
@@ -627,7 +627,9 @@ export function initUserShell(app) {
     if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = !uploadEnabled;
     refs.accountOpenButton.hidden = false;
     if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = false;
-    refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
+    if (refs.adminLink) {
+      refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
+    }
     refs.userFooter.hidden = false;
   }
 
@@ -1491,8 +1493,12 @@ export function initUserShell(app) {
       window.location.href = "/gallery/auth";
     });
 
-    refs.logoutButton.addEventListener("click", handleLogout);
-    refs.logoutAllButton.addEventListener("click", handleLogoutAll);
+    if (refs.logoutButton) {
+      refs.logoutButton.addEventListener("click", handleLogout);
+    }
+    if (refs.logoutAllButton) {
+      refs.logoutAllButton.addEventListener("click", handleLogoutAll);
+    }
     if (refs.profilePreviewButton) {
       refs.profilePreviewButton.addEventListener("click", () => {
         const userKey = getUser()?.user_key;
