@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import ipaddress
 import uuid
+from contextvars import ContextVar
 
 from fastapi import APIRouter, Cookie, Query, Request, UploadFile, File
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
+from auth_locale import localize_auth_message, localize_field_errors, localize_service_result, normalize_auth_language
 
 from auth_security import (
     DEFAULT_COOKIE_NAME,
@@ -54,6 +56,7 @@ from auth_service import (
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+_AUTH_RESPONSE_LANGUAGE: ContextVar[str | None] = ContextVar("auth_response_language", default=None)
 
 
 class LoginRequest(BaseModel):
@@ -157,6 +160,7 @@ def build_success_response(
     next_kind: str = "none",
     next_to: str | None = None,
     message: str = "",
+    language: str | None = None,
 ) -> JSONResponse:
     payload = {
         "ok": True,
@@ -166,7 +170,7 @@ def build_success_response(
             "kind": next_kind,
             "to": next_to,
         },
-        "message": message,
+        "message": localize_auth_message(message, language or _AUTH_RESPONSE_LANGUAGE.get()),
     }
     return JSONResponse(status_code=200, content=payload)
 
@@ -178,14 +182,16 @@ def build_error_response(
     field_errors: list[dict] | None = None,
     retry_after_sec: int | None = None,
     http_status: int = 400,
+    language: str | None = None,
 ) -> JSONResponse:
+    resolved_language = language or _AUTH_RESPONSE_LANGUAGE.get()
     payload = {
         "ok": False,
         "request_id": request_id,
         "error": {
             "code": error_code,
-            "message": message,
-            "field_errors": field_errors or [],
+            "message": localize_auth_message(message, resolved_language),
+            "field_errors": localize_field_errors(field_errors, resolved_language),
             "retry_after_sec": retry_after_sec,
         },
     }
@@ -241,9 +247,16 @@ def extract_request_context(request: Request) -> dict:
     if user_agent is not None:
         user_agent = user_agent.strip() or None
 
+    preferred_language = (
+        normalize_auth_language(request.headers.get("x-gallery-language"))
+        or normalize_auth_language(request.headers.get("accept-language"))
+    )
+    _AUTH_RESPONSE_LANGUAGE.set(preferred_language)
+
     return {
         "ip_address": ip_address_bytes,
         "user_agent": user_agent,
+        "preferred_language": preferred_language,
     }
 
 
@@ -268,29 +281,32 @@ def clear_session_cookie(response) -> None:
     )
 
 
-def _build_response_from_service_result(request_id: str, result: dict):
-    if result.get("ok"):
+def _build_response_from_service_result(request_id: str, result: dict, language: str | None = None):
+    localized = localize_service_result(result, language or _AUTH_RESPONSE_LANGUAGE.get())
+    if localized.get("ok"):
         response = build_success_response(
             request_id=request_id,
-            data=result.get("data"),
-            next_kind=result.get("next_kind", "none"),
-            next_to=result.get("next_to"),
-            message=result.get("message", ""),
+            data=localized.get("data"),
+            next_kind=localized.get("next_kind", "none"),
+            next_to=localized.get("next_to"),
+            message=localized.get("message", ""),
+            language=language,
         )
-        apply_session_cookie_if_needed(response, result)
-        if result.get("clear_session_cookie"):
+        apply_session_cookie_if_needed(response, localized)
+        if localized.get("clear_session_cookie"):
             clear_session_cookie(response)
         return response
 
     response = build_error_response(
         request_id=request_id,
-        error_code=result.get("error_code", "server_error"),
-        message=result.get("message", "処理に失敗しました。"),
-        field_errors=result.get("field_errors"),
-        retry_after_sec=result.get("retry_after_sec"),
-        http_status=map_error_code_to_http_status(result.get("error_code", "server_error")),
+        error_code=localized.get("error_code", "server_error"),
+        message=localized.get("message", "処理に失敗しました。"),
+        field_errors=localized.get("field_errors"),
+        retry_after_sec=localized.get("retry_after_sec"),
+        http_status=map_error_code_to_http_status(localized.get("error_code", "server_error")),
+        language=language,
     )
-    if result.get("clear_session_cookie"):
+    if localized.get("clear_session_cookie"):
         clear_session_cookie(response)
     return response
 
@@ -327,6 +343,7 @@ async def presence(
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         visible = True if payload is None else bool(payload.visible)
         result = update_current_session_presence(session_token=gallery_session, visible=visible)
@@ -349,6 +366,7 @@ async def logout(
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = logout_by_session_token(session_token=gallery_session)
         return _build_response_from_service_result(request_id, result)
@@ -388,9 +406,11 @@ async def logout_all(
 
 @router.get("/me")
 async def me(
+    request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = get_current_user_profile(session_token=gallery_session)
         return _build_response_from_service_result(request_id, result)
@@ -407,9 +427,11 @@ async def me(
 @router.patch("/profile")
 async def update_profile(
     payload: ProfileUpdateRequest,
+    request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = update_profile_for_current_session(
             session_token=gallery_session,
@@ -430,6 +452,7 @@ async def update_profile(
 
 @router.post("/avatar")
 async def upload_avatar(
+    request: Request,
     file: UploadFile = File(...),
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
@@ -437,6 +460,7 @@ async def upload_avatar(
     from pathlib import Path
     from db import load_conf
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         conf_path = os.environ.get("GALLERY_CONF", str(Path(__file__).with_name("gallery.conf")))
         conf = load_conf(conf_path)
@@ -533,12 +557,14 @@ async def upload_avatar(
 
 @router.delete("/avatar")
 async def remove_avatar(
+    request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     import os
     from pathlib import Path
     from db import load_conf
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = delete_avatar_for_current_session(session_token=gallery_session)
         if result.get("ok"):
@@ -563,9 +589,11 @@ async def remove_avatar(
 @router.post("/links")
 async def add_link(
     payload: AddLinkRequest,
+    request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = add_link_for_current_session(
             session_token=gallery_session,
@@ -584,9 +612,11 @@ async def add_link(
 @router.delete("/links/{link_id}")
 async def remove_link(
     link_id: int,
+    request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = delete_link_for_current_session(
             session_token=gallery_session,
@@ -698,9 +728,11 @@ async def register_complete(
 
 @router.get("/user-key/availability")
 async def user_key_availability(
+    request: Request,
     user_key: str = Query(...),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = check_user_key_availability(user_key=user_key)
         return _build_response_from_service_result(request_id, result)
@@ -1049,8 +1081,9 @@ async def password_reset(
 
 
 @router.post("/discord/start")
-async def discord_start():
+async def discord_start(request: Request):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = start_discord_oauth()
         return _build_response_from_service_result(request_id, result)
@@ -1065,9 +1098,11 @@ async def discord_start():
 
 @router.post("/discord/link/start")
 async def discord_link_start(
+    request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = start_discord_link(session_token=gallery_session)
         return _build_response_from_service_result(request_id, result)

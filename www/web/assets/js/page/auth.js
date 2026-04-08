@@ -311,6 +311,7 @@ function postJson(url, payload) {
     credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
+      "X-Gallery-Language": currentLanguage || document.documentElement.lang || "en-US",
     },
     body: JSON.stringify(payload),
   }).then(async (res) => {
@@ -325,6 +326,7 @@ function getJson(url) {
     credentials: "same-origin",
     headers: {
       Accept: "application/json",
+      "X-Gallery-Language": currentLanguage || document.documentElement.lang || "en-US",
     },
   }).then(async (res) => {
     const data = await res.json().catch(() => ({}));
@@ -909,7 +911,11 @@ async function restoreFromLocation() {
       state.discordLinkRegistrationToken = state.registrationToken;
       state.registrationToken = "";
       try {
-        const statusRes = await fetch(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.discordLinkRegistrationToken)}`);
+        const statusRes = await fetch(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.discordLinkRegistrationToken)}`, {
+          headers: {
+            "X-Gallery-Language": currentLanguage || document.documentElement.lang || "en-US",
+          },
+        });
         const statusData = await statusRes.json();
         const email = statusData?.data?.discord_profile?.provider_email || "";
         if (email && loginEmail) loginEmail.value = email;

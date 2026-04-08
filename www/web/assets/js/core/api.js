@@ -8,10 +8,12 @@ export class ApiError extends Error {
 }
 
 function buildInit(method, body, headers) {
+  const language = (document.documentElement.lang || "en-US").trim();
   const init = {
     method,
     credentials: "include",
     headers: {
+      "X-Gallery-Language": language,
       ...(headers || {})
     }
   };
@@ -25,9 +27,13 @@ function buildInit(method, body, headers) {
 }
 
 function buildFormInit(method, formData) {
+  const language = (document.documentElement.lang || "en-US").trim();
   return {
     method,
     credentials: "include",
+    headers: {
+      "X-Gallery-Language": language,
+    },
     body: formData,
   };
 }

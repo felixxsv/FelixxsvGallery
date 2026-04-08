@@ -8,7 +8,7 @@ import ssl
 
 _VERIFY_PURPOSES = {"signup", "email_signup", "email_change", "2fa_setup", "2fa_disable"}
 
-_SUPPORTED_MAIL_LANGUAGES = {"ja", "en-us"}
+_SUPPORTED_MAIL_LANGUAGES = {"ja", "en-us", "ko"}
 
 
 class AuthMailError(Exception):
@@ -32,8 +32,12 @@ def _normalize_mail_language(value: str | None) -> str:
         return "en-us"
     if raw in {"ja", "ja-jp"}:
         return "ja"
+    if raw in {"ko", "ko-kr"}:
+        return "ko"
     if raw.startswith("ja-"):
         return "ja"
+    if raw.startswith("ko-"):
+        return "ko"
     if raw.startswith("en-"):
         return "en-us"
     if raw in _SUPPORTED_MAIL_LANGUAGES:
@@ -83,8 +87,16 @@ def _format_expiry_minutes(expires_in_sec: int, language: str = "ja") -> str:
     minutes = (seconds + 59) // 60
     locale = _normalize_mail_language(language)
     if minutes <= 0:
-        return "less than 1 minute" if locale != "ja" else "1分未満"
-    return f"{minutes} minutes" if locale != "ja" else f"{minutes}分"
+        if locale == "ja":
+            return "1分未満"
+        if locale == "ko":
+            return "1분 미만"
+        return "less than 1 minute"
+    if locale == "ja":
+        return f"{minutes}分"
+    if locale == "ko":
+        return f"{minutes}분"
+    return f"{minutes} minutes"
 
 
 def _build_greeting(display_name: str | None = None, language: str = "ja") -> str:
@@ -93,8 +105,11 @@ def _build_greeting(display_name: str | None = None, language: str = "ja") -> st
     normalized = _coerce_to_str(display_name).strip()
     if normalized == "":
         return ""
-    if _normalize_mail_language(language) == "ja":
+    locale = _normalize_mail_language(language)
+    if locale == "ja":
         return f"{normalized} 様\n\n"
+    if locale == "ko":
+        return f"{normalized}님,\n\n"
     return f"Hello {normalized},\n\n"
 
 
@@ -216,6 +231,15 @@ def send_message(smtp_settings: dict, message: EmailMessage) -> None:
 
 def build_verification_subject(purpose: str, language: str = "ja") -> str:
     locale = _normalize_mail_language(language)
+    if locale == "ko":
+        if purpose in {"signup", "email_signup"}:
+            return "[Felixxsv Gallery] 이메일 인증 코드"
+        if purpose == "email_change":
+            return "[Felixxsv Gallery] 이메일 변경 인증 코드"
+        if purpose == "2fa_setup":
+            return "[Felixxsv Gallery] 2단계 인증 설정 코드"
+        if purpose == "2fa_disable":
+            return "[Felixxsv Gallery] 2단계 인증 해제 코드"
     if locale != "ja":
         if purpose in {"signup", "email_signup"}:
             return "[Felixxsv Gallery] Email Verification Code"
@@ -255,6 +279,27 @@ def build_verification_body_text(
     locale = _normalize_mail_language(language)
     expiry_text = _format_expiry_minutes(expires_in_sec, locale)
     greeting = _build_greeting(display_name, locale)
+
+    if locale == "ko":
+        if purpose in {"signup", "email_signup"}:
+            purpose_text = "Felixxsv Gallery 계정 등록을 완료하려면 아래 인증 코드를 입력해 주세요."
+        elif purpose == "email_change":
+            purpose_text = "이메일 주소 변경을 완료하려면 아래 인증 코드를 입력해 주세요."
+        elif purpose == "2fa_setup":
+            purpose_text = "2단계 인증 설정을 완료하려면 아래 인증 코드를 입력해 주세요."
+        else:
+            purpose_text = "2단계 인증을 해제하려면 아래 인증 코드를 입력해 주세요."
+
+        return (
+            f"{greeting}"
+            f"{purpose_text}\n\n"
+            f"인증 코드\n"
+            f"{normalized_code}\n\n"
+            f"유효 시간\n"
+            f"{expiry_text}\n\n"
+            f"이 코드를 다른 사람과 공유하지 마세요.\n"
+            f"본인이 요청하지 않았다면 이 메일은 무시하셔도 됩니다.\n"
+        )
 
     if locale != "ja":
         if purpose in {"signup", "email_signup"}:
@@ -299,7 +344,10 @@ def build_verification_body_text(
 
 
 def build_two_factor_subject(language: str = "ja") -> str:
-    if _normalize_mail_language(language) != "ja":
+    locale = _normalize_mail_language(language)
+    if locale == "ko":
+        return "[Felixxsv Gallery] 2단계 인증 코드"
+    if locale != "ja":
         return "[Felixxsv Gallery] Two-Factor Authentication Code"
     return "【Felixxsv Gallery】2段階認証コード"
 
@@ -314,6 +362,18 @@ def build_two_factor_body_text(
     locale = _normalize_mail_language(language)
     expiry_text = _format_expiry_minutes(expires_in_sec, locale)
     greeting = _build_greeting(display_name, locale)
+
+    if locale == "ko":
+        return (
+            f"{greeting}"
+            f"Felixxsv Gallery 로그인 확인을 위해 아래 인증 코드를 입력해 주세요.\n\n"
+            f"인증 코드\n"
+            f"{normalized_code}\n\n"
+            f"유효 시간\n"
+            f"{expiry_text}\n\n"
+            f"이 코드를 다른 사람과 공유하지 마세요.\n"
+            f"본인이 요청하지 않았다면 비밀번호 변경을 검토해 주세요.\n"
+        )
 
     if locale != "ja":
         return (
@@ -340,7 +400,10 @@ def build_two_factor_body_text(
 
 
 def build_password_reset_subject(language: str = "ja") -> str:
-    if _normalize_mail_language(language) != "ja":
+    locale = _normalize_mail_language(language)
+    if locale == "ko":
+        return "[Felixxsv Gallery] 비밀번호 재설정 안내"
+    if locale != "ja":
         return "[Felixxsv Gallery] Password Reset Instructions"
     return "【Felixxsv Gallery】パスワード再設定のご案内"
 
@@ -355,6 +418,17 @@ def build_password_reset_body_text(
     locale = _normalize_mail_language(language)
     expiry_text = _format_expiry_minutes(expires_in_sec, locale)
     greeting = _build_greeting(display_name, locale)
+
+    if locale == "ko":
+        return (
+            f"{greeting}"
+            f"Felixxsv Gallery 계정의 비밀번호 재설정이 요청되었습니다.\n"
+            f"아래 URL로 계속 진행해 주세요.\n\n"
+            f"{normalized_reset_url}\n\n"
+            f"유효 시간\n"
+            f"{expiry_text}\n\n"
+            f"본인이 요청하지 않았다면 이 메일은 무시하셔도 됩니다.\n"
+        )
 
     if locale != "ja":
         return (

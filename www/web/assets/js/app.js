@@ -108,7 +108,8 @@ function createPresenceController(app) {
       method: "POST",
       credentials: "include",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Gallery-Language": document.documentElement.lang || "en-US"
       },
       body: JSON.stringify({ visible }),
       keepalive
