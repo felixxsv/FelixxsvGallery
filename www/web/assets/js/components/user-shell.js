@@ -101,6 +101,17 @@ export function initUserShell(app) {
     return app.i18n?.t?.(key, fallback, vars) || fallback;
   }
 
+  async function ensureLanguageCatalog(language) {
+    const normalized = languageToLocaleTag(language);
+    if (!app.i18n?.loadCatalog || !app.appBase) return;
+    try {
+      await app.i18n.loadCatalog(language, `${app.appBase}/assets/i18n/${String(language || "").trim().toLowerCase()}.json`);
+    } catch {
+      // Keep current in-memory dictionaries as fallback.
+    }
+    document.documentElement.lang = normalized;
+  }
+
   const refs = {
     userTrigger: byId("shellUserTrigger"),
     guestIcon: byId("shellUserTriggerGuestIcon"),
@@ -1570,7 +1581,7 @@ export function initUserShell(app) {
       const previousLanguage = app.settings.getLanguage();
       const nextLanguage = app.settings.setLanguage(refs.settingLanguage.value);
       refs.settingLanguage.value = nextLanguage;
-      document.documentElement.lang = languageToLocaleTag(nextLanguage);
+      await ensureLanguageCatalog(nextLanguage);
       app.i18n?.setLanguage?.(nextLanguage);
       dispatchLanguageChange(nextLanguage);
 
@@ -1591,7 +1602,7 @@ export function initUserShell(app) {
       } catch (error) {
         const restoredLanguage = app.settings.setLanguage(previousLanguage);
         refs.settingLanguage.value = restoredLanguage;
-        document.documentElement.lang = languageToLocaleTag(restoredLanguage);
+        await ensureLanguageCatalog(restoredLanguage);
         app.i18n?.setLanguage?.(restoredLanguage);
         dispatchLanguageChange(restoredLanguage);
         toast.error(resolveLocalizedMessage(error, t("shell.toast.save_language_error", "Failed to save language.")));

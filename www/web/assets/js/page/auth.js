@@ -65,6 +65,18 @@ async function loadSharedMessages() {
   });
 }
 
+async function ensureLanguageMessages(language) {
+  const normalized = normalizeLanguage(language);
+  if (MESSAGES[normalized] && Object.keys(MESSAGES[normalized]).length > 0) {
+    return;
+  }
+  const catalogs = await fetchLocaleCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(normalized));
+  Object.entries(catalogs).forEach(([locale, messages]) => {
+    if (!MESSAGES[locale]) MESSAGES[locale] = {};
+    MESSAGES[locale] = { ...MESSAGES[locale], ...(messages || {}) };
+  });
+}
+
 function normalizeLanguage(value) {
   const lang = normalizeLanguageCode(value);
   return SUPPORTED_LANGUAGES.has(lang) ? lang : "en-us";
@@ -110,8 +122,9 @@ function applyTranslations() {
   });
 }
 
-function setLanguage(value) {
+async function setLanguage(value) {
   currentLanguage = normalizeLanguage(value);
+  await ensureLanguageMessages(currentLanguage).catch(() => ({}));
   settings.setLanguage(currentLanguage);
   window.dispatchEvent(new CustomEvent("gallery:language-changed", {
     detail: { language: currentLanguage },
@@ -997,7 +1010,9 @@ async function init() {
   currentLanguage = normalizeLanguage(settings.getLanguage());
   if (authLangSelect) {
     authLangSelect.value = currentLanguage;
-    authLangSelect.addEventListener("change", () => setLanguage(authLangSelect.value));
+    authLangSelect.addEventListener("change", () => {
+      setLanguage(authLangSelect.value).catch(() => {});
+    });
   }
   applyTranslations();
 
