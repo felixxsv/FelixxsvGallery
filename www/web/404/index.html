@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,7 +12,7 @@
   class="app-page special-page"
   data-app-base="/gallery"
   data-page-kind="not-found"
-  data-page-title="ページが見つかりません"
+  data-page-title="Page not found"
 >
   <header class="app-site-header">
     <div class="app-site-header__inner">
@@ -31,35 +31,35 @@
         <section class="special-page__panel" aria-labelledby="specialTitle">
           <div class="special-page__eyebrow">Not Found</div>
           <div class="special-page__status" id="specialStatusCode">404</div>
-          <h1 class="special-page__title" id="specialTitle">ページが見つかりません</h1>
+          <h1 class="special-page__title" id="specialTitle">Page not found</h1>
           <p class="special-page__description" id="specialDescription">
-            URL が変更されたか、公開が終了した可能性があります。Gallery のトップから目的の画像やプロフィールを再度探してください。
+            The URL may have changed or the page may no longer be public. Return to the gallery top and search again.
           </p>
-          <div class="special-page__meta" id="specialMeta">/gallery 配下の公開ページ向け not found です。</div>
+          <div class="special-page__meta" id="specialMeta">This is the not-found page for public routes under /gallery.</div>
           <div class="special-page__actions">
-            <a class="app-button app-button--primary" href="/gallery/">ギャラリートップへ戻る</a>
-            <button class="app-button" type="button" data-special-action="back">前の画面へ戻る</button>
+            <a class="app-button app-button--primary" href="/gallery/">Back to Gallery</a>
+            <button class="app-button" type="button" data-special-action="back">Back</button>
           </div>
         </section>
 
-        <aside class="special-page__aside" aria-label="案内">
-          <h2 class="special-page__aside-title">確認ポイント</h2>
-          <p class="special-page__aside-copy">次の順に確認すると、リンク切れと公開範囲の違いを切り分けやすくなります。</p>
+        <aside class="special-page__aside" aria-label="Guidance">
+          <h2 class="special-page__aside-title">What to check</h2>
+          <p class="special-page__aside-copy">Checking these items in order makes it easier to tell broken links from visibility restrictions.</p>
           <div class="special-page__list">
             <div class="special-page__list-item">
-              <span class="special-page__list-label">リンク</span>
-              <span class="special-page__list-value">URL の末尾や `/gallery/` 配下のパスが正しいか確認する</span>
+              <span class="special-page__list-label">Link</span>
+              <span class="special-page__list-value">Confirm the trailing URL and the path under /gallery/ are correct.</span>
             </div>
             <div class="special-page__list-item">
-              <span class="special-page__list-label">公開状態</span>
-              <span class="special-page__list-value">対象画像やプロフィールが非公開・隔離になっていないか確認する</span>
+              <span class="special-page__list-label">Visibility</span>
+              <span class="special-page__list-value">Confirm the image or profile is not private or quarantined.</span>
             </div>
             <div class="special-page__list-item">
-              <span class="special-page__list-label">再探索</span>
-              <span class="special-page__list-value">トップ画面の検索・タグ・アーカイブから再度たどる</span>
+              <span class="special-page__list-label">Retry</span>
+              <span class="special-page__list-value">Search again from the top page using search, tags, or archive.</span>
             </div>
           </div>
-          <p class="special-page__footer-note">サーバー側の自動 404 返却設定は、Apache / リバースプロキシ側の設定と組み合わせて利用します。</p>
+          <p class="special-page__footer-note">Use this together with Apache or reverse-proxy 404 routing.</p>
         </aside>
       </div>
     </div>

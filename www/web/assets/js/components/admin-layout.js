@@ -17,6 +17,15 @@ const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
 const SIDEBAR_EDGE_PEEK_PX = 44;
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "gallery.admin.sidebar.collapsed";
 const ADMIN_SIDEBAR_INIT_KEY = "gallery.admin.sidebar.init.v2";
+const ADMIN_PAGE_I18N_PREFIX = {
+  dashboard: "admin_dashboard",
+  content: "admin_content",
+  users: "admin_users",
+  mail: "admin_mail",
+  settings: "admin_settings",
+  "audit-logs": "admin_audit",
+};
+
 function createAdminContext() {
   const appBase = document.body.dataset.appBase || "/gallery";
   const api = createApiClient({ baseUrl: appBase });
@@ -85,6 +94,10 @@ function ensureAdminSidebarDefaultExpanded() {
   } catch {
     return;
   }
+}
+
+function getAdminPagePrefix(page) {
+  return ADMIN_PAGE_I18N_PREFIX[String(page || "").trim()] || "";
 }
 
 function createPresenceController(app) {
@@ -267,10 +280,19 @@ export async function initAdminLayout() {
   };
 
   const t = (key, fallback, vars = {}) => app.i18n.t(`admin_layout.${key}`, fallback, vars);
+  const pageT = (key, fallback, vars = {}) => {
+    const prefix = getAdminPagePrefix(app.page);
+    if (!prefix) return fallback;
+    return app.i18n.t(`${prefix}.${key}`, fallback, vars);
+  };
 
   function applyStaticTranslations() {
+    const loadingTitle = refs.loading?.querySelector(".admin-state-card__title");
+    const loadingDesc = refs.loading?.querySelector(".admin-state-card__description");
     refs.headerUserName?.parentElement?.querySelector("#shellUserTrigger")?.setAttribute("aria-label", t("user_info", "User menu"));
     refs.navList?.setAttribute("aria-label", t("nav_label", "Admin navigation"));
+    if (loadingTitle) loadingTitle.textContent = t("loading_title", "Checking Admin Access");
+    if (loadingDesc) loadingDesc.textContent = t("loading_desc", "The admin console will render after the admin permission check completes.");
     const notFoundTitle = refs.notFound?.querySelector(".admin-state-card__title");
     const notFoundDesc = refs.notFound?.querySelector(".admin-state-card__description");
     const notFoundButton = refs.notFound?.querySelector(".admin-state-card__actions .app-button");
@@ -284,6 +306,24 @@ export async function initAdminLayout() {
     if (refs.reloadButton) refs.reloadButton.textContent = t("reload", "Reload");
     if (refs.sidebar?.querySelector(".admin-sidebar__footer")) {
       refs.sidebar.querySelector(".admin-sidebar__footer").textContent = t("sidebar_footer", "The admin console is shown only after permission checks complete.");
+    }
+    if (refs.sidebarSubtitle) {
+      refs.sidebarSubtitle.textContent = t("brand_subtitle", "Admin Console");
+      refs.sidebarSubtitle.hidden = false;
+    }
+    const navKeyMap = {
+      dashboard: "nav_dashboard",
+      content: "nav_content",
+      users: "nav_users",
+      mail: "nav_mail",
+      settings: "nav_settings",
+      "audit-logs": "nav_audit_logs",
+    };
+    for (const [navKey, labelKey] of Object.entries(navKeyMap)) {
+      const label = refs.navList?.querySelector(`[data-admin-nav-link-key="${navKey}"] .admin-sidebar__label`);
+      if (label) {
+        label.textContent = t(labelKey, label.textContent || navKey);
+      }
     }
     const discardTitle = byId("adminDiscardConfirmTitle");
     if (discardTitle) discardTitle.textContent = t("discard_title", "Confirm");
@@ -306,8 +346,8 @@ export async function initAdminLayout() {
     }
 
     if (refs.sidebarSubtitle) {
-      refs.sidebarSubtitle.textContent = "";
-      refs.sidebarSubtitle.hidden = true;
+      refs.sidebarSubtitle.textContent = t("brand_subtitle", "Admin Console");
+      refs.sidebarSubtitle.hidden = false;
     }
 
     if (refs.sidebarToggle) {
@@ -514,7 +554,9 @@ export async function initAdminLayout() {
     const data = payload.data || {};
     const currentUser = data.current_user || {};
     const page = data.page || {};
-    const pageTitle = page.title || refs.pageTitle?.textContent || t("page_title", "Admin");
+    const bootstrapTitle = page.title || refs.pageTitle?.textContent || t("page_title", "Admin");
+    const pageTitle = pageT("page_title", bootstrapTitle);
+    const pageDescription = pageT("page_description", document.body.dataset.adminDescription || "");
 
     document.title = `${pageTitle} - Felixxsv Gallery`;
 
@@ -522,7 +564,7 @@ export async function initAdminLayout() {
     if (refs.headerUserName) refs.headerUserName.textContent = currentUser.display_name || "-";
     if (refs.headerUserKey) refs.headerUserKey.textContent = currentUser.user_key || "-";
     if (refs.pageDescription) {
-      refs.pageDescription.textContent = document.body.dataset.adminDescription || "";
+      refs.pageDescription.textContent = pageDescription;
     }
 
     populateNavigation(data.navigation || []);

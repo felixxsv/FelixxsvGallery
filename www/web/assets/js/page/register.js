@@ -1,3 +1,6 @@
+import { buildLocaleLoadOrder, createI18n } from "../core/i18n.js"
+import { createSettingsStore } from "../core/settings.js"
+
 const el = (id) => document.getElementById(id)
 
 const form = el("regForm")
@@ -10,6 +13,11 @@ const devLink = el("regDevLink")
 let toastWrap = null
 let toastBox = null
 let toastTimer = null
+let i18n = null
+
+function t(key, fallback, vars) {
+  return i18n?.t?.(key, fallback, vars) || fallback
+}
 
 function ensureToast() {
   if (toastWrap && toastBox) return
@@ -90,11 +98,14 @@ function showDevVerifyLink(url) {
   const link = document.createElement("a")
   link.className = "authlink"
   link.href = u
-  link.textContent = "検証用リンク（メール未設定時）"
+  link.textContent = t("auth.register.dev_verify_link", "Verification link (when email is not configured)")
   devLink.appendChild(link)
 }
 
-function init() {
+async function init() {
+  const settings = createSettingsStore()
+  i18n = createI18n(settings)
+  await i18n.loadCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage())).catch(() => ({}))
   if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
   if (!form) return
   form.addEventListener("submit", async (e) => {
@@ -104,22 +115,22 @@ function init() {
     const pw2 = String(pw2El ? pw2El.value : "")
 
     if (!email || !pw1 || !pw2) {
-      showToastErr("必須項目を入力してください。", 4200)
+      showToastErr(t("auth.register.required_fields", "Enter all required fields."), 4200)
       return
     }
     if (pw1.length < 8) {
-      showToastErr("パスワードは8文字以上にしてください。", 4200)
+      showToastErr(t("auth.register.password_min_length", "Use at least 8 characters for the password."), 4200)
       return
     }
     if (pw1 !== pw2) {
-      showToastErr("パスワード（確認）が一致しません。", 4200)
+      showToastErr(t("auth.register.password_mismatch", "Password confirmation does not match."), 4200)
       return
     }
 
-    setBusy(true, "送信中...")
+    setBusy(true, t("auth.register.submitting", "Sending..."))
     try {
       const data = await startRegister(email, pw1)
-      showToastOk("確認メールを送信しました。メールのリンクを開いて続行してください。", 3600)
+      showToastOk(t("auth.register.mail_sent", "Verification email sent. Open the link in the email to continue."), 3600)
       if (data && data.verify_url) showDevVerifyLink(data.verify_url)
     } catch (err) {
       showToastErr(String(err && err.message ? err.message : err), 6200)

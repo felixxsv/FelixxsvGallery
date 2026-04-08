@@ -106,7 +106,7 @@ function renderTable() {
       const tr = document.createElement("tr");
       const preview = item.preview_url
         ? `<div class="admin-content-thumb" data-image-open="true" data-image-id="${item.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || t("preview_alt", "preview"))}"></div>`
-        : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">NO IMAGE</div></div>`;
+        : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
       tr.innerHTML = `
         <td>${preview}</td>
@@ -315,11 +315,11 @@ function buildDuplicateMessage(items) {
   }
 
   const lines = duplicates.slice(0, 10).map((item) => {
-    const existingId = item?.existing_id ? `既存ID: ${item.existing_id}` : "既存ID: -";
-    return `- ${item?.filename || "(無名ファイル)"} / ${existingId}`;
+    const existingId = t("duplicate_existing_id", "Existing ID: {id}", { id: item?.existing_id || "-" });
+    return `- ${item?.filename || t("duplicate_unnamed_file", "(Unnamed file)")} / ${existingId}`;
   });
   if (duplicates.length > 10) {
-    lines.push(`- 他 ${duplicates.length - 10} 件`);
+    lines.push(t("duplicate_more", "- {count} more", { count: duplicates.length - 10 }));
   }
 
   return [t("duplicate_short", "Duplicate images were detected, so nothing was uploaded."), ...lines].join("\n");

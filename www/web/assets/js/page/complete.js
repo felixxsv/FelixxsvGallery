@@ -1,3 +1,6 @@
+import { buildLocaleLoadOrder, createI18n } from "../core/i18n.js"
+import { createSettingsStore } from "../core/settings.js"
+
 const el = (id) => document.getElementById(id)
 
 const form = el("cForm")
@@ -8,6 +11,11 @@ const btn = el("cBtn")
 let toastWrap = null
 let toastBox = null
 let toastTimer = null
+let i18n = null
+
+function t(key, fallback, vars) {
+  return i18n?.t?.(key, fallback, vars) || fallback
+}
 
 function ensureToast() {
   if (toastWrap && toastBox) return
@@ -84,7 +92,10 @@ async function completeRegister(user_key, display_name) {
   return data
 }
 
-function init() {
+async function init() {
+  const settings = createSettingsStore()
+  i18n = createI18n(settings)
+  await i18n.loadCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage())).catch(() => ({}))
   if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
   if (!TOKEN) {
     location.replace(`/gallery/auth/register/?next=${encodeURIComponent(NEXT)}`)
@@ -98,14 +109,14 @@ function init() {
     const dn = String(dnEl ? dnEl.value : "").trim()
 
     if (!uk) {
-      showToastErr("User Key を入力してください。", 4200)
+      showToastErr(t("auth.complete.user_key_required", "Enter a user key."), 4200)
       return
     }
 
-    setBusy(true, "処理中...")
+    setBusy(true, t("auth.complete.processing", "Processing..."))
     try {
       await completeRegister(uk, dn)
-      showToastOk("登録が完了しました。", 1400)
+      showToastOk(t("auth.complete.completed", "Registration completed."), 1400)
       setTimeout(() => { location.replace(NEXT) }, 250)
     } catch (err) {
       showToastErr(String(err && err.message ? err.message : err), 6200)

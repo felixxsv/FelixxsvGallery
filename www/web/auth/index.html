@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -19,7 +19,7 @@
         </span>
       </div>
       <div class="app-site-header__right">
-        <button id="authHeaderBackButton" class="app-button app-button--ghost app-button--small" type="button" data-i18n="auth.header.back">← ギャラリーへ</button>
+        <button id="authHeaderBackButton" class="app-button app-button--ghost app-button--small" type="button" data-i18n="auth.header.back">← Back to Gallery</button>
       </div>
     </div>
   </header>
@@ -35,7 +35,7 @@
             <img class="auth-hero__brand-mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
             <span class="auth-hero__brand-name">Felixxsv Gallery</span>
           </div>
-          <div class="auth-hero__sub" data-i18n="auth.hero.sub">VRChatの思い出を、ここに。</div>
+          <div class="auth-hero__sub" data-i18n="auth.hero.sub">A place to keep your VRChat memories.</div>
         </div>
       </div>
 
@@ -43,23 +43,23 @@
       <div class="auth-form-side">
 
         <div class="auth-lang-bar">
-          <select id="authLangSelect" class="app-select auth-lang-select" aria-label="言語を選択" data-i18n-aria-label="shell.static.language">
-            <option value="ja">日本語</option>
-            <option value="en-us">English (US)</option>
-            <option value="de">Deutsch</option>
-            <option value="fr">Français</option>
-            <option value="ru">Русский</option>
-            <option value="es">Español</option>
-            <option value="zh-cn">中文（简体）</option>
-            <option value="ko">한국어</option>
+          <select id="authLangSelect" class="app-select auth-lang-select" aria-label="Language" data-i18n-aria-label="shell.static.language">
+            <option value="ja" data-i18n="shell.static.language_ja">Japanese</option>
+            <option value="en-us" data-i18n="shell.static.language_en_us">English (US)</option>
+            <option value="de" data-i18n="shell.static.language_de">German</option>
+            <option value="fr" data-i18n="shell.static.language_fr">French</option>
+            <option value="ru" data-i18n="shell.static.language_ru">Russian</option>
+            <option value="es" data-i18n="shell.static.language_es">Spanish</option>
+            <option value="zh-cn" data-i18n="shell.static.language_zh_cn">Chinese (Simplified)</option>
+            <option value="ko" data-i18n="shell.static.language_ko">Korean</option>
           </select>
         </div>
 
         <div class="auth-form-panel">
 
           <div class="auth-tabs" role="tablist">
-            <button id="tabLogin" class="auth-tab is-on" type="button" role="tab" aria-selected="true" data-i18n="auth.tabs.login">ログイン</button>
-            <button id="tabSignup" class="auth-tab" type="button" role="tab" aria-selected="false" data-i18n="auth.tabs.signup">新規登録</button>
+            <button id="tabLogin" class="auth-tab is-on" type="button" role="tab" aria-selected="true" data-i18n="auth.tabs.login">Login</button>
+            <button id="tabSignup" class="auth-tab" type="button" role="tab" aria-selected="false" data-i18n="auth.tabs.signup">Sign Up</button>
           </div>
 
           <!-- ── Login pane ──────────────────────────────────────────── -->
@@ -67,28 +67,28 @@
 
             <div id="loginStageCredentials">
               <div class="auth-field">
-                <label class="auth-field__label" for="loginEmail" data-i18n="auth.fields.email">メールアドレス</label>
+                <label class="auth-field__label" for="loginEmail" data-i18n="auth.fields.email">Email Address</label>
                 <input id="loginEmail" class="app-input" type="email" autocomplete="email">
               </div>
               <div class="auth-field">
-                <label class="auth-field__label" for="loginPass" data-i18n="auth.fields.password">パスワード</label>
+                <label class="auth-field__label" for="loginPass" data-i18n="auth.fields.password">Password</label>
                 <input id="loginPass" class="app-input" type="password" autocomplete="current-password">
               </div>
-              <button id="loginBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.login">ログイン</button>
-              <div class="auth-divider"><span data-i18n="auth.common.or">または</span></div>
-              <button id="loginDiscordBtn" class="app-button app-button--discord auth-btn" type="button" data-i18n="auth.actions.loginDiscord">Discordでログイン</button>
+              <button id="loginBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.login">Login</button>
+              <div class="auth-divider"><span data-i18n="auth.common.or">or</span></div>
+              <button id="loginDiscordBtn" class="app-button app-button--discord auth-btn" type="button" data-i18n="auth.actions.loginDiscord">Login with Discord</button>
             </div>
 
             <div id="loginStageTwoFactor" hidden>
-              <div id="loginTwoFactorMessage" class="auth-field__label" style="margin-bottom:14px">認証コードを入力してください。</div>
+              <div id="loginTwoFactorMessage" class="auth-field__label" style="margin-bottom:14px">Enter the verification code.</div>
               <div class="auth-field">
-                <label class="auth-field__label" for="loginTwoFactorCode" data-i18n="auth.fields.verificationCode">認証コード</label>
+                <label class="auth-field__label" for="loginTwoFactorCode" data-i18n="auth.fields.verificationCode">Verification Code</label>
                 <input id="loginTwoFactorCode" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-                <button id="loginTwoFactorVerifyBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.verify">確認</button>
-                <button id="loginTwoFactorResendBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.resend">再送</button>
-                <button id="loginBackBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.actions.back">戻る</button>
+                <button id="loginTwoFactorVerifyBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.verify">Verify</button>
+                <button id="loginTwoFactorResendBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.resend">Resend</button>
+                <button id="loginBackBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.actions.back">Back</button>
               </div>
             </div>
 
@@ -99,50 +99,50 @@
 
             <div id="signupStageStart">
               <div class="auth-field">
-                <label class="auth-field__label" for="signupEmail" data-i18n="auth.fields.email">メールアドレス</label>
+                <label class="auth-field__label" for="signupEmail" data-i18n="auth.fields.email">Email Address</label>
                 <input id="signupEmail" class="app-input" type="email" autocomplete="email">
               </div>
-              <button id="signupStartBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.sendCode">認証コードを送信</button>
-              <div class="auth-divider"><span data-i18n="auth.common.or">または</span></div>
-              <button id="signupDiscordBtn" class="app-button app-button--discord auth-btn" type="button" data-i18n="auth.actions.signupDiscord">Discordで登録</button>
+              <button id="signupStartBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.sendCode">Send Verification Code</button>
+              <div class="auth-divider"><span data-i18n="auth.common.or">or</span></div>
+              <button id="signupDiscordBtn" class="app-button app-button--discord auth-btn" type="button" data-i18n="auth.actions.signupDiscord">Sign Up with Discord</button>
             </div>
 
             <div id="signupStageVerify" hidden>
-              <div id="signupVerifyMessage" class="auth-field__label" style="margin-bottom:14px">メールに届いた認証コードを入力してください。</div>
+              <div id="signupVerifyMessage" class="auth-field__label" style="margin-bottom:14px">Enter the verification code sent to your email.</div>
               <div class="auth-field">
-                <label class="auth-field__label" for="signupVerifyCode" data-i18n="auth.fields.verificationCode">認証コード</label>
+                <label class="auth-field__label" for="signupVerifyCode" data-i18n="auth.fields.verificationCode">Verification Code</label>
                 <input id="signupVerifyCode" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-                <button id="signupVerifyBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.verifyEmail">認証する</button>
-                <button id="signupResendBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.resend">再送</button>
-                <button id="signupRestartBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.actions.back">戻る</button>
+                <button id="signupVerifyBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.verifyEmail">Verify Email</button>
+                <button id="signupResendBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.resend">Resend</button>
+                <button id="signupRestartBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.actions.back">Back</button>
               </div>
             </div>
 
             <div id="signupStageComplete" hidden>
-              <div id="signupCompleteMessage" class="auth-field__label" style="margin-bottom:16px">アカウント情報を入力してください。</div>
+              <div id="signupCompleteMessage" class="auth-field__label" style="margin-bottom:16px">Enter your account details.</div>
 
               <div id="discordAvatarPreview" hidden>
                 <div class="auth-discord-preview">
                   <img id="discordAvatarImg" class="auth-discord-preview__img" src="" alt="Discord avatar">
-                  <span class="auth-discord-preview__note" data-i18n="auth.discord.previewNote">Discordのアイコンをプレビュー表示中。登録後に変更できます。</span>
+                  <span class="auth-discord-preview__note" data-i18n="auth.discord.previewNote">Previewing your Discord icon. You can change it after registration.</span>
                 </div>
               </div>
 
               <div class="auth-field">
-                <label class="auth-field__label" for="completeUserKey" data-i18n="auth.fields.userKey">ユーザーキー</label>
-                <input id="completeUserKey" class="app-input" type="text" placeholder="4〜20文字 (A-Za-z0-9_-)" autocomplete="username" data-i18n-placeholder="auth.placeholders.userKey">
+                <label class="auth-field__label" for="completeUserKey" data-i18n="auth.fields.userKey">User Key</label>
+                <input id="completeUserKey" class="app-input" type="text" placeholder="4-20 chars (A-Za-z0-9_-)" autocomplete="username" data-i18n-placeholder="auth.placeholders.userKey">
               </div>
               <div class="auth-field">
-                <label class="auth-field__label" for="completeDisplayName" data-i18n="auth.fields.displayName">表示名</label>
+                <label class="auth-field__label" for="completeDisplayName" data-i18n="auth.fields.displayName">Display Name</label>
                 <input id="completeDisplayName" class="app-input" type="text">
               </div>
               <div id="completePasswordRow" class="auth-field">
-                <label class="auth-field__label" for="completePassword" data-i18n="auth.fields.password">パスワード</label>
+                <label class="auth-field__label" for="completePassword" data-i18n="auth.fields.password">Password</label>
                 <input id="completePassword" class="app-input" type="password" autocomplete="new-password">
               </div>
-              <button id="completeRegisterBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.createAccount">アカウントを作成</button>
+              <button id="completeRegisterBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.createAccount">Create Account</button>
             </div>
 
           </div>
@@ -156,11 +156,11 @@
   <!-- ── Confirm overlay ───────────────────────────────────────────────── -->
   <div id="authConfirmLayer" class="auth-confirm-overlay">
     <div class="auth-confirm-card">
-      <div id="authConfirmTitle" class="auth-confirm-title" data-i18n="auth.confirm.title">確認</div>
-      <div id="authConfirmMessage" class="auth-confirm-message" data-i18n="auth.confirm.defaultMessage">本当に実行しますか？</div>
+      <div id="authConfirmTitle" class="auth-confirm-title" data-i18n="auth.confirm.title">Confirm</div>
+      <div id="authConfirmMessage" class="auth-confirm-message" data-i18n="auth.confirm.defaultMessage">Are you sure you want to continue?</div>
       <div class="auth-confirm-actions">
-        <button id="authConfirmApproveBtn" class="app-button app-button--primary" type="button" data-i18n="auth.actions.confirm">実行する</button>
-        <button id="authConfirmCancelBtn" class="app-button app-button--ghost" type="button" data-i18n="auth.actions.cancel">キャンセル</button>
+        <button id="authConfirmApproveBtn" class="app-button app-button--primary" type="button" data-i18n="auth.actions.confirm">Confirm</button>
+        <button id="authConfirmCancelBtn" class="app-button app-button--ghost" type="button" data-i18n="auth.actions.cancel">Cancel</button>
       </div>
     </div>
   </div>

@@ -1152,7 +1152,7 @@ export function initUserShell(app) {
     } catch (error) {
       const fieldErrors = error?.payload?.error?.field_errors || [];
       if (fieldErrors.length > 0) {
-        toast.error(fieldErrors[0].message || error.message || "入力内容を確認してください。");
+        toast.error(fieldErrors[0].message || error.message || t("shell.toast.check_input", "Check the input values."));
       } else {
         toast.error(error.message || t("shell.toast.profile_update_error", "Failed to update profile."));
       }

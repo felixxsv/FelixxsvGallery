@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>ダッシュボード - Felixxsv Gallery</title>
+<title data-i18n="admin_dashboard.page_title">Dashboard</title>
 <link href="/gallery/assets/css/common.css" rel="stylesheet"/>
 <link href="/gallery/assets/css/components.css" rel="stylesheet"/>
 <link href="/gallery/assets/css/page/admin/common.css" rel="stylesheet"/>
 <link href="/gallery/assets/css/page/admin/dashboard.css" rel="stylesheet"/>
 </head>
-<body class="admin-page" data-admin-description="アクセス状況、操作ログ、新着画像を 1 画面で確認できます。" data-admin-page="dashboard" data-app-base="/gallery" data-hide-admin-link-in-shell="1">
+<body class="admin-page" data-admin-description="Review activity, audit logs, and recent uploads from one screen." data-admin-page="dashboard" data-app-base="/gallery" data-hide-admin-link-in-shell="1">
 <section class="admin-state-screen" id="adminLoadingState">
 <div class="admin-state-card">
-<h1 class="admin-state-card__title">管理画面を確認しています</h1>
-<p class="admin-state-card__description">admin 権限の確認が完了するまで、管理画面本体は描画しません。</p>
+<h1 class="admin-state-card__title" data-i18n="admin_layout.loading_title">Checking Admin Access</h1>
+<p class="admin-state-card__description" data-i18n="admin_layout.loading_desc">The admin console will render after the admin permission check completes.</p>
 </div>
 </section>
 <section class="admin-state-screen" hidden="" id="adminNotFoundState">
 <div class="admin-state-card">
 <h1 class="admin-state-card__title">404</h1>
-<p class="admin-state-card__description">お探しのページは見つかりませんでした。</p>
+<p class="admin-state-card__description" data-i18n="admin_layout.not_found_desc">The page you requested could not be found.</p>
 <div class="admin-state-card__actions">
-<a class="app-button app-button--primary" href="/gallery/">ホームへ戻る</a>
+<a class="app-button app-button--primary" href="/gallery/" data-i18n="admin_layout.home_back">Back to Home</a>
 </div>
 </div>
 </section>
 <section class="admin-state-screen" hidden="" id="adminErrorState">
 <div class="admin-state-card">
-<h1 class="admin-state-card__title">初期化に失敗しました</h1>
-<p class="admin-state-card__description">管理画面の初期化中にエラーが発生しました。</p>
+<h1 class="admin-state-card__title" data-i18n="admin_layout.error_title">Initialization Failed</h1>
+<p class="admin-state-card__description" data-i18n="admin_layout.error_desc">An error occurred while initializing the admin console.</p>
 <div class="admin-state-card__actions">
-<button class="app-button app-button--primary" id="adminReloadButton" type="button">再読み込み</button>
+<button class="app-button app-button--primary" id="adminReloadButton" type="button" data-i18n="admin_layout.reload">Reload</button>
 </div>
 </div>
 </section>
@@ -45,7 +45,7 @@
 </a>
 </div>
 <div class="app-site-header__right">
-<button aria-label="ユーザー情報" class="app-icon-button" id="shellUserTrigger" type="button">
+<button aria-label="User Info" class="app-icon-button" id="shellUserTrigger" type="button" data-i18n-aria-label="shell.static.user_info">
 <span aria-hidden="true" class="shell-user-icon shell-user-icon--guest" id="shellUserTriggerGuestIcon"></span>
 <span aria-hidden="true" class="shell-user-icon shell-user-icon--auth" hidden="" id="shellUserTriggerAuthIcon"></span>
 </button>
@@ -58,39 +58,39 @@
 <div class="admin-sidebar__title">Felixxsv Gallery</div>
 <div class="admin-sidebar__subtitle">Admin Console</div>
 </div>
-<button aria-expanded="true" aria-label="サイドバーを閉じる" class="app-icon-button admin-sidebar__toggle" id="adminSidebarToggle" type="button">
+<button aria-expanded="true" aria-label="Close sidebar" class="app-icon-button admin-sidebar__toggle" id="adminSidebarToggle" type="button" data-i18n-aria-label="admin_layout.sidebar_close">
 <span aria-hidden="true">×</span>
 </button>
 </div>
 <div class="admin-sidebar__scroll">
-<nav aria-label="管理画面ナビゲーション" class="admin-sidebar__nav" id="adminSidebarNav">
+<nav aria-label="Admin navigation" class="admin-sidebar__nav" id="adminSidebarNav" data-i18n-aria-label="admin_layout.nav_label">
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="dashboard" href="/gallery/admin/">
 <span aria-hidden="true" class="admin-sidebar__icon">⌂</span>
-<span class="admin-sidebar__label">ダッシュボード</span>
+<span class="admin-sidebar__label" data-i18n="admin_layout.nav_dashboard">Dashboard</span>
 </a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="content" href="/gallery/admin/content/">
 <span aria-hidden="true" class="admin-sidebar__icon">▣</span>
-<span class="admin-sidebar__label">コンテンツ管理</span>
+<span class="admin-sidebar__label" data-i18n="admin_layout.nav_content">Content</span>
 </a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="users" href="/gallery/admin/users/">
 <span aria-hidden="true" class="admin-sidebar__icon">👥</span>
-<span class="admin-sidebar__label">ユーザー管理</span>
+<span class="admin-sidebar__label" data-i18n="admin_layout.nav_users">Users</span>
 </a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="mail" href="/gallery/admin/mail/">
 <span aria-hidden="true" class="admin-sidebar__icon">✉</span>
-<span class="admin-sidebar__label">メール配信</span>
+<span class="admin-sidebar__label" data-i18n="admin_layout.nav_mail">Mail</span>
 </a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="settings" href="/gallery/admin/settings/">
 <span aria-hidden="true" class="admin-sidebar__icon">⚙</span>
-<span class="admin-sidebar__label">サイト設定</span>
+<span class="admin-sidebar__label" data-i18n="admin_layout.nav_settings">Settings</span>
 </a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/">
 <span aria-hidden="true" class="admin-sidebar__icon">☰</span>
-<span class="admin-sidebar__label">監査ログ</span>
+<span class="admin-sidebar__label" data-i18n="admin_layout.nav_audit_logs">Audit Logs</span>
 </a>
 </nav>
 </div>
-<div class="admin-sidebar__footer">管理画面は権限確認後にのみ表示します。</div>
+<div class="admin-sidebar__footer" data-i18n="admin_layout.sidebar_footer">The admin console is shown only after permission checks complete.</div>
 </aside>
 <div class="admin-shell__main">
 
@@ -99,12 +99,12 @@
 <article class="admin-panel admin-dashboard-card admin-dashboard-card--clock">
 <div class="admin-dashboard-card__header">
 <div>
-<h2 class="admin-panel__title">時計</h2>
-<p class="admin-panel__meta">表示モードは管理者ごとに保持されます。</p>
+<h2 class="admin-panel__title" data-i18n="admin_dashboard.clock_title">Clock</h2>
+<p class="admin-panel__meta" data-i18n="admin_dashboard.clock_meta">Display mode is saved per administrator.</p>
 </div>
-<div aria-label="時計表示切替" class="admin-segmented-control" role="group">
-<button class="admin-segmented-control__button is-active" id="adminClockModeDigital" type="button">デジタル</button>
-<button class="admin-segmented-control__button" id="adminClockModeAnalog" type="button">アナログ</button>
+<div aria-label="Clock display mode" class="admin-segmented-control" role="group" data-i18n-aria-label="admin_dashboard.clock_mode">
+<button class="admin-segmented-control__button is-active" id="adminClockModeDigital" type="button" data-i18n="admin_dashboard.clock_digital">Digital</button>
+<button class="admin-segmented-control__button" id="adminClockModeAnalog" type="button" data-i18n="admin_dashboard.clock_analog">Analog</button>
 </div>
 </div>
 <div class="admin-dashboard-clock admin-dashboard-clock--digital" id="adminDashboardClockDigital">
@@ -112,7 +112,7 @@
 <div class="admin-dashboard-clock__date" data-clock-date="">----</div>
 </div>
 <div class="admin-dashboard-clock" hidden="" id="adminDashboardClockAnalog">
-<div aria-label="アナログ時計" class="admin-analog-clock">
+<div aria-label="Analog clock" class="admin-analog-clock" data-i18n-aria-label="admin_dashboard.clock_analog_label">
 <div class="admin-analog-clock__dial"></div>
 <div class="admin-analog-clock__hand admin-analog-clock__hand--hour" data-clock-hand="hour"></div>
 <div class="admin-analog-clock__hand admin-analog-clock__hand--minute" data-clock-hand="minute"></div>
@@ -124,12 +124,12 @@
 <article class="admin-panel admin-dashboard-card admin-dashboard-card--latest">
 <div class="admin-dashboard-card__header">
 <div>
-<h2 class="admin-panel__title">新着画像</h2>
-<p class="admin-panel__meta">最新の 1 枚を表示します。</p>
+<h2 class="admin-panel__title" data-i18n="admin_dashboard.latest_title">Latest Image</h2>
+<p class="admin-panel__meta" data-i18n="admin_dashboard.latest_meta">Shows the most recent image.</p>
 </div>
 </div>
 <div class="admin-dashboard-latest">
-<div class="admin-dashboard-empty" id="adminDashboardLatestImagePlaceholder">表示できる画像がありません。</div>
+<div class="admin-dashboard-empty" id="adminDashboardLatestImagePlaceholder" data-i18n="admin_dashboard.latest_empty">No image available.</div>
 <a class="admin-dashboard-latest__image-wrap" hidden="" href="#" id="adminDashboardLatestImageCard">
 <img alt="" class="admin-dashboard-latest__image" id="adminDashboardLatestImage"/>
 </a>
@@ -143,33 +143,33 @@
 <article class="admin-panel admin-dashboard-card admin-dashboard-card--stats">
 <div class="admin-dashboard-card__header">
 <div>
-<h2 class="admin-panel__title">現在の状況</h2>
-<p class="admin-panel__meta">ギャラリー全体の件数と容量の概要を表示します。</p>
+<h2 class="admin-panel__title" data-i18n="admin_dashboard.stats_title">Overview</h2>
+<p class="admin-panel__meta" data-i18n="admin_dashboard.stats_meta">Shows overall counts and storage usage for the gallery.</p>
 </div>
 </div>
 <div class="admin-dashboard-stats admin-dashboard-stats--summary">
 <section class="admin-stat">
-<div class="admin-stat__label">オンラインユーザー</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.stat_online_users">Online Users</div>
 <div class="admin-stat__value" id="adminStatOnlineUsers">0</div>
 </section>
 <section class="admin-stat">
-<div class="admin-stat__label">本日の投稿数</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.stat_today_uploads">Today's Uploads</div>
 <div class="admin-stat__value" id="adminStatTodayUploads">0</div>
 </section>
 <section class="admin-stat">
-<div class="admin-stat__label">公開画像</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.stat_public_count">Public Images</div>
 <div class="admin-stat__value" id="adminStatPublicCount">0</div>
 </section>
 <section class="admin-stat">
-<div class="admin-stat__label">非公開画像</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.stat_private_count">Private Images</div>
 <div class="admin-stat__value" id="adminStatPrivateCount">0</div>
 </section>
 <section class="admin-stat">
-<div class="admin-stat__label">隔離件数</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.stat_quarantine_count">Quarantined Items</div>
 <div class="admin-stat__value" id="adminStatQuarantineCount">0</div>
 </section>
 <section class="admin-stat admin-stat--wide">
-<div class="admin-stat__label">ストレージ使用量</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.stat_storage_used">Storage Usage</div>
 <div class="admin-stat__value-wrap">
 <div class="admin-stat__value" id="adminStatStorageUsed">-</div>
 <span class="admin-stat__divider">/</span>
@@ -181,28 +181,28 @@
 <article class="admin-panel admin-dashboard-card admin-dashboard-card--storage">
 <div class="admin-dashboard-card__header admin-dashboard-card__header--wrap">
 <div>
-<h2 class="admin-panel__title">ストレージ監視</h2>
-<p class="admin-panel__meta">storage_root の使用率を自動取得します。設定画面と同じ更新間隔を共有します。</p>
+<h2 class="admin-panel__title" data-i18n="admin_dashboard.storage_title">Storage Monitor</h2>
+<p class="admin-panel__meta" data-i18n="admin_dashboard.storage_meta">Automatically fetches storage_root usage and shares the same refresh interval as settings.</p>
 </div>
 <div class="admin-dashboard-storage__actions">
-<span class="admin-dashboard-storage__timestamp">最終取得: <strong id="adminDashboardStorageGeneratedAt">-</strong></span>
+<span class="admin-dashboard-storage__timestamp"><span data-i18n="admin_dashboard.storage_generated_at">Last Fetched</span>: <strong id="adminDashboardStorageGeneratedAt">-</strong></span>
 <label class="admin-dashboard-refresh-interval" for="adminDashboardStorageRefreshInterval">
-<span>自動更新</span>
-<select aria-label="ダッシュボードのストレージ監視自動更新間隔" class="app-select app-select--compact" id="adminDashboardStorageRefreshInterval">
-<option value="0">手動のみ</option>
-<option value="60000">1分</option>
-<option value="180000">3分</option>
-<option value="300000">5分</option>
-<option value="600000">10分</option>
-<option value="900000">15分</option>
-<option value="1800000">30分</option>
+<span data-i18n="admin_dashboard.storage_auto_refresh">Auto Refresh</span>
+<select aria-label="Dashboard storage monitor auto refresh interval" class="app-select app-select--compact" id="adminDashboardStorageRefreshInterval" data-i18n-aria-label="admin_dashboard.storage_auto_refresh_label">
+<option value="0" data-i18n="admin_dashboard.storage_manual_only">Manual Only</option>
+<option value="60000" data-i18n="admin_layout.interval_1m">1 min</option>
+<option value="180000" data-i18n="admin_layout.interval_3m">3 min</option>
+<option value="300000" data-i18n="admin_layout.interval_5m">5 min</option>
+<option value="600000" data-i18n="admin_layout.interval_10m">10 min</option>
+<option value="900000" data-i18n="admin_layout.interval_15m">15 min</option>
+<option value="1800000" data-i18n="admin_layout.interval_30m">30 min</option>
 </select>
 </label>
-<button class="app-button app-button--secondary" id="adminDashboardStorageRefreshButton" type="button">再取得</button>
+<button class="app-button app-button--secondary" id="adminDashboardStorageRefreshButton" type="button" data-i18n="admin_dashboard.storage_refresh">Refresh</button>
 </div>
 </div>
 <div class="admin-page-message" hidden="" id="adminDashboardStorageMessage"></div>
-<div class="admin-dashboard-storage__loading" id="adminDashboardStorageLoading">使用状況を読み込みます…</div>
+<div class="admin-dashboard-storage__loading" id="adminDashboardStorageLoading" data-i18n="admin_dashboard.storage_loading">Loading storage usage...</div>
 <div class="admin-dashboard-storage__content" hidden="" id="adminDashboardStorageContent">
 <div class="admin-dashboard-storage__summary">
 <div aria-hidden="true" class="admin-dashboard-storage__ring" id="adminDashboardStorageRing">
@@ -210,18 +210,18 @@
 </div>
 <div class="admin-dashboard-storage__body">
 <div class="admin-dashboard-storage__eyebrow" id="adminDashboardStoragePrimaryLabel">storage_root</div>
-<div class="admin-dashboard-storage__path" id="adminDashboardStoragePrimaryPath">使用状況を取得するとここに表示します。</div>
+<div class="admin-dashboard-storage__path" id="adminDashboardStoragePrimaryPath" data-i18n="admin_dashboard.storage_placeholder">Usage details will appear here after loading.</div>
 <div class="admin-dashboard-storage__metrics">
 <div class="admin-dashboard-storage__metric">
-<span>ディレクトリサイズ</span>
+<span data-i18n="admin_dashboard.storage_directory_size">Directory Size</span>
 <strong id="adminDashboardStorageDirectorySize">-</strong>
 </div>
 <div class="admin-dashboard-storage__metric">
-<span>使用中 / 総容量</span>
+<span data-i18n="admin_dashboard.storage_filesystem_usage">Used / Total</span>
 <strong id="adminDashboardStorageFilesystemUsage">-</strong>
 </div>
 <div class="admin-dashboard-storage__metric">
-<span>空き容量</span>
+<span data-i18n="admin_dashboard.storage_filesystem_free">Free Space</span>
 <strong id="adminDashboardStorageFilesystemFree">-</strong>
 </div>
 </div>
@@ -232,55 +232,55 @@
 <article class="admin-panel admin-dashboard-card admin-dashboard-card--integrity">
 <div class="admin-dashboard-card__header admin-dashboard-card__header--wrap">
 <div>
-<h2 class="admin-panel__title">整合性チェック</h2>
-<p class="admin-panel__meta">最新状態、直近の問題、手動実行予約を表示します。</p>
+<h2 class="admin-panel__title" data-i18n="admin_dashboard.integrity_title">Integrity Check</h2>
+<p class="admin-panel__meta" data-i18n="admin_dashboard.integrity_meta">Shows the latest status, recent issues, and queued manual runs.</p>
 </div>
 <div>
-<button class="app-button app-button--secondary" id="adminDashboardIntegrityRunButton" type="button">手動実行を予約</button>
+<button class="app-button app-button--secondary" id="adminDashboardIntegrityRunButton" type="button" data-i18n="admin_dashboard.queue_run">Queue Manual Run</button>
 </div>
 </div>
 <div class="admin-dashboard-stats admin-dashboard-stats--integrity">
 <section class="admin-stat">
-<div class="admin-stat__label">最新状態</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.integrity_status">Current Status</div>
 <div class="admin-stat__value" id="adminDashboardIntegrityStatus">-</div>
 </section>
 <section class="admin-stat admin-stat--wide">
-<div class="admin-stat__label">最終実行</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.integrity_last_run">Last Run</div>
 <div class="admin-stat__value admin-stat__value--compact" id="adminDashboardIntegrityLastRun">-</div>
 </section>
 <section class="admin-stat">
-<div class="admin-stat__label">最終正常完了</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.integrity_last_success">Last Successful Run</div>
 <div class="admin-stat__value admin-stat__value--compact" id="adminDashboardIntegrityLastSuccess">-</div>
 </section>
 <section class="admin-stat">
-<div class="admin-stat__label">保留ジョブ</div>
+<div class="admin-stat__label" data-i18n="admin_dashboard.integrity_pending">Pending Jobs</div>
 <div class="admin-stat__value admin-stat__value--compact" id="adminDashboardIntegrityPending">-</div>
 </section>
 </div>
 <div class="admin-log-list" id="adminDashboardIntegrityIssues">
-<div class="admin-list-empty">読み込み中です。</div>
+<div class="admin-list-empty" data-i18n="admin_dashboard.list_loading">Loading...</div>
 </div>
 </article>
 <article class="admin-panel admin-dashboard-card admin-dashboard-card--users">
 <div class="admin-dashboard-card__header">
 <div>
-<h2 class="admin-panel__title">オンラインユーザー</h2>
-<p class="admin-panel__meta">現在アクセスしているユーザーとセッション時間を表示します。</p>
+<h2 class="admin-panel__title" data-i18n="admin_dashboard.active_users_title">Online Users</h2>
+<p class="admin-panel__meta" data-i18n="admin_dashboard.active_users_meta">Shows users currently active and their session durations.</p>
 </div>
 </div>
 <div class="admin-active-user-list" id="adminDashboardActiveUsers">
-<div class="admin-list-empty">読み込み中です。</div>
+<div class="admin-list-empty" data-i18n="admin_dashboard.list_loading">Loading...</div>
 </div>
 </article>
 <article class="admin-panel admin-dashboard-card admin-dashboard-card--logs">
 <div class="admin-dashboard-card__header">
 <div>
-<h2 class="admin-panel__title">直近の操作ログ</h2>
-<p class="admin-panel__meta">最近の監査ログを表示します。</p>
+<h2 class="admin-panel__title" data-i18n="admin_dashboard.recent_logs_title">Recent Activity Logs</h2>
+<p class="admin-panel__meta" data-i18n="admin_dashboard.recent_logs_meta">Shows recent audit log entries.</p>
 </div>
 </div>
 <div class="admin-log-list" id="adminDashboardRecentLogs">
-<div class="admin-list-empty">読み込み中です。</div>
+<div class="admin-list-empty" data-i18n="admin_dashboard.list_loading">Loading...</div>
 </div>
 </article>
 </section>
@@ -288,28 +288,28 @@
 </div>
 </section>
 <div aria-live="polite" class="app-modal-root" id="appModalRoot">
-<button aria-label="閉じる" class="app-global-close" hidden="" id="appGlobalClose" type="button">×</button>
+<button aria-label="Close" class="app-global-close" hidden="" id="appGlobalClose" type="button" data-i18n-aria-label="shell.static.close">×</button>
 <section class="app-modal-layer" data-modal-layer="" data-modal-id="user-info" hidden="">
   <div class="app-modal-backdrop" data-modal-backdrop="user-info"></div>
   <div class="app-modal-dialog shell-user-dialog" role="dialog" aria-modal="true" aria-labelledby="userInfoTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="userInfoTitle" class="app-modal-title">ユーザー情報</h2>
+      <h2 id="userInfoTitle" class="app-modal-title" data-i18n="shell.static.user_info">User Info</h2>
       <div class="app-modal-header-actions">
-        <button type="button" class="shell-header-link" data-modal-open="settings">設定</button>
-        <button type="button" class="shell-header-link" data-modal-open="help">ヘルプ</button>
-        <button type="button" class="shell-header-link" data-modal-open="credits">クレジット</button>
+        <button type="button" class="shell-header-link" data-modal-open="settings" data-i18n="shell.static.settings">Settings</button>
+        <button type="button" class="shell-header-link" data-modal-open="help" data-i18n="shell.static.help">Help</button>
+        <button type="button" class="shell-header-link" data-modal-open="credits" data-i18n="shell.static.credits">Credits</button>
       </div>
     </div>
 
     <div class="app-modal-body">
       <section id="shellUserCard" class="shell-user-card">
         <div id="shellGuestOverlay" class="shell-user-card__guest-overlay" hidden="">
-          <button id="shellLoginButton" type="button" class="app-button app-button--primary">ログイン</button>
+          <button id="shellLoginButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.login">Log In</button>
         </div>
 
         <div class="shell-user-card__content">
 
-          <!-- プロフィールヘッダー -->
+          <!-- Profile header -->
           <div class="shell-user-card__profile">
             <div id="shellUserCardAvatar" class="shell-user-card__avatar" aria-hidden="true">
               <img id="shellUserCardAvatarImg" class="shell-user-card__avatar-img" src="" alt="" hidden="">
@@ -322,7 +322,8 @@
                     id="shellAccountEditButton"
                     type="button"
                     class="app-icon-button shell-pen-button"
-                    aria-label="プロフィール編集"
+                    aria-label="Edit profile"
+                    data-i18n-aria-label="shell.static.profile_edit"
                     data-modal-open="account"
                     hidden=""
                   >
@@ -332,7 +333,8 @@
                     id="shellProfilePreviewButton"
                     type="button"
                     class="app-icon-button shell-profile-preview-button"
-                    aria-label="プロフィールを確認"
+                    aria-label="View profile"
+                    data-i18n-aria-label="shell.static.profile_preview"
                     hidden=""
                   >
                     <span class="shell-profile-preview-icon" aria-hidden="true"></span>
@@ -343,59 +345,59 @@
             </div>
           </div>
 
-          <!-- 自己紹介 -->
+          <!-- Bio -->
           <p id="shellUserBio" class="shell-user-card__bio" hidden=""></p>
 
-          <!-- リンク -->
+          <!-- Links -->
           <div id="shellUserCardLinks" class="shell-user-card__links" hidden=""></div>
 
-              <!-- 表示バッジ -->
+              <!-- Display badges -->
               <div id="shellUserDisplayBadges" class="shell-user-display-badges" hidden=""></div>
 
-              <!-- バッジプール -->
+              <!-- Badge pool -->
               <div id="shellBadgePool" class="shell-badge-pool" hidden="">
-                <span class="shell-badge-pool__label">バッジ（最大3つ選択）</span>
+                <span class="shell-badge-pool__label" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span>
                 <div class="shell-badge-pool__list">
-                  <span class="shell-badge-pool__empty">バッジはまだありません</span>
+                  <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
                 </div>
-                <span class="shell-badge-pool__hint">クリックでプロフィールに表示するバッジを切り替えられます</span>
+                <span class="shell-badge-pool__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span>
               </div>
 
-              <!-- バッジプール -->
+              <!-- Badge pool -->
               <div id="shellBadgePool" class="shell-badge-pool" hidden="">
-                <span class="shell-badge-pool__label">バッジ（最大3つ選択）</span>
+                <span class="shell-badge-pool__label" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span>
                 <div class="shell-badge-pool__list">
-                  <span class="shell-badge-pool__empty">バッジはまだありません</span>
+                  <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
                 </div>
-                <span class="shell-badge-pool__hint">クリックでプロフィールに表示するバッジを切り替えられます</span>
+                <span class="shell-badge-pool__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span>
               </div>
 
-          <!-- メタ情報 -->
+          <!-- Meta info -->
           <dl class="app-definition-list shell-user-card__meta-list">
             <div class="app-definition-list__row">
-              <dt>メールアドレス</dt>
+              <dt data-i18n="shell.static.email">Email</dt>
               <dd id="shellUserEmail">-</dd>
             </div>
             <div class="app-definition-list__row">
-              <dt>登録日時</dt>
+              <dt data-i18n="shell.static.created_at">Created At</dt>
               <dd id="shellUserCreatedAt">-</dd>
             </div>
             <div class="app-definition-list__row">
-              <dt>2段階認証</dt>
+              <dt data-i18n="shell.static.twofactor">Two-Factor Auth</dt>
               <dd id="shellUserTwoFactor">-</dd>
             </div>
             <div id="shellUserRoleRow" class="app-definition-list__row" hidden="">
-              <dt>ロール</dt>
+              <dt data-i18n="shell.static.role">Role</dt>
               <dd id="shellUserRole">-</dd>
             </div>
           </dl>
 
-          <!-- アップロード -->
+          <!-- Upload -->
           <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden="">
-            現在、画像投稿は無効化されています。
+            Image uploads are currently disabled.
           </p>
           <div class="shell-user-card__upload-row">
-            <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden="">アップロード</button>
+            <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden="" data-i18n="shell.static.upload">Upload</button>
           </div>
 
         </div>
@@ -410,17 +412,17 @@
           class="app-button app-button--ghost app-button--small"
           data-modal-open="account-security"
           hidden=""
-        >アカウント設定</button>
+        data-i18n="shell.static.account_settings">Account Settings</button>
         <a
           id="shellAdminLink"
           href="/gallery/admin"
           class="app-link-button app-button--small"
           hidden=""
-        >管理画面へ</a>
+        data-i18n="shell.static.admin">Admin Console</a>
       </div>
       <div class="shell-user-footer__actions">
-        <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
-        <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
+        <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.logout_all">Log Out All Devices</button>
+        <button id="shellLogoutButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.logout">Log Out</button>
       </div>
     </div>
   </div>
@@ -430,51 +432,51 @@
   <div class="app-modal-backdrop" data-modal-backdrop="settings"></div>
   <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="settingsTitle" class="app-modal-title">設定</h2>
+      <h2 id="settingsTitle" class="app-modal-title" data-i18n="shell.static.settings">Settings</h2>
     </div>
     <div class="app-modal-body">
 
       <div class="shell-settings-group">
-        <h3 class="shell-settings-group__title">表示</h3>
+        <h3 class="shell-settings-group__title" data-i18n="shell.static.display_group">Display</h3>
         <div class="app-form-stack">
           <label class="app-field">
-            <span class="app-field__label">言語</span>
+            <span class="app-field__label" data-i18n="shell.static.language">Language</span>
             <select id="shellSettingLanguage" class="app-select">
-              <option value="ja">日本語</option>
-              <option value="en-us">English (US)</option>
-              <option value="de">Deutsch</option>
-              <option value="fr">Français</option>
-              <option value="ru">Русский</option>
-              <option value="es">Español</option>
-              <option value="zh-cn">中文（简体）</option>
-              <option value="ko">한국어</option>
+              <option value="ja" data-i18n="shell.static.language_ja">日本語</option>
+              <option value="en-us" data-i18n="shell.static.language_en_us">English (US)</option>
+              <option value="de" data-i18n="shell.static.language_de">Deutsch</option>
+              <option value="fr" data-i18n="shell.static.language_fr">Français</option>
+              <option value="ru" data-i18n="shell.static.language_ru">Русский</option>
+              <option value="es" data-i18n="shell.static.language_es">Español</option>
+              <option value="zh-cn" data-i18n="shell.static.language_zh_cn">中文（简体）</option>
+              <option value="ko" data-i18n="shell.static.language_ko">한국어</option>
             </select>
           </label>
 
           <label class="app-field">
-            <span class="app-field__label">カラーテーマ</span>
+            <span class="app-field__label" data-i18n="shell.static.theme">Theme</span>
             <select id="shellSettingTheme" class="app-select">
-              <option value="system">システム設定に合わせる</option>
-              <option value="dark">ダーク</option>
-              <option value="light">ライト</option>
+              <option value="system" data-i18n="shell.static.theme_system">Use System Setting</option>
+              <option value="dark" data-i18n="shell.static.theme_dark">Dark</option>
+              <option value="light" data-i18n="shell.static.theme_light">Light</option>
             </select>
           </label>
         </div>
       </div>
 
       <div class="shell-settings-group">
-        <h3 class="shell-settings-group__title">画像</h3>
+        <h3 class="shell-settings-group__title" data-i18n="shell.static.image_group">Images</h3>
         <div class="app-form-stack">
           <label class="app-field">
-            <span class="app-field__label">クリック時の挙動</span>
+            <span class="app-field__label" data-i18n="shell.static.image_open_behavior">Click Behavior</span>
             <select id="shellSettingImageOpenBehavior" class="app-select">
-              <option value="modal">モーダルで表示</option>
-              <option value="new_tab">別タブで表示</option>
+              <option value="modal" data-i18n="shell.static.image_open_modal">Open in Modal</option>
+              <option value="new_tab" data-i18n="shell.static.image_open_tab">Open in New Tab</option>
             </select>
           </label>
 
           <div class="app-switch-row">
-            <span class="app-switch-row__label">背景クリックでモーダルを閉じる</span>
+            <span class="app-switch-row__label" data-i18n="shell.static.backdrop_close">Close modal on backdrop click</span>
             <label class="app-switch">
               <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
               <span class="app-switch__track" aria-hidden="true">
@@ -484,7 +486,7 @@
           </div>
 
           <div class="app-switch-row">
-            <span class="app-switch-row__label">メタ情報バーを常時表示する</span>
+            <span class="app-switch-row__label" data-i18n="shell.static.meta_pinned">Keep meta bar visible</span>
             <label class="app-switch">
               <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
               <span class="app-switch__track" aria-hidden="true">
@@ -497,7 +499,7 @@
 
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--primary" data-modal-close="settings">閉じる</button>
+      <button type="button" class="app-button app-button--primary" data-modal-close="settings" data-i18n="shell.static.close">Close</button>
     </div>
   </div>
 </section>
@@ -506,13 +508,13 @@
   <div class="app-modal-backdrop" data-modal-backdrop="help"></div>
   <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="helpTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="helpTitle" class="app-modal-title">ヘルプ</h2>
+      <h2 id="helpTitle" class="app-modal-title" data-i18n="shell.static.help">Help</h2>
     </div>
     <div class="app-modal-body">
       <div class="shell-empty-block"></div>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--primary" data-modal-close="help">閉じる</button>
+      <button type="button" class="app-button app-button--primary" data-modal-close="help" data-i18n="shell.static.close">Close</button>
     </div>
   </div>
 </section>
@@ -521,38 +523,38 @@
   <div class="app-modal-backdrop" data-modal-backdrop="credits"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="creditsTitle" class="app-modal-title">クレジット</h2>
+      <h2 id="creditsTitle" class="app-modal-title" data-i18n="shell.static.credits">Credits</h2>
     </div>
     <div class="app-modal-body">
       <dl class="app-definition-list">
         <div class="app-definition-list__row">
-          <dt>サービス名</dt>
+          <dt data-i18n="shell.static.credit_service">Service</dt>
           <dd>Felixxsv Gallery</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>作成者</dt>
+          <dt data-i18n="shell.static.credit_author">Author</dt>
           <dd id="shellCreditAuthor">-</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>使用技術</dt>
+          <dt data-i18n="shell.static.credit_stack">Stack</dt>
           <dd id="shellCreditStack">-</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>ライセンス</dt>
+          <dt data-i18n="shell.static.credit_license">License</dt>
           <dd id="shellCreditLicense">-</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>更新日</dt>
+          <dt data-i18n="shell.static.credit_updated_at">Updated At</dt>
           <dd id="shellCreditUpdatedAt">-</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>バージョン</dt>
+          <dt data-i18n="shell.static.credit_version">Version</dt>
           <dd id="shellCreditVersion">-</dd>
         </div>
       </dl>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--primary" data-modal-close="credits">閉じる</button>
+      <button type="button" class="app-button app-button--primary" data-modal-close="credits" data-i18n="shell.static.close">Close</button>
     </div>
   </div>
 </section>
@@ -561,7 +563,7 @@
   <div class="app-modal-backdrop" data-modal-backdrop="account"></div>
   <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="accountTitle" class="app-modal-title">プロフィール編集</h2>
+      <h2 id="accountTitle" class="app-modal-title" data-i18n="shell.static.profile_edit">Edit Profile</h2>
     </div>
     <div class="app-modal-body">
 
@@ -570,15 +572,15 @@
         <div class="shell-profile-avatar-wrap">
           <div id="shellAccountAvatar" class="shell-profile-avatar">
             <span id="shellAccountAvatarInitial" class="shell-profile-avatar__initial"></span>
-            <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="アバター" hidden="">
+            <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="Avatar" hidden="">
           </div>
           <div class="shell-profile-avatar-controls">
             <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
-              アイコンを変更
+              <span data-i18n="shell.static.icon_change">Change Avatar</span>
             </label>
             <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
             <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden="">
-              削除
+              <span data-i18n="shell.static.delete">Delete</span>
             </button>
           </div>
         </div>
@@ -587,34 +589,34 @@
       <!-- Profile fields -->
       <div class="shell-profile-fields app-form-stack">
         <label class="app-field">
-          <span class="app-field__label">表示名</span>
-          <input id="shellProfileDisplayNameInput" class="app-input" type="text" autocomplete="name" maxlength="100" placeholder="例: Felix">
+          <span class="app-field__label" data-i18n="shell.static.display_name">Display Name</span>
+          <input id="shellProfileDisplayNameInput" class="app-input" type="text" autocomplete="name" maxlength="100" placeholder="e.g. Felix" data-i18n-placeholder="shell.static.display_name_placeholder">
         </label>
         <label class="app-field">
-          <span class="app-field__label">ユーザーID</span>
+          <span class="app-field__label" data-i18n="shell.static.user_id">User ID</span>
           <div class="shell-user-key-field">
             <span class="shell-user-key-field__prefix">@</span>
-            <input id="shellProfileUserKeyInput" class="app-input shell-user-key-field__input" type="text" autocomplete="username" maxlength="20" placeholder="例: felix_x21">
+            <input id="shellProfileUserKeyInput" class="app-input shell-user-key-field__input" type="text" autocomplete="username" maxlength="20" placeholder="e.g. felix_x21" data-i18n-placeholder="shell.static.user_id_placeholder">
           </div>
-          <span class="app-field__hint">4〜20文字・英字始まり・英数字/アンダースコア/ハイフンのみ</span>
+          <span class="app-field__hint" data-i18n="shell.static.user_id_hint">4-20 chars, starts with a letter, letters/numbers/underscore/hyphen only.</span>
         </label>
         <label class="app-field">
-          <span class="app-field__label">自己紹介</span>
-          <textarea id="shellProfileBioInput" class="app-input app-textarea" rows="4" maxlength="300" placeholder="自己紹介を入力してください（300文字以内）"></textarea>
-          <span class="app-field__hint"><span id="shellProfileBioCount">0</span> / 300文字</span>
+          <span class="app-field__label" data-i18n="shell.static.bio">Bio</span>
+          <textarea id="shellProfileBioInput" class="app-input app-textarea" rows="4" maxlength="300" placeholder="Write a short bio (up to 300 characters)" data-i18n-placeholder="shell.static.bio_placeholder"></textarea>
+          <span class="app-field__hint"><span id="shellProfileBioCount">0</span> / 300 chars</span>
         </label>
       </div>
 
       <!-- Links section -->
       <div class="shell-profile-links">
-        <h3 class="shell-profile-links__title">リンク</h3>
+        <h3 class="shell-profile-links__title" data-i18n="shell.static.links">Links</h3>
         <div class="shell-profile-links__grid" id="shellProfileLinksGrid"></div>
       </div>
 
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--ghost" data-modal-close="account">キャンセル</button>
-      <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary">保存</button>
+      <button type="button" class="app-button app-button--ghost" data-modal-close="account" data-i18n="shell.static.cancel">Cancel</button>
+      <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
     </div>
   </div>
 </section>
@@ -623,40 +625,40 @@
   <div class="app-modal-backdrop" data-modal-backdrop="account-security"></div>
   <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountSecurityTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="accountSecurityTitle" class="app-modal-title">アカウント設定</h2>
+      <h2 id="accountSecurityTitle" class="app-modal-title" data-i18n="shell.static.account_settings">Account Settings</h2>
     </div>
     <div class="app-modal-body">
 
       <div class="shell-security-section">
-        <h3 class="shell-security-section__title">ログイン・認証</h3>
+        <h3 class="shell-security-section__title" data-i18n="shell.static.login_auth">Login and Auth</h3>
         <div class="shell-security-list">
           <div class="shell-security-item">
             <div class="shell-security-item__left">
-              <span class="shell-security-item__label">メールアドレス</span>
+              <span class="shell-security-item__label" data-i18n="shell.static.email">Email</span>
               <span id="shellAccountEmail" class="shell-security-item__value">-</span>
             </div>
-            <button id="shellEmailActionButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="email">変更</button>
+            <button id="shellEmailActionButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="email" data-i18n="shell.static.change">Change</button>
           </div>
           <div class="shell-security-item">
             <div class="shell-security-item__left">
-              <span class="shell-security-item__label">パスワード</span>
+              <span class="shell-security-item__label" data-i18n="shell.static.password">Password</span>
             </div>
-            <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password">変更</button>
+            <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password" data-i18n="shell.static.change">Change</button>
           </div>
           <div class="shell-security-item">
             <div class="shell-security-item__left">
-              <span class="shell-security-item__label">2段階認証</span>
+              <span class="shell-security-item__label" data-i18n="shell.static.twofactor">Two-Factor Auth</span>
               <span id="shellAccountTwoFactor" class="shell-security-item__value">-</span>
             </div>
-            <button id="shellTwoFactorEnableButton" type="button" class="app-button app-button--ghost app-button--small">有効化</button>
-            <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button app-button--ghost app-button--small" hidden="">無効化</button>
+            <button id="shellTwoFactorEnableButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="shell.static.enable">Enable</button>
+            <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button app-button--ghost app-button--small" hidden="" data-i18n="shell.static.disable">Disable</button>
           </div>
         </div>
       </div>
 
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--primary" data-modal-close="account-security">閉じる</button>
+      <button type="button" class="app-button app-button--primary" data-modal-close="account-security" data-i18n="shell.static.close">Close</button>
     </div>
   </div>
 </section>
@@ -665,34 +667,34 @@
   <div class="app-modal-backdrop" data-modal-backdrop="email"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="emailTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="emailTitle" class="app-modal-title">メールアドレス変更</h2>
+      <h2 id="emailTitle" class="app-modal-title" data-i18n="shell.static.email_change">Change Email</h2>
     </div>
     <div class="app-modal-body">
-      <!-- Step 1: 新しいメールアドレス入力 -->
+      <!-- Step 1: enter a new email address -->
       <div id="shellEmailStep1">
         <div class="app-form-stack">
           <label class="app-field">
-            <span class="app-field__label">新しいメールアドレス</span>
+            <span class="app-field__label" data-i18n="shell.static.new_email">New Email Address</span>
             <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
           </label>
         </div>
       </div>
-      <!-- Step 2: 確認コード入力 -->
+      <!-- Step 2: enter the verification code -->
       <div id="shellEmailStep2" hidden>
         <div class="app-form-stack">
           <p id="shellEmailCodeInfo" class="app-field__hint"></p>
           <label class="app-field">
-            <span class="app-field__label">確認コード（6桁）</span>
-            <input id="shellEmailCodeInput" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+            <span class="app-field__label" data-i18n="shell.static.code_6digit">Verification Code (6 digits)</span>
+            <input id="shellEmailCodeInput" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" data-i18n-placeholder="shell.static.code_placeholder">
           </label>
         </div>
       </div>
     </div>
     <div class="app-modal-footer">
-      <button id="shellEmailResendButton" type="button" class="app-button app-button--ghost" hidden>再送する</button>
+      <button id="shellEmailResendButton" type="button" class="app-button app-button--ghost" hidden data-i18n="shell.static.resend">Resend</button>
       <div class="app-modal-footer__spacer"></div>
-      <button type="button" class="app-button app-button--ghost" data-modal-close="email">キャンセル</button>
-      <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">確認メールを送信</button>
+      <button type="button" class="app-button app-button--ghost" data-modal-close="email" data-i18n="shell.static.cancel">Cancel</button>
+      <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.send_confirmation_email">Send Verification Email</button>
     </div>
   </div>
 </section>
@@ -701,20 +703,20 @@
   <div class="app-modal-backdrop" data-modal-backdrop="add-link"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="addLinkTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="addLinkTitle" class="app-modal-title">リンクを追加</h2>
+      <h2 id="addLinkTitle" class="app-modal-title" data-i18n="shell.action.add_link">Add Link</h2>
     </div>
     <div class="app-modal-body">
       <form class="app-form-stack" id="shellAddLinkForm">
         <label class="app-field">
-          <span class="app-field__label">URL</span>
-          <input id="shellAddLinkInput" class="app-input" type="url" placeholder="https://x.com/yourname" autocomplete="off">
-          <span class="app-field__hint">https:// から始まるURLを入力してください</span>
+          <span class="app-field__label" data-i18n="shell.static.url">URL</span>
+          <input id="shellAddLinkInput" class="app-input" type="url" placeholder="https://x.com/yourname" autocomplete="off" data-i18n-placeholder="shell.static.url_placeholder">
+          <span class="app-field__hint" data-i18n="shell.static.url_hint">Enter a URL starting with https://</span>
         </label>
       </form>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--ghost" data-modal-close="add-link">キャンセル</button>
-      <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary">追加</button>
+      <button type="button" class="app-button app-button--ghost" data-modal-close="add-link" data-i18n="shell.static.cancel">Cancel</button>
+      <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.add">Add</button>
     </div>
   </div>
 </section>
@@ -723,7 +725,7 @@
   <div class="app-modal-backdrop" data-modal-backdrop="crop-avatar"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="cropAvatarTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="cropAvatarTitle" class="app-modal-title">アイコンの調整</h2>
+      <h2 id="cropAvatarTitle" class="app-modal-title" data-i18n="shell.static.avatar_adjust">Adjust Avatar</h2>
     </div>
     <div class="app-modal-body">
       <div class="shell-avatar-crop">
@@ -732,16 +734,16 @@
         </div>
         <div class="shell-avatar-crop__controls">
           <label class="shell-avatar-crop__zoom-label">
-            <span class="shell-avatar-crop__zoom-text">ズーム</span>
+            <span class="shell-avatar-crop__zoom-text" data-i18n="shell.static.zoom">Zoom</span>
             <input id="shellAvatarZoomSlider" type="range" class="shell-avatar-crop__zoom" min="0" max="100" value="0">
           </label>
         </div>
-        <p class="shell-avatar-crop__hint">ドラッグで位置を調整できます</p>
+        <p class="shell-avatar-crop__hint" data-i18n="shell.static.crop_hint">Drag to adjust the position.</p>
       </div>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--ghost" id="shellAvatarCropCancelButton">キャンセル</button>
-      <button type="button" class="app-button app-button--primary" id="shellAvatarCropConfirmButton">適用</button>
+      <button type="button" class="app-button app-button--ghost" id="shellAvatarCropCancelButton" data-i18n="shell.static.cancel">Cancel</button>
+      <button type="button" class="app-button app-button--primary" id="shellAvatarCropConfirmButton" data-i18n="shell.static.apply">Apply</button>
     </div>
   </div>
 </section>
@@ -750,24 +752,24 @@
   <div class="app-modal-backdrop" data-modal-backdrop="password"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="passwordTitle" class="app-modal-title">パスワード変更</h2>
+      <h2 id="passwordTitle" class="app-modal-title" data-i18n="shell.static.password_change">Change Password</h2>
     </div>
     <div class="app-modal-body">
       <form class="app-form-stack">
         <label class="app-field">
-          <span class="app-field__label">現在のパスワード</span>
+          <span class="app-field__label" data-i18n="shell.static.current_password">Current Password</span>
           <input id="shellCurrentPasswordInput" class="app-input" type="password" autocomplete="current-password">
         </label>
 
         <label class="app-field">
-          <span class="app-field__label">新しいパスワード</span>
+          <span class="app-field__label" data-i18n="shell.static.new_password">New Password</span>
           <input id="shellNewPasswordInput" class="app-input" type="password" autocomplete="new-password">
         </label>
       </form>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button type="button" class="app-button app-button--ghost" data-modal-close="password">キャンセル</button>
-      <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary">変更する</button>
+      <button type="button" class="app-button app-button--ghost" data-modal-close="password" data-i18n="shell.static.cancel">Cancel</button>
+      <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.change">Change</button>
     </div>
   </div>
 </section>
@@ -776,21 +778,21 @@
   <div class="app-modal-backdrop" data-modal-backdrop="twofactor-setup"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorSetupTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="twofactorSetupTitle" class="app-modal-title">2段階認証の確認</h2>
+      <h2 id="twofactorSetupTitle" class="app-modal-title" data-i18n="shell.static.twofactor_setup">Verify Two-Factor Auth</h2>
     </div>
     <div class="app-modal-body">
       <p id="shellTwoFactorSetupMessage" class="shell-inline-message"></p>
       <form class="app-form-stack">
         <label class="app-field">
-          <span class="app-field__label">確認コード</span>
+          <span class="app-field__label" data-i18n="shell.static.verify_code">Verification Code</span>
           <input id="shellTwoFactorCodeInput" class="app-input" type="text" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
         </label>
       </form>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost">再送</button>
-      <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-      <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary">確認</button>
+      <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.resend">Resend</button>
+      <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">Cancel</button>
+      <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.verify">Verify</button>
     </div>
   </div>
 </section>
@@ -799,21 +801,21 @@
   <div class="app-modal-backdrop" data-modal-backdrop="twofactor-disable"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorDisableTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="twofactorDisableTitle" class="app-modal-title">2段階認証の無効化</h2>
+      <h2 id="twofactorDisableTitle" class="app-modal-title" data-i18n="shell.static.twofactor_disable">Disable Two-Factor Auth</h2>
     </div>
     <div class="app-modal-body">
       <form class="app-form-stack">
-        <p id="shellTwoFactorDisableMessage" class="app-form-message">確認コードを送信します。</p>
+        <p id="shellTwoFactorDisableMessage" class="app-form-message" data-i18n="shell.static.send_verify_code_notice">A verification code will be sent.</p>
         <label class="app-field">
-          <span class="app-field__label">確認コード</span>
+          <span class="app-field__label" data-i18n="shell.static.verify_code">Verification Code</span>
           <input id="shellTwoFactorDisableCodeInput" class="app-input" type="text" inputmode="numeric" autocomplete="one-time-code">
         </label>
       </form>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost">再送</button>
-      <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-      <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger">無効化する</button>
+      <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.resend">Resend</button>
+      <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">Cancel</button>
+      <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.disable">Disable</button>
     </div>
   </div>
 </section>
@@ -822,14 +824,14 @@
   <div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
   <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorActionConfirmTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="twofactorActionConfirmTitle" class="app-modal-title">確認</h2>
+      <h2 id="twofactorActionConfirmTitle" class="app-modal-title" data-i18n="auth.confirm.title">Confirm</h2>
     </div>
     <div class="app-modal-body">
-      <p id="shellTwoFactorActionConfirmMessage" class="app-form-message">本当に実行しますか？</p>
+      <p id="shellTwoFactorActionConfirmMessage" class="app-form-message" data-i18n="auth.confirm.defaultMessage">Are you sure you want to continue?</p>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
-      <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
-      <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary">実行する</button>
+      <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">Cancel</button>
+      <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary" data-i18n="auth.actions.confirm">Confirm</button>
     </div>
   </div>
 </section>
@@ -837,11 +839,11 @@
   <div class="app-modal-backdrop" data-modal-backdrop="user-profile"></div>
   <div class="app-modal-dialog shell-user-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="userProfileTitle" tabindex="-1">
     <div class="app-modal-header">
-      <h2 id="userProfileTitle" class="app-modal-title">プロフィール</h2>
+      <h2 id="userProfileTitle" class="app-modal-title" data-i18n="public_profile.title">Profile</h2>
     </div>
     <div class="app-modal-body">
-      <div id="userProfileLoading" class="shell-user-profile__loading">読み込み中...</div>
-      <div id="userProfileError" class="shell-user-profile__error" hidden="">ユーザーが見つかりませんでした。</div>
+      <div id="userProfileLoading" class="shell-user-profile__loading" data-i18n="public_profile.loading">Loading...</div>
+      <div id="userProfileError" class="shell-user-profile__error" hidden="" data-i18n="public_profile.not_found">User not found.</div>
       <div id="userProfileContent" class="shell-user-profile" hidden="">
         <div class="shell-user-profile__left">
           <div id="userProfileAvatar" class="shell-user-profile__avatar" aria-hidden="true">
@@ -863,14 +865,14 @@
 <div class="app-modal-backdrop" data-modal-backdrop="admin-discard-confirm"></div>
 <div aria-labelledby="adminDiscardConfirmTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
 <div class="app-modal-header">
-<h2 class="app-modal-title" id="adminDiscardConfirmTitle">確認</h2>
+<h2 class="app-modal-title" id="adminDiscardConfirmTitle" data-i18n="admin_layout.discard_title">Confirm</h2>
 </div>
 <div class="app-modal-body">
-<p id="adminDiscardConfirmMessage">未保存の変更があります。破棄して移動しますか？</p>
+<p id="adminDiscardConfirmMessage" data-i18n="admin_layout.discard_move">There are unsaved changes. Discard them and continue?</p>
 </div>
 <div class="app-modal-footer app-modal-footer--end">
-<button class="app-button app-button--ghost" id="adminDiscardConfirmCancelButton" type="button">キャンセル</button>
-<button class="app-button app-button--danger" id="adminDiscardConfirmApproveButton" type="button">破棄して移動</button>
+<button class="app-button app-button--ghost" id="adminDiscardConfirmCancelButton" type="button" data-i18n="admin_layout.discard_cancel">Cancel</button>
+<button class="app-button app-button--danger" id="adminDiscardConfirmApproveButton" type="button" data-i18n="admin_layout.discard_approve">Discard and Continue</button>
 </div>
 </div>
 </section>

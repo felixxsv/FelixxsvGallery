@@ -7,94 +7,14 @@ const settings = createSettingsStore();
 const SUPPORTED_LANGUAGES = new Set(["ja", "en-us", "de", "fr", "ru", "es", "zh-cn", "ko"]);
 
 const MESSAGES = {
-  ja: {
-    "auth.meta.title": "Felixxsv Gallery",
-    "auth.header.back": "← ギャラリーへ",
-    "auth.hero.sub": "VRChatの思い出を、ここに。",
-    "auth.tabs.login": "ログイン",
-    "auth.tabs.signup": "新規登録",
-    "auth.fields.email": "メールアドレス",
-    "auth.fields.password": "パスワード",
-    "auth.fields.verificationCode": "認証コード",
-    "auth.fields.userKey": "ユーザーキー",
-    "auth.fields.displayName": "表示名",
-    "auth.actions.login": "ログイン",
-    "auth.actions.loginDiscord": "Discordでログイン",
-    "auth.actions.signupDiscord": "Discordで登録",
-    "auth.actions.sendCode": "認証コードを送信",
-    "auth.actions.verify": "確認",
-    "auth.actions.verifyEmail": "認証する",
-    "auth.actions.back": "戻る",
-    "auth.actions.createAccount": "アカウントを作成",
-    "auth.actions.confirm": "実行する",
-    "auth.actions.cancel": "キャンセル",
-    "auth.common.or": "または",
-    "auth.placeholders.userKey": "4〜20文字 (A-Za-z0-9_-)",
-    "auth.discord.previewNote": "Discordのアイコンをプレビュー表示中。登録後に変更できます。",
-    "auth.confirm.title": "確認",
-    "auth.confirm.defaultMessage": "本当に実行しますか？",
-    "auth.confirm.sendCodeTitle": "認証コード送信の確認",
-    "auth.confirm.send": "送信する",
-    "auth.confirm.abort": "中断する",
-    "auth.confirm.continue": "続ける",
-    "auth.confirm.loginCode": "入力したメールアドレス宛に認証コードを送信します。よろしいですか？",
-    "auth.flow.enterCode": "認証コードを入力してください。",
-    "auth.flow.enterCodeSent": "{email} に送信した認証コードを入力してください。",
-    "auth.flow.enterMailCode": "メールに届いた認証コードを入力してください。",
-    "auth.flow.enterMailCodeMasked": "{email} に届いた認証コードを入力してください。",
-    "auth.flow.completeRegistration": "アカウント情報を入力してください。",
-    "auth.flow.completeRegistrationForEmail": "{email} のアカウント情報を入力してください。",
-    "auth.flow.discordRegistration": "Discordアカウントでアカウントを作成します。パスワードを設定してください。",
-    "auth.flow.discordRegistrationWithEmail": "Discordアカウント ({email}) でアカウントを作成します。",
-    "auth.flow.leaveCreate": "アカウント作成を中断して画面を離れますか？",
-    "auth.flow.leaveVerify": "認証コード入力を中断して画面を離れますか？",
-    "auth.flow.leave2fa": "2段階認証を中断して画面を離れますか？",
-    "auth.flow.leaveDefault": "この操作を中断して画面を離れますか？",
-    "auth.errors.requiredEmailPassword": "email/password を入力してください。",
-    "auth.errors.requiredCode": "認証コードを入力してください。",
-    "auth.errors.waitResend": "しばらく待ってから再送してください。",
-    "auth.errors.oauthUrl": "Discord認証URLの取得に失敗しました。",
-    "auth.errors.requiredEmail": "メールアドレスを入力してください。",
-    "auth.errors.requiredProfileDiscord": "user_key / display_name を入力してください。",
-    "auth.errors.requiredProfile": "user_key / display_name / password を入力してください。",
-    "auth.errors.missingVerifyTicket": "verify_ticket がありません。",
-    "auth.errors.missingChallenge": "認証トークンがありません。",
-    "auth.toast.checkCode": "認証コードを確認してください。",
-    "auth.toast.discordLinkedAfterLogin": "Discordアカウントを連携しました。",
-    "auth.toast.loggedIn": "ログインしました。",
-    "auth.toast.codeResent": "認証コードを再送しました。",
-    "auth.toast.codeSent": "確認コードを送信しました。",
-    "auth.toast.mailVerified": "メール認証が完了しました。",
-    "auth.toast.discordRegistered": "Discordアカウントで登録しました。",
-    "auth.toast.accountCreated": "アカウントを作成しました。",
-    "auth.toast.linkAfterLogin": "このメールアドレスはすでに登録されています。ログインするとDiscordが自動的に連携されます。",
-    "auth.resend": "再送",
-    "auth.resendCountdown": "再送 ({seconds}秒)",
-  },
+  ja: {},
+  "en-us": {},
+};
+
+const FALLBACK_MESSAGES = {
   "en-us": {
-    "auth.meta.title": "Felixxsv Gallery",
-    "auth.header.back": "← Back to Gallery",
-    "auth.hero.sub": "A place to keep your VRChat memories.",
-    "auth.tabs.login": "Login",
-    "auth.tabs.signup": "Sign Up",
-    "auth.fields.email": "Email Address",
-    "auth.fields.password": "Password",
-    "auth.fields.verificationCode": "Verification Code",
-    "auth.fields.userKey": "User Key",
-    "auth.fields.displayName": "Display Name",
-    "auth.actions.login": "Login",
-    "auth.actions.loginDiscord": "Login with Discord",
-    "auth.actions.signupDiscord": "Sign Up with Discord",
-    "auth.actions.sendCode": "Send Verification Code",
-    "auth.actions.verify": "Verify",
-    "auth.actions.verifyEmail": "Verify Email",
-    "auth.actions.back": "Back",
-    "auth.actions.createAccount": "Create Account",
     "auth.actions.confirm": "Confirm",
     "auth.actions.cancel": "Cancel",
-    "auth.common.or": "or",
-    "auth.placeholders.userKey": "4-20 chars (A-Za-z0-9_-)",
-    "auth.discord.previewNote": "Previewing your Discord icon. You can change it after registration.",
     "auth.confirm.title": "Confirm",
     "auth.confirm.defaultMessage": "Are you sure you want to continue?",
     "auth.confirm.sendCodeTitle": "Send verification code",
@@ -152,11 +72,15 @@ function normalizeLanguage(value) {
 
 let currentLanguage = normalizeLanguage(settings.getLanguage());
 
-function t(key, vars = {}) {
+function t(key, fallbackOrVars = {}, maybeVars = {}) {
+  const hasFallback = typeof fallbackOrVars === "string";
+  const fallbackText = hasFallback ? fallbackOrVars : "";
+  const vars = hasFallback ? maybeVars : fallbackOrVars;
   const fallbackLanguage = currentLanguage === "ja" ? "ja" : "en-us";
-  const dict = MESSAGES[currentLanguage] || MESSAGES[fallbackLanguage] || MESSAGES.ja;
-  const fallback = MESSAGES[fallbackLanguage]?.[key] || MESSAGES.ja[key] || key;
-  const template = dict[key] || fallback;
+  const dict = MESSAGES[currentLanguage] || {};
+  const fallbackDict = MESSAGES[fallbackLanguage] || {};
+  const fallbackInline = FALLBACK_MESSAGES["en-us"] || {};
+  const template = dict[key] || fallbackDict[key] || fallbackInline[key] || fallbackText || key;
   return template.replace(/\{(\w+)\}/g, (_m, name) => String(vars[name] ?? ""));
 }
 
@@ -166,7 +90,7 @@ function applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     const key = node.dataset.i18n;
     if (!key) return;
-    const text = t(key);
+    const text = t(key, node.textContent || "");
     node.textContent = text;
     if (node.tagName === "TITLE") {
       document.title = text;
@@ -176,13 +100,13 @@ function applyTranslations() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
     const key = node.dataset.i18nPlaceholder;
     if (!key) return;
-    node.setAttribute("placeholder", t(key));
+    node.setAttribute("placeholder", t(key, node.getAttribute("placeholder") || ""));
   });
 
   document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
     const key = node.dataset.i18nAriaLabel;
     if (!key) return;
-    node.setAttribute("aria-label", t(key));
+    node.setAttribute("aria-label", t(key, node.getAttribute("aria-label") || ""));
   });
 }
 
@@ -1061,7 +985,7 @@ async function init() {
   try {
     await loadSharedMessages();
   } catch {
-    // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
+    // Keep minimal in-module fallbacks for flow prompts when shared catalogs are unavailable.
   }
   currentLanguage = normalizeLanguage(settings.getLanguage());
   if (authLangSelect) {

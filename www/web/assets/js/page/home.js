@@ -1023,7 +1023,9 @@ export function initHomePage(app) {
       button.setAttribute("aria-pressed", selected.has(name) ? "true" : "false");
       button.classList.toggle("is-active", selected.has(name));
       button.textContent = name;
-      button.title = Number.isFinite(Number(item.c)) ? `${name} (${Number(item.c)}件)` : name;
+      button.title = Number.isFinite(Number(item.c))
+        ? t("home.tags.count", "{name} ({count} items)", { name, count: Number(item.c) })
+        : name;
       fragment.appendChild(button);
     }
     refs.tagChipList.appendChild(fragment);
@@ -1312,7 +1314,7 @@ export function initHomePage(app) {
       refs.statusQuery.textContent = state.q ? `"${state.q}"` : t("home.status.none", "None");
     }
     if (refs.statusSort) {
-      refs.statusSort.textContent = sortLabels[state.sort] || state.sort || "新しい順";
+      refs.statusSort.textContent = sortLabels[state.sort] || state.sort || t("home.sort.latest", "Latest");
     }
     if (refs.statusRange) {
       refs.statusRange.textContent = t("home.status.range", `${start}-${end} items`, { start, end });
@@ -1545,7 +1547,7 @@ export function initHomePage(app) {
     if (!item?.content_id) {
       return {
         content_id: `i-${item?.id ?? ""}`,
-        title: item?.title || "タイトル未設定",
+        title: item?.title || t("home.image.untitled", "Untitled"),
         alt: item?.alt || "",
         image_count: 1,
         thumbnail_image_id: item?.id ?? null,
@@ -1566,7 +1568,7 @@ export function initHomePage(app) {
     try {
       const payload = await app.api.get(`/api/contents/${encodeURIComponent(item.content_id)}`);
       const detailRoot = payload?.data ?? payload ?? {};
-      const contentTitle = detailRoot.title || item.title || "タイトル未設定";
+      const contentTitle = detailRoot.title || item.title || t("home.image.untitled", "Untitled");
       const contentAlt = detailRoot.alt ?? item.alt ?? "";
       const imagesSource = Array.isArray(detailRoot.images) && detailRoot.images.length ? detailRoot.images : [item];
       const images = imagesSource.map((image, imageIndex) => {
@@ -1600,7 +1602,7 @@ export function initHomePage(app) {
     } catch {
       return {
         content_id: item.content_id || `i-${item.id ?? ""}`,
-        title: item.title || "タイトル未設定",
+        title: item.title || t("home.image.untitled", "Untitled"),
         alt: item.alt || "",
         image_count: Number(item.image_count || 1),
         thumbnail_image_id: item.thumbnail_image_id ?? item.id ?? null,

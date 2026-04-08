@@ -129,8 +129,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                   <div class="upload-modal__thumb-col">
                     <div class="upload-modal__field-label">${escapeHtml(t(app, "thumbnail_label", "Thumbnail / Focus"))}</div>
                     <div class="upload-modal__thumbnail-wrap" id="uploadModalThumbnailWrap">
-                      <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="thumbnail" hidden>
-                      <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">NO IMAGE</div>
+                      <img id="uploadModalThumbnailImage" class="upload-modal__thumbnail-image" alt="${escapeHtml(t(app, "thumbnail_alt", "Thumbnail"))}" hidden>
+                      <div id="uploadModalThumbnailEmpty" class="upload-modal__thumbnail-empty">${escapeHtml(t(app, "no_image", "No Image"))}</div>
                       <div class="upload-modal__focal-crosshair" id="uploadModalFocalCrosshair" hidden></div>
                       <div class="upload-modal__thumb-overlay" id="uploadModalThumbOverlay" hidden>
                         <span class="upload-modal__thumb-overlay-title" id="uploadModalThumbTitle"></span>
@@ -198,7 +198,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                         <div class="upload-modal__tag-sug" id="uploadModalTagSug" hidden>
                           <div class="upload-modal__tag-sug-list" id="uploadModalTagSugList"></div>
                           <div class="upload-modal__tag-sug-more" id="uploadModalTagSugMore" hidden>
-                            <button type="button" class="upload-modal__tag-more-btn" id="uploadModalTagMoreBtn">+more</button>
+                            <button type="button" class="upload-modal__tag-more-btn" id="uploadModalTagMoreBtn">${escapeHtml(t(app, "more", "+more"))}</button>
                           </div>
                         </div>
                       </div>
@@ -962,7 +962,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     }
     refs.thumbnailImage.hidden = false;
     refs.thumbnailImage.src = first.objectUrl;
-    refs.thumbnailImage.alt = first.file.name || "thumbnail";
+    refs.thumbnailImage.alt = first.file.name || t(app, "thumbnail_alt", "Thumbnail");
     refs.thumbnailEmpty.hidden = true;
   }
 
@@ -1001,9 +1001,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
       card.innerHTML = `
         <div class="upload-modal__strip-thumb" data-action="thumbnail" data-index="${index}" role="button" tabindex="0" aria-label="${escapeHtml(index === 0 ? t(app, "thumb_current", "Current thumbnail") : t(app, "thumb_set", "Set as thumbnail"))}">
-          <img src="${escapeHtml(item.objectUrl)}" alt="${escapeHtml(item.file.name || "image")}">
-          ${index === 0 ? '<span class="upload-modal__strip-badge upload-modal__strip-badge--thumbnail">THUMB</span>' : ""}
-          ${dup ? '<span class="upload-modal__strip-badge upload-modal__strip-badge--dup">DUP</span>' : ""}
+          <img src="${escapeHtml(item.objectUrl)}" alt="${escapeHtml(item.file.name || t(app, "image_alt", "Image"))}">
+          ${index === 0 ? `<span class="upload-modal__strip-badge upload-modal__strip-badge--thumbnail">${escapeHtml(t(app, "thumbnail_badge", "THUMB"))}</span>` : ""}
+          ${dup ? `<span class="upload-modal__strip-badge upload-modal__strip-badge--dup">${escapeHtml(t(app, "duplicate_badge", "DUP"))}</span>` : ""}
           <button type="button" class="upload-modal__strip-rm" data-action="remove" data-index="${index}" aria-label="${escapeHtml(t(app, "remove", "Remove"))}">\u00d7</button>
         </div>
         <div class="upload-modal__strip-name">${escapeHtml(item.file.name || t(app, "unnamed_file", "(Unnamed file)"))}</div>

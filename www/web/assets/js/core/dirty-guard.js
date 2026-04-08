@@ -1,4 +1,4 @@
-export function createDirtyGuard({ confirmDiscard } = {}) {
+export function createDirtyGuard({ confirmDiscard, defaultMessage = "There are unsaved changes. Discard them and continue?" } = {}) {
   const states = new Map();
   let allowLeaveOnce = false;
 
@@ -44,7 +44,7 @@ export function createDirtyGuard({ confirmDiscard } = {}) {
     return false;
   }
 
-  async function confirmIfNeeded(message = "未保存の変更があります。破棄して移動しますか？") {
+  async function confirmIfNeeded(message = defaultMessage) {
     if (!isDirty()) {
       return true;
     }

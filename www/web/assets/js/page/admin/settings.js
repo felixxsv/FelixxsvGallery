@@ -128,8 +128,8 @@ function applyStaticTranslations() {
 
 const GROUP_META = {
   general: {
-    title: "全般",
-    description: "サイト名や画像モーダルの既定値を管理します。",
+    title: "General",
+    description: "Manage the site name and default image modal behavior.",
     loadPath: "/api/admin/settings/general",
     savePath: "/api/admin/settings/general",
     fields: {
@@ -142,8 +142,8 @@ const GROUP_META = {
     },
   },
   security: {
-    title: "セキュリティ",
-    description: "パスワードポリシーやセッション関連の既定値を管理します。",
+    title: "Security",
+    description: "Manage password policy and session defaults.",
     loadPath: "/api/admin/settings/security",
     savePath: "/api/admin/settings/security",
     fields: {
@@ -157,8 +157,8 @@ const GROUP_META = {
     },
   },
   smtp: {
-    title: "メール (SMTP)",
-    description: "送信元や SMTP 接続先を管理します。SMTP パスワードは後続フェーズです。",
+    title: "Mail (SMTP)",
+    description: "Manage sender information and SMTP connection settings.",
     loadPath: "/api/admin/settings/smtp",
     savePath: "/api/admin/settings/smtp",
     fields: {
@@ -170,8 +170,8 @@ const GROUP_META = {
     },
   },
   storage: {
-    title: "ストレージ",
-    description: "ストレージ関連の参照パスとアップロード上限を管理します。",
+    title: "Storage",
+    description: "Manage storage paths and upload limits.",
     loadPath: "/api/admin/settings/storage",
     savePath: "/api/admin/settings/storage",
     fields: {
@@ -183,8 +183,8 @@ const GROUP_META = {
     },
   },
   integrity: {
-    title: "整合性チェック",
-    description: "日次整合性チェックの有効化、周期、実行時刻、保持期間を管理します。",
+    title: "Integrity Check",
+    description: "Manage scheduled integrity checks, cadence, run time, and retention.",
     loadPath: "/api/admin/settings/integrity",
     savePath: "/api/admin/settings/integrity",
     fields: {
@@ -202,13 +202,13 @@ const GROUP_META = {
 };
 
 const WEEKDAY_LABELS = {
-  mon: "月",
-  tue: "火",
-  wed: "水",
-  thu: "木",
-  fri: "金",
-  sat: "土",
-  sun: "日",
+  mon: "Mon",
+  tue: "Tue",
+  wed: "Wed",
+  thu: "Thu",
+  fri: "Fri",
+  sat: "Sat",
+  sun: "Sun",
 };
 
 const INITIAL_GROUP_STATE = () => ({
@@ -360,7 +360,7 @@ function buildStoragePathNote(item) {
   }
   if (!item.exists) {
     return item.usage_base_path
-      ? `パス自体はまだ存在しません。使用率は親ディレクトリ ${item.usage_base_path} を基準に表示しています。`
+      ? t("path_missing_parent_usage", "The path itself does not exist yet. Usage is shown relative to the parent directory {path}.", { path: item.usage_base_path })
       : t("path_missing_usage", "The path does not exist, so usage could not be calculated.");
   }
   if (!item.is_directory && !item.is_file) {
@@ -414,11 +414,11 @@ function createStorageUsageCard(item) {
 
   const directoryMetric = document.createElement("div");
   directoryMetric.className = "admin-storage-card__metric";
-  directoryMetric.innerHTML = `<span>ディレクトリサイズ</span><strong>${formatBytes(item.directory_size_bytes)}</strong>`;
+  directoryMetric.innerHTML = `<span>${t("metric_directory_size", "Directory size")}</span><strong>${formatBytes(item.directory_size_bytes)}</strong>`;
 
   const shareMetric = document.createElement("div");
   shareMetric.className = "admin-storage-card__metric";
-  shareMetric.innerHTML = `<span>総容量に対する割合</span><strong>${formatPercent(item.directory_share_of_filesystem_percent, 2)}</strong>`;
+  shareMetric.innerHTML = `<span>${t("metric_share_total", "Share of Total Capacity")}</span><strong>${formatPercent(item.directory_share_of_filesystem_percent, 2)}</strong>`;
 
   stats.append(directoryMetric, shareMetric);
 
@@ -429,13 +429,13 @@ function createStorageUsageCard(item) {
   filesystemProgress.className = "admin-storage-progress";
   filesystemProgress.innerHTML = `
     <div class="admin-storage-progress__head">
-      <span>配置先ファイルシステム使用率</span>
+      <span>${t("metric_filesystem_usage_label", "Target Filesystem Usage")}</span>
       <strong>${formatPercent(item.filesystem_usage_percent)}</strong>
     </div>
     <div class="admin-storage-progress__track"><span style="width:${formatPercent(item.filesystem_usage_percent, 3)}"></span></div>
     <div class="admin-storage-progress__meta">
-      <span>空き容量 ${formatBytes(item.filesystem_free_bytes)}</span>
-      <span>基準: ${item.usage_base_path || "-"}</span>
+      <span>${t("metric_free_space", "Free Space {size}", { size: formatBytes(item.filesystem_free_bytes) })}</span>
+      <span>${t("metric_usage_base", "Base: {path}", { path: item.usage_base_path || "-" })}</span>
     </div>
   `;
 
@@ -750,7 +750,7 @@ function updateHeader() {
   const updatedMeta = $("#adminSettingsUpdatedMeta");
   if (updatedMeta) {
     updatedMeta.textContent = entry?.updated_at
-      ? `最終更新: ${formatDateTime(entry.updated_at)}`
+      ? t("updated_at", "Last updated: {date}", { date: formatDateTime(entry.updated_at) })
       : t("not_saved_yet", "Not saved yet.");
   }
 

@@ -228,7 +228,7 @@ function applyDraftToForm(draft) {
   if (state.draftUpdatedAt) {
     setDraftStatus(t("draft_saved", "Draft saved ({date})", { date: formatDate(state.draftUpdatedAt) }));
   } else {
-    setDraftStatus("下書きはありません。");
+    setDraftStatus(t("no_draft", "No draft."));
   }
 }
 
