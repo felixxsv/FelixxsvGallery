@@ -1,4 +1,5 @@
 import { byId } from "../core/dom.js";
+import { resolveBadgeText } from "../core/badge-i18n.js";
 
 const LINK_ICON_MAP = {
   "x.com": "x",
@@ -68,6 +69,8 @@ export function initPublicProfileModal(app) {
 
   if (!refs.loading) return;
 
+  let currentUser = null;
+
   function t(key, fallback) {
     return app.i18n?.t?.(`public_profile.${key}`, fallback) || fallback;
   }
@@ -130,13 +133,14 @@ export function initPublicProfileModal(app) {
 
       // Badges
       const badges = Array.isArray(user.badges) ? user.badges : [];
+      currentUser = user;
       if (refs.badges) {
         refs.badges.innerHTML = "";
         refs.badges.hidden = badges.length === 0;
         for (const badge of badges.slice(0, 3)) {
           const el = document.createElement("span");
           el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;
-          el.title = badge.description || badge.name || "";
+          el.title = resolveBadgeText(app.i18n, badge, "description") || resolveBadgeText(app.i18n, badge, "name") || "";
           el.innerHTML = getBadgeIconHtml(badge, app.appBase);
           refs.badges.appendChild(el);
         }
@@ -153,6 +157,23 @@ export function initPublicProfileModal(app) {
   document.addEventListener("app:open-user-profile", (event) => {
     const userKey = normalizeUserKey(event.detail?.userKey);
     if (userKey) openProfile(userKey);
+  });
+
+  window.addEventListener("gallery:language-changed", () => {
+    applyStaticTranslations();
+    if (!currentUser || refs.content.hidden) return;
+    const badges = Array.isArray(currentUser.badges) ? currentUser.badges : [];
+    if (refs.badges) {
+      refs.badges.innerHTML = "";
+      refs.badges.hidden = badges.length === 0;
+      for (const badge of badges.slice(0, 3)) {
+        const el = document.createElement("span");
+        el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;
+        el.title = resolveBadgeText(app.i18n, badge, "description") || resolveBadgeText(app.i18n, badge, "name") || "";
+        el.innerHTML = getBadgeIconHtml(badge, app.appBase);
+        refs.badges.appendChild(el);
+      }
+    }
   });
 
   return { openProfile };

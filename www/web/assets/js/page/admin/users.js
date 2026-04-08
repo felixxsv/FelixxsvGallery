@@ -1,4 +1,5 @@
 import { escapeHtml } from "../../core/dom.js";
+import { resolveBadgeText } from "../../core/badge-i18n.js";
 import { languageToLocaleTag } from "../../core/settings.js";
 
 function byId(id) {
@@ -7,6 +8,10 @@ function byId(id) {
 
 function t(key, fallback, vars = {}) {
   return window.AdminApp?.i18n?.t?.(`admin_users.${key}`, fallback, vars) || fallback;
+}
+
+function badgeText(badge, field = "name") {
+  return resolveBadgeText(window.AdminApp?.i18n, badge, field);
 }
 
 function formatDateTime(value) {
@@ -147,7 +152,7 @@ function renderBadgePool() {
     const colorClass = BADGE_COLOR_CLASS[badge.color] || "admin-badge--gray";
     const span = document.createElement("span");
     span.className = `admin-badge ${colorClass}`;
-    span.innerHTML = `${escapeHtml(badge.name)}<button type="button" class="admin-badge__revoke" data-badge-key="${escapeHtml(badge.key)}" aria-label="${escapeHtml(t("revoke", "Revoke"))}">×</button>`;
+    span.innerHTML = `${escapeHtml(badgeText(badge, "name"))}<button type="button" class="admin-badge__revoke" data-badge-key="${escapeHtml(badge.key)}" aria-label="${escapeHtml(t("revoke", "Revoke"))}">×</button>`;
     pool.appendChild(span);
   }
   pool.querySelectorAll(".admin-badge__revoke").forEach((btn) => {
@@ -161,7 +166,7 @@ function renderBadgePool() {
       if (ownedKeys.has(item.key)) continue;
       const opt = document.createElement("option");
       opt.value = item.key;
-      opt.textContent = `${item.name} (${item.type === "auto" ? t("auto", "Auto") : t("manual", "Manual")})`;
+      opt.textContent = `${badgeText(item, "name")} (${item.type === "auto" ? t("auto", "Auto") : t("manual", "Manual")})`;
       sel.appendChild(opt);
     }
   }

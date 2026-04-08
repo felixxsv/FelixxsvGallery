@@ -1,4 +1,5 @@
 import { byId } from "../core/dom.js";
+import { resolveBadgeText } from "../core/badge-i18n.js";
 import { languageToLocaleTag } from "../core/settings.js";
 
 const LINK_ICON_MAP = {
@@ -42,6 +43,15 @@ function getLinkIconSlug(url) {
 function getLinkIconUrl(url) {
   const slug = getLinkIconSlug(url);
   return `/gallery/assets/icons/social/${slug}.svg`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // Default badge icon as inline SVG data URI (used when icon file is not yet available)
@@ -332,11 +342,82 @@ export function initUserShell(app) {
   }
 
   function renderCredits() {
-    refs.creditAuthor.textContent = document.body.dataset.creditAuthor || "-";
-    refs.creditStack.textContent = document.body.dataset.creditStack || "-";
-    refs.creditLicense.textContent = document.body.dataset.creditLicense || "-";
-    refs.creditUpdatedAt.textContent = document.body.dataset.creditUpdatedAt || "-";
-    refs.creditVersion.textContent = document.body.dataset.appVersion || "-";
+    const creditAuthor = byId("shellCreditAuthor");
+    const creditStack = byId("shellCreditStack");
+    const creditLicense = byId("shellCreditLicense");
+    const creditUpdatedAt = byId("shellCreditUpdatedAt");
+    const creditVersion = byId("shellCreditVersion");
+    if (creditAuthor) creditAuthor.textContent = document.body.dataset.creditAuthor || "-";
+    if (creditStack) creditStack.textContent = document.body.dataset.creditStack || "-";
+    if (creditLicense) creditLicense.textContent = document.body.dataset.creditLicense || "-";
+    if (creditUpdatedAt) creditUpdatedAt.textContent = document.body.dataset.creditUpdatedAt || "-";
+    if (creditVersion) creditVersion.textContent = document.body.dataset.appVersion || "-";
+  }
+
+  function renderHelpContent() {
+    const helpBody = document.querySelector("[data-modal-id='help'] .app-modal-body");
+    if (!helpBody) return;
+    helpBody.innerHTML = `
+      <div class="shell-help-content">
+        <section>
+          <h3>${escapeHtml(t("shell.help.search_title", "Search and Filters"))}</h3>
+          <ul>
+            <li>${escapeHtml(t("shell.help.search_item1", "Use the header search to filter across titles, ALT text, tags, and users."))}</li>
+            <li>${escapeHtml(t("shell.help.search_item2", "Use the sidebar to combine tags, color tags, shot dates, posted dates, and archives."))}</li>
+            <li>${escapeHtml(t("shell.help.search_item3", "Archives are recalculated for the current filters and update when conditions change."))}</li>
+          </ul>
+        </section>
+        <section>
+          <h3>${escapeHtml(t("shell.help.view_title", "Viewing Images"))}</h3>
+          <ul>
+            <li>${escapeHtml(t("shell.help.view_item1", "Open a card to view the image in a larger modal."))}</li>
+            <li>${escapeHtml(t("shell.help.view_item2", "Use the details action to inspect shot date, posted date, tags, and color tags."))}</li>
+            <li>${escapeHtml(t("shell.help.view_item3", "Select the author icon to open the profile modal."))}</li>
+          </ul>
+        </section>
+        <section>
+          <h3>${escapeHtml(t("shell.help.account_title", "Account and Settings"))}</h3>
+          <ul>
+            <li>${escapeHtml(t("shell.help.account_item1", "Use the user icon in the top right to open profile editing, display settings, and account settings."))}</li>
+            <li>${escapeHtml(t("shell.help.account_item2", "Email change, Discord link, two-factor auth, and logout are grouped in account settings."))}</li>
+            <li>${t("shell.help.account_item3", "Use <code>/gallery/auth/</code> as the primary authentication flow.")}</li>
+          </ul>
+        </section>
+      </div>
+    `;
+  }
+
+  function renderCreditsContent() {
+    const creditsBody = document.querySelector("[data-modal-id='credits'] .app-modal-body");
+    if (!creditsBody) return;
+    creditsBody.innerHTML = `
+      <dl class="app-definition-list">
+        <div class="app-definition-list__row">
+          <dt>${escapeHtml(t("shell.static.credit_service", "Service"))}</dt>
+          <dd>${escapeHtml(document.body.dataset.creditService || "Felixxsv Gallery")}</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>${escapeHtml(t("shell.static.credit_author", "Author"))}</dt>
+          <dd id="shellCreditAuthor">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>${escapeHtml(t("shell.static.credit_stack", "Stack"))}</dt>
+          <dd id="shellCreditStack">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>${escapeHtml(t("shell.static.credit_license", "License"))}</dt>
+          <dd id="shellCreditLicense">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>${escapeHtml(t("shell.static.credit_updated_at", "Updated At"))}</dt>
+          <dd id="shellCreditUpdatedAt">-</dd>
+        </div>
+        <div class="app-definition-list__row">
+          <dt>${escapeHtml(t("shell.static.credit_version", "Version"))}</dt>
+          <dd id="shellCreditVersion">-</dd>
+        </div>
+      </dl>
+    `;
   }
 
   function applyStaticTranslations() {
@@ -557,7 +638,7 @@ export function initUserShell(app) {
     }
     container.hidden = false;
     container.innerHTML = toShow.map((badge) =>
-      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${badge.name || badge.key}">${getBadgeIconHtml(badge, app.appBase)}</span>`
+      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${escapeHtml(resolveBadgeText(app.i18n, badge, "name"))}">${getBadgeIconHtml(badge, app.appBase)}</span>`
     ).join("");
   }
 
@@ -578,12 +659,14 @@ export function initUserShell(app) {
     list.innerHTML = "";
     for (const badge of pool) {
       const isSelected = displayBadges.includes(badge.key);
+      const badgeName = resolveBadgeText(app.i18n, badge, "name");
+      const badgeDescription = resolveBadgeText(app.i18n, badge, "description");
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = `shell-badge-pool__item shell-badge-pool__item--${badge.color || "gray"}${isSelected ? " is-selected" : ""}`;
       btn.dataset.badgeKey = badge.key;
-      btn.title = badge.description || badge.name || "";
-      btn.innerHTML = `${getBadgeIconHtml(badge, app.appBase)}${badge.name || badge.key}`;
+      btn.title = badgeDescription || badgeName || "";
+      btn.innerHTML = `${getBadgeIconHtml(badge, app.appBase)}${escapeHtml(badgeName || badge.key)}`;
       btn.setAttribute("aria-pressed", String(isSelected));
       list.appendChild(btn);
     }
@@ -1572,6 +1655,8 @@ export function initUserShell(app) {
     window.addEventListener("beforeunload", handleBeforeUnload);
   }
 
+  renderHelpContent();
+  renderCreditsContent();
   renderCredits();
   renderSettings();
   renderUserCard();
@@ -1580,6 +1665,9 @@ export function initUserShell(app) {
   startCountdownTimer();
   bindEvents();
   window.addEventListener("gallery:language-changed", () => {
+    renderHelpContent();
+    renderCreditsContent();
+    renderCredits();
     applyStaticTranslations();
     refreshResendButtons();
     renderUserCard();

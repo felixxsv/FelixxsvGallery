@@ -156,7 +156,8 @@ export function attachDatePicker(input, options = {}) {
       <button type="button" class="app-date-picker__action" data-action="clear"></button>
     </div>
   `;
-  wrapper.append(trigger, popover);
+  wrapper.append(trigger);
+  document.body.append(popover);
   input.insertAdjacentElement("afterend", wrapper);
   input.type = "hidden";
   input.dataset.customDatePicker = "true";
@@ -174,6 +175,31 @@ export function attachDatePicker(input, options = {}) {
     viewDate: parseYmd(originalValue) || new Date(),
     open: false,
   };
+
+  function positionPopover() {
+    const rect = trigger.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const popoverWidth = Math.min(320, viewportWidth - 32);
+
+    popover.style.width = `${popoverWidth}px`;
+
+    let left = rect.left;
+    if (left + popoverWidth > viewportWidth - 16) {
+      left = viewportWidth - popoverWidth - 16;
+    }
+    left = Math.max(16, left);
+
+    const estimatedHeight = popover.offsetHeight || 320;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const shouldOpenAbove = spaceBelow < estimatedHeight + 12 && rect.top > spaceBelow;
+    const top = shouldOpenAbove
+      ? Math.max(16, rect.top - estimatedHeight - 8)
+      : Math.min(viewportHeight - estimatedHeight - 16, rect.bottom + 8);
+
+    popover.style.left = `${left}px`;
+    popover.style.top = `${Math.max(16, top)}px`;
+  }
 
   function syncTrigger() {
     const locale = getLocale();
@@ -200,6 +226,7 @@ export function attachDatePicker(input, options = {}) {
     state.open = true;
     popover.hidden = false;
     trigger.setAttribute("aria-expanded", "true");
+    positionPopover();
   }
 
   function setValue(nextValue) {
@@ -212,6 +239,7 @@ export function attachDatePicker(input, options = {}) {
     setNativeInputValue(input, normalized);
     syncTrigger();
     renderCalendar();
+    if (state.open) positionPopover();
     dispatchValueChange(input);
   }
 
@@ -256,11 +284,14 @@ export function attachDatePicker(input, options = {}) {
       buttons.push(button);
     }
     gridNode.replaceChildren(...buttons);
+    if (state.open) {
+      queueMicrotask(() => positionPopover());
+    }
   }
 
   function handleDocumentPointer(event) {
     if (!state.open) return;
-    if (wrapper.contains(event.target) || input.contains(event.target)) return;
+    if (wrapper.contains(event.target) || popover.contains(event.target) || input.contains(event.target)) return;
     close();
   }
 
@@ -268,6 +299,10 @@ export function attachDatePicker(input, options = {}) {
     if (event.key === "Escape") {
       close();
     }
+  }
+
+  function handleViewportChange() {
+    if (state.open) positionPopover();
   }
 
   trigger.addEventListener("click", () => {
@@ -313,6 +348,8 @@ export function attachDatePicker(input, options = {}) {
   });
   document.addEventListener("pointerdown", handleDocumentPointer);
   document.addEventListener("keydown", handleDocumentKey);
+  window.addEventListener("resize", handleViewportChange);
+  window.addEventListener("scroll", handleViewportChange, true);
 
   Object.defineProperty(input, "value", {
     configurable: true,
@@ -343,8 +380,11 @@ export function attachDatePicker(input, options = {}) {
     },
     destroy() {
       close();
+      popover.remove();
       document.removeEventListener("pointerdown", handleDocumentPointer);
       document.removeEventListener("keydown", handleDocumentKey);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
     },
   };
 
