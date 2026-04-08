@@ -1,4 +1,5 @@
 import { byId, escapeHtml } from "../core/dom.js";
+import { attachDatePicker } from "../core/date-picker.js";
 import { languageToLocaleTag } from "../core/settings.js";
 
 const GRID_COLS_STORAGE_KEY = "gallery.home.gridColumns";
@@ -476,6 +477,13 @@ export function initHomePage(app) {
     mobileSearchOwnerBadgeLabel: byId("homeMobileSearchOwnerBadgeLabel"),
     mobileSearchOwnerBadgeClear: byId("homeMobileSearchOwnerBadgeClear"),
   };
+
+  [
+    refs.shotDateFrom,
+    refs.shotDateTo,
+    refs.postedDateFrom,
+    refs.postedDateTo,
+  ].forEach((input) => attachDatePicker(input, { getLocale: () => document.documentElement.lang || "en-US" }));
 
   function t(key, fallback = "", vars = {}) {
     return app.i18n?.t?.(key, fallback, vars) || fallback;

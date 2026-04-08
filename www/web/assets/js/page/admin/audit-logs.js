@@ -1,4 +1,5 @@
 import { escapeHtml } from "../../core/dom.js";
+import { attachDatePicker } from "../../core/date-picker.js";
 import { languageToLocaleTag } from "../../core/settings.js";
 
 function byId(id) {
@@ -273,6 +274,8 @@ function startLiveRefresh() {
 }
 
 document.addEventListener("admin:ready", async () => {
+  attachDatePicker(byId("adminAuditDateFrom"), { getLocale: () => document.documentElement.lang || "en-US" });
+  attachDatePicker(byId("adminAuditDateTo"), { getLocale: () => document.documentElement.lang || "en-US" });
   const fields = document.querySelectorAll(".admin-audit-field .admin-form-label");
   if (fields[0]) fields[0].textContent = t("search", "Search");
   if (fields[1]) fields[1].textContent = t("action_type", "Action Type");
