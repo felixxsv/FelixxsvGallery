@@ -539,7 +539,7 @@ async function loadStorageUsage({ force = false, silent = false } = {}) {
     state.storageUsage.data = null;
     state.storageUsage.loaded = false;
     if (!silent) {
-      window.AdminApp?.toast?.error?.(state.storageUsage.error);
+      window.AdminApp?.toast?.error?.(resolveLocalizedMessage(state.storageUsage.error, t("storage_error", "Failed to load storage usage.")));
     }
   } finally {
     state.storageUsage.loading = false;
@@ -963,3 +963,4 @@ document.addEventListener("admin:ready", () => {
     updateHeader();
   });
 });
+import { resolveLocalizedMessage } from "../../core/i18n.js";

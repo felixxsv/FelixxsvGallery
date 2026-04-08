@@ -283,6 +283,7 @@ def log_auth_event(
 def login_with_email_password(
     email: str | None,
     password: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
@@ -337,7 +338,12 @@ def login_with_email_password(
                 message="メールアドレスまたはパスワードが正しくありません。",
             )
 
-        status_result = _check_user_login_status(user, credentials, now_dt)
+        status_result = _check_user_login_status(
+            user,
+            credentials,
+            now_dt,
+            preferred_language=normalize_preferred_language(preferred_language),
+        )
         if status_result is not None:
             log_auth_event(
                 conn=conn,
@@ -397,6 +403,7 @@ def login_with_email_password(
             ip_address=ip_address,
             user_agent=user_agent,
             now_dt=now_dt,
+            preferred_language=normalize_preferred_language(preferred_language),
         )
         if verify_result is not None:
             conn.commit()
@@ -410,6 +417,7 @@ def login_with_email_password(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 now_dt=now_dt,
+                preferred_language=normalize_preferred_language(preferred_language),
             )
             conn.commit()
             _dispatch_mail_job(reset_result["mail_job"])
@@ -423,6 +431,7 @@ def login_with_email_password(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 now_dt=now_dt,
+                preferred_language=normalize_preferred_language(preferred_language),
             )
             conn.commit()
             _dispatch_mail_job(two_factor_result["mail_job"])
@@ -680,10 +689,12 @@ def check_user_key_availability(
 
 def start_registration(
     email: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
 ) -> dict:
+    resolved_language = normalize_preferred_language(preferred_language) or "en-us"
     try:
         validated = validate_register_start_input(email=email)
     except (AuthValidationError, AuthValidationErrors) as exc:
@@ -760,6 +771,7 @@ def start_registration(
                 user_id=user_id,
                 purpose="email_signup",
                 email=validated["email"],
+                preferred_language=resolved_language,
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -791,6 +803,7 @@ def start_registration(
                 user_id=user_id,
                 purpose="email_signup",
                 email=validated["email"],
+                preferred_language=resolved_language,
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -830,6 +843,7 @@ def start_registration(
             purpose="email_signup",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=None,
+            preferred_language=resolved_language,
         )
 
     return build_service_success(
@@ -1139,6 +1153,7 @@ def send_email_verification_again(
             user_id=parsed["user_id"],
             purpose=parsed["purpose"],
             email=parsed["email"],
+            preferred_language=parsed.get("preferred_language"),
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             now=now_dt,
         )
@@ -1171,6 +1186,7 @@ def send_email_verification_again(
         code=new_verify_code,
         purpose=parsed["purpose"],
         expires_in_sec=auth_conf["verify_code_expires_sec"],
+        preferred_language=parsed.get("preferred_language"),
     )
 
     next_to = _build_verify_email_path(new_verify_ticket)
@@ -1428,6 +1444,7 @@ def send_two_factor_challenge_again(
             user_id=parsed["user_id"],
             auth_flow_id=parsed["auth_flow_id"],
             email=parsed["email"],
+            preferred_language=parsed.get("preferred_language"),
             expires_in_sec=auth_conf["two_factor_code_expires_sec"],
             now=now_dt,
         )
@@ -1461,6 +1478,7 @@ def send_two_factor_challenge_again(
         code=new_code,
         expires_in_sec=auth_conf["two_factor_code_expires_sec"],
         display_name=user["display_name"] if user else None,
+        preferred_language=parsed.get("preferred_language"),
     )
 
     return build_service_success(
@@ -1596,6 +1614,7 @@ def confirm_two_factor_challenge(
 
 def request_password_reset(
     email: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
@@ -1638,9 +1657,11 @@ def request_password_reset(
             now=now_dt,
         )
 
+        resolved_language = normalize_preferred_language(preferred_language) or normalize_preferred_language(user.get("preferred_language")) or "en-us"
         reset_token = create_reset_token(
             user_id=user["id"],
             email=user["primary_email"],
+            preferred_language=resolved_language,
             expires_in_sec=auth_conf["reset_token_expires_sec"],
             now=now_dt,
         )
@@ -1684,6 +1705,7 @@ def request_password_reset(
         reset_url=reset_url,
         expires_in_sec=auth_conf["reset_token_expires_sec"],
         display_name=user["display_name"],
+        preferred_language=normalize_preferred_language(preferred_language) or normalize_preferred_language(user.get("preferred_language")) or "en-us",
     )
 
     return build_service_success(
@@ -2045,6 +2067,7 @@ def start_email_change_for_session(
             user_id=int(user["id"]),
             purpose="email_change",
             email=new_email_value,
+            preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             now=now_dt,
         )
@@ -2074,6 +2097,7 @@ def start_email_change_for_session(
         purpose="email_change",
         expires_in_sec=auth_conf["verify_code_expires_sec"],
         display_name=user.get("display_name"),
+        preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
     )
 
     return build_service_success(
@@ -2462,6 +2486,7 @@ def start_two_factor_setup_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_setup",
                 email=primary_email,
+                preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -2493,6 +2518,7 @@ def start_two_factor_setup_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_setup",
                 email=primary_email,
+                preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -2526,6 +2552,7 @@ def start_two_factor_setup_for_current_session(
             purpose="2fa_setup",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=user.get("display_name"),
+            preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
         )
 
     return build_service_success(
@@ -2761,6 +2788,7 @@ def start_two_factor_disable_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_disable",
                 email=primary_email,
+                preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -2792,6 +2820,7 @@ def start_two_factor_disable_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_disable",
                 email=primary_email,
+                preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -2825,6 +2854,7 @@ def start_two_factor_disable_for_current_session(
             purpose="2fa_disable",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=user.get("display_name"),
+            preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
         )
 
     return build_service_success(
@@ -3247,6 +3277,7 @@ def handle_discord_callback(
                     ip_address=ip_address,
                     user_agent=user_agent,
                     now_dt=now_dt,
+                    preferred_language=normalize_preferred_language(user.get("preferred_language")),
                 )
                 conn.commit()
                 _dispatch_mail_job(two_factor_result["mail_job"])
@@ -3454,6 +3485,7 @@ def complete_discord_registration(
     registration_token: str | None,
     user_key: str | None,
     display_name: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
@@ -3538,6 +3570,7 @@ def complete_discord_registration(
                 user_id=user_id,
                 purpose="signup",
                 email=parsed["provider_email"],
+                preferred_language=normalize_preferred_language(preferred_language) or "en-us",
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -3574,6 +3607,7 @@ def complete_discord_registration(
             purpose="signup",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=validated["display_name"],
+            preferred_language=normalize_preferred_language(preferred_language) or "en-us",
         )
         return build_service_success(
             data={
@@ -4487,7 +4521,7 @@ def _safe_close(conn) -> None:
         return
 
 
-def _check_user_login_status(user: dict, credentials: dict, now_dt: datetime) -> dict | None:
+def _check_user_login_status(user: dict, credentials: dict, now_dt: datetime, preferred_language: str | None = None) -> dict | None:
     if user["status"] == "deleted":
         return build_service_error(
             error_code="account_deleted",
@@ -4513,7 +4547,8 @@ def _check_user_login_status(user: dict, credentials: dict, now_dt: datetime) ->
     return None
 
 
-def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict | None:
+def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, preferred_language: str | None = None) -> dict | None:
+    resolved_language = normalize_preferred_language(preferred_language) or normalize_preferred_language(user.get("preferred_language")) or "en-us"
     if bool(user.get("is_email_verified")):
         return None
 
@@ -4537,6 +4572,7 @@ def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_
         user_id=user["id"],
         purpose="signup",
         email=user["primary_email"],
+        preferred_language=resolved_language,
         expires_in_sec=auth_conf["verify_code_expires_sec"],
         now=now_dt,
     )
@@ -4570,11 +4606,13 @@ def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_
             "purpose": "signup",
             "expires_in_sec": auth_conf["verify_code_expires_sec"],
             "display_name": user["display_name"],
+            "preferred_language": resolved_language,
         },
     }
 
 
-def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict:
+def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, preferred_language: str | None = None) -> dict:
+    resolved_language = normalize_preferred_language(preferred_language) or normalize_preferred_language(user.get("preferred_language")) or "en-us"
     auth_conf = _get_auth_conf()
     expire_active_password_reset_tokens(
         conn=conn,
@@ -4584,6 +4622,7 @@ def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_a
     reset_token = create_reset_token(
         user_id=user["id"],
         email=user["primary_email"],
+        preferred_language=resolved_language,
         expires_in_sec=auth_conf["reset_token_expires_sec"],
         now=now_dt,
     )
@@ -4619,12 +4658,14 @@ def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_a
             "reset_url": reset_url,
             "expires_in_sec": auth_conf["reset_token_expires_sec"],
             "display_name": user["display_name"],
+            "preferred_language": resolved_language,
         },
     }
 
 
 
-def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict:
+def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, preferred_language: str | None = None) -> dict:
+    resolved_language = normalize_preferred_language(preferred_language) or normalize_preferred_language(user.get("preferred_language")) or "en-us"
     auth_conf = _get_auth_conf()
     latest = get_active_two_factor_challenge(
         conn=conn,
@@ -4638,6 +4679,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
             user_id=user["id"],
             auth_flow_id=generate_auth_flow_id(),
             email=user["primary_email"],
+            preferred_language=resolved_language,
             expires_in_sec=_remaining_seconds(latest["expires_at"], now_dt),
             now=now_dt,
         )
@@ -4686,6 +4728,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
         user_id=user["id"],
         auth_flow_id=generate_auth_flow_id(),
         email=user["primary_email"],
+        preferred_language=resolved_language,
         expires_in_sec=auth_conf["two_factor_code_expires_sec"],
         now=now_dt,
     )
@@ -4720,6 +4763,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
             "code": code,
             "expires_in_sec": auth_conf["two_factor_code_expires_sec"],
             "display_name": user["display_name"],
+            "preferred_language": resolved_language,
         },
     }
 
@@ -4777,6 +4821,7 @@ def _dispatch_mail_job(mail_job: dict | None) -> None:
                 purpose=mail_job["purpose"],
                 expires_in_sec=mail_job["expires_in_sec"],
                 display_name=mail_job.get("display_name"),
+                preferred_language=mail_job.get("preferred_language"),
             )
             return
         if kind == "two_factor":
@@ -4786,6 +4831,7 @@ def _dispatch_mail_job(mail_job: dict | None) -> None:
                 code=mail_job["code"],
                 expires_in_sec=mail_job["expires_in_sec"],
                 display_name=mail_job.get("display_name"),
+                preferred_language=mail_job.get("preferred_language"),
             )
             return
         if kind == "password_reset":
@@ -4795,12 +4841,13 @@ def _dispatch_mail_job(mail_job: dict | None) -> None:
                 reset_url=mail_job["reset_url"],
                 expires_in_sec=mail_job["expires_in_sec"],
                 display_name=mail_job.get("display_name"),
+                preferred_language=mail_job.get("preferred_language"),
             )
     except AuthMailError:
         return
 
 
-def _try_send_verification_email(to_email: str, code: str, purpose: str, expires_in_sec: int, display_name: str | None = None) -> None:
+def _try_send_verification_email(to_email: str, code: str, purpose: str, expires_in_sec: int, display_name: str | None = None, preferred_language: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "verification",
@@ -4809,11 +4856,12 @@ def _try_send_verification_email(to_email: str, code: str, purpose: str, expires
             "purpose": purpose,
             "expires_in_sec": expires_in_sec,
             "display_name": display_name,
+            "preferred_language": preferred_language,
         }
     )
 
 
-def _try_send_two_factor_email(to_email: str, code: str, expires_in_sec: int, display_name: str | None = None) -> None:
+def _try_send_two_factor_email(to_email: str, code: str, expires_in_sec: int, display_name: str | None = None, preferred_language: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "two_factor",
@@ -4821,11 +4869,12 @@ def _try_send_two_factor_email(to_email: str, code: str, expires_in_sec: int, di
             "code": code,
             "expires_in_sec": expires_in_sec,
             "display_name": display_name,
+            "preferred_language": preferred_language,
         }
     )
 
 
-def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec: int, display_name: str | None = None) -> None:
+def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec: int, display_name: str | None = None, preferred_language: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "password_reset",
@@ -4833,6 +4882,7 @@ def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec
             "reset_url": reset_url,
             "expires_in_sec": expires_in_sec,
             "display_name": display_name,
+            "preferred_language": preferred_language,
         }
     )
 

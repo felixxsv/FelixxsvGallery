@@ -193,7 +193,7 @@
                     id="shellAccountEditButton"
                     type="button"
                     class="app-icon-button shell-pen-button"
-                    aria-label="プロフィール編集"
+                    aria-label="Edit profile"
                     data-i18n-aria-label="shell.static.profile_edit"
                     data-modal-open="account"
                     hidden=""
@@ -204,7 +204,7 @@
                     id="shellProfilePreviewButton"
                     type="button"
                     class="app-icon-button shell-profile-preview-button"
-                    aria-label="プロフィールを確認"
+                    aria-label="Open profile"
                     data-i18n-aria-label="shell.static.profile_preview"
                     hidden=""
                   >
@@ -264,8 +264,8 @@
           </dl>
 
           <!-- アップロード -->
-          <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden="">
-            現在、画像投稿は無効化されています。
+          <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden="" data-i18n="shell.static.upload_disabled">
+            Image uploads are currently disabled.
           </p>
           <div class="shell-user-card__upload-row">
             <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden="" data-i18n="shell.static.upload">アップロード</button>
@@ -782,7 +782,7 @@
 <input accept="image/png,image/jpeg,image/webp" class="app-input" id="adminContentUploadFilesInput" multiple name="files" required type="file"/>
 <span class="app-field__hint" data-i18n="admin_content.upload_files_hint">PNG / JPG / WEBP、最大20枚です。1回の投稿でまとめて送信します。</span>
 </label>
-<div class="admin-content-upload__summary" id="adminContentUploadSummary">ファイルが未選択です。</div>
+<div class="admin-content-upload__summary" id="adminContentUploadSummary" data-i18n="admin_content.no_files">ファイルが未選択です。</div>
 <ul class="admin-content-upload__file-list" id="adminContentUploadFileList" hidden></ul>
 <div class="admin-content-upload__result" hidden id="adminContentUploadResult"></div>
 </form>

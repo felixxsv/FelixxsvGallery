@@ -59,10 +59,12 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 class LoginRequest(BaseModel):
     email: str
     password: str
+    preferred_language: str | None = None
 
 
 class RegisterRequest(BaseModel):
     email: str
+    preferred_language: str | None = None
 
 
 class RegisterCompleteRequest(BaseModel):
@@ -94,6 +96,7 @@ class TwoFactorConfirmRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     email: str
+    preferred_language: str | None = None
 
 
 class ResetPasswordRequest(BaseModel):
@@ -111,6 +114,7 @@ class DiscordRegisterRequest(BaseModel):
     registration_token: str
     user_key: str
     display_name: str
+    preferred_language: str | None = None
 
 class SetPasswordRequest(BaseModel):
     password: str
@@ -302,6 +306,7 @@ async def login(
         result = login_with_email_password(
             email=payload.email,
             password=payload.password,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -626,6 +631,7 @@ async def register(
     try:
         result = start_registration(
             email=payload.email,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -649,6 +655,7 @@ async def register_start(
     try:
         result = start_registration(
             email=payload.email,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -934,6 +941,7 @@ async def password_forgot(
     try:
         result = request_password_reset(
             email=payload.email,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -1161,6 +1169,7 @@ async def discord_register(
             registration_token=payload.registration_token,
             user_key=payload.user_key,
             display_name=payload.display_name,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )

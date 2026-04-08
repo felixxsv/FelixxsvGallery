@@ -5,7 +5,7 @@ import { createToastManager } from "./core/toast.js";
 import { createSettingsStore, languageToLocaleTag } from "./core/settings.js";
 import { createThemeController } from "./core/theme.js";
 import { createSessionStore } from "./core/session.js";
-import { buildLocaleLoadOrder, createI18n } from "./core/i18n.js";
+import { buildLocaleLoadOrder, createI18n, resolveLocalizedMessage } from "./core/i18n.js";
 import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js";
 import { initPublicProfileModal } from "./components/public-profile.js";
@@ -535,7 +535,7 @@ async function bootstrap() {
       await app.presence.start();
     }
   } catch (error) {
-    app.toast.error(error.message || "セッション情報の取得に失敗しました。");
+    app.toast.error(resolveLocalizedMessage(error, "Failed to load session."));
   }
 
   if (app.page === "home") {

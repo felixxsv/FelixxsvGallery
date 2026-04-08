@@ -1,5 +1,5 @@
 import { createSettingsStore, languageToLocaleTag, normalizeLanguageCode } from "../core/settings.js";
-import { buildLocaleLoadOrder, fetchLocaleCatalogs } from "../core/i18n.js";
+import { buildLocaleLoadOrder, fetchLocaleCatalogs, resolveLocalizedMessage } from "../core/i18n.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -225,7 +225,7 @@ function showToastOk(text, ms) {
 }
 
 function getErrorMessage(data, fallback) {
-  return String(data?.error?.message || data?.message || data?.detail || fallback);
+  return resolveLocalizedMessage(data?.error?.message || data?.message || data?.detail, fallback, currentLanguage);
 }
 
 function nowMs() {
@@ -611,7 +611,7 @@ async function doLogin() {
     return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/login", { email: em, password: pw });
+  const { res, data } = await postJson("/gallery/api/auth/login", { email: em, password: pw, preferred_language: currentLanguage });
 
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `login failed (${res.status})`), 5200);
@@ -627,7 +627,7 @@ async function doLogin() {
     setLoginStage("twofactor");
     setQuery({ step: "verify-2fa", challenge: state.challengeToken });
     setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec);
-    showToastOk(String(data?.message || t("auth.toast.checkCode")), 1800);
+    showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.checkCode"), currentLanguage), 1800);
     return;
   }
 
@@ -645,7 +645,7 @@ async function doLogin() {
     return;
   }
 
-  showToastOk(String(data?.message || t("auth.toast.loggedIn")), 1600);
+  showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.loggedIn"), currentLanguage), 1600);
   clearPersistedState();
   setTimeout(() => { location.replace(data?.next?.to || nextUrl()); }, 450);
 }
@@ -671,7 +671,7 @@ async function doLoginTwoFactorVerify() {
   resetLoginTwoFactorState();
   setQuery({});
   clearPersistedState();
-  showToastOk(String(data?.message || t("auth.toast.loggedIn")), 1600);
+  showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.loggedIn"), currentLanguage), 1600);
   setTimeout(() => { location.replace(data?.next?.to || nextUrl()); }, 450);
 }
 
@@ -700,7 +700,7 @@ async function doLoginTwoFactorResend() {
   setLoginTwoFactorPrompt(state.challengeMaskedEmail);
   setQuery({ step: "verify-2fa", challenge: state.challengeToken });
   setCooldownFromSeconds("login", data?.data?.resend_cooldown_sec);
-  showToastOk(String(data?.message || t("auth.toast.codeResent")), 1800);
+  showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.codeResent"), currentLanguage), 1800);
 }
 
 async function startDiscordOAuth() {
@@ -731,7 +731,7 @@ async function startRegistration() {
   const ok = await confirmSendCode(t("auth.confirm.loginCode"));
   if (!ok) return;
 
-  const { res, data } = await postJson("/gallery/api/auth/register/start", { email });
+  const { res, data } = await postJson("/gallery/api/auth/register/start", { email, preferred_language: currentLanguage });
 
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `register start failed (${res.status})`), 5200);
@@ -747,7 +747,7 @@ async function startRegistration() {
   setSignupStage("verify");
   setQuery({ step: "verify-email", ticket: state.verifyTicket });
   setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec);
-  showToastOk(String(data?.message || t("auth.toast.codeSent")), 1800);
+  showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.codeSent"), currentLanguage), 1800);
 }
 
 async function resendRegistrationCode() {
@@ -775,7 +775,7 @@ async function resendRegistrationCode() {
   setSignupVerifyPrompt(signupVerifyMessage.dataset.maskedEmail);
   setQuery({ step: "verify-email", ticket: state.verifyTicket });
   setCooldownFromSeconds("signup", data?.data?.resend_cooldown_sec);
-  showToastOk(String(data?.message || t("auth.toast.codeResent")), 1800);
+  showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.codeResent"), currentLanguage), 1800);
 }
 
 async function confirmRegistrationCode() {
@@ -801,7 +801,7 @@ async function confirmRegistrationCode() {
   setTab("signup");
   setSignupStage("complete");
   setQuery({ step: "complete-registration", registration: state.registrationToken });
-  showToastOk(String(data?.message || t("auth.toast.mailVerified")), 1800);
+  showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.mailVerified"), currentLanguage), 1800);
 }
 
 async function completeRegistration() {
@@ -818,6 +818,7 @@ async function completeRegistration() {
       registration_token: state.registrationToken,
       user_key: userKey,
       display_name: displayName,
+      preferred_language: currentLanguage,
     });
 
     if (!res.ok) {
@@ -825,7 +826,7 @@ async function completeRegistration() {
       return;
     }
 
-    showToastOk(String(data?.message || t("auth.toast.discordRegistered")), 2200);
+    showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.discordRegistered"), currentLanguage), 2200);
     resetSignupState();
     setQuery({});
     clearPersistedState();
@@ -853,7 +854,7 @@ async function completeRegistration() {
     return;
   }
 
-  showToastOk(String(data?.message || t("auth.toast.accountCreated")), 2200);
+  showToastOk(resolveLocalizedMessage(data?.message, t("auth.toast.accountCreated"), currentLanguage), 2200);
   resetSignupState();
   setTab("login");
   setLoginStage("credentials");

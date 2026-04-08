@@ -446,7 +446,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
       }
     } catch (error) {
       applyLikeState(previous);
-      app.toast.error(error.message || t(app, "like_error", "Failed to update like."));
+      app.toast.error(resolveLocalizedMessage(error, t(app, "like_error", "Failed to update like.")));
     } finally {
       state.likePending = false;
       syncLikeUi();
@@ -727,3 +727,4 @@ export function createImageModalController({ app, body = document.body } = {}) {
     },
   };
 }
+import { resolveLocalizedMessage } from "./i18n.js";

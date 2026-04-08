@@ -1053,13 +1053,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (!title) {
       const message = t(app, "title_required", "Enter a title.");
       setInlineMessage(message, "error");
-      app.toast?.error?.(message);
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "draft_load_error", "Failed to load draft.")));
       return;
     }
     if (!state.items.length) {
       const message = t(app, "image_required", "Select at least one image.");
       setInlineMessage(message, "error");
-      app.toast?.error?.(message);
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "draft_load_error", "Failed to load draft.")));
       return;
     }
 
@@ -1067,7 +1067,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (localDupIndex >= 0) {
       const message = t(app, "duplicate_local_order", "Image #{order} is duplicated.", { order: localDupIndex + 1 });
       setInlineMessage(message, "error");
-      app.toast?.error?.(message);
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "draft_load_error", "Failed to load draft.")));
       return;
     }
 
@@ -1101,7 +1101,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         applyServerDuplicateFlags(payload);
         const message = collectDuplicateMessageFromPayload(payload);
         setInlineMessage(message, "error");
-        app.toast?.error?.(message);
+        app.toast?.error?.(resolveLocalizedMessage(message, t(app, "upload_error", "Upload failed.")));
         return;
       }
 
@@ -1110,7 +1110,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         ? t(app, "success_count", "Uploaded {count} images.", { count: createdCount })
         : t(app, "success_default", "Upload completed.");
       setInlineMessage(successMessage, "success");
-      app.toast?.success?.(successMessage);
+      app.toast?.success?.(resolveLocalizedMessage(successMessage, t(app, "success_default", "Upload completed.")));
       clearDraft();
       const uploadedCallback = state.onUploaded;
       close();
@@ -1120,7 +1120,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     } catch (error) {
       const message = error?.message || t(app, "submit_error", "Upload failed.");
       setInlineMessage(message, "error");
-      app.toast?.error?.(message);
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "upload_error", "Upload failed.")));
     } finally {
       setSubmitting(false);
     }
@@ -1390,3 +1390,4 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   };
 }
 import { languageToLocaleTag } from "../core/settings.js";
+import { resolveLocalizedMessage } from "../core/i18n.js";

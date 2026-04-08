@@ -109,3 +109,17 @@ export async function fetchLocaleCatalogs(basePath, locales = ["en-us", "ja"]) {
   }));
   return Object.fromEntries(entries);
 }
+
+export function resolveLocalizedMessage(messageOrError, fallback = "", language = document.documentElement.lang) {
+  const raw = typeof messageOrError === "string"
+    ? messageOrError
+    : String(messageOrError?.message || "");
+  const message = String(raw || "").trim();
+  const locale = String(language || "").trim().toLowerCase();
+  if (!message) return fallback;
+  const containsJapanese = /[\u3040-\u30ff\u4e00-\u9fff]/.test(message);
+  if (containsJapanese && !locale.startsWith("ja")) {
+    return fallback || message;
+  }
+  return message;
+}

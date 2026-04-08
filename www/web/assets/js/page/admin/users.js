@@ -1,5 +1,6 @@
 import { escapeHtml } from "../../core/dom.js";
 import { resolveBadgeText } from "../../core/badge-i18n.js";
+import { resolveLocalizedMessage } from "../../core/i18n.js";
 import { languageToLocaleTag } from "../../core/settings.js";
 
 function byId(id) {
@@ -23,6 +24,27 @@ function formatDateTime(value) {
 
 function buildPill(text, mod) {
   return `<span class="admin-users-pill ${mod}">${escapeHtml(text)}</span>`;
+}
+
+function roleLabel(role) {
+  return role === "admin"
+    ? t("admin", "Administrator")
+    : t("user", "User");
+}
+
+function twoFactorMethodLabel(method) {
+  return method === "totp"
+    ? t("twofactor_method_totp", "Authenticator app")
+    : t("twofactor_method_email", "Email");
+}
+
+function twoFactorStatusLabel(twoFactor) {
+  if (!twoFactor?.is_enabled) {
+    return t("twofactor_off", "Off");
+  }
+  return t("twofactor_on", "{method} / On", {
+    method: twoFactorMethodLabel(twoFactor.method || "email"),
+  });
 }
 
 function accountStatusLabel(value) {
@@ -189,7 +211,7 @@ async function grantBadge() {
     renderBadgePool();
     window.AdminApp?.toast?.success?.(t("badge_granted", "Badge granted."));
   } catch (err) {
-    window.AdminApp?.toast?.error?.(err?.message || t("badge_grant_error", "Failed to grant badge."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(err, t("badge_grant_error", "Failed to grant badge.")));
   }
 }
 
@@ -206,7 +228,7 @@ async function revokeBadge(badgeKey) {
     renderBadgePool();
     window.AdminApp?.toast?.success?.(t("badge_revoked", "Badge revoked."));
   } catch (err) {
-    window.AdminApp?.toast?.error?.(err?.message || t("badge_revoke_error", "Failed to revoke badge."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(err, t("badge_revoke_error", "Failed to revoke badge.")));
   }
 }
 
@@ -336,7 +358,7 @@ async function loadUsers() {
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
     renderTable();
   } catch (error) {
-    const message = error?.message || t("load_error", "Failed to load users.");
+    const message = resolveLocalizedMessage(error, t("load_error", "Failed to load users."));
     window.AdminApp?.toast?.error?.(message);
     state.items = [];
     state.total = 0;
@@ -380,7 +402,7 @@ async function openEditModal(userId) {
     byId("adminUsersEditEmail").textContent = user.primary_email || t("unregistered", "Not registered");
     byId("adminUsersEditCreatedAt").textContent = formatDateTime(user.created_at);
     byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_seen_at);
-    byId("adminUsersEditTwoFactor").textContent = user.two_factor?.is_enabled ? `${user.two_factor?.method || "email"} / ON` : "OFF";
+    byId("adminUsersEditTwoFactor").textContent = twoFactorStatusLabel(user.two_factor);
 
     renderLinksEditor();
     renderBadgePool();
@@ -389,7 +411,7 @@ async function openEditModal(userId) {
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
     window.AdminApp.modal.open("admin-users-edit");
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("detail_load_error", "Failed to load user details."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("detail_load_error", "Failed to load user details.")));
   }
 }
 
@@ -456,7 +478,7 @@ async function saveEdit() {
     closeEditModal();
     await loadUsers();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("update_error", "Failed to update user."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("update_error", "Failed to update user.")));
   }
 }
 
@@ -475,11 +497,11 @@ async function deleteCurrentUser() {
     if (!response.ok || !data.ok) {
       throw new Error(data?.error?.message || t("delete_error", "Failed to delete user."));
     }
-    window.AdminApp?.toast?.success?.(data?.message || t("deleted_ok", "Deleted."));
+    window.AdminApp?.toast?.success?.(resolveLocalizedMessage(data?.message, t("deleted_ok", "Deleted.")));
     closeEditModal();
     await loadUsers();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("delete_error", "Failed to delete user."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("delete_error", "Failed to delete user.")));
   }
 }
 
@@ -507,12 +529,12 @@ async function createTempUser() {
     byId("adminUsersCreateResultPassword").textContent = creds.password || "-";
     const result = byId("adminUsersCreateResult");
     if (result) result.hidden = false;
-    window.AdminApp?.toast?.success?.(data?.message || t("created_ok", "Temporary user created."));
+    window.AdminApp?.toast?.success?.(resolveLocalizedMessage(data?.message, t("created_ok", "Temporary user created.")));
     state.createDirty = false;
     window.AdminApp?.dirtyGuard?.setDirty?.("admin-users-create", false);
     await loadUsers();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("create_error", "Failed to create temporary user."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("create_error", "Failed to create temporary user.")));
   }
 }
 
@@ -695,8 +717,16 @@ document.addEventListener("admin:ready", () => {
     if (create) create.textContent = t("create_temp", "Create Temp User");
     if (prev) prev.textContent = t("prev", "Prev");
     if (next) next.textContent = t("next", "Next");
+    const editRole = byId("adminUsersEditRole");
+    if (editRole?.options[0]) editRole.options[0].text = roleLabel("admin");
+    if (editRole?.options[1]) editRole.options[1].text = roleLabel("user");
+    const createRole = byId("adminUsersCreateRole");
+    if (createRole?.options[0]) createRole.options[0].text = roleLabel("user");
+    if (createRole?.options[1]) createRole.options[1].text = roleLabel("admin");
     renderTable();
     if (state.currentUser) {
+      const twoFactor = byId("adminUsersEditTwoFactor");
+      if (twoFactor) twoFactor.textContent = twoFactorStatusLabel(state.currentUser.two_factor);
       renderLinksEditor();
       renderBadgePool();
     }

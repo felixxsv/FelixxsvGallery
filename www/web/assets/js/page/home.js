@@ -1549,7 +1549,7 @@ export function initHomePage(app) {
       }
     } catch (error) {
       syncImageLikeState(imageId, previousState);
-      app.toast.error(error.message || t("home.like.error", "Failed to update like."));
+      app.toast.error(resolveLocalizedMessage(error, t("home.like.error", "Failed to update like.")));
     } finally {
       state.pendingLikeIds.delete(key);
       syncCardLikeState(imageId);
@@ -1749,7 +1749,7 @@ export function initHomePage(app) {
       setGridVisible(false);
       setEmpty(false);
       setError(error.message || t("home.list.error", "Failed to load images."));
-      app.toast.error(error.message || t("home.list.error", "Failed to load images."));
+      app.toast.error(resolveLocalizedMessage(error, t("home.list.error", "Failed to load images.")));
     } finally {
       setLoading(false);
     }
@@ -2122,3 +2122,4 @@ export function initHomePage(app) {
     load();
   });
 }
+import { resolveLocalizedMessage } from "../core/i18n.js";

@@ -1,4 +1,4 @@
-import { buildLocaleLoadOrder, createI18n } from "../core/i18n.js"
+import { buildLocaleLoadOrder, createI18n, resolveLocalizedMessage } from "../core/i18n.js"
 import { createSettingsStore } from "../core/settings.js"
 
 const el = (id) => document.getElementById(id)
@@ -81,9 +81,10 @@ async function postForm(url, obj) {
 }
 
 async function startRegister(email, password) {
-  const { res, data } = await postForm("/gallery/api/auth/register/start", { email, password, next: NEXT })
+  const language = i18n?.getLanguage?.() || "en-us"
+  const { res, data } = await postForm("/gallery/api/auth/register/start", { email, password, next: NEXT, preferred_language: language })
   if (!res.ok) {
-    const msg = String(data && data.detail ? data.detail : `register failed status=${res.status}`)
+    const msg = resolveLocalizedMessage(data?.error?.message || data?.message || data?.detail, `register failed status=${res.status}`, i18n?.getLanguage?.() || document.documentElement.lang)
     throw new Error(msg)
   }
   return data

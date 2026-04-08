@@ -1,5 +1,6 @@
 import { byId } from "../core/dom.js";
 import { resolveBadgeText } from "../core/badge-i18n.js";
+import { resolveLocalizedMessage } from "../core/i18n.js";
 import { languageToLocaleTag } from "../core/settings.js";
 
 const LINK_ICON_MAP = {
@@ -759,7 +760,7 @@ export function initUserShell(app) {
       toast.success(result?.message || t("shell.toast.link_added", "Link added."));
     } catch (error) {
       const fieldErrors = error?.payload?.error?.field_errors || [];
-      toast.error(fieldErrors[0]?.message || error.message || t("shell.toast.link_add_error", "Failed to add link."));
+      toast.error(resolveLocalizedMessage(fieldErrors[0]?.message || error, t("shell.toast.link_add_error", "Failed to add link.")));
     } finally {
       refs.addLinkSubmitButton.disabled = false;
     }
@@ -774,7 +775,7 @@ export function initUserShell(app) {
       renderLinksGrid();
       toast.success(t("shell.toast.link_removed", "Link removed."));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.link_remove_error", "Failed to remove link."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.link_remove_error", "Failed to remove link.")));
     }
   }
 
@@ -920,7 +921,7 @@ export function initUserShell(app) {
     try {
       await session.load();
     } catch (error) {
-      toast.error(error.message || t("shell.toast.session_error", "Failed to load session."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.session_error", "Failed to load session.")));
     }
   }
 
@@ -934,7 +935,7 @@ export function initUserShell(app) {
         window.location.href = "/gallery/auth";
       }, 250);
     } catch (error) {
-      toast.error(error.message || t("shell.toast.logout_error", "Failed to log out."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.logout_error", "Failed to log out.")));
     }
   }
 
@@ -952,7 +953,7 @@ export function initUserShell(app) {
         window.location.href = "/gallery/auth";
       }, 250);
     } catch (error) {
-      toast.error(error.message || t("shell.toast.logout_all_error", "Failed to log out from all sessions."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.logout_all_error", "Failed to log out from all sessions.")));
     }
   }
 
@@ -967,7 +968,7 @@ export function initUserShell(app) {
         window.location.href = "/gallery/auth";
       }, 300);
     } catch (error) {
-      toast.error(error.message || t("shell.toast.password_change_error", "Failed to change password."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.password_change_error", "Failed to change password.")));
     }
   }
 
@@ -984,7 +985,7 @@ export function initUserShell(app) {
       renderAccountSecurityModal();
       toast.success(t("shell.toast.password_set", "Password set. You can now sign in with email and password."));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.password_set_error", "Failed to set password."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.password_set_error", "Failed to set password.")));
     }
   }
 
@@ -998,7 +999,7 @@ export function initUserShell(app) {
         toast.error(t("shell.toast.discord_link_url_error", "Failed to get Discord link URL."));
       }
     } catch (error) {
-      toast.error(error.message || t("shell.toast.discord_link_start_error", "Failed to start Discord linking."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.discord_link_start_error", "Failed to start Discord linking.")));
     }
   }
 
@@ -1010,7 +1011,7 @@ export function initUserShell(app) {
       toast.success(t("shell.toast.discord_unlinked", "Discord unlinked."));
       await refreshSession();
     } catch (error) {
-      toast.error(error.message || t("shell.toast.discord_unlink_error", "Failed to unlink Discord."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.discord_unlink_error", "Failed to unlink Discord.")));
     }
   }
 
@@ -1060,9 +1061,9 @@ export function initUserShell(app) {
         app.modal.open("twofactor-disable");
       }
 
-      toast.success(payload?.message || t("shell.toast.verify_sent", "Verification code sent."));
+      toast.success(resolveLocalizedMessage(payload?.message, t("shell.toast.verify_sent", "Verification code sent.")));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.verify_send_error", "Failed to send verification code."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.verify_send_error", "Failed to send verification code.")));
     }
   }
 
@@ -1092,7 +1093,7 @@ export function initUserShell(app) {
       renderUserCard();
       toast.success(t("shell.toast.2fa_enabled", "Two-factor authentication enabled."));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.2fa_enable_error", "Failed to enable two-factor authentication."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.2fa_enable_error", "Failed to enable two-factor authentication.")));
     }
   }
 
@@ -1116,13 +1117,13 @@ export function initUserShell(app) {
         : t("shell.toast.code_required", "Enter the verification code.");
       refs.twoFactorCodeInput.value = "";
       setCooldownFromSeconds("setup", payload?.data?.resend_cooldown_sec);
-      toast.success(payload.message || t("shell.toast.code_resent", "Verification code resent."));
+      toast.success(resolveLocalizedMessage(payload.message, t("shell.toast.code_resent", "Verification code resent.")));
     } catch (error) {
       const retryAfterSec = Number(error?.payload?.error?.retry_after_sec);
       if (Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
         setCooldownFromSeconds("setup", retryAfterSec);
       }
-      toast.error(error.message || t("shell.toast.code_resend_error", "Failed to resend verification code."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.code_resend_error", "Failed to resend verification code.")));
     }
   }
 
@@ -1152,7 +1153,7 @@ export function initUserShell(app) {
       renderUserCard();
       toast.success(t("shell.toast.2fa_disabled", "Two-factor authentication disabled."));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.2fa_disable_error", "Failed to disable two-factor authentication."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.2fa_disable_error", "Failed to disable two-factor authentication.")));
     }
   }
 
@@ -1176,13 +1177,13 @@ export function initUserShell(app) {
         : t("shell.toast.code_required", "Enter the verification code.");
       refs.twoFactorDisableCodeInput.value = "";
       setCooldownFromSeconds("disable", payload?.data?.resend_cooldown_sec);
-      toast.success(payload.message || t("shell.toast.code_resent", "Verification code resent."));
+      toast.success(resolveLocalizedMessage(payload.message, t("shell.toast.code_resent", "Verification code resent.")));
     } catch (error) {
       const retryAfterSec = Number(error?.payload?.error?.retry_after_sec);
       if (Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
         setCooldownFromSeconds("disable", retryAfterSec);
       }
-      toast.error(error.message || t("shell.toast.code_resend_error", "Failed to resend verification code."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.code_resend_error", "Failed to resend verification code.")));
     }
   }
 
@@ -1245,9 +1246,9 @@ export function initUserShell(app) {
     } catch (error) {
       const fieldErrors = error?.payload?.error?.field_errors || [];
       if (fieldErrors.length > 0) {
-        toast.error(fieldErrors[0].message || error.message || t("shell.toast.check_input", "Check the input values."));
+        toast.error(resolveLocalizedMessage(fieldErrors[0]?.message || error, t("shell.toast.check_input", "Check the input values.")));
       } else {
-        toast.error(error.message || t("shell.toast.profile_update_error", "Failed to update profile."));
+        toast.error(resolveLocalizedMessage(error, t("shell.toast.profile_update_error", "Failed to update profile.")));
       }
     } finally {
       refs.profileSaveButton.disabled = false;
@@ -1351,7 +1352,7 @@ export function initUserShell(app) {
       renderUserCard();
       toast.success(t("shell.toast.avatar_updated", "Avatar updated."));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.avatar_update_error", "Failed to upload avatar."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.avatar_update_error", "Failed to upload avatar.")));
     }
   }
 
@@ -1409,7 +1410,7 @@ export function initUserShell(app) {
       renderUserCard();
       toast.success(t("shell.toast.avatar_deleted", "Avatar deleted."));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.avatar_delete_error", "Failed to delete avatar."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.avatar_delete_error", "Failed to delete avatar.")));
     }
   }
 
@@ -1432,7 +1433,7 @@ export function initUserShell(app) {
         renderUserCard();
         toast.success(t("shell.toast.email_changed", "Email address updated."));
       } catch (error) {
-        toast.error(error.message || t("shell.toast.invalid_code", "Invalid verification code."));
+        toast.error(resolveLocalizedMessage(error, t("shell.toast.invalid_code", "Invalid verification code.")));
         refs.emailSaveButton.disabled = false;
       }
       return;
@@ -1454,7 +1455,7 @@ export function initUserShell(app) {
         result.data?.resend_cooldown_sec || 60,
       );
     } catch (error) {
-      toast.error(error.message || t("shell.toast.email_send_error", "Failed to send verification email."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.email_send_error", "Failed to send verification email.")));
       refs.emailSaveButton.disabled = false;
     }
   }
@@ -1468,7 +1469,7 @@ export function initUserShell(app) {
       _startEmailResendCooldown(result.data?.resend_cooldown_sec || 60);
       toast.success(t("shell.toast.code_resent", "Verification code resent."));
     } catch (error) {
-      toast.error(error.message || t("shell.toast.resend_error", "Failed to resend."));
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.resend_error", "Failed to resend.")));
       refs.emailResendButton.disabled = false;
     }
   }
@@ -1587,7 +1588,7 @@ export function initUserShell(app) {
         document.documentElement.lang = languageToLocaleTag(restoredLanguage);
         app.i18n?.setLanguage?.(restoredLanguage);
         dispatchLanguageChange(restoredLanguage);
-        toast.error(error?.message || t("shell.toast.save_language_error", "Failed to save language."));
+        toast.error(resolveLocalizedMessage(error, t("shell.toast.save_language_error", "Failed to save language.")));
       }
     });
 

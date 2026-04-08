@@ -195,7 +195,7 @@
                     id="shellAccountEditButton"
                     type="button"
                     class="app-icon-button shell-pen-button"
-                    aria-label="プロフィール編集"
+                    aria-label="Edit profile"
                     data-i18n-aria-label="shell.static.profile_edit"
                     data-modal-open="account"
                     hidden=""
@@ -206,7 +206,7 @@
                     id="shellProfilePreviewButton"
                     type="button"
                     class="app-icon-button shell-profile-preview-button"
-                    aria-label="プロフィールを確認"
+                    aria-label="Open profile"
                     data-i18n-aria-label="shell.static.profile_preview"
                     hidden=""
                   >
@@ -266,8 +266,8 @@
           </dl>
 
           <!-- アップロード -->
-          <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden="">
-            現在、画像投稿は無効化されています。
+          <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden="" data-i18n="shell.static.upload_disabled">
+            Image uploads are currently disabled.
           </p>
           <div class="shell-user-card__upload-row">
             <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden="" data-i18n="shell.static.upload">アップロード</button>
@@ -768,8 +768,8 @@
 <div class="admin-users-modal__field">
 <label class="admin-form-label" for="adminUsersEditRole" data-i18n="admin_users.role">ロール</label>
 <select class="app-select" id="adminUsersEditRole">
-<option value="admin">admin</option>
-<option value="user">user</option>
+<option value="admin" data-i18n="admin_users.admin">admin</option>
+<option value="user" data-i18n="admin_users.user">user</option>
 </select>
 </div>
 <div class="admin-users-modal__field">
@@ -810,7 +810,7 @@
 <div><span data-i18n="admin_users.email_label">メール</span><strong id="adminUsersEditEmail">-</strong></div>
 <div><span data-i18n="admin_users.created_at_label">作成日時</span><strong id="adminUsersEditCreatedAt">-</strong></div>
 <div><span data-i18n="admin_users.last_seen_at_label">最終アクセス</span><strong id="adminUsersEditLastSeenAt">-</strong></div>
-<div><span>2FA</span><strong id="adminUsersEditTwoFactor">-</strong></div>
+<div><span data-i18n="admin_users.twofactor_label">2FA</span><strong id="adminUsersEditTwoFactor">-</strong></div>
 </div>
 </div>
 </div>
@@ -838,8 +838,8 @@
 <div class="admin-users-modal__field">
 <label class="admin-form-label" for="adminUsersCreateRole" data-i18n="admin_users.role">ロール</label>
 <select class="app-select" id="adminUsersCreateRole">
-<option value="user">user</option>
-<option value="admin">admin</option>
+<option value="user" data-i18n="admin_users.user">user</option>
+<option value="admin" data-i18n="admin_users.admin">admin</option>
 </select>
 </div>
 <div class="admin-users-modal__field admin-users-modal__field--check">

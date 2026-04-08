@@ -1,5 +1,6 @@
 import { createUploadModalController } from "../../components/upload-modal.js";
 import { escapeHtml } from "../../core/dom.js";
+import { resolveLocalizedMessage } from "../../core/i18n.js";
 
 function byId(id) {
   return document.getElementById(id);
@@ -148,7 +149,7 @@ async function loadContents() {
     state.items = Array.isArray(payload.data?.items) ? payload.data.items : [];
     renderTable();
   } catch (error) {
-    const message = error?.message || t("load_error", "Failed to load content.");
+    const message = resolveLocalizedMessage(error, t("load_error", "Failed to load content."));
     window.AdminApp?.toast?.error?.(message);
     state.items = [];
     state.total = 0;
@@ -209,7 +210,7 @@ async function openDetail(imageId) {
     setDetail(content);
     window.AdminApp.modal.open("admin-content-detail");
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("detail_load_error", "Failed to load content details."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("detail_load_error", "Failed to load content details.")));
   }
 }
 
@@ -379,7 +380,7 @@ async function submitUpload() {
     }, 300);
   } catch (error) {
     setUploadResult(error?.message || t("upload_error", "Upload failed."), "error");
-    window.AdminApp?.toast?.error?.(error?.message || t("upload_error", "Upload failed."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("upload_error", "Upload failed.")));
   } finally {
     setUploadSubmitting(false);
   }
@@ -445,10 +446,10 @@ async function applyAction(kind) {
     if (content) {
       setDetail(content);
     }
-    window.AdminApp?.toast?.success?.(payload.message || t("updated", "Updated."));
+    window.AdminApp?.toast?.success?.(resolveLocalizedMessage(payload.message, t("updated", "Updated.")));
     await loadContents();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("update_error", "Update failed."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("update_error", "Update failed.")));
   }
 }
 

@@ -8,6 +8,8 @@ import ssl
 
 _VERIFY_PURPOSES = {"signup", "email_signup", "email_change", "2fa_setup", "2fa_disable"}
 
+_SUPPORTED_MAIL_LANGUAGES = {"ja", "en-us"}
+
 
 class AuthMailError(Exception):
     def __init__(self, code: str, message: str) -> None:
@@ -22,6 +24,21 @@ def _coerce_to_str(value) -> str:
     if isinstance(value, str):
         return value
     return str(value)
+
+
+def _normalize_mail_language(value: str | None) -> str:
+    raw = _coerce_to_str(value).strip().lower().replace("_", "-")
+    if raw in {"", "en", "en-gb"}:
+        return "en-us"
+    if raw in {"ja", "ja-jp"}:
+        return "ja"
+    if raw.startswith("ja-"):
+        return "ja"
+    if raw.startswith("en-"):
+        return "en-us"
+    if raw in _SUPPORTED_MAIL_LANGUAGES:
+        return raw
+    return "en-us"
 
 
 def _ensure_non_empty_string(value, field: str) -> str:
@@ -61,21 +78,24 @@ def _coerce_bool(value, field: str) -> bool:
     )
 
 
-def _format_expiry_minutes(expires_in_sec: int) -> str:
+def _format_expiry_minutes(expires_in_sec: int, language: str = "ja") -> str:
     seconds = _ensure_positive_int(expires_in_sec, "expires_in_sec")
     minutes = (seconds + 59) // 60
+    locale = _normalize_mail_language(language)
     if minutes <= 0:
-        return "1分未満"
-    return f"{minutes}分"
+        return "less than 1 minute" if locale != "ja" else "1分未満"
+    return f"{minutes} minutes" if locale != "ja" else f"{minutes}分"
 
 
-def _build_greeting(display_name: str | None = None) -> str:
+def _build_greeting(display_name: str | None = None, language: str = "ja") -> str:
     if display_name is None:
         return ""
     normalized = _coerce_to_str(display_name).strip()
     if normalized == "":
         return ""
-    return f"{normalized} 様\n\n"
+    if _normalize_mail_language(language) == "ja":
+        return f"{normalized} 様\n\n"
+    return f"Hello {normalized},\n\n"
 
 
 def validate_smtp_settings(smtp_settings: dict) -> dict:
@@ -194,7 +214,17 @@ def send_message(smtp_settings: dict, message: EmailMessage) -> None:
         ) from exc
 
 
-def build_verification_subject(purpose: str) -> str:
+def build_verification_subject(purpose: str, language: str = "ja") -> str:
+    locale = _normalize_mail_language(language)
+    if locale != "ja":
+        if purpose in {"signup", "email_signup"}:
+            return "[Felixxsv Gallery] Email Verification Code"
+        if purpose == "email_change":
+            return "[Felixxsv Gallery] Email Change Verification Code"
+        if purpose == "2fa_setup":
+            return "[Felixxsv Gallery] Two-Factor Setup Verification Code"
+        if purpose == "2fa_disable":
+            return "[Felixxsv Gallery] Two-Factor Disable Verification Code"
     if purpose in {"signup", "email_signup"}:
         return "【Felixxsv Gallery】メールアドレス確認コード"
     if purpose == "email_change":
@@ -214,6 +244,7 @@ def build_verification_body_text(
     purpose: str,
     expires_in_sec: int,
     display_name: str | None = None,
+    language: str = "ja",
 ) -> str:
     normalized_code = _ensure_non_empty_string(code, "code")
     if purpose not in _VERIFY_PURPOSES:
@@ -221,8 +252,30 @@ def build_verification_body_text(
             "invalid_verify_purpose",
             "メール確認用途が正しくありません。",
         )
-    expiry_text = _format_expiry_minutes(expires_in_sec)
-    greeting = _build_greeting(display_name)
+    locale = _normalize_mail_language(language)
+    expiry_text = _format_expiry_minutes(expires_in_sec, locale)
+    greeting = _build_greeting(display_name, locale)
+
+    if locale != "ja":
+        if purpose in {"signup", "email_signup"}:
+            purpose_text = "Enter the verification code below to complete your Felixxsv Gallery account registration."
+        elif purpose == "email_change":
+            purpose_text = "Enter the verification code below to complete your email address change."
+        elif purpose == "2fa_setup":
+            purpose_text = "Enter the verification code below to finish enabling two-factor authentication."
+        else:
+            purpose_text = "Enter the verification code below to disable two-factor authentication."
+
+        return (
+            f"{greeting}"
+            f"{purpose_text}\n\n"
+            f"Verification Code\n"
+            f"{normalized_code}\n\n"
+            f"Expires In\n"
+            f"{expiry_text}\n\n"
+            f"Do not share this code with anyone.\n"
+            f"If you do not recognize this request, you can safely ignore this email.\n"
+        )
 
     if purpose in {"signup", "email_signup"}:
         purpose_text = "Felixxsv Gallery のアカウント登録を完了するため、下記の確認コードを入力してください。"
@@ -245,7 +298,9 @@ def build_verification_body_text(
     )
 
 
-def build_two_factor_subject() -> str:
+def build_two_factor_subject(language: str = "ja") -> str:
+    if _normalize_mail_language(language) != "ja":
+        return "[Felixxsv Gallery] Two-Factor Authentication Code"
     return "【Felixxsv Gallery】2段階認証コード"
 
 
@@ -253,10 +308,24 @@ def build_two_factor_body_text(
     code: str,
     expires_in_sec: int,
     display_name: str | None = None,
+    language: str = "ja",
 ) -> str:
     normalized_code = _ensure_non_empty_string(code, "code")
-    expiry_text = _format_expiry_minutes(expires_in_sec)
-    greeting = _build_greeting(display_name)
+    locale = _normalize_mail_language(language)
+    expiry_text = _format_expiry_minutes(expires_in_sec, locale)
+    greeting = _build_greeting(display_name, locale)
+
+    if locale != "ja":
+        return (
+            f"{greeting}"
+            f"Enter the authentication code below to complete your Felixxsv Gallery sign-in.\n\n"
+            f"Authentication Code\n"
+            f"{normalized_code}\n\n"
+            f"Expires In\n"
+            f"{expiry_text}\n\n"
+            f"Do not share this code with anyone.\n"
+            f"If you do not recognize this request, consider changing your password.\n"
+        )
 
     return (
         f"{greeting}"
@@ -270,7 +339,9 @@ def build_two_factor_body_text(
     )
 
 
-def build_password_reset_subject() -> str:
+def build_password_reset_subject(language: str = "ja") -> str:
+    if _normalize_mail_language(language) != "ja":
+        return "[Felixxsv Gallery] Password Reset Instructions"
     return "【Felixxsv Gallery】パスワード再設定のご案内"
 
 
@@ -278,10 +349,23 @@ def build_password_reset_body_text(
     reset_url: str,
     expires_in_sec: int,
     display_name: str | None = None,
+    language: str = "ja",
 ) -> str:
     normalized_reset_url = _ensure_non_empty_string(reset_url, "reset_url")
-    expiry_text = _format_expiry_minutes(expires_in_sec)
-    greeting = _build_greeting(display_name)
+    locale = _normalize_mail_language(language)
+    expiry_text = _format_expiry_minutes(expires_in_sec, locale)
+    greeting = _build_greeting(display_name, locale)
+
+    if locale != "ja":
+        return (
+            f"{greeting}"
+            f"A password reset was requested for your Felixxsv Gallery account.\n"
+            f"Use the URL below to continue.\n\n"
+            f"{normalized_reset_url}\n\n"
+            f"Expires In\n"
+            f"{expiry_text}\n\n"
+            f"If you do not recognize this request, you can safely ignore this email.\n"
+        )
 
     return (
         f"{greeting}"
@@ -301,13 +385,16 @@ def send_verification_email(
     purpose: str,
     expires_in_sec: int,
     display_name: str | None = None,
+    preferred_language: str | None = None,
 ) -> None:
-    subject = build_verification_subject(purpose)
+    locale = _normalize_mail_language(preferred_language)
+    subject = build_verification_subject(purpose, locale)
     body_text = build_verification_body_text(
         code=code,
         purpose=purpose,
         expires_in_sec=expires_in_sec,
         display_name=display_name,
+        language=locale,
     )
     message = build_text_message(
         smtp_settings=smtp_settings,
@@ -324,12 +411,15 @@ def send_two_factor_code_email(
     code: str,
     expires_in_sec: int,
     display_name: str | None = None,
+    preferred_language: str | None = None,
 ) -> None:
-    subject = build_two_factor_subject()
+    locale = _normalize_mail_language(preferred_language)
+    subject = build_two_factor_subject(locale)
     body_text = build_two_factor_body_text(
         code=code,
         expires_in_sec=expires_in_sec,
         display_name=display_name,
+        language=locale,
     )
     message = build_text_message(
         smtp_settings=smtp_settings,
@@ -346,12 +436,15 @@ def send_password_reset_email(
     reset_url: str,
     expires_in_sec: int,
     display_name: str | None = None,
+    preferred_language: str | None = None,
 ) -> None:
-    subject = build_password_reset_subject()
+    locale = _normalize_mail_language(preferred_language)
+    subject = build_password_reset_subject(locale)
     body_text = build_password_reset_body_text(
         reset_url=reset_url,
         expires_in_sec=expires_in_sec,
         display_name=display_name,
+        language=locale,
     )
     message = build_text_message(
         smtp_settings=smtp_settings,

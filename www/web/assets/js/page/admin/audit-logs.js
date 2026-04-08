@@ -163,7 +163,7 @@ async function loadAuditLogs({ silent = false, force = false } = {}) {
       state.pages = 1;
       renderTable(error?.message || t("load_error", "Failed to load audit logs."));
       if (!silent) {
-        window.AdminApp?.toast?.error?.(error?.message || t("load_error", "Failed to load audit logs."));
+        window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("load_error", "Failed to load audit logs.")));
       }
     })
     .finally(() => {
@@ -193,7 +193,7 @@ async function openDetail(logId) {
     fillDetail(item);
     window.AdminApp.modal.open("admin-audit-detail");
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("detail_load_error", "Failed to load audit log details."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("detail_load_error", "Failed to load audit log details.")));
   }
 }
 
@@ -340,3 +340,4 @@ document.addEventListener("admin:ready", async () => {
     renderTable("");
   });
 });
+import { resolveLocalizedMessage } from "../../core/i18n.js";

@@ -466,7 +466,7 @@ async function loadDashboardStorageUsage({ force = false, silent = false } = {})
     storageUsageState.data = null;
     storageUsageState.loaded = false;
     if (!silent) {
-      window.AdminApp?.toast?.error?.(storageUsageState.error);
+      window.AdminApp?.toast?.error?.(resolveLocalizedMessage(storageUsageState.error, t("storage_error", "Failed to load storage usage.")));
     }
   } finally {
     storageUsageState.loading = false;
@@ -722,7 +722,7 @@ async function loadDashboard({ silent = false, force = false } = {}) {
     })
     .catch((error) => {
       if (!silent) {
-        window.AdminApp?.toast?.error?.(error?.message || t("dashboard_error", "Failed to load dashboard."));
+        window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("dashboard_error", "Failed to load dashboard.")));
       }
     })
     .finally(() => {
@@ -744,7 +744,7 @@ function bindClockButtons() {
         analogBtn?.classList.remove("is-active");
         showClock("digital");
       } catch (error) {
-        window.AdminApp?.toast?.error?.(error?.message || t("clock_error", "Failed to update clock setting."));
+        window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("clock_error", "Failed to update clock setting.")));
       }
     });
   }
@@ -757,7 +757,7 @@ function bindClockButtons() {
         digitalBtn?.classList.remove("is-active");
         showClock("analog");
       } catch (error) {
-        window.AdminApp?.toast?.error?.(error?.message || t("clock_error", "Failed to update clock setting."));
+        window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("clock_error", "Failed to update clock setting.")));
       }
     });
   }
@@ -792,12 +792,12 @@ function bindIntegrityButton() {
     button.disabled = true;
     try {
       const result = await queueIntegrityRun();
-      window.AdminApp?.toast?.success?.(result?.message || t("integrity_run_success", "Integrity check queued."));
+      window.AdminApp?.toast?.success?.(resolveLocalizedMessage(result?.message, t("integrity_run_success", "Integrity check queued.")));
       dashboardState.lastSnapshot = "";
       await loadDashboard({ force: true });
     } catch (error) {
       button.disabled = false;
-      window.AdminApp?.toast?.error?.(error?.message || t("integrity_run_error", "Failed to queue integrity check."));
+      window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("integrity_run_error", "Failed to queue integrity check.")));
     }
   });
 }
@@ -865,7 +865,7 @@ async function initDashboard() {
     ]);
     startDashboardLiveRefresh();
   } catch (error) {
-    window.AdminApp?.toast?.error?.(error?.message || t("dashboard_error", "Failed to load dashboard."));
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("dashboard_error", "Failed to load dashboard.")));
   }
 }
 
@@ -891,3 +891,4 @@ window.addEventListener("gallery:language-changed", () => {
     renderIntegritySummary(dashboardState.latestData.integrity_summary || {});
   }
 });
+import { resolveLocalizedMessage } from "../../core/i18n.js";
