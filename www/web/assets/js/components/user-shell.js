@@ -45,6 +45,15 @@ function getLinkIconUrl(url) {
   return `/gallery/assets/icons/social/${slug}.svg`;
 }
 
+const DEFAULT_CREDIT_META = Object.freeze({
+  service: "Felixxsv Gallery",
+  author: "Felix",
+  stack: "FastAPI / MySQL / JavaScript / CSS / Apache",
+  license: "TBD",
+  updatedAt: "2026-03-16",
+  version: "2026.03-rebuild-v2",
+});
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -347,11 +356,11 @@ export function initUserShell(app) {
     const creditLicense = byId("shellCreditLicense");
     const creditUpdatedAt = byId("shellCreditUpdatedAt");
     const creditVersion = byId("shellCreditVersion");
-    if (creditAuthor) creditAuthor.textContent = document.body.dataset.creditAuthor || "-";
-    if (creditStack) creditStack.textContent = document.body.dataset.creditStack || "-";
-    if (creditLicense) creditLicense.textContent = document.body.dataset.creditLicense || "-";
-    if (creditUpdatedAt) creditUpdatedAt.textContent = document.body.dataset.creditUpdatedAt || "-";
-    if (creditVersion) creditVersion.textContent = document.body.dataset.appVersion || "-";
+    if (creditAuthor) creditAuthor.textContent = document.body.dataset.creditAuthor || DEFAULT_CREDIT_META.author;
+    if (creditStack) creditStack.textContent = document.body.dataset.creditStack || DEFAULT_CREDIT_META.stack;
+    if (creditLicense) creditLicense.textContent = document.body.dataset.creditLicense || DEFAULT_CREDIT_META.license;
+    if (creditUpdatedAt) creditUpdatedAt.textContent = document.body.dataset.creditUpdatedAt || DEFAULT_CREDIT_META.updatedAt;
+    if (creditVersion) creditVersion.textContent = document.body.dataset.appVersion || DEFAULT_CREDIT_META.version;
   }
 
   function renderHelpContent() {
@@ -363,24 +372,24 @@ export function initUserShell(app) {
           <h3>${escapeHtml(t("shell.help.search_title", "Search and Filters"))}</h3>
           <ul>
             <li>${escapeHtml(t("shell.help.search_item1", "Use the header search to filter across titles, ALT text, tags, and users."))}</li>
-            <li>${escapeHtml(t("shell.help.search_item2", "Use the sidebar to combine tags, color tags, shot dates, posted dates, and archives."))}</li>
-            <li>${escapeHtml(t("shell.help.search_item3", "Archives are recalculated for the current filters and update when conditions change."))}</li>
+            <li>${escapeHtml(t("shell.help.search_item2", "Use the sidebar to combine tags, color tags, shot date, posted date, and archive filters."))}</li>
+            <li>${escapeHtml(t("shell.help.search_item3", "Archive counts are recalculated against the current filters and stay in sync when conditions change."))}</li>
           </ul>
         </section>
         <section>
           <h3>${escapeHtml(t("shell.help.view_title", "Viewing Images"))}</h3>
           <ul>
-            <li>${escapeHtml(t("shell.help.view_item1", "Open a card to view the image in a larger modal."))}</li>
-            <li>${escapeHtml(t("shell.help.view_item2", "Use the details action to inspect shot date, posted date, tags, and color tags."))}</li>
-            <li>${escapeHtml(t("shell.help.view_item3", "Select the author icon to open the profile modal."))}</li>
+            <li>${escapeHtml(t("shell.help.view_item1", "Open a card to view the image in the image modal."))}</li>
+            <li>${escapeHtml(t("shell.help.view_item2", "Use the details button to check shot date, posted date, tags, and color tags."))}</li>
+            <li>${escapeHtml(t("shell.help.view_item3", "Select the uploader icon to open the profile modal."))}</li>
           </ul>
         </section>
         <section>
           <h3>${escapeHtml(t("shell.help.account_title", "Account and Settings"))}</h3>
           <ul>
-            <li>${escapeHtml(t("shell.help.account_item1", "Use the user icon in the top right to open profile editing, display settings, and account settings."))}</li>
-            <li>${escapeHtml(t("shell.help.account_item2", "Email change, Discord link, two-factor auth, and logout are grouped in account settings."))}</li>
-            <li>${t("shell.help.account_item3", "Use <code>/gallery/auth/</code> as the primary authentication flow.")}</li>
+            <li>${escapeHtml(t("shell.help.account_item1", "Use the user menu in the top-right corner to open profile editing, display settings, and account settings."))}</li>
+            <li>${escapeHtml(t("shell.help.account_item2", "Email changes, Discord linking, two-factor authentication, and logout actions are grouped under account settings."))}</li>
+            <li>${t("shell.help.account_item3", "The canonical authentication flow is provided at <code>/gallery/auth/</code>.")}</li>
           </ul>
         </section>
       </div>
@@ -394,14 +403,14 @@ export function initUserShell(app) {
       <dl class="app-definition-list">
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_service", "Service"))}</dt>
-          <dd>${escapeHtml(document.body.dataset.creditService || "Felixxsv Gallery")}</dd>
+          <dd>${escapeHtml(document.body.dataset.creditService || DEFAULT_CREDIT_META.service)}</dd>
         </div>
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_author", "Author"))}</dt>
           <dd id="shellCreditAuthor">-</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("shell.static.credit_stack", "Stack"))}</dt>
+          <dt>${escapeHtml(t("shell.static.credit_stack", "Tech Stack"))}</dt>
           <dd id="shellCreditStack">-</dd>
         </div>
         <div class="app-definition-list__row">
@@ -409,7 +418,7 @@ export function initUserShell(app) {
           <dd id="shellCreditLicense">-</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("shell.static.credit_updated_at", "Updated At"))}</dt>
+          <dt>${escapeHtml(t("shell.static.credit_updated_at", "Updated"))}</dt>
           <dd id="shellCreditUpdatedAt">-</dd>
         </div>
         <div class="app-definition-list__row">
