@@ -1578,35 +1578,12 @@ export function initUserShell(app) {
     if (refs.emailResendButton) refs.emailResendButton.addEventListener("click", handleEmailResend);
 
     refs.settingLanguage.addEventListener("change", async () => {
-      const previousLanguage = app.settings.getLanguage();
       const nextLanguage = app.settings.setLanguage(refs.settingLanguage.value);
       refs.settingLanguage.value = nextLanguage;
       await ensureLanguageCatalog(nextLanguage);
       app.i18n?.setLanguage?.(nextLanguage);
       dispatchLanguageChange(nextLanguage);
-
-      if (!isAuthenticated()) {
-        toast.success(t("shell.toast.save_language", "Language saved."));
-        return;
-      }
-
-      try {
-        await app.api.patch("/api/auth/profile", {
-          preferred_language: nextLanguage,
-        });
-        const sessionState = session.getState();
-        if (sessionState?.authenticated && sessionState.data?.user) {
-          sessionState.data.user.preferred_language = nextLanguage;
-        }
-        toast.success(t("shell.toast.save_language", "Language saved."));
-      } catch (error) {
-        const restoredLanguage = app.settings.setLanguage(previousLanguage);
-        refs.settingLanguage.value = restoredLanguage;
-        await ensureLanguageCatalog(restoredLanguage);
-        app.i18n?.setLanguage?.(restoredLanguage);
-        dispatchLanguageChange(restoredLanguage);
-        toast.error(resolveLocalizedMessage(error, t("shell.toast.save_language_error", "Failed to save language.")));
-      }
+      toast.success(t("shell.toast.save_language", "Language saved."));
     });
 
     refs.settingTheme.addEventListener("change", () => {

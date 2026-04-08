@@ -438,14 +438,6 @@ def login_with_email_password(
             _dispatch_mail_job(two_factor_result["mail_job"])
             return two_factor_result["result"]
 
-        if resolved_preferred_language and resolved_preferred_language != normalize_preferred_language(user.get("preferred_language")):
-            update_user_profile(
-                conn=conn,
-                user_id=user["id"],
-                preferred_language=resolved_preferred_language,
-            )
-            user["preferred_language"] = resolved_preferred_language
-
         session_result = _create_authenticated_session_result(
             conn=conn,
             user=user,
@@ -1575,14 +1567,6 @@ def confirm_two_factor_challenge(
             remember_until = build_two_factor_remember_until(now=now_dt)
 
         user = get_user_by_id(conn, parsed["user_id"])
-        resolved_preferred_language = normalize_preferred_language(parsed.get("preferred_language"))
-        if resolved_preferred_language and resolved_preferred_language != normalize_preferred_language(user.get("preferred_language")):
-            update_user_profile(
-                conn=conn,
-                user_id=user["id"],
-                preferred_language=resolved_preferred_language,
-            )
-            user["preferred_language"] = resolved_preferred_language
         session_token = generate_session_token()
         session_id = generate_session_id()
         create_session(

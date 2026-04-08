@@ -68,8 +68,7 @@ function dispatchLanguageChange(language) {
 }
 
 async function syncLanguagePreference(app, sessionState) {
-  const preferredLanguage = sessionState?.data?.user?.preferred_language || null;
-  const resolvedLanguage = preferredLanguage ? app.settings.setLanguage(preferredLanguage) : app.settings.getLanguage();
+  const resolvedLanguage = app.settings.getLanguage();
   try {
     await app.i18n.loadCatalog?.(resolvedLanguage, `${app.appBase}/assets/i18n/${resolvedLanguage}.json`);
   } catch {
