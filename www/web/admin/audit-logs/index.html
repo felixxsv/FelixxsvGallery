@@ -227,24 +227,6 @@
               <!-- 表示バッジ -->
               <div id="shellUserDisplayBadges" class="shell-user-display-badges" hidden=""></div>
 
-              <!-- バッジプール -->
-              <div id="shellBadgePool" class="shell-badge-pool" hidden="">
-                <span class="shell-badge-pool__label" data-i18n="shell.static.badges_hint">バッジ（最大3つ選択）</span>
-                <div class="shell-badge-pool__list">
-                  <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">バッジはまだありません</span>
-                </div>
-                <span class="shell-badge-pool__hint" data-i18n="shell.static.badges_hint">クリックでプロフィールに表示するバッジを切り替えられます</span>
-              </div>
-
-              <!-- バッジプール -->
-              <div id="shellBadgePool" class="shell-badge-pool" hidden="">
-                <span class="shell-badge-pool__label" data-i18n="shell.static.badges_hint">バッジ（最大3つ選択）</span>
-                <div class="shell-badge-pool__list">
-                  <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">バッジはまだありません</span>
-                </div>
-                <span class="shell-badge-pool__hint" data-i18n="shell.static.badges_hint">クリックでプロフィールに表示するバッジを切り替えられます</span>
-              </div>
-
           <!-- メタ情報 -->
           <dl class="app-definition-list shell-user-card__meta-list">
             <div class="app-definition-list__row">
@@ -261,7 +243,9 @@
             </div>
             <div id="shellUserRoleRow" class="app-definition-list__row" hidden="">
               <dt data-i18n="shell.static.role">ロール</dt>
-              <dd id="shellUserRole">-</dd>
+              <dd class="shell-role-cell">
+                <span id="shellUserRole">-</span>
+              </dd>
             </div>
           </dl>
 
@@ -286,16 +270,6 @@
           data-modal-open="account-security"
           hidden=""
         data-i18n="shell.static.account_settings">アカウント設定</button>
-        <a
-          id="shellAdminLink"
-          href="/gallery/admin"
-          class="app-link-button app-button--small"
-          hidden=""
-        data-i18n="shell.static.admin">管理画面へ</a>
-      </div>
-      <div class="shell-user-footer__actions">
-        <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.logout_all">全端末ログアウト</button>
-        <button id="shellLogoutButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.logout">ログアウト</button>
       </div>
     </div>
   </div>
@@ -384,7 +358,32 @@
       <h2 id="helpTitle" class="app-modal-title" data-i18n="shell.static.help">ヘルプ</h2>
     </div>
     <div class="app-modal-body">
-      <div class="shell-empty-block"></div>
+      <div class="shell-help-content">
+        <section>
+          <h3 data-i18n="shell.help.search_title">Search and Filters</h3>
+          <ul>
+            <li data-i18n="shell.help.search_item1">Use the header search to filter across titles, ALT text, tags, and users.</li>
+            <li data-i18n="shell.help.search_item2">Use the sidebar to combine tags, color tags, shot dates, posted dates, and archives.</li>
+            <li data-i18n="shell.help.search_item3">Archives are recalculated for the current filters and update when conditions change.</li>
+          </ul>
+        </section>
+        <section>
+          <h3 data-i18n="shell.help.view_title">Viewing Images</h3>
+          <ul>
+            <li data-i18n="shell.help.view_item1">Open a card to view the image in a larger modal.</li>
+            <li data-i18n="shell.help.view_item2">Use the details action to inspect shot date, posted date, tags, and color tags.</li>
+            <li data-i18n="shell.help.view_item3">Select the author icon to open the profile modal.</li>
+          </ul>
+        </section>
+        <section>
+          <h3 data-i18n="shell.help.account_title">Account and Settings</h3>
+          <ul>
+            <li data-i18n="shell.help.account_item1">Use the user icon in the top right to open profile editing, display settings, and account settings.</li>
+            <li data-i18n="shell.help.account_item2">Email change, Discord link, two-factor auth, and logout are grouped in account settings.</li>
+            <li data-i18n-html="shell.help.account_item3">Use <code>/gallery/auth/</code> as the primary authentication flow.</li>
+          </ul>
+        </section>
+      </div>
     </div>
     <div class="app-modal-footer app-modal-footer--end">
       <button type="button" class="app-button app-button--primary" data-modal-close="help" data-i18n="shell.static.close">閉じる</button>
@@ -449,11 +448,11 @@
           </div>
           <div class="shell-profile-avatar-controls">
             <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
-              アイコンを変更
+              <span data-i18n="shell.static.icon_change">Change Avatar</span>
             </label>
             <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
             <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden="">
-              削除
+              <span data-i18n="shell.action.remove">Remove</span>
             </button>
           </div>
         </div>
@@ -486,6 +485,13 @@
         <div class="shell-profile-links__grid" id="shellProfileLinksGrid"></div>
       </div>
 
+      <div id="shellProfileBadgeSection" class="shell-profile-badge-section" hidden="">
+        <h3 class="shell-profile-links__title"><span data-i18n="shell.static.badges">Badges</span> <span class="shell-profile-badge-section__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span></h3>
+        <div id="shellProfileBadgePool" class="shell-badge-pool__list shell-profile-badge-pool">
+          <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
+        </div>
+      </div>
+
     </div>
     <div class="app-modal-footer app-modal-footer--end">
       <button type="button" class="app-button app-button--ghost" data-modal-close="account" data-i18n="shell.static.cancel">キャンセル</button>
@@ -510,13 +516,29 @@
               <span class="shell-security-item__label" data-i18n="shell.static.email">メールアドレス</span>
               <span id="shellAccountEmail" class="shell-security-item__value">-</span>
             </div>
-            <button id="shellEmailActionButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="email" data-i18n="shell.static.change">変更</button>
+            <button id="shellEmailActionButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="email" data-i18n="shell.action.change">Change</button>
           </div>
           <div class="shell-security-item">
             <div class="shell-security-item__left">
               <span class="shell-security-item__label" data-i18n="shell.static.password">パスワード</span>
+              <span id="shellAccountPasswordStatus" class="shell-security-item__value">-</span>
             </div>
-            <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password" data-i18n="shell.static.change">変更</button>
+            <button id="shellPasswordChangeButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password" hidden="" data-i18n="shell.action.change">Change</button>
+            <button id="shellPasswordSetButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password-set" hidden="" data-i18n="shell.static.set">Set</button>
+          </div>
+          <div class="shell-security-item">
+            <div class="shell-security-item__left">
+              <span class="shell-security-item__label" data-i18n="shell.static.discord_link">Discord Link</span>
+              <span id="shellAccountDiscordStatus" class="shell-security-item__value">-</span>
+            </div>
+            <button id="shellDiscordLinkButton" type="button" class="app-button app-button--ghost app-button--small" hidden="" data-i18n="shell.static.link">Link</button>
+            <button id="shellDiscordUnlinkButton" type="button" class="app-button app-button--ghost app-button--small" hidden="" data-i18n="shell.static.unlink">Unlink</button>
+          </div>
+          <div class="shell-security-item">
+            <div class="shell-security-item__left">
+              <span class="shell-security-item__label" data-i18n="shell.static.registration_route">Registration Route</span>
+              <span id="shellAccountRegistrationRoute" class="shell-security-item__value">-</span>
+            </div>
           </div>
           <div class="shell-security-item">
             <div class="shell-security-item__left">
@@ -526,6 +548,14 @@
             <button id="shellTwoFactorEnableButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="shell.static.enable">有効化</button>
             <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button app-button--ghost app-button--small" hidden="" data-i18n="shell.static.disable">無効化</button>
           </div>
+        </div>
+      </div>
+
+      <div class="shell-security-section">
+        <h3 class="shell-security-section__title" data-i18n="shell.static.session">Session</h3>
+        <div class="shell-account-actions">
+          <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.logout_all">Log Out All Devices</button>
+          <button id="shellLogoutButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.logout">Log Out</button>
         </div>
       </div>
 
