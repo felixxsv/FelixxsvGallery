@@ -251,6 +251,9 @@ export async function initAdminLayout() {
   }
 
   syncLanguagePreference(app, null);
+  window.addEventListener("gallery:language-changed", () => {
+    app.i18n.apply?.(document);
+  });
 
   const refs = {
     loading: byId("adminLoadingState"),
