@@ -3968,7 +3968,7 @@ def get_current_user_profile(
                     "user_key": user["user_key"],
                     "display_name": user["display_name"],
                     "bio": user.get("bio"),
-                    "preferred_language": normalize_preferred_language(user.get("preferred_language")) or "ja",
+                    "preferred_language": normalize_preferred_language(user.get("preferred_language")) or "en-us",
                     "links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links],
                     "primary_email": user.get("primary_email"),
                     "avatar_url": avatar_url,

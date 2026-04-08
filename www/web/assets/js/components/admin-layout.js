@@ -67,9 +67,14 @@ function dispatchLanguageChange(language) {
   }));
 }
 
-function syncLanguagePreference(app, sessionState) {
+async function syncLanguagePreference(app, sessionState) {
   const preferredLanguage = sessionState?.data?.user?.preferred_language || null;
   const resolvedLanguage = preferredLanguage ? app.settings.setLanguage(preferredLanguage) : app.settings.getLanguage();
+  try {
+    await app.i18n.loadCatalog?.(resolvedLanguage, `${app.appBase}/assets/i18n/${resolvedLanguage}.json`);
+  } catch {
+    // Use already loaded catalogs as fallback.
+  }
   app.i18n.setLanguage(resolvedLanguage);
   applyDocumentLanguage(resolvedLanguage);
   app.i18n.apply?.(document);
@@ -250,7 +255,7 @@ export async function initAdminLayout() {
     // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
   }
 
-  syncLanguagePreference(app, null);
+  await syncLanguagePreference(app, null);
   window.addEventListener("gallery:language-changed", () => {
     app.i18n.apply?.(document);
   });
@@ -535,7 +540,7 @@ export async function initAdminLayout() {
 
   try {
     const sessionState = await app.session.load();
-    syncLanguagePreference(app, sessionState);
+    await syncLanguagePreference(app, sessionState);
 
     if (!sessionState.authenticated) {
       showNotFound();
