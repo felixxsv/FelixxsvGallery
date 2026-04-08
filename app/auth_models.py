@@ -68,7 +68,6 @@ def get_user_by_id(conn, user_id: int) -> dict | None:
             email AS primary_email,
             avatar_path,
             bio,
-            preferred_language,
             role,
             status,
             can_upload AS upload_enabled,
@@ -98,7 +97,6 @@ def get_user_by_user_key(conn, user_key: str) -> dict | None:
             email AS primary_email,
             avatar_path,
             bio,
-            preferred_language,
             role,
             status,
             can_upload AS upload_enabled,
@@ -128,7 +126,6 @@ def get_user_by_primary_email(conn, email: str) -> dict | None:
             email AS primary_email,
             avatar_path,
             bio,
-            preferred_language,
             role,
             status,
             can_upload AS upload_enabled,
@@ -204,7 +201,6 @@ def update_user_profile(
     clear_avatar: bool = False,
     bio: str | None = None,
     clear_bio: bool = False,
-    preferred_language: str | None = None,
 ) -> int:
     fields: list[str] = []
     params: list[Any] = []
@@ -228,9 +224,6 @@ def update_user_profile(
         params.append(bio)
     elif clear_bio:
         fields.append("bio = NULL")
-    if preferred_language is not None:
-        fields.append("preferred_language = %s")
-        params.append(preferred_language)
 
     if not fields:
         return 0
