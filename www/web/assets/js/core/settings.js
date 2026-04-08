@@ -3,8 +3,18 @@ const KEY_THEME = "felixxsv.gallery.theme";
 const KEY_IMAGE_OPEN_BEHAVIOR = "felixxsv.gallery.image.openBehavior";
 const KEY_IMAGE_BACKDROP_CLOSE = "felixxsv.gallery.image.backdropClose";
 const KEY_IMAGE_META_PINNED = "felixxsv.gallery.image.metaPinned";
-export const DEFAULT_LANGUAGE = "ja";
+export const DEFAULT_LANGUAGE = "en-us";
 export const SUPPORTED_LANGUAGE_VALUES = ["ja", "en-us", "de", "fr", "ru", "es", "zh-cn", "ko"];
+const LANGUAGE_LOCALE_TAGS = {
+  ja: "ja-JP",
+  "en-us": "en-US",
+  de: "de-DE",
+  fr: "fr-FR",
+  ru: "ru-RU",
+  es: "es-ES",
+  "zh-cn": "zh-CN",
+  ko: "ko-KR",
+};
 
 const LANGUAGE_ALIASES = {
   ja: "ja",
@@ -49,6 +59,11 @@ export function normalizeLanguageCode(value) {
   return LANGUAGE_ALIASES[prefix] || DEFAULT_LANGUAGE;
 }
 
+export function languageToLocaleTag(value) {
+  const normalized = normalizeLanguageCode(value);
+  return LANGUAGE_LOCALE_TAGS[normalized] || LANGUAGE_LOCALE_TAGS[DEFAULT_LANGUAGE];
+}
+
 function detectBrowserLanguage() {
   try {
     const languages = Array.isArray(window?.navigator?.languages) ? window.navigator.languages : [];
@@ -69,7 +84,7 @@ export function createSettingsStore(storage = window.localStorage) {
     if (stored !== null) {
       return normalizeLanguageCode(stored);
     }
-    return detectBrowserLanguage();
+    return DEFAULT_LANGUAGE;
   }
 
   function setLanguage(value) {

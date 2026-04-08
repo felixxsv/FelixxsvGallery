@@ -222,12 +222,15 @@ function renderDashboardStoragePath(element, pathText, percentText, ratio) {
   }
 }
 
+import { languageToLocaleTag } from "../../core/settings.js";
+
 function updateDigitalClock() {
   const el = byId("adminDashboardClockDigital");
   if (!el || el.hidden) return;
   const now = new Date();
-  const text = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  const date = now.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" });
+  const locale = languageToLocaleTag(document.documentElement.lang || "en-us");
+  const text = now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const date = now.toLocaleDateString(locale, { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" });
   const timeEl = el.querySelector("[data-clock-time]");
   const dateEl = el.querySelector("[data-clock-date]");
   if (timeEl) timeEl.textContent = text;

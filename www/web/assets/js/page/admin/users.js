@@ -1,4 +1,5 @@
 import { escapeHtml } from "../../core/dom.js";
+import { languageToLocaleTag } from "../../core/settings.js";
 
 function byId(id) {
   return document.getElementById(id);
@@ -12,7 +13,7 @@ function formatDateTime(value) {
   if (!value) return "-";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString("ja-JP");
+  return d.toLocaleString(languageToLocaleTag(document.documentElement.lang || "en-us"));
 }
 
 function buildPill(text, mod) {

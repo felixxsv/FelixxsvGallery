@@ -2,7 +2,7 @@ import { byId } from "./core/dom.js";
 import { createApiClient } from "./core/api.js";
 import { createModalManager } from "./core/modal.js";
 import { createToastManager } from "./core/toast.js";
-import { createSettingsStore } from "./core/settings.js";
+import { createSettingsStore, languageToLocaleTag } from "./core/settings.js";
 import { createThemeController } from "./core/theme.js";
 import { createSessionStore } from "./core/session.js";
 import { buildLocaleLoadOrder, createI18n } from "./core/i18n.js";
@@ -55,7 +55,7 @@ function createAppContext() {
 }
 
 function applyDocumentLanguage(language) {
-  document.documentElement.lang = String(language || "ja").trim().toLowerCase() || "ja";
+  document.documentElement.lang = languageToLocaleTag(language);
 }
 
 function dispatchLanguageChange(language) {

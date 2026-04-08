@@ -1,4 +1,4 @@
-import { createSettingsStore } from "../core/settings.js";
+import { createSettingsStore, languageToLocaleTag } from "../core/settings.js";
 import { createThemeController } from "../core/theme.js";
 import { buildLocaleLoadOrder, createI18n } from "../core/i18n.js";
 
@@ -223,7 +223,7 @@ async function initSpecialPages() {
     // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
   }
 
-  document.documentElement.lang = settings.getLanguage();
+  document.documentElement.lang = languageToLocaleTag(settings.getLanguage());
   const kind = document.body.dataset.pageKind || "not-found";
   const config = getPageConfig(i18n, kind);
 

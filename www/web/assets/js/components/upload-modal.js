@@ -187,7 +187,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                         ${escapeHtml(t(app, "shot_at_label", "Shot At"))}
                         <span id="uploadModalShotAtBadge" class="upload-modal__auto-badge" hidden>${escapeHtml(t(app, "auto", "AUTO"))}</span>
                       </span>
-                      <input id="uploadModalShotAtInput" class="app-input" type="datetime-local" step="60" lang="${escapeHtml(app.settings.getLanguage())}">
+                      <input id="uploadModalShotAtInput" class="app-input" type="datetime-local" step="60" lang="${escapeHtml(languageToLocaleTag(app.settings.getLanguage()))}">
                     </label>
                     <div class="app-field">
                       <span class="app-field__label">${escapeHtml(t(app, "tags_label", "Tags"))}</span>
@@ -1389,3 +1389,4 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     reset: resetState
   };
 }
+import { languageToLocaleTag } from "../core/settings.js";

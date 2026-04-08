@@ -1,4 +1,5 @@
 import { escapeHtml } from "./dom.js";
+import { languageToLocaleTag } from "./settings.js";
 
 function td(app, key, fallback) {
   return app?.i18n?.t?.(`image_detail.${key}`, fallback) || fallback;
@@ -29,14 +30,15 @@ function formatBytes(value) {
 function formatCount(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 0) return "-";
-  return n.toLocaleString("ja-JP");
+  return n.toLocaleString(languageToLocaleTag(document.documentElement.lang || "en-us"));
 }
 
 function formatImageSize(width, height) {
   const w = Number(width);
   const h = Number(height);
   if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return "-";
-  return `${w.toLocaleString("ja-JP")} × ${h.toLocaleString("ja-JP")}`;
+  const locale = languageToLocaleTag(document.documentElement.lang || "en-us");
+  return `${w.toLocaleString(locale)} × ${h.toLocaleString(locale)}`;
 }
 
 function normalizeColorTag(item) {

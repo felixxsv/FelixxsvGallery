@@ -1,4 +1,5 @@
 import { byId } from "../core/dom.js";
+import { languageToLocaleTag } from "../core/settings.js";
 
 const LINK_ICON_MAP = {
   "x.com": "x",
@@ -59,7 +60,7 @@ function formatDate(value) {
   if (Number.isNaN(date.getTime())) {
     return String(value);
   }
-  return date.toLocaleString("ja-JP");
+  return date.toLocaleString(languageToLocaleTag(document.documentElement.lang || "en-us"));
 }
 
 function nowMs() {
@@ -1470,7 +1471,7 @@ export function initUserShell(app) {
       const previousLanguage = app.settings.getLanguage();
       const nextLanguage = app.settings.setLanguage(refs.settingLanguage.value);
       refs.settingLanguage.value = nextLanguage;
-      document.documentElement.lang = nextLanguage;
+      document.documentElement.lang = languageToLocaleTag(nextLanguage);
       app.i18n?.setLanguage?.(nextLanguage);
       dispatchLanguageChange(nextLanguage);
 
@@ -1491,7 +1492,7 @@ export function initUserShell(app) {
       } catch (error) {
         const restoredLanguage = app.settings.setLanguage(previousLanguage);
         refs.settingLanguage.value = restoredLanguage;
-        document.documentElement.lang = restoredLanguage;
+        document.documentElement.lang = languageToLocaleTag(restoredLanguage);
         app.i18n?.setLanguage?.(restoredLanguage);
         dispatchLanguageChange(restoredLanguage);
         toast.error(error?.message || t("shell.toast.save_language_error", "Failed to save language."));

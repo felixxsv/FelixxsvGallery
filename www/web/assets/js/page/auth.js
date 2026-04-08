@@ -1,4 +1,4 @@
-import { createSettingsStore, normalizeLanguageCode } from "../core/settings.js";
+import { createSettingsStore, languageToLocaleTag, normalizeLanguageCode } from "../core/settings.js";
 import { buildLocaleLoadOrder, fetchLocaleCatalogs } from "../core/i18n.js";
 
 const el = (id) => document.getElementById(id);
@@ -67,7 +67,7 @@ async function loadSharedMessages() {
 
 function normalizeLanguage(value) {
   const lang = normalizeLanguageCode(value);
-  return SUPPORTED_LANGUAGES.has(lang) ? lang : "ja";
+  return SUPPORTED_LANGUAGES.has(lang) ? lang : "en-us";
 }
 
 let currentLanguage = normalizeLanguage(settings.getLanguage());
@@ -85,7 +85,7 @@ function t(key, fallbackOrVars = {}, maybeVars = {}) {
 }
 
 function applyTranslations() {
-  document.documentElement.lang = currentLanguage;
+  document.documentElement.lang = languageToLocaleTag(currentLanguage);
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     const key = node.dataset.i18n;

@@ -1,3 +1,5 @@
+import { languageToLocaleTag } from "./settings.js";
+
 export function createI18n(settingsStore) {
   const dictionaries = new Map();
 
@@ -17,7 +19,7 @@ export function createI18n(settingsStore) {
   }
 
   function t(key, fallback = "", vars = {}) {
-    const lang = String(getLanguage() || "ja").trim().toLowerCase();
+    const lang = String(getLanguage() || "en-us").trim().toLowerCase();
     const dict = dictionaries.get(lang) || {};
     const en = dictionaries.get("en-us") || {};
     const ja = dictionaries.get("ja") || {};
@@ -35,7 +37,7 @@ export function createI18n(settingsStore) {
     return messages;
   }
 
-  async function loadCatalogs(basePath, locales = ["ja", "en-us"]) {
+  async function loadCatalogs(basePath, locales = ["en-us", "ja"]) {
     const normalizedBasePath = String(basePath || "").replace(/\/+$/, "");
     const entries = await Promise.all(locales.map(async (locale) => {
       const messages = await loadCatalog(locale, `${normalizedBasePath}/${locale}.json`);
@@ -71,7 +73,7 @@ export function createI18n(settingsStore) {
       node.setAttribute("title", t(key, node.getAttribute("title") || ""));
     });
     root.querySelectorAll?.("input[type=\"date\"], input[type=\"datetime-local\"], input[type=\"time\"]").forEach((node) => {
-      node.setAttribute("lang", getLanguage());
+      node.setAttribute("lang", languageToLocaleTag(getLanguage()));
     });
   }
 
@@ -88,14 +90,14 @@ export function createI18n(settingsStore) {
 
 export function buildLocaleLoadOrder(language) {
   const normalized = String(language || "").trim().toLowerCase();
-  const locales = ["ja", "en-us"];
+  const locales = ["en-us", "ja"];
   if (normalized && !locales.includes(normalized)) {
     locales.push(normalized);
   }
   return locales;
 }
 
-export async function fetchLocaleCatalogs(basePath, locales = ["ja", "en-us"]) {
+export async function fetchLocaleCatalogs(basePath, locales = ["en-us", "ja"]) {
   const normalizedBasePath = String(basePath || "").replace(/\/+$/, "");
   const entries = await Promise.all(locales.map(async (locale) => {
     const response = await fetch(`${normalizedBasePath}/${locale}.json`, { credentials: "same-origin" });

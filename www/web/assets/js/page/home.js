@@ -1,4 +1,5 @@
 import { byId, escapeHtml } from "../core/dom.js";
+import { languageToLocaleTag } from "../core/settings.js";
 
 const GRID_COLS_STORAGE_KEY = "gallery.home.gridColumns";
 const MOBILE_GRID_MEDIA = "(max-width: 820px)";
@@ -66,7 +67,14 @@ function formatDisplayDateTime(value) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return textOrDash(value);
-  return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+  return new Intl.DateTimeFormat(languageToLocaleTag(document.documentElement.lang || "en-us"), {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 }
 
 function withAppBase(path) {
@@ -326,7 +334,7 @@ function normalizeLikeCount(value) {
 }
 
 function formatCount(value) {
-  return normalizeLikeCount(value).toLocaleString("ja-JP");
+  return normalizeLikeCount(value).toLocaleString(languageToLocaleTag(document.documentElement.lang || "en-us"));
 }
 
 function formatCompactCount(value) {

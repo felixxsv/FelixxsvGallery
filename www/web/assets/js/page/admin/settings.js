@@ -238,6 +238,8 @@ const state = {
 
 const $ = (selector) => document.querySelector(selector);
 
+import { languageToLocaleTag } from "../../core/settings.js";
+
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -268,7 +270,7 @@ function setSaveState(text, kind = "idle") {
 function formatDateTime(value) {
   if (!value) return "-";
   try {
-    return new Date(value).toLocaleString("ja-JP");
+    return new Date(value).toLocaleString(languageToLocaleTag(document.documentElement.lang || "en-us"));
   } catch {
     return String(value);
   }

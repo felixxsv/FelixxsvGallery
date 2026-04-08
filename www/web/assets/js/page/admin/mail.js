@@ -1,5 +1,6 @@
 import { createApiClient } from "../../core/api.js";
 import { escapeHtml } from "../../core/dom.js";
+import { languageToLocaleTag } from "../../core/settings.js";
 
 const appBase = document.body.dataset.appBase || "/gallery";
 const api = createApiClient({ baseUrl: appBase });
@@ -48,7 +49,7 @@ function setDraftStatus(message) {
 function formatDate(value) {
   if (!value) return "-";
   try {
-    return new Date(value).toLocaleString("ja-JP");
+    return new Date(value).toLocaleString(languageToLocaleTag(document.documentElement.lang || "en-us"));
   } catch {
     return String(value);
   }
