@@ -1,0 +1,15 @@
+[Unit]
+Description=Felixxsv Gallery Discord Upload Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/data/felixxsv-gallery/app
+Environment=GALLERY_CONF=/etc/felixxsv-gallery/gallery.conf
+ExecStart=/usr/bin/env python3 -m discord_gallery_bot --config /etc/felixxsv-gallery/gallery.conf
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

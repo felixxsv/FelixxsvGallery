@@ -1,111 +1,171 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Felixxsv Gallery - Auth</title>
-  <link rel="stylesheet" href="/gallery/common.css">
-  <link rel="stylesheet" href="/gallery/auth.css">
-  <link rel="stylesheet" href="/gallery/toast.css">
+  <title data-i18n="auth.meta.title">Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/auth.css">
 </head>
-<body>
-  <header class="hdr">
-    <div class="hdr__inner">
-      <div class="hdr__left">
-        <a class="hdr__logo" href="/gallery/">
-          <span class="hdr__mark" aria-hidden="true"></span>
-          <span class="hdr__title">Felixxsv Gallery</span>
-        </a>
-        <div class="hdr__crumb">Auth</div>
+<body class="app-page auth-page" data-app-base="/gallery">
+
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <span class="auth-site-logo" aria-label="Felixxsv Gallery">
+          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+          <span class="auth-site-logo__label">Felixxsv Gallery</span>
+        </span>
       </div>
-      <div class="hdr__right">
-        <button id="authHeaderBackButton" class="hdrbtn" type="button" aria-label="Back">←</button>
+      <div class="app-site-header__right">
+        <button id="authHeaderBackButton" class="app-button app-button--ghost app-button--small" type="button" data-i18n="auth.header.back">← Back to Gallery</button>
       </div>
     </div>
   </header>
 
-  <main class="auth">
-    <div class="authcard glass-strong">
-      <div class="authtabs">
-        <button id="tabLogin" class="btn btn-ghost is-on" type="button">Login</button>
-        <button id="tabSignup" class="btn btn-ghost" type="button">新規登録</button>
-      </div>
+  <main class="auth-main">
+    <div class="auth-split">
 
-      <div id="paneLogin" class="authpane is-on">
-        <div id="loginStageCredentials">
-          <div class="label">Email</div>
-          <input id="loginEmail" class="inp" type="email" autocomplete="email">
-
-          <div class="label">Password</div>
-          <input id="loginPass" class="inp" type="password" autocomplete="current-password">
-
-          <button id="loginBtn" class="btn btn-primary authbtn" type="button">Login</button>
-        </div>
-
-        <div id="loginStageTwoFactor" hidden>
-          <div id="loginTwoFactorMessage" class="label">認証コードを入力してください。</div>
-
-          <div class="label">認証コード</div>
-          <input id="loginTwoFactorCode" class="inp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-
-          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-            <button id="loginTwoFactorVerifyBtn" class="btn btn-primary authbtn" type="button">確認</button>
-            <button id="loginTwoFactorResendBtn" class="btn btn-ghost authbtn" type="button">再送</button>
-            <button id="loginBackBtn" class="btn btn-ghost authbtn" type="button">戻る</button>
+      <!-- ── Left: hero slideshow ────────────────────────────────────────── -->
+      <div class="auth-hero" aria-hidden="true">
+        <div id="authHeroSlides" class="auth-hero__slides"></div>
+        <div class="auth-hero__overlay">
+          <div class="auth-hero__brand">
+            <img class="auth-hero__brand-mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+            <span class="auth-hero__brand-name">Felixxsv Gallery</span>
           </div>
+          <div class="auth-hero__sub" data-i18n="auth.hero.sub">A place to keep your VRChat memories.</div>
         </div>
       </div>
 
-      <div id="paneSignup" class="authpane">
-        <div id="signupStageStart">
-          <div class="label">Email</div>
-          <input id="signupEmail" class="inp" type="email" autocomplete="email">
+      <!-- ── Right: form ────────────────────────────────────────────────── -->
+      <div class="auth-form-side">
 
-          <button id="signupStartBtn" class="btn btn-primary authbtn" type="button">認証コードを送信</button>
+        <div class="auth-lang-bar">
+          <select id="authLangSelect" class="app-select auth-lang-select" aria-label="Language" data-i18n-aria-label="shell.static.language">
+            <option value="ja" data-i18n="shell.static.language_ja">Japanese</option>
+            <option value="en-us" data-i18n="shell.static.language_en_us">English (US)</option>
+            <option value="de" data-i18n="shell.static.language_de">German</option>
+            <option value="fr" data-i18n="shell.static.language_fr">French</option>
+            <option value="ru" data-i18n="shell.static.language_ru">Russian</option>
+            <option value="es" data-i18n="shell.static.language_es">Spanish</option>
+            <option value="zh-cn" data-i18n="shell.static.language_zh_cn">Chinese (Simplified)</option>
+            <option value="ko" data-i18n="shell.static.language_ko">Korean</option>
+          </select>
         </div>
 
-        <div id="signupStageVerify" hidden>
-          <div id="signupVerifyMessage" class="label">メールに届いた認証コードを入力してください。</div>
+        <div class="auth-form-panel">
 
-          <div class="label">認証コード</div>
-          <input id="signupVerifyCode" class="inp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-
-          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-            <button id="signupVerifyBtn" class="btn btn-primary authbtn" type="button">認証する</button>
-            <button id="signupResendBtn" class="btn btn-ghost authbtn" type="button">再送</button>
-            <button id="signupRestartBtn" class="btn btn-ghost authbtn" type="button">戻る</button>
+          <div class="auth-tabs" role="tablist">
+            <button id="tabLogin" class="auth-tab is-on" type="button" role="tab" aria-selected="true" data-i18n="auth.tabs.login">Login</button>
+            <button id="tabSignup" class="auth-tab" type="button" role="tab" aria-selected="false" data-i18n="auth.tabs.signup">Sign Up</button>
           </div>
-        </div>
 
-        <div id="signupStageComplete" hidden>
-          <div id="signupCompleteMessage" class="label">アカウント情報を入力してください。</div>
+          <!-- ── Login pane ──────────────────────────────────────────── -->
+          <div id="paneLogin" class="auth-pane is-on" role="tabpanel">
 
-          <div class="label">User Key</div>
-          <input id="completeUserKey" class="inp" type="text" placeholder="4-20 chars (A-Za-z0-9_-)" autocomplete="username">
+            <div id="loginStageCredentials">
+              <div class="auth-field">
+                <label class="auth-field__label" for="loginEmail" data-i18n="auth.fields.email">Email Address</label>
+                <input id="loginEmail" class="app-input" type="email" autocomplete="email">
+              </div>
+              <div class="auth-field">
+                <label class="auth-field__label" for="loginPass" data-i18n="auth.fields.password">Password</label>
+                <input id="loginPass" class="app-input" type="password" autocomplete="current-password">
+              </div>
+              <button id="loginBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.login">Login</button>
+              <div class="auth-divider"><span data-i18n="auth.common.or">or</span></div>
+              <button id="loginDiscordBtn" class="app-button app-button--discord auth-btn" type="button" data-i18n="auth.actions.loginDiscord">Login with Discord</button>
+            </div>
 
-          <div class="label">Display Name</div>
-          <input id="completeDisplayName" class="inp" type="text">
+            <div id="loginStageTwoFactor" hidden>
+              <div id="loginTwoFactorMessage" class="auth-field__label" style="margin-bottom:14px">Enter the verification code.</div>
+              <div class="auth-field">
+                <label class="auth-field__label" for="loginTwoFactorCode" data-i18n="auth.fields.verificationCode">Verification Code</label>
+                <input id="loginTwoFactorCode" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+                <button id="loginTwoFactorVerifyBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.verify">Verify</button>
+                <button id="loginTwoFactorResendBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.resend">Resend</button>
+                <button id="loginBackBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.actions.back">Back</button>
+              </div>
+            </div>
 
-          <div class="label">Password</div>
-          <input id="completePassword" class="inp" type="password" autocomplete="new-password">
+          </div>
 
-          <button id="completeRegisterBtn" class="btn btn-primary authbtn" type="button">アカウントを作成</button>
+          <!-- ── Signup pane ─────────────────────────────────────────── -->
+          <div id="paneSignup" class="auth-pane" role="tabpanel">
+
+            <div id="signupStageStart">
+              <div class="auth-field">
+                <label class="auth-field__label" for="signupEmail" data-i18n="auth.fields.email">Email Address</label>
+                <input id="signupEmail" class="app-input" type="email" autocomplete="email">
+              </div>
+              <button id="signupStartBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.sendCode">Send Verification Code</button>
+              <div class="auth-divider"><span data-i18n="auth.common.or">or</span></div>
+              <button id="signupDiscordBtn" class="app-button app-button--discord auth-btn" type="button" data-i18n="auth.actions.signupDiscord">Sign Up with Discord</button>
+            </div>
+
+            <div id="signupStageVerify" hidden>
+              <div id="signupVerifyMessage" class="auth-field__label" style="margin-bottom:14px">Enter the verification code sent to your email.</div>
+              <div class="auth-field">
+                <label class="auth-field__label" for="signupVerifyCode" data-i18n="auth.fields.verificationCode">Verification Code</label>
+                <input id="signupVerifyCode" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+                <button id="signupVerifyBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.verifyEmail">Verify Email</button>
+                <button id="signupResendBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.resend">Resend</button>
+                <button id="signupRestartBtn" class="app-button app-button--ghost auth-btn" type="button" data-i18n="auth.actions.back">Back</button>
+              </div>
+            </div>
+
+            <div id="signupStageComplete" hidden>
+              <div id="signupCompleteMessage" class="auth-field__label" style="margin-bottom:16px">Enter your account details.</div>
+
+              <div id="discordAvatarPreview" hidden>
+                <div class="auth-discord-preview">
+                  <img id="discordAvatarImg" class="auth-discord-preview__img" src="" alt="Discord avatar">
+                  <span class="auth-discord-preview__note" data-i18n="auth.discord.previewNote">Previewing your Discord icon. You can change it after registration.</span>
+                </div>
+              </div>
+
+              <div class="auth-field">
+                <label class="auth-field__label" for="completeUserKey" data-i18n="auth.fields.userKey">User Key</label>
+                <input id="completeUserKey" class="app-input" type="text" placeholder="4-20 chars (A-Za-z0-9_-)" autocomplete="username" data-i18n-placeholder="auth.placeholders.userKey">
+              </div>
+              <div class="auth-field">
+                <label class="auth-field__label" for="completeDisplayName" data-i18n="auth.fields.displayName">Display Name</label>
+                <input id="completeDisplayName" class="app-input" type="text">
+              </div>
+              <div id="completePasswordRow" class="auth-field">
+                <label class="auth-field__label" for="completePassword" data-i18n="auth.fields.password">Password</label>
+                <input id="completePassword" class="app-input" type="password" autocomplete="new-password">
+              </div>
+              <button id="completeRegisterBtn" class="app-button app-button--primary auth-btn" type="button" data-i18n="auth.actions.createAccount">Create Account</button>
+            </div>
+
+          </div>
+
         </div>
       </div>
+
     </div>
   </main>
 
-  <div id="authConfirmLayer" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1200;padding:20px;background:rgba(0,0,0,0.45)">
-    <div class="authcard glass-strong" style="width:min(520px,100%);margin:0">
-      <div id="authConfirmTitle" class="label" style="font-size:18px;font-weight:700">確認</div>
-      <div id="authConfirmMessage" class="label" style="margin-top:12px;line-height:1.7">本当に実行しますか？</div>
-      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-        <button id="authConfirmApproveBtn" class="btn btn-primary authbtn" type="button">実行する</button>
-        <button id="authConfirmCancelBtn" class="btn btn-ghost authbtn" type="button">キャンセル</button>
+  <!-- ── Confirm overlay ───────────────────────────────────────────────── -->
+  <div id="authConfirmLayer" class="auth-confirm-overlay">
+    <div class="auth-confirm-card">
+      <div id="authConfirmTitle" class="auth-confirm-title" data-i18n="auth.confirm.title">Confirm</div>
+      <div id="authConfirmMessage" class="auth-confirm-message" data-i18n="auth.confirm.defaultMessage">Are you sure you want to continue?</div>
+      <div class="auth-confirm-actions">
+        <button id="authConfirmApproveBtn" class="app-button app-button--primary" type="button" data-i18n="auth.actions.confirm">Confirm</button>
+        <button id="authConfirmCancelBtn" class="app-button app-button--ghost" type="button" data-i18n="auth.actions.cancel">Cancel</button>
       </div>
     </div>
   </div>
 
-  <script src="/gallery/auth.js"></script>
+  <script src="/gallery/assets/js/core/auth-hero-slideshow.js"></script>
+  <script type="module" src="/gallery/assets/js/page/auth.js"></script>
 </body>
 </html>

@@ -1,6 +1,10 @@
 import { qsa } from "./dom.js";
+import { ensureCustomScrollbars } from "./custom-scrollbar.js";
 
 const DEFAULT_STORAGE_KEY = "gallery.admin.sidebar.collapsed";
+const ADMIN_SIDEBAR_ANIMATION_MS = 180;
+const ADMIN_SIDEBAR_REVEAL_DELAY_MS = ADMIN_SIDEBAR_ANIMATION_MS + 20;
+const ADMIN_SIDEBAR_EDGE_PEEK_PX = 44;
 
 export function initSidebar({ root, toggleButton, storageKey = DEFAULT_STORAGE_KEY, onNavigate } = {}) {
   if (!root || !toggleButton) {
@@ -11,6 +15,18 @@ export function initSidebar({ root, toggleButton, storageKey = DEFAULT_STORAGE_K
       setCollapsed() {},
       toggle() {}
     };
+  }
+
+  const shell = root.closest(".admin-shell");
+  ensureCustomScrollbars({ includeWindow: true, selectors: [".admin-sidebar__scroll", ".admin-main-scroll"] });
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let revealTimerId = null;
+
+  function clearRevealTimer() {
+    if (revealTimerId !== null) {
+      window.clearTimeout(revealTimerId);
+      revealTimerId = null;
+    }
   }
 
   function readStoredState() {
@@ -29,27 +45,101 @@ export function initSidebar({ root, toggleButton, storageKey = DEFAULT_STORAGE_K
     }
   }
 
-  function applyState(collapsed) {
-    root.classList.toggle("is-collapsed", collapsed);
+  function updateToggleUi(collapsed) {
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
-    toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
-    writeStoredState(collapsed);
+    const t = window.AdminApp?.i18n?.t?.bind(window.AdminApp.i18n);
+    toggleButton.setAttribute(
+      "aria-label",
+      collapsed
+        ? (t?.("admin_layout.sidebar_expand", "Expand sidebar") || "Expand sidebar")
+        : (t?.("admin_layout.sidebar_collapse", "Collapse sidebar") || "Collapse sidebar")
+    );
+
+    const icon = toggleButton.querySelector("span");
+    if (icon) {
+      icon.textContent = collapsed ? "❯" : "×";
+    }
+  }
+
+  function finishExpandedContent() {
+    root.classList.remove("is-content-hidden");
+  }
+
+  function applyState(collapsed, { animate = false } = {}) {
+    clearRevealTimer();
+
+    root.classList.toggle("is-collapsed", collapsed);
+    root.classList.toggle("is-content-hidden", collapsed);
+    shell?.classList.toggle("is-sidebar-collapsed", collapsed);
+
+    if (!collapsed) {
+      shell?.classList.remove("is-sidebar-edge-peek");
+    }
+
+    updateToggleUi(collapsed);
+
+    if (collapsed) {
+      writeStoredState(true);
+      return;
+    }
+
+    const shouldAnimate = animate && !prefersReducedMotion.matches;
+
+    if (!shouldAnimate) {
+      finishExpandedContent();
+      writeStoredState(false);
+      return;
+    }
+
+    root.classList.add("is-content-hidden");
+
+    revealTimerId = window.setTimeout(() => {
+      revealTimerId = null;
+      if (root.classList.contains("is-collapsed")) {
+        return;
+      }
+      finishExpandedContent();
+    }, ADMIN_SIDEBAR_REVEAL_DELAY_MS);
+
+    writeStoredState(false);
   }
 
   function isCollapsed() {
     return root.classList.contains("is-collapsed");
   }
 
-  function setCollapsed(collapsed) {
-    applyState(Boolean(collapsed));
+  function setCollapsed(collapsed, options = {}) {
+    applyState(Boolean(collapsed), options);
   }
 
   function toggle() {
-    applyState(!isCollapsed());
+    applyState(!isCollapsed(), { animate: true });
+  }
+
+  function syncEdgePeek(clientX) {
+    if (!shell) {
+      return;
+    }
+
+    if (!isCollapsed()) {
+      shell.classList.remove("is-sidebar-edge-peek");
+      return;
+    }
+
+    const nearEdge = Number(clientX || 0) <= ADMIN_SIDEBAR_EDGE_PEEK_PX;
+    shell.classList.toggle("is-sidebar-edge-peek", nearEdge);
   }
 
   toggleButton.addEventListener("click", () => {
     toggle();
+  });
+
+  window.addEventListener("mousemove", (event) => {
+    syncEdgePeek(event.clientX);
+  });
+
+  shell?.addEventListener("mouseleave", () => {
+    shell.classList.remove("is-sidebar-edge-peek");
   });
 
   qsa("[data-admin-nav-link]", root).forEach((link) => {
@@ -69,6 +159,13 @@ export function initSidebar({ root, toggleButton, storageKey = DEFAULT_STORAGE_K
         }
       }
     });
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== storageKey) {
+      return;
+    }
+    applyState(readStoredState());
   });
 
   applyState(readStoredState());

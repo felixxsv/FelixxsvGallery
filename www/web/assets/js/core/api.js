@@ -8,10 +8,12 @@ export class ApiError extends Error {
 }
 
 function buildInit(method, body, headers) {
+  const language = (document.documentElement.lang || "en-US").trim();
   const init = {
     method,
     credentials: "include",
     headers: {
+      "X-Gallery-Language": language,
       ...(headers || {})
     }
   };
@@ -22,6 +24,18 @@ function buildInit(method, body, headers) {
   }
 
   return init;
+}
+
+function buildFormInit(method, formData) {
+  const language = (document.documentElement.lang || "en-US").trim();
+  return {
+    method,
+    credentials: "include",
+    headers: {
+      "X-Gallery-Language": language,
+    },
+    body: formData,
+  };
 }
 
 async function parseResponse(response) {
@@ -68,6 +82,15 @@ export function createApiClient({ baseUrl = "" } = {}) {
     },
     delete(path, body, options = {}) {
       return request(path, { ...options, method: "DELETE", body });
+    },
+    async postForm(path, formData) {
+      const response = await fetch(`${baseUrl}${path}`, buildFormInit("POST", formData));
+      const payload = await parseResponse(response);
+      if (!response.ok || !payload || payload.ok === false) {
+        const message = payload?.error?.message || payload?.message || "API request failed.";
+        throw new ApiError(message, { status: response.status, payload });
+      }
+      return payload;
     }
   };
 }

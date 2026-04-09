@@ -1,0 +1,441 @@
+/* ── Body lock: auth page fits viewport exactly ─────────────────────────── */
+
+body.auth-page {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ── Auth page layout ───────────────────────────────────────────────────── */
+
+.auth-main {
+  height: calc(100dvh - var(--header-height));
+  overflow: hidden;
+}
+
+.auth-split {
+  display: grid;
+  height: 100%;
+}
+
+/* ── PC: side-by-side ───────────────────────────────────────────────────── */
+
+@media (min-width: 900px) {
+  .auth-split {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Hero visible, takes left column */
+  .auth-hero {
+    display: block;
+    position: relative;
+  }
+
+  /* Form side: right column */
+  .auth-form-side {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 20px 40px;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .auth-lang-bar {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+  }
+
+  .auth-form-panel {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+/* ── Mobile / portrait: form over slideshow background ──────────────────── */
+
+@media (max-width: 899px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+
+  /* Hero: full-bleed background layer */
+  .auth-hero {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* Form side: overlay on top of hero */
+  .auth-form-side {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 52px 20px 36px;
+    background: color-mix(in srgb, var(--color-bg) 62%, transparent);
+    backdrop-filter: blur(4px);
+  }
+
+  .auth-lang-bar {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 2;
+  }
+
+  /* Form panel: glass card for readability */
+  .auth-form-panel {
+    width: 100%;
+    max-width: 400px;
+    background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* ── Hero: slideshow ────────────────────────────────────────────────────── */
+
+.auth-hero {
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.auth-hero__slides {
+  position: absolute;
+  inset: 0;
+}
+
+.auth-hero__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.auth-hero__slide.is-active {
+  opacity: 1;
+}
+
+.auth-hero__slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* object-position applied per-image by JS (focal_x/focal_y) */
+}
+
+/* Bottom gradient overlay + branding */
+.auth-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.28) 40%,
+    rgba(0, 0, 0, 0.06) 70%,
+    transparent 100%
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 28px 32px;
+  pointer-events: none;
+}
+
+.auth-hero__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.auth-hero__brand-mark {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
+.auth-hero__brand-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+.auth-hero__sub {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.68);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Form: tabs ──────────────────────────────────────────────────────────── */
+
+.auth-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 24px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+  text-align: center;
+}
+
+.auth-tab:hover {
+  color: var(--color-text);
+}
+
+.auth-tab.is-on {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Form: panes ─────────────────────────────────────────────────────────── */
+
+.auth-pane {
+  display: none;
+}
+
+.auth-pane.is-on {
+  display: block;
+}
+
+/* ── Form: fields ────────────────────────────────────────────────────────── */
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.auth-field__label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.auth-btn {
+  width: 100%;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--color-text-faint);
+  font-size: 0.78rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ── Legacy toast on auth flow ──────────────────────────────────────────── */
+
+.uptoastwrap {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 12000;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.uptoast {
+  min-width: min(560px, calc(100vw - 32px));
+  max-width: min(720px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--color-primary) 70%, rgba(15, 23, 42, 0.95));
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+
+.uptoast.is-on {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.uptoast.is-off {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.uptoast.is-ok {
+  background: rgba(16, 185, 129, 0.92);
+}
+
+.uptoast.is-err {
+  background: rgba(220, 53, 69, 0.94);
+}
+
+/* ── Language selector ───────────────────────────────────────────────────── */
+
+.auth-lang-select {
+  min-width: 112px;
+  min-height: 34px;
+  font-size: 0.78rem;
+}
+
+/* ── Discord button ──────────────────────────────────────────────────────── */
+
+.app-button--discord {
+  background: #5865f2;
+  color: #fff;
+  border: none;
+}
+
+.app-button--discord:hover {
+  background: #4752c4;
+  color: #fff;
+}
+
+/* ── Confirm button danger state (set by auth.js) ────────────────────────── */
+
+.btn-danger {
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 24%, transparent);
+}
+
+/* ── Confirm overlay ─────────────────────────────────────────────────────── */
+
+.auth-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(4px);
+}
+
+.auth-confirm-card {
+  width: min(480px, 100%);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  box-shadow: var(--shadow-2);
+}
+
+.auth-confirm-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.auth-confirm-message {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+
+.auth-confirm-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Discord avatar preview ──────────────────────────────────────────────── */
+
+.auth-discord-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.auth-discord-preview__img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.auth-discord-preview__note {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── Auth header: non-clickable logo ────────────────────────────────────── */
+
+.auth-site-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  color: var(--color-text);
+  cursor: default;
+  user-select: none;
+}
+
+.auth-site-logo__mark {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-round);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  flex-shrink: 0;
+}
+
+.auth-site-logo__label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}

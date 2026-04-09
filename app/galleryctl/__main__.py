@@ -4,6 +4,9 @@ import sys
 from galleryctl.integrity_check import run_integrity_check, run_integrity_dispatch
 from galleryctl.sync_full import run_sync_full
 from galleryctl.rebuild_colors import run_rebuild_colors
+from galleryctl.rebuild_contents import run_rebuild_contents
+from galleryctl.wipe_gallery import run_wipe_gallery
+from galleryctl.wipe_deleted_users import run_wipe_deleted_users
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,6 +26,14 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--to-id", type=int, default=None)
     r.add_argument("--limit", type=int, default=None)
 
+    rc = sub.add_parser("rebuild-contents")
+    rc.add_argument("--config", required=True)
+    rc.add_argument("--dry-run", action="store_true")
+    rc.add_argument("--all", action="store_true")
+    rc.add_argument("--from-id", type=int, default=None)
+    rc.add_argument("--to-id", type=int, default=None)
+    rc.add_argument("--limit", type=int, default=None)
+
     ic = sub.add_parser("integrity-check")
     ic.add_argument("--config", required=True)
     ic.add_argument("--run-id", type=int, default=None)
@@ -31,6 +42,17 @@ def build_parser() -> argparse.ArgumentParser:
     disp = sub.add_parser("integrity-dispatch")
     disp.add_argument("--config", required=True)
     disp.add_argument("--max-runs", type=int, default=1)
+
+    wipe = sub.add_parser("wipe-gallery")
+    wipe.add_argument("--config", required=True)
+    wipe.add_argument("--dry-run", action="store_true")
+    wipe.add_argument("--delete-storage", action="store_true")
+    wipe.add_argument("--delete-source", action="store_true")
+    wipe.add_argument("--delete-tags", action="store_true")
+
+    wipe_users = sub.add_parser("wipe-deleted-users")
+    wipe_users.add_argument("--config", required=True)
+    wipe_users.add_argument("--dry-run", action="store_true")
 
     return p
 
@@ -56,6 +78,16 @@ def main(argv: list[str]) -> int:
             limit=args.limit,
         )
 
+    if args.cmd == "rebuild-contents":
+        return run_rebuild_contents(
+            config_path=args.config,
+            dry_run=bool(args.dry_run),
+            rebuild_all=bool(args.all),
+            from_id=args.from_id,
+            to_id=args.to_id,
+            limit=args.limit,
+        )
+
     if args.cmd == "integrity-check":
         return run_integrity_check(
             config_path=args.config,
@@ -67,6 +99,21 @@ def main(argv: list[str]) -> int:
         return run_integrity_dispatch(
             config_path=args.config,
             max_runs=max(1, int(args.max_runs or 1)),
+        )
+
+    if args.cmd == "wipe-gallery":
+        return run_wipe_gallery(
+            config_path=args.config,
+            dry_run=bool(args.dry_run),
+            delete_storage=bool(args.delete_storage),
+            delete_source=bool(args.delete_source),
+            delete_tags=bool(args.delete_tags),
+        )
+
+    if args.cmd == "wipe-deleted-users":
+        return run_wipe_deleted_users(
+            config_path=args.config,
+            dry_run=bool(args.dry_run),
         )
 
     return 2

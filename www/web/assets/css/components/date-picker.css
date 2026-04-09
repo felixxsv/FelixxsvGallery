@@ -1,0 +1,124 @@
+.app-date-picker {
+  position: relative;
+}
+
+.app-date-picker__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.app-date-picker__trigger.is-empty {
+  color: var(--color-text-faint);
+}
+
+.app-date-picker__trigger-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-date-picker__trigger-icon {
+  flex: 0 0 auto;
+  opacity: 0.72;
+}
+
+.app-date-picker__popover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 4000;
+  width: min(320px, calc(100vw - 32px));
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-overlay, var(--color-surface)) 92%, transparent);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(18px);
+}
+
+.app-date-picker__header,
+.app-date-picker__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app-date-picker__title {
+  min-width: 0;
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.app-date-picker__nav,
+.app-date-picker__action {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.app-date-picker__nav {
+  width: 36px;
+  padding: 0;
+}
+
+.app-date-picker__weekdays,
+.app-date-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.app-date-picker__weekdays {
+  margin-top: 12px;
+  margin-bottom: 8px;
+  color: var(--color-text-faint);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.app-date-picker__day {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+  border-radius: 12px;
+  min-height: 36px;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.app-date-picker__day:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.app-date-picker__day.is-selected {
+  background: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 60%, white);
+  color: var(--color-accent-contrast, white);
+}
+
+.app-date-picker__day.is-today:not(.is-selected) {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+
+.app-date-picker__day.is-outside {
+  opacity: 0.42;
+}
+
+.app-date-picker__footer {
+  margin-top: 12px;
+}

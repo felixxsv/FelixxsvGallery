@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Felixxsv Gallery - アカウント設定</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/auth.css">
+</head>
+<body class="app-page auth-page" data-app-base="/gallery">
+
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <span class="auth-site-logo" aria-label="Felixxsv Gallery">
+          <span class="auth-site-logo__mark" aria-hidden="true"></span>
+          <span class="auth-site-logo__label">Felixxsv Gallery</span>
+        </span>
+      </div>
+      <div class="app-site-header__right">
+        <a href="/gallery/auth/" class="app-button app-button--ghost app-button--small">← ログインへ戻る</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-split">
+
+      <!-- ── Left: hero ────────────────────────────────────────────────────── -->
+      <div class="auth-hero" aria-hidden="true">
+        <div id="authHeroSlides" class="auth-hero__slides"></div>
+        <div class="auth-hero__overlay">
+          <div class="auth-hero__brand">
+            <span class="auth-hero__brand-mark"></span>
+            <span class="auth-hero__brand-name">Felixxsv Gallery</span>
+          </div>
+          <div class="auth-hero__sub">VRChatの思い出を、ここに。</div>
+        </div>
+      </div>
+
+      <!-- ── Right: form ────────────────────────────────────────────────── -->
+      <div class="auth-form-side">
+        <div class="auth-form-panel">
+
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab is-on" type="button" role="tab" aria-selected="true">アカウント設定</button>
+          </div>
+
+          <form id="cForm" autocomplete="on">
+            <div class="auth-field">
+              <label class="auth-field__label" for="cUserKey">ユーザーキー</label>
+              <input id="cUserKey" class="app-input" type="text"
+                placeholder="4〜20文字 (先頭英字 / 英数字・_・-)"
+                required minlength="4" maxlength="20"
+                autocomplete="username" inputmode="latin"
+                pattern="[A-Za-z][A-Za-z0-9_-]{3,19}">
+            </div>
+            <div class="auth-field">
+              <label class="auth-field__label" for="cDisplayName">表示名</label>
+              <input id="cDisplayName" class="app-input" type="text"
+                placeholder="任意" maxlength="128" autocomplete="nickname">
+            </div>
+            <button id="cBtn" class="app-button app-button--primary auth-btn" type="submit">登録完了</button>
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/gallery/assets/js/core/auth-hero-slideshow.js"></script>
+  <script src="/gallery/assets/js/page/complete.js"></script>
+</body>
+</html>

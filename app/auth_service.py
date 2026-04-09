@@ -3,13 +3,22 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
+import hmac as _hmac
+import json as _json
+import logging
 import os
+import re
 import secrets
+import urllib.error as _urllib_error
+import urllib.request as _urllib_request
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from db import db_conn, load_conf
 from auth_mail import AuthMailError, send_password_reset_email, send_two_factor_code_email, send_verification_email
+from badge_defs import serialize_badge, _parse_display_badges_py, ensure_auto_badges
 from auth_models import (
     clear_password_failed_attempts,
     consume_email_verification,
@@ -27,6 +36,7 @@ from auth_models import (
     expire_active_password_reset_tokens,
     expire_active_two_factor_challenges,
     get_active_two_factor_challenge,
+    get_identity_by_provider_user_id,
     get_identity_by_user_and_provider,
     get_latest_active_email_verification,
     get_password_credentials_by_user_id,
@@ -44,6 +54,9 @@ from auth_models import (
     update_session_last_seen,
     update_session_presence,
     update_auth_identity_last_used,
+    update_auth_identity_enabled,
+    reactivate_auth_identity,
+    reassign_auth_identity,
     update_password_failed_attempts,
     update_password_hash,
     update_two_factor_settings,
@@ -51,6 +64,11 @@ from auth_models import (
     update_user_registration_profile,
     set_user_must_reset_password,
     create_audit_log,
+    get_user_links,
+    count_user_links,
+    create_user_link,
+    delete_user_link,
+    reorder_user_links,
 )
 from auth_security import (
     AuthSecurityError,
@@ -99,6 +117,8 @@ from auth_validators import (
     validate_verify_email_input,
     validate_verify_email_resend_input,
     validate_verify_status_query,
+    validate_display_name,
+    validate_user_key,
 )
 
 
@@ -109,7 +129,9 @@ DEFAULT_VERIFY_RESEND_COOLDOWN_SEC = 60
 DEFAULT_TWO_FACTOR_RESEND_COOLDOWN_SEC = 60
 DEFAULT_VERIFY_MAX_ATTEMPTS = 5
 DEFAULT_TWO_FACTOR_MAX_ATTEMPTS = 5
+# Fallback used when base_url is not set in gallery.conf [app] or [site] section
 DEFAULT_BASE_URL = "https://felixxsv.net"
+SUPPORTED_LANGUAGE_CODES = {"ja", "en-us", "de", "fr", "ru", "es", "zh-cn", "ko"}
 
 
 def build_service_success(
@@ -183,6 +205,40 @@ def mask_email_address(email: str | None) -> str | None:
     return f"{masked_local}@{domain}"
 
 
+def normalize_preferred_language(value: str | None) -> str | None:
+    raw = str(value or "").strip().lower().replace("_", "-")
+    if raw == "":
+        return None
+    aliases = {
+        "ja": "ja",
+        "ja-jp": "ja",
+        "en": "en-us",
+        "en-us": "en-us",
+        "en-gb": "en-us",
+        "de": "de",
+        "de-de": "de",
+        "fr": "fr",
+        "fr-fr": "fr",
+        "ru": "ru",
+        "ru-ru": "ru",
+        "es": "es",
+        "es-es": "es",
+        "es-419": "es",
+        "zh": "zh-cn",
+        "zh-cn": "zh-cn",
+        "zh-hans": "zh-cn",
+        "zh-sg": "zh-cn",
+        "ko": "ko",
+        "ko-kr": "ko",
+    }
+    normalized = aliases.get(raw)
+    if normalized is None and "-" in raw:
+        normalized = aliases.get(raw.split("-", 1)[0])
+    if normalized not in SUPPORTED_LANGUAGE_CODES:
+        return None
+    return normalized
+
+
 def build_gallery_url(path: str) -> str:
     conf = _get_conf()
     base_url = _get_base_url(conf)
@@ -227,6 +283,7 @@ def log_auth_event(
 def login_with_email_password(
     email: str | None,
     password: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
@@ -238,6 +295,7 @@ def login_with_email_password(
 
     conn = None
     now_dt = _utc_now(now)
+    resolved_preferred_language = normalize_preferred_language(preferred_language)
 
     try:
         conn = _get_db_connection(autocommit=False)
@@ -281,7 +339,11 @@ def login_with_email_password(
                 message="メールアドレスまたはパスワードが正しくありません。",
             )
 
-        status_result = _check_user_login_status(user, credentials, now_dt)
+        status_result = _check_user_login_status(
+            user,
+            credentials,
+            now_dt,
+        )
         if status_result is not None:
             log_auth_event(
                 conn=conn,
@@ -341,6 +403,7 @@ def login_with_email_password(
             ip_address=ip_address,
             user_agent=user_agent,
             now_dt=now_dt,
+            preferred_language=resolved_preferred_language,
         )
         if verify_result is not None:
             conn.commit()
@@ -354,6 +417,7 @@ def login_with_email_password(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 now_dt=now_dt,
+                preferred_language=resolved_preferred_language,
             )
             conn.commit()
             _dispatch_mail_job(reset_result["mail_job"])
@@ -367,6 +431,7 @@ def login_with_email_password(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 now_dt=now_dt,
+                preferred_language=resolved_preferred_language,
             )
             conn.commit()
             _dispatch_mail_job(two_factor_result["mail_job"])
@@ -624,10 +689,12 @@ def check_user_key_availability(
 
 def start_registration(
     email: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
 ) -> dict:
+    resolved_language = normalize_preferred_language(preferred_language) or "en-us"
     try:
         validated = validate_register_start_input(email=email)
     except (AuthValidationError, AuthValidationErrors) as exc:
@@ -704,6 +771,7 @@ def start_registration(
                 user_id=user_id,
                 purpose="email_signup",
                 email=validated["email"],
+                preferred_language=resolved_language,
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -735,6 +803,7 @@ def start_registration(
                 user_id=user_id,
                 purpose="email_signup",
                 email=validated["email"],
+                preferred_language=resolved_language,
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -774,6 +843,7 @@ def start_registration(
             purpose="email_signup",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=None,
+            preferred_language=resolved_language,
         )
 
     return build_service_success(
@@ -1083,6 +1153,7 @@ def send_email_verification_again(
             user_id=parsed["user_id"],
             purpose=parsed["purpose"],
             email=parsed["email"],
+            preferred_language=parsed.get("preferred_language"),
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             now=now_dt,
         )
@@ -1115,6 +1186,7 @@ def send_email_verification_again(
         code=new_verify_code,
         purpose=parsed["purpose"],
         expires_in_sec=auth_conf["verify_code_expires_sec"],
+        preferred_language=parsed.get("preferred_language"),
     )
 
     next_to = _build_verify_email_path(new_verify_ticket)
@@ -1372,6 +1444,7 @@ def send_two_factor_challenge_again(
             user_id=parsed["user_id"],
             auth_flow_id=parsed["auth_flow_id"],
             email=parsed["email"],
+            preferred_language=parsed.get("preferred_language"),
             expires_in_sec=auth_conf["two_factor_code_expires_sec"],
             now=now_dt,
         )
@@ -1405,6 +1478,7 @@ def send_two_factor_challenge_again(
         code=new_code,
         expires_in_sec=auth_conf["two_factor_code_expires_sec"],
         display_name=user["display_name"] if user else None,
+        preferred_language=parsed.get("preferred_language"),
     )
 
     return build_service_success(
@@ -1540,6 +1614,7 @@ def confirm_two_factor_challenge(
 
 def request_password_reset(
     email: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
@@ -1582,9 +1657,11 @@ def request_password_reset(
             now=now_dt,
         )
 
+        resolved_language = normalize_preferred_language(preferred_language) or "en-us"
         reset_token = create_reset_token(
             user_id=user["id"],
             email=user["primary_email"],
+            preferred_language=resolved_language,
             expires_in_sec=auth_conf["reset_token_expires_sec"],
             now=now_dt,
         )
@@ -1628,6 +1705,7 @@ def request_password_reset(
         reset_url=reset_url,
         expires_in_sec=auth_conf["reset_token_expires_sec"],
         display_name=user["display_name"],
+        preferred_language=normalize_preferred_language(preferred_language) or "en-us",
     )
 
     return build_service_success(
@@ -1886,6 +1964,154 @@ def change_password_for_current_session(
     finally:
         _safe_close(conn)
 
+_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
+
+def start_email_change_for_session(
+    session_token: str | None,
+    new_email: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    preferred_language: str | None = None,
+    now=None,
+) -> dict:
+    new_email_value = str(new_email or "").strip().lower()
+
+    if not new_email_value:
+        return build_service_error(
+            error_code="validation_error",
+            message="入力内容を確認してください。",
+            field_errors=[{"field": "new_email", "code": "required", "message": "メールアドレスを入力してください。"}],
+        )
+    if not _EMAIL_RE.match(new_email_value):
+        return build_service_error(
+            error_code="validation_error",
+            message="入力内容を確認してください。",
+            field_errors=[{"field": "new_email", "code": "invalid", "message": "有効なメールアドレスを入力してください。"}],
+        )
+    if len(new_email_value) > 255:
+        return build_service_error(
+            error_code="validation_error",
+            message="入力内容を確認してください。",
+            field_errors=[{"field": "new_email", "code": "too_long", "message": "メールアドレスが長すぎます。"}],
+        )
+
+    if session_token is None or str(session_token).strip() == "":
+        result = build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+        result["clear_session_cookie"] = True
+        return result
+
+    conn = None
+    now_dt = _utc_now(now)
+    auth_conf = _get_auth_conf()
+    new_verify_code = _generate_otp_code()
+    verify_ticket = None
+
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+
+        if session_row is None or session_row.get("revoked_at") is not None or _is_expired(session_row["expires_at"], now_dt):
+            _safe_rollback(conn)
+            result = build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+            result["clear_session_cookie"] = True
+            return result
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            result = build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+            result["clear_session_cookie"] = True
+            return result
+
+        current_email = (user.get("primary_email") or "").strip().lower()
+        if current_email == new_email_value:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="validation_error",
+                message="入力内容を確認してください。",
+                field_errors=[{"field": "new_email", "code": "same_email", "message": "現在と同じメールアドレスです。"}],
+            )
+
+        existing = get_user_by_primary_email(conn, new_email_value)
+        if existing is not None and int(existing["id"]) != int(user["id"]):
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="validation_error",
+                message="入力内容を確認してください。",
+                field_errors=[{"field": "new_email", "code": "already_in_use", "message": "このメールアドレスはすでに使用されています。"}],
+            )
+
+        # Cooldown check
+        latest = get_latest_active_email_verification(conn, user_id=int(user["id"]), purpose="email_change", now=now_dt)
+        if latest is not None:
+            cooldown = _remaining_cooldown(latest["created_at"], auth_conf["verify_resend_cooldown_sec"], now_dt)
+            if cooldown > 0:
+                _safe_rollback(conn)
+                return build_service_error(
+                    error_code="resend_cooldown",
+                    message="しばらく待ってから再度お試しください。",
+                    retry_after_sec=cooldown,
+                )
+
+        expire_active_email_verifications(conn, user_id=int(user["id"]), purpose="email_change", now=now_dt)
+        create_email_verification(
+            conn=conn,
+            user_id=int(user["id"]),
+            email=new_email_value,
+            code_hash=hash_token_value(new_verify_code),
+            purpose="email_change",
+            expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
+        )
+        verify_ticket = create_verify_ticket(
+            user_id=int(user["id"]),
+            purpose="email_change",
+            email=new_email_value,
+            preferred_language=preferred_language,
+            expires_in_sec=auth_conf["verify_code_expires_sec"],
+            now=now_dt,
+        )
+        log_auth_event(
+            conn=conn,
+            actor_user_id=int(user["id"]),
+            action_type="auth.email_change.start",
+            target_type="user",
+            target_id=str(user["id"]),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="メールアドレス変更を開始しました。",
+            meta_json={"new_email": mask_email_address(new_email_value)},
+        )
+        conn.commit()
+    except Exception:
+        logger.exception("Unhandled error")
+        _safe_rollback(conn)
+        return build_service_error(error_code="server_error", message="メールアドレス変更の開始に失敗しました。")
+    finally:
+        _safe_close(conn)
+
+    _try_send_verification_email(
+        to_email=new_email_value,
+        code=new_verify_code,
+        purpose="email_change",
+        expires_in_sec=auth_conf["verify_code_expires_sec"],
+        display_name=user.get("display_name"),
+        preferred_language="en-us",
+    )
+
+    return build_service_success(
+        data={
+            "verify_ticket": verify_ticket,
+            "masked_email": mask_email_address(new_email_value),
+            "expires_in_sec": auth_conf["verify_code_expires_sec"],
+            "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
+        },
+        message="確認コードを送信しました。",
+    )
+
+
 def reset_password(
     reset_token: str | None,
     password: str | None,
@@ -1968,10 +2194,227 @@ def reset_password(
         _safe_close(conn)
 
 
+def start_discord_link(session_token: str | None, now=None) -> dict:
+    """ログイン済みユーザーがDiscordを後から連携する"""
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+        )
+    current = get_current_user_by_session_token(session_token=session_token, now=now)
+    if current is None:
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+        )
+    now_dt = _utc_now(now)
+    try:
+        discord_conf = _get_discord_conf()
+    except Exception:
+        return build_service_error(
+            error_code="discord_not_configured",
+            message="Discord連携が設定されていません。",
+        )
+    client_id = discord_conf.get("client_id", "")
+    redirect_uri = discord_conf.get("redirect_uri", "")
+    if not client_id or not redirect_uri:
+        return build_service_error(
+            error_code="discord_not_configured",
+            message="Discord連携が設定されていません。",
+        )
+    try:
+        state = _make_discord_state_token(now_dt, action="link")
+    except Exception:
+        logger.exception("Discord link state token generation failed")
+        return build_service_error(
+            error_code="server_error",
+            message="Discord連携の開始に失敗しました。",
+        )
+    oauth_url = (
+        "https://discord.com/oauth2/authorize?"
+        + urlencode({
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "identify email",
+            "state": state,
+        }, quote_via=quote)
+    )
+    logger.info("Discord link OAuth URL generated: redirect_uri=%s", redirect_uri)
+    return build_service_success(
+        next_kind="redirect",
+        next_to=oauth_url,
+        message="Discordの認証ページに移動します。",
+    )
+
+
+def unlink_discord_for_session(
+    session_token: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+    now_dt = _utc_now(now)
+    current = get_current_user_by_session_token(session_token=session_token, now=now_dt)
+    if current is None:
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+    user_id = current["user"]["id"]
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        identity = get_identity_by_user_and_provider(conn, user_id, "discord")
+        if identity is None or not bool(identity.get("is_enabled")):
+            _safe_rollback(conn)
+            return build_service_error(error_code="not_linked", message="Discordアカウントが連携されていません。")
+        # パスワードがない場合は解除不可（ログイン手段がなくなる）
+        pw_creds = get_password_credentials_by_user_id(conn, user_id)
+        if pw_creds is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="cannot_unlink",
+                message="パスワードが設定されていないため、Discord連携を解除できません。先にパスワードを設定してください。",
+            )
+        update_auth_identity_enabled(conn, identity["id"], False)
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user_id,
+            action_type="auth.discord_unlink",
+            target_type="user",
+            target_id=str(user_id),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="Discord連携を解除しました。",
+            meta_json={"identity_id": identity["id"]},
+        )
+        conn.commit()
+        return build_service_success(message="Discord連携を解除しました。")
+    except Exception:
+        logger.exception("unlink_discord_for_session error")
+        _safe_rollback(conn)
+        return build_service_error(error_code="server_error", message="Discord連携解除中にエラーが発生しました。")
+    finally:
+        _safe_close(conn)
+
+
+def set_password_for_session(
+    session_token: str | None,
+    password: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    """Discord登録ユーザーが後からパスワードを設定する"""
+    from auth_validators import validate_password as _validate_password
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+        )
+    current = get_current_user_by_session_token(session_token=session_token, now=now)
+    if current is None:
+        result = build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+        )
+        result["clear_session_cookie"] = True
+        return result
+
+    try:
+        from auth_validators import AuthValidationError as _AVE
+        _validate_password(password, "password")
+    except Exception as exc:
+        if hasattr(exc, "to_dict"):
+            return build_service_error(
+                error_code="validation_error",
+                message="パスワードの形式が正しくありません。",
+                field_errors=[exc.to_dict()],
+            )
+        return build_service_error(
+            error_code="validation_error",
+            message="パスワードの形式が正しくありません。",
+        )
+
+    user = current["user"]
+    now_dt = _utc_now(now)
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        existing = get_password_credentials_by_user_id(conn, user["id"])
+        password_hash = hash_password(str(password))
+        if existing is not None:
+            update_password_hash(conn, user["id"], password_hash)
+        else:
+            create_password_credentials(conn=conn, user_id=user["id"], password_hash=password_hash)
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user["id"],
+            action_type="auth.password_set",
+            target_type="user",
+            target_id=str(user["id"]),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="パスワードを設定しました。",
+        )
+        conn.commit()
+        return build_service_success(message="パスワードを設定しました。")
+    except Exception:
+        logger.exception("set_password_for_session failed")
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="パスワードの設定に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
 def start_discord_oauth(now=None) -> dict:
-    return build_service_error(
-        error_code="discord_oauth_not_implemented",
-        message="Discord OAuth はまだ未実装です。",
+    now_dt = _utc_now(now)
+    try:
+        discord_conf = _get_discord_conf()
+    except Exception:
+        logger.exception("Discord conf load failed")
+        return build_service_error(
+            error_code="discord_not_configured",
+            message="Discord連携が設定されていません。",
+        )
+
+    client_id = discord_conf.get("client_id", "")
+    redirect_uri = discord_conf.get("redirect_uri", "")
+    if not client_id or not redirect_uri:
+        return build_service_error(
+            error_code="discord_not_configured",
+            message="Discord連携が設定されていません。",
+        )
+
+    try:
+        state = _make_discord_state_token(now_dt)
+    except Exception:
+        logger.exception("Discord state token generation failed")
+        return build_service_error(
+            error_code="server_error",
+            message="Discord認証の開始に失敗しました。",
+        )
+
+    oauth_url = (
+        "https://discord.com/oauth2/authorize?"
+        + urlencode({
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "identify email",
+            "state": state,
+        }, quote_via=quote)
+    )
+    logger.info("Discord login OAuth URL generated: redirect_uri=%s", redirect_uri)
+    return build_service_success(
+        next_kind="redirect",
+        next_to=oauth_url,
+        message="Discordの認証ページに移動します。",
     )
 
 
@@ -1979,6 +2422,7 @@ def start_two_factor_setup_for_current_session(
     session_token: str | None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
+    preferred_language: str | None = None,
     now=None,
 ) -> dict:
     if session_token is None or str(session_token).strip() == "":
@@ -2044,6 +2488,7 @@ def start_two_factor_setup_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_setup",
                 email=primary_email,
+                preferred_language=preferred_language,
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -2075,6 +2520,7 @@ def start_two_factor_setup_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_setup",
                 email=primary_email,
+                preferred_language=preferred_language,
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -2108,6 +2554,7 @@ def start_two_factor_setup_for_current_session(
             purpose="2fa_setup",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=user.get("display_name"),
+            preferred_language=preferred_language,
         )
 
     return build_service_success(
@@ -2278,6 +2725,7 @@ def start_two_factor_disable_for_current_session(
     session_token: str | None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
+    preferred_language: str | None = None,
     now=None,
 ) -> dict:
     if session_token is None or str(session_token).strip() == "":
@@ -2343,6 +2791,7 @@ def start_two_factor_disable_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_disable",
                 email=primary_email,
+                preferred_language=preferred_language,
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -2374,6 +2823,7 @@ def start_two_factor_disable_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_disable",
                 email=primary_email,
+                preferred_language=preferred_language,
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -2407,6 +2857,7 @@ def start_two_factor_disable_for_current_session(
             purpose="2fa_disable",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=user.get("display_name"),
+            preferred_language=preferred_language,
         )
 
     return build_service_success(
@@ -2572,14 +3023,322 @@ def confirm_two_factor_disable_for_current_session(
 def handle_discord_callback(
     code: str | None,
     state: str | None,
+    session_token: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
 ) -> dict:
-    return build_service_error(
-        error_code="discord_oauth_not_implemented",
-        message="Discord OAuth callback はまだ未実装です。",
-    )
+    now_dt = _utc_now(now)
+
+    if not code or not state:
+        return build_service_error(
+            error_code="invalid_callback",
+            message="Discord認証パラメータが不正です。",
+        )
+
+    try:
+        is_valid, action = _verify_discord_state_token(str(state), now_dt)
+        if not is_valid:
+            return build_service_error(
+                error_code="invalid_state",
+                message="Discord認証のstateが無効または期限切れです。",
+            )
+    except Exception:
+        logger.exception("Discord state verification failed")
+        return build_service_error(
+            error_code="server_error",
+            message="Discord認証の確認に失敗しました。",
+        )
+
+    try:
+        discord_conf = _get_discord_conf()
+    except Exception:
+        logger.exception("Discord conf load failed in callback")
+        return build_service_error(
+            error_code="discord_not_configured",
+            message="Discord連携が設定されていません。",
+        )
+
+    client_id = discord_conf.get("client_id", "")
+    client_secret = discord_conf.get("client_secret", "")
+    redirect_uri = discord_conf.get("redirect_uri", "")
+    if not client_id or not client_secret or not redirect_uri:
+        return build_service_error(
+            error_code="discord_not_configured",
+            message="Discord連携が設定されていません。",
+        )
+
+    # Exchange code for access token
+    try:
+        token_body = urlencode({
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "authorization_code",
+            "code": str(code),
+            "redirect_uri": redirect_uri,
+        }).encode("utf-8")
+        token_req = _urllib_request.Request(
+            "https://discord.com/api/oauth2/token",
+            data=token_body,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "FelixxsvGallery/1.0",
+            },
+            method="POST",
+        )
+        with _urllib_request.urlopen(token_req, timeout=10) as resp:
+            token_data = _json.loads(resp.read().decode("utf-8"))
+    except _urllib_error.HTTPError as exc:
+        try:
+            raw_body = exc.read().decode("utf-8")
+        except Exception:
+            raw_body = ""
+        try:
+            token_data = _json.loads(raw_body)
+        except Exception:
+            token_data = {}
+        logger.error("Discord token exchange HTTP error: status=%s body=%r parsed=%s", exc.code, raw_body, token_data)
+        return build_service_error(
+            error_code="discord_token_error",
+            message="Discordトークンの取得に失敗しました。",
+        )
+    except Exception:
+        logger.exception("Discord token exchange failed")
+        return build_service_error(
+            error_code="discord_api_error",
+            message="Discordトークンの取得に失敗しました。",
+        )
+
+    if "access_token" not in token_data:
+        logger.error("Discord token exchange missing access_token: %s", token_data)
+        return build_service_error(
+            error_code="discord_token_error",
+            message="Discordトークンの取得に失敗しました。",
+        )
+
+    access_token = token_data["access_token"]
+
+    # Fetch Discord user info
+    try:
+        user_req = _urllib_request.Request(
+            "https://discord.com/api/users/@me",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "User-Agent": "FelixxsvGallery/1.0",
+            },
+            method="GET",
+        )
+        with _urllib_request.urlopen(user_req, timeout=10) as resp:
+            discord_user = _json.loads(resp.read().decode("utf-8"))
+    except _urllib_error.HTTPError as exc:
+        logger.error("Discord user fetch HTTP error: %s", exc.code)
+        return build_service_error(
+            error_code="discord_user_error",
+            message="Discordユーザー情報の取得に失敗しました。",
+        )
+    except Exception:
+        logger.exception("Discord user fetch failed")
+        return build_service_error(
+            error_code="discord_api_error",
+            message="Discordユーザー情報の取得に失敗しました。",
+        )
+
+    if "id" not in discord_user:
+        logger.error("Discord user fetch missing id: %s", discord_user)
+        return build_service_error(
+            error_code="discord_user_error",
+            message="Discordユーザー情報の取得に失敗しました。",
+        )
+
+    provider_user_id = str(discord_user["id"])
+    provider_display_name = discord_user.get("global_name") or discord_user.get("username") or ""
+    provider_username = discord_user.get("username") or ""
+    provider_email = discord_user.get("email") or None
+    if provider_email and not discord_user.get("verified", False):
+        provider_email = None
+    provider_avatar_hash = discord_user.get("avatar") or None
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+
+        identity = get_identity_by_provider_user_id(conn, "discord", provider_user_id)
+
+        # --- Link action: attach Discord to existing logged-in account ---
+        if action == "link":
+            current = None
+            if session_token:
+                current = get_current_user_by_session_token(session_token=session_token, now=now_dt)
+            if current is None:
+                _safe_rollback(conn)
+                conf = _get_conf()
+                base_url = _get_base_url(conf)
+                return build_service_success(
+                    next_kind="redirect",
+                    next_to=f"{base_url}/gallery/auth/?error=discord_link_not_authenticated",
+                    message="連携にはログインが必要です。",
+                )
+            link_user = current["user"]
+            if identity is not None:
+                already_enabled = bool(identity.get("is_enabled"))
+                same_user = identity["user_id"] == link_user["id"]
+                if same_user and already_enabled:
+                    _safe_rollback(conn)
+                    conf = _get_conf()
+                    base_url = _get_base_url(conf)
+                    return build_service_success(
+                        next_kind="redirect",
+                        next_to=f"{base_url}/gallery/?discord_link=already",
+                        message="このDiscordアカウントはすでに連携済みです。",
+                    )
+                if not same_user and already_enabled:
+                    _safe_rollback(conn)
+                    conf = _get_conf()
+                    base_url = _get_base_url(conf)
+                    return build_service_success(
+                        next_kind="redirect",
+                        next_to=f"{base_url}/gallery/?discord_link=conflict",
+                        message="このDiscordアカウントは別のアカウントに紐付いています。",
+                    )
+                # disabled identity (same or different user) → reactivate
+                reactivate_auth_identity(
+                    conn=conn,
+                    identity_id=identity["id"],
+                    user_id=link_user["id"],
+                    provider_email=provider_email,
+                    provider_display_name=provider_display_name or provider_username,
+                )
+            else:
+                # identity=None for this Discord ID, but the user may have an old disabled identity
+                user_existing = get_identity_by_user_and_provider(conn, link_user["id"], "discord")
+                if user_existing is not None and not bool(user_existing.get("is_enabled")):
+                    # Reuse the old row, replacing Discord ID
+                    reassign_auth_identity(
+                        conn=conn,
+                        identity_id=user_existing["id"],
+                        user_id=link_user["id"],
+                        provider_user_id=provider_user_id,
+                        provider_email=provider_email,
+                        provider_display_name=provider_display_name or provider_username,
+                    )
+                else:
+                    create_auth_identity(
+                        conn=conn,
+                        user_id=link_user["id"],
+                        provider="discord",
+                        provider_user_id=provider_user_id,
+                        provider_email=provider_email,
+                        provider_display_name=provider_display_name or provider_username,
+                        is_enabled=True,
+                    )
+            log_auth_event(
+                conn=conn,
+                actor_user_id=link_user["id"],
+                action_type="auth.discord_link",
+                target_type="user",
+                target_id=str(link_user["id"]),
+                result="success",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                summary="Discordアカウントを連携しました。",
+                meta_json={"provider_user_id": provider_user_id},
+            )
+            conn.commit()
+            conf = _get_conf()
+            base_url = _get_base_url(conf)
+            return build_service_success(
+                next_kind="redirect",
+                next_to=f"{base_url}/gallery/?discord_link=ok",
+                message="Discordアカウントを連携しました。",
+            )
+
+        # --- Login action ---
+        if identity is not None:
+            # Existing Discord user — log them in
+            if not bool(identity.get("is_enabled")):
+                _safe_rollback(conn)
+                return build_service_error(
+                    error_code="identity_disabled",
+                    message="このDiscordアカウントは無効化されています。",
+                )
+
+            user = get_user_by_id(conn, identity["user_id"])
+            if user is None or user.get("status") != "active":
+                _safe_rollback(conn)
+                return build_service_error(
+                    error_code="account_inactive",
+                    message="アカウントが無効または停止されています。",
+                )
+
+            update_auth_identity_last_used(conn, identity["id"], now_dt)
+
+            two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
+            if _is_two_factor_required(two_factor_settings):
+                two_factor_result = _build_login_two_factor_result(
+                    conn=conn,
+                    user=user,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    now_dt=now_dt,
+                )
+                conn.commit()
+                _dispatch_mail_job(two_factor_result["mail_job"])
+                return two_factor_result["result"]
+
+            result = _create_authenticated_session_result(
+                conn=conn,
+                user=user,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                now_dt=now_dt,
+                action_type="auth.discord_login",
+                summary="Discordでログインしました。",
+                meta_json={"provider_user_id": provider_user_id},
+            )
+            conn.commit()
+            return result
+
+        else:
+            # New Discord user — check if email already exists on another account
+            registration_token = create_registration_token(
+                provider_user_id=provider_user_id,
+                provider_email=provider_email,
+                provider_display_name=provider_display_name,
+                provider_username=provider_username,
+                provider_avatar_hash=provider_avatar_hash,
+            )
+            conf = _get_conf()
+            base_url = _get_base_url(conf)
+
+            if provider_email:
+                existing_user = get_user_by_primary_email(conn, provider_email)
+                if existing_user is not None and existing_user.get("status") == "active":
+                    # Email conflict: offer to link Discord to existing account
+                    _safe_rollback(conn)
+                    redirect_path = _build_register_complete_path(registration_token)
+                    return build_service_success(
+                        next_kind="redirect",
+                        next_to=f"{base_url}{redirect_path}&provider=discord&conflict=email_exists",
+                        message="このメールアドレスは既に登録されています。既存のアカウントにDiscordを連携できます。",
+                    )
+
+            _safe_rollback(conn)
+            redirect_path = _build_register_complete_path(registration_token)
+            return build_service_success(
+                next_kind="redirect",
+                next_to=f"{base_url}{redirect_path}&provider=discord",
+                message="Discordアカウントが見つかりませんでした。アカウントを作成してください。",
+            )
+
+    except Exception:
+        logger.exception("Discord callback DB error")
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="Discord認証処理中にエラーが発生しました。",
+        )
+    finally:
+        _safe_close(conn)
 
 
 def get_discord_registration_status(
@@ -2600,6 +3359,11 @@ def get_discord_registration_status(
             parsed["provider_user_id"],
         )
         prefill_display_name = parsed.get("provider_display_name") or parsed.get("provider_username") or prefill_user_key
+        avatar_hash = parsed.get("provider_avatar_hash")
+        avatar_url = (
+            f"https://cdn.discordapp.com/avatars/{parsed['provider_user_id']}/{avatar_hash}.png?size=256"
+            if avatar_hash else None
+        )
         return build_service_success(
             data={
                 "discord_profile": {
@@ -2607,6 +3371,7 @@ def get_discord_registration_status(
                     "provider_email": parsed.get("provider_email"),
                     "provider_display_name": parsed.get("provider_display_name"),
                     "provider_username": parsed.get("provider_username"),
+                    "provider_avatar_url": avatar_url,
                 },
                 "prefill": {
                     "user_key": prefill_user_key,
@@ -2625,10 +3390,104 @@ def get_discord_registration_status(
         )
 
 
+def link_discord_via_registration_token(
+    session_token: str | None,
+    registration_token: str | None,
+    ip_address: bytes | None = None,
+    user_agent: str | None = None,
+    now=None,
+) -> dict:
+    """メール衝突後にログインして、registrationトークンのDiscordアカウントを連携する"""
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+    if not registration_token or str(registration_token).strip() == "":
+        return build_service_error(error_code="invalid_token", message="registrationトークンが無効です。")
+
+    now_dt = _utc_now(now)
+    current = get_current_user_by_session_token(session_token=session_token, now=now_dt)
+    if current is None:
+        return build_service_error(error_code="not_authenticated", message="ログインが必要です。")
+
+    try:
+        parsed = parse_registration_token(str(registration_token).strip(), now=now_dt)
+    except Exception:
+        return build_service_error(error_code="invalid_token", message="registrationトークンが無効または期限切れです。")
+
+    provider_user_id = parsed["provider_user_id"]
+    provider_email = parsed.get("provider_email")
+    provider_display_name = parsed.get("provider_display_name") or parsed.get("provider_username") or ""
+    user_id = current["user"]["id"]
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+
+        existing_identity = get_identity_by_provider_user_id(conn, "discord", provider_user_id)
+        if existing_identity is not None:
+            already_enabled = bool(existing_identity.get("is_enabled"))
+            same_user = existing_identity["user_id"] == user_id
+            if same_user and already_enabled:
+                _safe_rollback(conn)
+                return build_service_error(error_code="already_linked", message="このDiscordアカウントはすでに連携済みです。")
+            if not same_user and already_enabled:
+                _safe_rollback(conn)
+                return build_service_error(error_code="discord_conflict", message="このDiscordアカウントは別のアカウントに連携されています。")
+            # disabled → reactivate
+            reactivate_auth_identity(
+                conn=conn,
+                identity_id=existing_identity["id"],
+                user_id=user_id,
+                provider_email=provider_email,
+                provider_display_name=provider_display_name,
+            )
+        else:
+            user_existing = get_identity_by_user_and_provider(conn, user_id, "discord")
+            if user_existing is not None and not bool(user_existing.get("is_enabled")):
+                reassign_auth_identity(
+                    conn=conn,
+                    identity_id=user_existing["id"],
+                    user_id=user_id,
+                    provider_user_id=provider_user_id,
+                    provider_email=provider_email,
+                    provider_display_name=provider_display_name,
+                )
+            else:
+                create_auth_identity(
+                    conn=conn,
+                    user_id=user_id,
+                    provider="discord",
+                    provider_user_id=provider_user_id,
+                    provider_email=provider_email,
+                    provider_display_name=provider_display_name,
+                    is_enabled=True,
+                )
+        log_auth_event(
+            conn=conn,
+            actor_user_id=user_id,
+            action_type="auth.discord_link",
+            target_type="user",
+            target_id=str(user_id),
+            result="success",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            summary="メール衝突後にDiscordアカウントを連携しました。",
+            meta_json={"provider_user_id": provider_user_id},
+        )
+        conn.commit()
+        return build_service_success(message="Discordアカウントを連携しました。")
+    except Exception:
+        logger.exception("link_discord_via_registration_token DB error")
+        _safe_rollback(conn)
+        return build_service_error(error_code="server_error", message="Discord連携中にエラーが発生しました。")
+    finally:
+        _safe_close(conn)
+
+
 def complete_discord_registration(
     registration_token: str | None,
     user_key: str | None,
     display_name: str | None,
+    preferred_language: str | None = None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
     now=None,
@@ -2713,6 +3572,7 @@ def complete_discord_registration(
                 user_id=user_id,
                 purpose="signup",
                 email=parsed["provider_email"],
+                preferred_language=normalize_preferred_language(preferred_language) or "en-us",
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -2749,6 +3609,7 @@ def complete_discord_registration(
             purpose="signup",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=validated["display_name"],
+            preferred_language=normalize_preferred_language(preferred_language) or "en-us",
         )
         return build_service_success(
             data={
@@ -3049,23 +3910,85 @@ def get_current_user_profile(
             created_at_text = _to_app_isoformat(created_at)
 
         can_open_admin = str(user.get("role") or "") == "admin"
+        avatar_path = user.get("avatar_path") or None
+        avatar_url = f"/api/auth/avatar/{user['id']}" if avatar_path else None
+        links = get_user_links(conn, user["id"])
+
+        # Auto-grant year/role badges; commit handled inside
+        try:
+            ensure_auto_badges(conn, user["id"], user.get("role"), created_at)
+            conn.commit()
+        except Exception:
+            try: conn.rollback()
+            except Exception: pass
+
+        # Load badge pool and display selection
+        badge_pool = []
+        display_badge_keys = []
+        try:
+            with conn.cursor() as _cur:
+                _cur.execute("SHOW TABLES LIKE 'user_badges'")
+                _has_badge_table = bool(_cur.fetchone())
+            if _has_badge_table:
+                with conn.cursor() as _cur:
+                    _cur.execute(
+                        "SELECT badge_key, granted_by, granted_at FROM user_badges WHERE user_id=%s ORDER BY granted_at ASC",
+                        (user["id"],),
+                    )
+                    badge_pool = [
+                        serialize_badge(r["badge_key"], granted_at=None, granted_by=r.get("granted_by"))
+                        for r in (_cur.fetchall() or [])
+                    ]
+                with conn.cursor() as _cur:
+                    _cur.execute("SELECT display_badges FROM users WHERE id=%s LIMIT 1", (user["id"],))
+                    _row = _cur.fetchone()
+                display_badge_keys = _parse_display_badges_py((_row or {}).get("display_badges"))
+        except Exception:
+            pass
+
+        pw_creds = get_password_credentials_by_user_id(conn, user["id"])
+        email_identity = get_identity_by_user_and_provider(conn, user["id"], "email_password")
+        discord_identity = get_identity_by_user_and_provider(conn, user["id"], "discord")
+        enabled_auth_providers: list[str] = []
+        if email_identity is not None and bool(email_identity.get("is_enabled")):
+            enabled_auth_providers.append("email_password")
+        if discord_identity is not None and bool(discord_identity.get("is_enabled")):
+            enabled_auth_providers.append("discord")
+
+        registration_route = "unknown"
+        if "discord" in enabled_auth_providers and "email_password" in enabled_auth_providers:
+            registration_route = "discord_and_email"
+        elif "discord" in enabled_auth_providers:
+            registration_route = "discord"
+        elif "email_password" in enabled_auth_providers or pw_creds is not None:
+            registration_route = "email"
+
         return build_service_success(
             data={
                 "user": {
                     "id": user["id"],
                     "user_key": user["user_key"],
                     "display_name": user["display_name"],
+                    "bio": user.get("bio"),
+                    "links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links],
                     "primary_email": user.get("primary_email"),
+                    "avatar_url": avatar_url,
                     "role": user.get("role"),
                     "upload_enabled": bool(user.get("upload_enabled")),
                     "is_email_verified": bool(user.get("is_email_verified")),
                     "created_at": created_at_text,
+                    "badge_pool": badge_pool,
+                    "display_badges": display_badge_keys,
                 },
                 "security": {
                     "two_factor": {
                         "is_enabled": bool(two_factor_settings.get("is_enabled")) if two_factor_settings else False,
                         "is_required": bool(two_factor_settings.get("is_required")) if two_factor_settings else False,
-                    }
+                    },
+                    "has_password": pw_creds is not None,
+                    "has_discord": discord_identity is not None and bool(discord_identity.get("is_enabled")),
+                    "auth_providers": enabled_auth_providers,
+                    "registration_route": registration_route,
                 },
                 "features": {
                     "can_open_admin": can_open_admin,
@@ -3083,6 +4006,217 @@ def get_current_user_profile(
     finally:
         _safe_close(conn)
 
+
+
+def update_profile_for_current_session(
+    session_token: str | None,
+    display_name: str | None,
+    user_key: str | None,
+    bio: str | None = None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    errors = []
+    validated_display_name = None
+    validated_user_key = None
+    validated_bio = None
+    clear_bio = False
+
+    if display_name is not None:
+        try:
+            validated_display_name = validate_display_name(display_name)
+        except AuthValidationError as exc:
+            errors.append({"field": exc.field, "code": exc.code, "message": exc.message})
+
+    if user_key is not None:
+        try:
+            validated_user_key = validate_user_key(user_key)
+        except AuthValidationError as exc:
+            errors.append({"field": exc.field, "code": exc.code, "message": exc.message})
+
+    if bio is not None:
+        bio_stripped = bio.strip()
+        if len(bio_stripped) > 300:
+            errors.append({"field": "bio", "code": "bio_too_long", "message": "自己紹介文は300文字以内で入力してください。"})
+        elif bio_stripped:
+            validated_bio = bio_stripped
+        else:
+            clear_bio = True
+
+    if errors:
+        return build_service_error(
+            error_code="validation_error",
+            message="入力内容を確認してください。",
+            field_errors=errors,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        if validated_user_key is not None and validated_user_key != user["user_key"]:
+            existing = get_user_by_user_key(conn, validated_user_key)
+            if existing is not None and existing["id"] != user["id"]:
+                _safe_rollback(conn)
+                return build_service_error(
+                    error_code="user_key_unavailable",
+                    message="このユーザーIDは既に使用されています。",
+                    field_errors=[{"field": "user_key", "code": "user_key_unavailable", "message": "このユーザーIDは既に使用されています。"}],
+                )
+
+        update_user_profile(
+            conn=conn,
+            user_id=user["id"],
+            display_name=validated_display_name,
+            user_key=validated_user_key,
+            bio=validated_bio,
+            clear_bio=clear_bio,
+        )
+        conn.commit()
+
+        return build_service_success(
+            data={},
+            message="プロフィールを更新しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="プロフィールの更新に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
+def update_avatar_for_current_session(
+    session_token: str | None,
+    avatar_path: str,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        update_user_profile(
+            conn=conn,
+            user_id=user["id"],
+            avatar_path=avatar_path,
+        )
+        conn.commit()
+
+        return build_service_success(
+            data={"avatar_path": avatar_path, "user_id": user["id"]},
+            message="アイコンを更新しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="アイコンの更新に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
+def delete_avatar_for_current_session(
+    session_token: str | None,
+) -> dict:
+    if session_token is None or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        session_token_hash = hash_session_token(str(session_token))
+        session_row = get_session_by_token_hash(conn, session_token_hash)
+        if session_row is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        user = get_user_by_id(conn, session_row["user_id"])
+        if user is None or user["status"] in {"deleted", "disabled"}:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        old_avatar = user.get("avatar_path")
+        update_user_profile(
+            conn=conn,
+            user_id=user["id"],
+            clear_avatar=True,
+        )
+        conn.commit()
+
+        return build_service_success(
+            data={"old_avatar_path": old_avatar, "user_id": user["id"]},
+            message="アイコンを削除しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="アイコンの削除に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
 
 
 def update_current_session_presence(
@@ -3260,6 +4394,58 @@ def _get_smtp_settings() -> dict:
     }
 
 
+def _get_discord_conf() -> dict:
+    conf = _get_conf()
+    discord = conf.get("discord")
+    if not isinstance(discord, dict):
+        discord = {}
+    return {
+        "client_id": str(discord.get("client_id", "")).strip(),
+        "client_secret": str(discord.get("client_secret", "")).strip(),
+        "redirect_uri": str(discord.get("redirect_uri", "")).strip(),
+    }
+
+
+_DISCORD_OAUTH_STATE_EXPIRES_SEC = 600
+
+def _make_discord_state_token(now_dt: "datetime", action: str = "login") -> str:
+    nonce = secrets.token_hex(16)
+    ts = int(now_dt.timestamp())
+    payload = f"{nonce}.{ts}.{action}"
+    secret = _get_token_secret_bytes()
+    sig = _hmac.new(secret, payload.encode(), "sha256").hexdigest()
+    return f"{payload}.{sig}"
+
+
+def _verify_discord_state_token(state: str, now_dt: "datetime") -> tuple[bool, str]:
+    """Returns (is_valid, action)"""
+    try:
+        parts = state.split(".")
+        if len(parts) != 4:
+            return False, ""
+        nonce, ts_str, action, sig = parts
+        if action not in {"login", "link"}:
+            return False, ""
+        ts = int(ts_str)
+        if abs(int(now_dt.timestamp()) - ts) > _DISCORD_OAUTH_STATE_EXPIRES_SEC:
+            return False, ""
+        payload = f"{nonce}.{ts}.{action}"
+        secret = _get_token_secret_bytes()
+        expected = _hmac.new(secret, payload.encode(), "sha256").hexdigest()
+        if not _hmac.compare_digest(sig, expected):
+            return False, ""
+        return True, action
+    except Exception:
+        return False, ""
+
+
+def _get_token_secret_bytes() -> bytes:
+    secret = os.environ.get("GALLERY_AUTH_TOKEN_SECRET", "").strip()
+    if not secret:
+        raise RuntimeError("GALLERY_AUTH_TOKEN_SECRET が設定されていません。")
+    return secret.encode("utf-8")
+
+
 def _utc_now(now=None) -> datetime:
     if now is None:
         return datetime.now(timezone.utc)
@@ -3354,7 +4540,8 @@ def _check_user_login_status(user: dict, credentials: dict, now_dt: datetime) ->
     return None
 
 
-def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict | None:
+def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, preferred_language: str | None = None) -> dict | None:
+    resolved_language = normalize_preferred_language(preferred_language) or "en-us"
     if bool(user.get("is_email_verified")):
         return None
 
@@ -3378,6 +4565,7 @@ def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_
         user_id=user["id"],
         purpose="signup",
         email=user["primary_email"],
+        preferred_language=resolved_language,
         expires_in_sec=auth_conf["verify_code_expires_sec"],
         now=now_dt,
     )
@@ -3411,11 +4599,13 @@ def _build_login_verify_result(conn, user: dict, ip_address: bytes | None, user_
             "purpose": "signup",
             "expires_in_sec": auth_conf["verify_code_expires_sec"],
             "display_name": user["display_name"],
+            "preferred_language": resolved_language,
         },
     }
 
 
-def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict:
+def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, preferred_language: str | None = None) -> dict:
+    resolved_language = normalize_preferred_language(preferred_language) or "en-us"
     auth_conf = _get_auth_conf()
     expire_active_password_reset_tokens(
         conn=conn,
@@ -3425,6 +4615,7 @@ def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_a
     reset_token = create_reset_token(
         user_id=user["id"],
         email=user["primary_email"],
+        preferred_language=resolved_language,
         expires_in_sec=auth_conf["reset_token_expires_sec"],
         now=now_dt,
     )
@@ -3460,12 +4651,14 @@ def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_a
             "reset_url": reset_url,
             "expires_in_sec": auth_conf["reset_token_expires_sec"],
             "display_name": user["display_name"],
+            "preferred_language": resolved_language,
         },
     }
 
 
 
-def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime) -> dict:
+def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, user_agent: str | None, now_dt: datetime, preferred_language: str | None = None) -> dict:
+    resolved_language = normalize_preferred_language(preferred_language) or "en-us"
     auth_conf = _get_auth_conf()
     latest = get_active_two_factor_challenge(
         conn=conn,
@@ -3479,6 +4672,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
             user_id=user["id"],
             auth_flow_id=generate_auth_flow_id(),
             email=user["primary_email"],
+            preferred_language=resolved_language,
             expires_in_sec=_remaining_seconds(latest["expires_at"], now_dt),
             now=now_dt,
         )
@@ -3527,6 +4721,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
         user_id=user["id"],
         auth_flow_id=generate_auth_flow_id(),
         email=user["primary_email"],
+        preferred_language=resolved_language,
         expires_in_sec=auth_conf["two_factor_code_expires_sec"],
         now=now_dt,
     )
@@ -3561,6 +4756,7 @@ def _build_login_two_factor_result(conn, user: dict, ip_address: bytes | None, u
             "code": code,
             "expires_in_sec": auth_conf["two_factor_code_expires_sec"],
             "display_name": user["display_name"],
+            "preferred_language": resolved_language,
         },
     }
 
@@ -3618,6 +4814,7 @@ def _dispatch_mail_job(mail_job: dict | None) -> None:
                 purpose=mail_job["purpose"],
                 expires_in_sec=mail_job["expires_in_sec"],
                 display_name=mail_job.get("display_name"),
+                preferred_language=mail_job.get("preferred_language"),
             )
             return
         if kind == "two_factor":
@@ -3627,6 +4824,7 @@ def _dispatch_mail_job(mail_job: dict | None) -> None:
                 code=mail_job["code"],
                 expires_in_sec=mail_job["expires_in_sec"],
                 display_name=mail_job.get("display_name"),
+                preferred_language=mail_job.get("preferred_language"),
             )
             return
         if kind == "password_reset":
@@ -3636,12 +4834,13 @@ def _dispatch_mail_job(mail_job: dict | None) -> None:
                 reset_url=mail_job["reset_url"],
                 expires_in_sec=mail_job["expires_in_sec"],
                 display_name=mail_job.get("display_name"),
+                preferred_language=mail_job.get("preferred_language"),
             )
     except AuthMailError:
         return
 
 
-def _try_send_verification_email(to_email: str, code: str, purpose: str, expires_in_sec: int, display_name: str | None = None) -> None:
+def _try_send_verification_email(to_email: str, code: str, purpose: str, expires_in_sec: int, display_name: str | None = None, preferred_language: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "verification",
@@ -3650,11 +4849,12 @@ def _try_send_verification_email(to_email: str, code: str, purpose: str, expires
             "purpose": purpose,
             "expires_in_sec": expires_in_sec,
             "display_name": display_name,
+            "preferred_language": preferred_language,
         }
     )
 
 
-def _try_send_two_factor_email(to_email: str, code: str, expires_in_sec: int, display_name: str | None = None) -> None:
+def _try_send_two_factor_email(to_email: str, code: str, expires_in_sec: int, display_name: str | None = None, preferred_language: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "two_factor",
@@ -3662,11 +4862,12 @@ def _try_send_two_factor_email(to_email: str, code: str, expires_in_sec: int, di
             "code": code,
             "expires_in_sec": expires_in_sec,
             "display_name": display_name,
+            "preferred_language": preferred_language,
         }
     )
 
 
-def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec: int, display_name: str | None = None) -> None:
+def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec: int, display_name: str | None = None, preferred_language: str | None = None) -> None:
     _dispatch_mail_job(
         {
             "kind": "password_reset",
@@ -3674,6 +4875,7 @@ def _try_send_password_reset_email(to_email: str, reset_url: str, expires_in_sec
             "reset_url": reset_url,
             "expires_in_sec": expires_in_sec,
             "display_name": display_name,
+            "preferred_language": preferred_language,
         }
     )
 
@@ -3766,5 +4968,147 @@ def _get_user_quick(user_id: int) -> dict | None:
         return get_user_by_id(conn, user_id)
     except Exception:
         return None
+    finally:
+        _safe_close(conn)
+
+_MAX_USER_LINKS = 5
+_ALLOWED_LINK_SCHEME = "https"
+
+
+def _validate_link_url(url: str) -> str:
+    """Validate a link URL. Returns the cleaned URL or raises ValueError."""
+    from urllib.parse import urlparse
+    url = url.strip()
+    if not url:
+        raise ValueError("URLを入力してください。")
+    if len(url) > 500:
+        raise ValueError("URLは500文字以内で入力してください。")
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise ValueError("URLの形式が正しくありません。")
+    if parsed.scheme != _ALLOWED_LINK_SCHEME:
+        raise ValueError("URLは https:// から始まる必要があります。")
+    if not parsed.netloc:
+        raise ValueError("URLの形式が正しくありません。")
+    return url
+
+
+def _resolve_session_user(conn, session_token: str) -> dict | None:
+    """Return user dict for session token, or None if invalid."""
+    token_hash = hash_session_token(session_token)
+    session_row = get_session_by_token_hash(conn, token_hash)
+    if session_row is None:
+        return None
+    user = get_user_by_id(conn, session_row["user_id"])
+    if user is None or user["status"] in {"deleted", "disabled"}:
+        return None
+    return user
+
+
+def add_link_for_current_session(
+    session_token: str | None,
+    url: str,
+) -> dict:
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    try:
+        validated_url = _validate_link_url(url)
+    except ValueError as exc:
+        return build_service_error(
+            error_code="validation_error",
+            message=str(exc),
+            field_errors=[{"field": "url", "code": "invalid_url", "message": str(exc)}],
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        user = _resolve_session_user(conn, str(session_token))
+        if user is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        current_count = count_user_links(conn, user["id"])
+        if current_count >= _MAX_USER_LINKS:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="links_limit_reached",
+                message=f"リンクは{_MAX_USER_LINKS}件まで登録できます。",
+            )
+
+        create_user_link(conn, user["id"], validated_url, current_count)
+        conn.commit()
+
+        links = get_user_links(conn, user["id"])
+        return build_service_success(
+            data={"links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links]},
+            message="リンクを追加しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="リンクの追加に失敗しました。",
+        )
+    finally:
+        _safe_close(conn)
+
+
+def delete_link_for_current_session(
+    session_token: str | None,
+    link_id: int,
+) -> dict:
+    if not session_token or str(session_token).strip() == "":
+        return build_service_error(
+            error_code="not_authenticated",
+            message="ログインが必要です。",
+            clear_session_cookie=True,
+        )
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        user = _resolve_session_user(conn, str(session_token))
+        if user is None:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_authenticated",
+                message="ログインが必要です。",
+                clear_session_cookie=True,
+            )
+
+        deleted = delete_user_link(conn, link_id, user["id"])
+        if deleted == 0:
+            _safe_rollback(conn)
+            return build_service_error(
+                error_code="not_found",
+                message="リンクが見つかりません。",
+                http_status=404,
+            )
+
+        reorder_user_links(conn, user["id"])
+        conn.commit()
+
+        links = get_user_links(conn, user["id"])
+        return build_service_success(
+            data={"links": [{"id": lnk["id"], "url": lnk["url"]} for lnk in links]},
+            message="リンクを削除しました。",
+        )
+    except Exception:
+        _safe_rollback(conn)
+        return build_service_error(
+            error_code="server_error",
+            message="リンクの削除に失敗しました。",
+        )
     finally:
         _safe_close(conn)

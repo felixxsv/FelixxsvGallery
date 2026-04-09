@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Felixxsv Gallery - 新規登録</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/auth.css">
+</head>
+<body class="app-page auth-page" data-app-base="/gallery">
+
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <span class="auth-site-logo" aria-label="Felixxsv Gallery">
+          <span class="auth-site-logo__mark" aria-hidden="true"></span>
+          <span class="auth-site-logo__label">Felixxsv Gallery</span>
+        </span>
+      </div>
+      <div class="app-site-header__right">
+        <a id="regBackLogin" href="/gallery/auth/" class="app-button app-button--ghost app-button--small">← ログインへ戻る</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-split">
+
+      <!-- ── Left: hero ────────────────────────────────────────────────────── -->
+      <div class="auth-hero" aria-hidden="true">
+        <div id="authHeroSlides" class="auth-hero__slides"></div>
+        <div class="auth-hero__overlay">
+          <div class="auth-hero__brand">
+            <span class="auth-hero__brand-mark"></span>
+            <span class="auth-hero__brand-name">Felixxsv Gallery</span>
+          </div>
+          <div class="auth-hero__sub">VRChatの思い出を、ここに。</div>
+        </div>
+      </div>
+
+      <!-- ── Right: form ────────────────────────────────────────────────── -->
+      <div class="auth-form-side">
+        <div class="auth-form-panel">
+
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab is-on" type="button" role="tab" aria-selected="true">新規アカウント作成</button>
+          </div>
+
+          <form id="regForm" autocomplete="on">
+            <div class="auth-field">
+              <label class="auth-field__label" for="regEmail">メールアドレス</label>
+              <input id="regEmail" class="app-input" type="email"
+                required maxlength="255" autocomplete="email">
+            </div>
+            <div class="auth-field">
+              <label class="auth-field__label" for="regPassword">パスワード</label>
+              <input id="regPassword" class="app-input" type="password"
+                placeholder="8文字以上" required minlength="8" maxlength="200"
+                autocomplete="new-password">
+            </div>
+            <div class="auth-field">
+              <label class="auth-field__label" for="regPassword2">パスワード（確認）</label>
+              <input id="regPassword2" class="app-input" type="password"
+                required minlength="8" maxlength="200"
+                autocomplete="new-password">
+            </div>
+            <button id="regBtn" class="app-button app-button--primary auth-btn" type="submit">確認メールを送信</button>
+            <div id="regDevLink"></div>
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/gallery/assets/js/core/auth-hero-slideshow.js"></script>
+  <script src="/gallery/assets/js/page/register.js"></script>
+</body>
+</html>

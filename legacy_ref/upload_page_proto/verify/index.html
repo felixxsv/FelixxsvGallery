@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Felixxsv Gallery - メール確認</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/auth.css">
+</head>
+<body class="app-page auth-page" data-app-base="/gallery">
+
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <span class="auth-site-logo" aria-label="Felixxsv Gallery">
+          <span class="auth-site-logo__mark" aria-hidden="true"></span>
+          <span class="auth-site-logo__label">Felixxsv Gallery</span>
+        </span>
+      </div>
+      <div class="app-site-header__right">
+        <a href="/gallery/" class="app-button app-button--ghost app-button--small">← ギャラリーへ</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-split">
+
+      <!-- ── Left: hero ────────────────────────────────────────────────────── -->
+      <div class="auth-hero" aria-hidden="true">
+        <div id="authHeroSlides" class="auth-hero__slides"></div>
+        <div class="auth-hero__overlay">
+          <div class="auth-hero__brand">
+            <span class="auth-hero__brand-mark"></span>
+            <span class="auth-hero__brand-name">Felixxsv Gallery</span>
+          </div>
+          <div class="auth-hero__sub">VRChatの思い出を、ここに。</div>
+        </div>
+      </div>
+
+      <!-- ── Right: status ──────────────────────────────────────────────── -->
+      <div class="auth-form-side">
+        <div class="auth-form-panel">
+
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab is-on" type="button" role="tab" aria-selected="true">メール確認中...</button>
+          </div>
+
+          <div id="verifyStatus" class="auth-field__label" style="line-height:1.7">
+            このままお待ちください。
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/gallery/assets/js/core/auth-hero-slideshow.js"></script>
+  <script src="/gallery/assets/js/page/verify.js"></script>
+</body>
+</html>

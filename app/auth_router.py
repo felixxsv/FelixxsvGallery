@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import ipaddress
 import uuid
+from contextvars import ContextVar
 
-from fastapi import APIRouter, Cookie, Query, Request
+from fastapi import APIRouter, Cookie, Query, Request, UploadFile, File
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
+from auth_locale import localize_auth_message, localize_field_errors, localize_service_result, normalize_auth_language
 
 from auth_security import (
     DEFAULT_COOKIE_NAME,
@@ -32,6 +34,12 @@ from auth_service import (
     logout_all_for_current_session,
     logout_by_session_token,
     update_current_session_presence,
+    update_profile_for_current_session,
+    update_avatar_for_current_session,
+    delete_avatar_for_current_session,
+    add_link_for_current_session,
+    delete_link_for_current_session,
+    start_email_change_for_session,
     start_registration,
     complete_registration,
     request_password_reset,
@@ -39,20 +47,27 @@ from auth_service import (
     send_email_verification_again,
     send_two_factor_challenge_again,
     start_discord_oauth,
+    start_discord_link,
+    set_password_for_session,
+    link_discord_via_registration_token,
+    unlink_discord_for_session,
     start_two_factor_setup_for_current_session,
 )
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+_AUTH_RESPONSE_LANGUAGE: ContextVar[str | None] = ContextVar("auth_response_language", default=None)
 
 
 class LoginRequest(BaseModel):
     email: str
     password: str
+    preferred_language: str | None = None
 
 
 class RegisterRequest(BaseModel):
     email: str
+    preferred_language: str | None = None
 
 
 class RegisterCompleteRequest(BaseModel):
@@ -84,6 +99,7 @@ class TwoFactorConfirmRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     email: str
+    preferred_language: str | None = None
 
 
 class ResetPasswordRequest(BaseModel):
@@ -94,10 +110,20 @@ class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
 
+class EmailChangeStartRequest(BaseModel):
+    new_email: str
+
 class DiscordRegisterRequest(BaseModel):
     registration_token: str
     user_key: str
     display_name: str
+    preferred_language: str | None = None
+
+class SetPasswordRequest(BaseModel):
+    password: str
+
+class DiscordLinkViaTokenRequest(BaseModel):
+    registration_token: str
 
 class TwoFactorSetupConfirmRequest(BaseModel):
     verify_ticket: str
@@ -113,6 +139,16 @@ class PresenceRequest(BaseModel):
     visible: bool = True
 
 
+class ProfileUpdateRequest(BaseModel):
+    display_name: str | None = None
+    user_key: str | None = None
+    bio: str | None = None
+
+
+class AddLinkRequest(BaseModel):
+    url: str
+
+
 def build_request_id() -> str:
     return str(uuid.uuid4())
 
@@ -123,6 +159,7 @@ def build_success_response(
     next_kind: str = "none",
     next_to: str | None = None,
     message: str = "",
+    language: str | None = None,
 ) -> JSONResponse:
     payload = {
         "ok": True,
@@ -132,7 +169,7 @@ def build_success_response(
             "kind": next_kind,
             "to": next_to,
         },
-        "message": message,
+        "message": localize_auth_message(message, language or _AUTH_RESPONSE_LANGUAGE.get()),
     }
     return JSONResponse(status_code=200, content=payload)
 
@@ -144,14 +181,16 @@ def build_error_response(
     field_errors: list[dict] | None = None,
     retry_after_sec: int | None = None,
     http_status: int = 400,
+    language: str | None = None,
 ) -> JSONResponse:
+    resolved_language = language or _AUTH_RESPONSE_LANGUAGE.get()
     payload = {
         "ok": False,
         "request_id": request_id,
         "error": {
             "code": error_code,
-            "message": message,
-            "field_errors": field_errors or [],
+            "message": localize_auth_message(message, resolved_language),
+            "field_errors": localize_field_errors(field_errors, resolved_language),
             "retry_after_sec": retry_after_sec,
         },
     }
@@ -187,7 +226,6 @@ def map_error_code_to_http_status(error_code: str) -> int:
         "email_not_available": 400,
         "already_enabled": 409,
         "not_enabled": 409,
-        "current_password_incorrect": 400,
     }
     return mapping.get(error_code, 400)
 
@@ -208,9 +246,16 @@ def extract_request_context(request: Request) -> dict:
     if user_agent is not None:
         user_agent = user_agent.strip() or None
 
+    preferred_language = (
+        normalize_auth_language(request.headers.get("x-gallery-language"))
+        or normalize_auth_language(request.headers.get("accept-language"))
+    )
+    _AUTH_RESPONSE_LANGUAGE.set(preferred_language)
+
     return {
         "ip_address": ip_address_bytes,
         "user_agent": user_agent,
+        "preferred_language": preferred_language,
     }
 
 
@@ -235,29 +280,32 @@ def clear_session_cookie(response) -> None:
     )
 
 
-def _build_response_from_service_result(request_id: str, result: dict):
-    if result.get("ok"):
+def _build_response_from_service_result(request_id: str, result: dict, language: str | None = None):
+    localized = localize_service_result(result, language or _AUTH_RESPONSE_LANGUAGE.get())
+    if localized.get("ok"):
         response = build_success_response(
             request_id=request_id,
-            data=result.get("data"),
-            next_kind=result.get("next_kind", "none"),
-            next_to=result.get("next_to"),
-            message=result.get("message", ""),
+            data=localized.get("data"),
+            next_kind=localized.get("next_kind", "none"),
+            next_to=localized.get("next_to"),
+            message=localized.get("message", ""),
+            language=language,
         )
-        apply_session_cookie_if_needed(response, result)
-        if result.get("clear_session_cookie"):
+        apply_session_cookie_if_needed(response, localized)
+        if localized.get("clear_session_cookie"):
             clear_session_cookie(response)
         return response
 
     response = build_error_response(
         request_id=request_id,
-        error_code=result.get("error_code", "server_error"),
-        message=result.get("message", "処理に失敗しました。"),
-        field_errors=result.get("field_errors"),
-        retry_after_sec=result.get("retry_after_sec"),
-        http_status=map_error_code_to_http_status(result.get("error_code", "server_error")),
+        error_code=localized.get("error_code", "server_error"),
+        message=localized.get("message", "処理に失敗しました。"),
+        field_errors=localized.get("field_errors"),
+        retry_after_sec=localized.get("retry_after_sec"),
+        http_status=map_error_code_to_http_status(localized.get("error_code", "server_error")),
+        language=language,
     )
-    if result.get("clear_session_cookie"):
+    if localized.get("clear_session_cookie"):
         clear_session_cookie(response)
     return response
 
@@ -273,6 +321,7 @@ async def login(
         result = login_with_email_password(
             email=payload.email,
             password=payload.password,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -293,6 +342,7 @@ async def presence(
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         visible = True if payload is None else bool(payload.visible)
         result = update_current_session_presence(session_token=gallery_session, visible=visible)
@@ -315,6 +365,7 @@ async def logout(
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = logout_by_session_token(session_token=gallery_session)
         return _build_response_from_service_result(request_id, result)
@@ -354,9 +405,11 @@ async def logout_all(
 
 @router.get("/me")
 async def me(
+    request: Request,
     gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = get_current_user_profile(session_token=gallery_session)
         return _build_response_from_service_result(request_id, result)
@@ -370,6 +423,232 @@ async def me(
         return response
 
 
+@router.patch("/profile")
+async def update_profile(
+    payload: ProfileUpdateRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    extract_request_context(request)
+    try:
+        result = update_profile_for_current_session(
+            session_token=gallery_session,
+            display_name=payload.display_name,
+            user_key=payload.user_key,
+            bio=payload.bio,
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="プロフィールの更新に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/avatar")
+async def upload_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    import os
+    from pathlib import Path
+    from db import load_conf
+    request_id = build_request_id()
+    extract_request_context(request)
+    try:
+        conf_path = os.environ.get("GALLERY_CONF", str(Path(__file__).with_name("gallery.conf")))
+        conf = load_conf(conf_path)
+        storage_root = Path(conf.get("paths", {}).get("storage_root", "/data/felixxsv-gallery/www/storage"))
+        avatar_dir = storage_root / "avatars"
+        avatar_dir.mkdir(parents=True, exist_ok=True)
+
+        content_type = (file.content_type or "").lower()
+        allowed = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+        if content_type not in allowed:
+            return build_error_response(
+                request_id=request_id,
+                error_code="validation_error",
+                message="画像ファイル（JPEG・PNG・GIF・WebP）のみアップロードできます。",
+                http_status=400,
+            )
+
+        data = await file.read()
+        if len(data) > 5 * 1024 * 1024:
+            return build_error_response(
+                request_id=request_id,
+                error_code="validation_error",
+                message="ファイルサイズは5MB以下にしてください。",
+                http_status=400,
+            )
+
+        ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+        ext = ext_map.get(content_type, "jpg")
+
+        import tempfile
+        import shutil
+        from PIL import Image as PILImage
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}") as tmp:
+            tmp.write(data)
+            tmp_path = tmp.name
+
+        try:
+            with PILImage.open(tmp_path) as img:
+                img.verify()
+        except Exception:
+            os.unlink(tmp_path)
+            return build_error_response(
+                request_id=request_id,
+                error_code="validation_error",
+                message="有効な画像ファイルを選択してください。",
+                http_status=400,
+            )
+
+        # Resize and save as JPEG
+        with PILImage.open(tmp_path) as img:
+            img = img.convert("RGB")
+            img.thumbnail((256, 256))
+            # Use user_id as temp name - get it from session
+            import secrets
+            temp_name = secrets.token_hex(8)
+            out_path = avatar_dir / f"_{temp_name}.jpg"
+            img.save(str(out_path), "JPEG", quality=88)
+
+        os.unlink(tmp_path)
+
+        rel_path = f"avatars/{out_path.name}"
+        result = update_avatar_for_current_session(
+            session_token=gallery_session,
+            avatar_path=rel_path,
+        )
+
+        if result.get("ok"):
+            user_id = result.get("data", {}).get("user_id")
+            if user_id:
+                final_path = avatar_dir / f"{user_id}.jpg"
+                shutil.move(str(out_path), str(final_path))
+                rel_path = f"avatars/{user_id}.jpg"
+                result2 = update_avatar_for_current_session(
+                    session_token=gallery_session,
+                    avatar_path=rel_path,
+                )
+                if result2.get("ok"):
+                    result2["data"]["avatar_url"] = f"/api/auth/avatar/{user_id}"
+                    return _build_response_from_service_result(request_id, result2)
+            result["data"]["avatar_url"] = ""
+            return _build_response_from_service_result(request_id, result)
+        else:
+            if out_path.exists():
+                out_path.unlink()
+            return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="アイコンのアップロードに失敗しました。",
+            http_status=500,
+        )
+
+
+@router.delete("/avatar")
+async def remove_avatar(
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    import os
+    from pathlib import Path
+    from db import load_conf
+    request_id = build_request_id()
+    extract_request_context(request)
+    try:
+        result = delete_avatar_for_current_session(session_token=gallery_session)
+        if result.get("ok"):
+            conf_path = os.environ.get("GALLERY_CONF", str(Path(__file__).with_name("gallery.conf")))
+            conf = load_conf(conf_path)
+            storage_root = Path(conf.get("paths", {}).get("storage_root", "/data/felixxsv-gallery/www/storage"))
+            old_rel = result.get("data", {}).get("old_avatar_path")
+            if old_rel:
+                old_file = storage_root / old_rel
+                if old_file.exists():
+                    old_file.unlink()
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="アイコンの削除に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/links")
+async def add_link(
+    payload: AddLinkRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    extract_request_context(request)
+    try:
+        result = add_link_for_current_session(
+            session_token=gallery_session,
+            url=payload.url,
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="リンクの追加に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.delete("/links/{link_id}")
+async def remove_link(
+    link_id: int,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    extract_request_context(request)
+    try:
+        result = delete_link_for_current_session(
+            session_token=gallery_session,
+            link_id=link_id,
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="リンクの削除に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.get("/avatar/{user_id}")
+async def get_avatar(user_id: int):
+    import os
+    from pathlib import Path
+    from db import load_conf
+    from fastapi.responses import FileResponse, Response
+    request_id = build_request_id()
+    try:
+        conf_path = os.environ.get("GALLERY_CONF", str(Path(__file__).with_name("gallery.conf")))
+        conf = load_conf(conf_path)
+        storage_root = Path(conf.get("paths", {}).get("storage_root", "/data/felixxsv-gallery/www/storage"))
+        avatar_file = storage_root / "avatars" / f"{user_id}.jpg"
+        if not avatar_file.exists():
+            return Response(status_code=404)
+        return FileResponse(str(avatar_file), media_type="image/jpeg")
+    except Exception:
+        return Response(status_code=500)
+
+
 @router.post("/register")
 async def register(
     payload: RegisterRequest,
@@ -380,6 +659,7 @@ async def register(
     try:
         result = start_registration(
             email=payload.email,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -403,6 +683,7 @@ async def register_start(
     try:
         result = start_registration(
             email=payload.email,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -445,9 +726,11 @@ async def register_complete(
 
 @router.get("/user-key/availability")
 async def user_key_availability(
+    request: Request,
     user_key: str = Query(...),
 ):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = check_user_key_availability(user_key=user_key)
         return _build_response_from_service_result(request_id, result)
@@ -589,6 +872,7 @@ async def two_factor_setup_start(
             session_token=gallery_session,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
+            preferred_language=context["preferred_language"],
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:
@@ -640,6 +924,7 @@ async def two_factor_disable_start(
             session_token=gallery_session,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
+            preferred_language=context["preferred_language"],
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:
@@ -688,6 +973,7 @@ async def password_forgot(
     try:
         result = request_password_reset(
             email=payload.email,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -699,6 +985,32 @@ async def password_forgot(
             message="パスワード再設定受付に失敗しました。",
             http_status=500,
         )
+
+@router.post("/email/change/start")
+async def email_change_start(
+    payload: EmailChangeStartRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = start_email_change_for_session(
+            session_token=gallery_session,
+            new_email=payload.new_email,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+            preferred_language=context["preferred_language"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="メールアドレス変更の開始に失敗しました。",
+            http_status=500,
+        )
+
 
 @router.post("/password/change")
 async def password_change(
@@ -770,8 +1082,9 @@ async def password_reset(
 
 
 @router.post("/discord/start")
-async def discord_start():
+async def discord_start(request: Request):
     request_id = build_request_id()
+    extract_request_context(request)
     try:
         result = start_discord_oauth()
         return _build_response_from_service_result(request_id, result)
@@ -784,17 +1097,63 @@ async def discord_start():
         )
 
 
+@router.post("/discord/link/start")
+async def discord_link_start(
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    extract_request_context(request)
+    try:
+        result = start_discord_link(session_token=gallery_session)
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="Discord連携の開始に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/password/set")
+async def password_set(
+    payload: SetPasswordRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = set_password_for_session(
+            session_token=gallery_session,
+            password=payload.password,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="パスワードの設定に失敗しました。",
+            http_status=500,
+        )
+
+
 @router.get("/discord/callback")
 async def discord_callback(
     request: Request,
     code: str | None = Query(default=None),
     state: str | None = Query(default=None),
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     context = extract_request_context(request)
     try:
         result = handle_discord_callback(
             code=code,
             state=state,
+            session_token=gallery_session,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -846,6 +1205,7 @@ async def discord_register(
             registration_token=payload.registration_token,
             user_key=payload.user_key,
             display_name=payload.display_name,
+            preferred_language=payload.preferred_language,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
         )
@@ -855,5 +1215,53 @@ async def discord_register(
             request_id=request_id,
             error_code="server_error",
             message="Discord登録の完了に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/discord/link/via-token")
+async def discord_link_via_token(
+    payload: DiscordLinkViaTokenRequest,
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = link_discord_via_registration_token(
+            session_token=gallery_session,
+            registration_token=payload.registration_token,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="Discord連携に失敗しました。",
+            http_status=500,
+        )
+
+
+@router.post("/discord/unlink")
+async def discord_unlink(
+    request: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = build_request_id()
+    context = extract_request_context(request)
+    try:
+        result = unlink_discord_for_session(
+            session_token=gallery_session,
+            ip_address=context["ip_address"],
+            user_agent=context["user_agent"],
+        )
+        return _build_response_from_service_result(request_id, result)
+    except Exception:
+        return build_error_response(
+            request_id=request_id,
+            error_code="server_error",
+            message="Discord連携解除に失敗しました。",
             http_status=500,
         )

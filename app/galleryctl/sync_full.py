@@ -96,7 +96,7 @@ def _db_connect(cfg: Cfg) -> pymysql.Connection:
 
 def _load_table_schema(conn: pymysql.Connection, table: str) -> TableSchema:
     with conn.cursor() as cur:
-        cur.execute(f"SHOW COLUMNS FROM {table}")
+        cur.execute(f"SHOW COLUMNS FROM `{table}`")
         rows = cur.fetchall()
     cols: dict[str, str] = {}
     for r in rows:

@@ -1,12 +1,16 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Felixxsv Gallery</title>
   <link rel="stylesheet" href="/gallery/assets/css/common.css">
   <link rel="stylesheet" href="/gallery/assets/css/components.css">
-  <link rel="stylesheet" href="/gallery/assets/css/page-home.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components/date-picker.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/home.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components/image-modal.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components/upload-modal.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components/toast.css">
 </head>
 <body
   class="app-page"
@@ -18,21 +22,68 @@
   data-credit-license="TBD"
   data-credit-updated-at="2026-03-16"
 >
+  <button
+    id="homeSidebarToggle"
+    class="app-icon-button app-shell-toggle"
+    type="button"
+    aria-label="Open sidebar"
+    data-i18n-aria-label="home.sidebar.open"
+    aria-expanded="false"
+  >
+    <span aria-hidden="true">❯</span>
+  </button>
+
   <header class="app-site-header">
     <div class="app-site-header__inner">
       <div class="app-site-header__left">
         <a href="/gallery/" class="app-site-logo" aria-label="Felixxsv Gallery">
-          <span class="app-site-logo__mark" aria-hidden="true"></span>
+          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
           <span class="app-site-logo__label">Felixxsv Gallery</span>
         </a>
       </div>
 
+      <div class="app-site-header__center app-site-header__center--search">
+        <div class="home-header-search-wrap">
+          <div class="home-header-search-field app-site-header__search home-search-field">
+            <span class="app-visually-hidden" data-i18n="home.mobile.search">Search</span>
+            <span class="home-search-field__icon" aria-hidden="true"></span>
+            <div id="homeSearchOwnerBadge" class="home-search-owner-badge" hidden>
+              <span id="homeSearchOwnerBadgeLabel" class="home-search-owner-badge__label"></span>
+              <button type="button" id="homeSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="Clear user filter" data-i18n-aria-label="home.owner_filter.clear">×</button>
+            </div>
+            <input
+              id="homeSearchInput"
+              class="app-input home-header-search-input"
+              type="search"
+              placeholder="Search title / alt / tags / users"
+              data-i18n-placeholder="home.search.placeholder"
+              autocomplete="off"
+            >
+          </div>
+          <div id="homeSearchSugPanel" class="home-search-sug-panel" hidden>
+            <div id="homeSearchSugImages" class="home-search-sug-section" hidden>
+              <div class="home-search-sug-section__heading" data-i18n="home.search.images">Images</div>
+              <div id="homeSearchSugImagesList" class="home-search-sug-section__list"></div>
+            </div>
+            <div id="homeSearchSugTags" class="home-search-sug-section" hidden>
+              <div class="home-search-sug-section__heading" data-i18n="home.search.tags">Tags</div>
+              <div id="homeSearchSugTagsList" class="home-search-sug-section__list"></div>
+            </div>
+            <div id="homeSearchSugUsers" class="home-search-sug-section" hidden>
+              <div class="home-search-sug-section__heading" data-i18n="home.search.users">Users</div>
+              <div id="homeSearchSugUsersList" class="home-search-sug-section__list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="app-site-header__right">
+        <button id="shellHeaderUploadButton" class="app-button app-button--ghost app-upload-launch-button" type="button" data-i18n="home.actions.upload">Upload</button>
         <button
           id="shellUserTrigger"
           class="app-icon-button"
           type="button"
-          aria-label="ユーザー情報"
+          aria-label="User Info"
         >
           <span id="shellUserTriggerGuestIcon" class="shell-user-icon shell-user-icon--guest" aria-hidden="true"></span>
           <span id="shellUserTriggerAuthIcon" class="shell-user-icon shell-user-icon--auth" aria-hidden="true" hidden></span>
@@ -43,81 +94,246 @@
 
   <main class="home-page">
     <div class="app-container">
-      <section class="home-hero">
-        <div class="home-hero__text">
-          <p class="home-hero__eyebrow">VRChat Gallery</p>
-          <h1 class="home-hero__title">Felixxsv Gallery</h1>
-          <p class="home-hero__lead">
-            画像一覧を参照できるホーム画面です。検索、並び替え、表示件数はこの画面側で扱います。
-          </p>
-        </div>
-      </section>
+      <div id="homeShellLayout" class="home-shell-layout">
+        <div id="homeSidebarBackdrop" class="home-sidebar-backdrop" hidden></div>
+        <aside id="homeSidebar" class="home-sidebar" aria-label="Image list filters" data-i18n-aria-label="home.sidebar.filter_aria">
+  <div class="home-sidebar__header">
+    <div class="home-sidebar__brand">
+      <div class="home-sidebar__eyebrow">Gallery</div>
+      <div class="home-sidebar__title">Browse</div>
+    </div>
+    <button id="homeSidebarClose" class="home-sidebar__close app-icon-button" type="button" aria-label="Close sidebar" data-i18n-aria-label="home.sidebar.close">×</button>
+  </div>
 
-      <section class="home-toolbar" aria-label="画像一覧の操作">
-        <div class="home-toolbar__group home-toolbar__group--grow">
-          <label class="app-field home-toolbar__field">
-            <span class="app-visually-hidden">検索</span>
-            <input
-              id="homeSearchInput"
-              class="app-input"
-              type="search"
-              placeholder="タイトル / alt / タグを検索"
-              autocomplete="off"
-            >
+  <div class="home-sidebar__body">
+    <section class="home-sidebar__section">
+      <div class="home-sidebar__section-heading">
+        <h2 class="home-sidebar__section-title" data-i18n="home.sidebar.shortcuts">Gallery Shortcuts</h2>
+      </div>
+      <div class="home-sidebar__shortcut-list" data-ui-shortcut-list id="homeShortcutList">
+        <button type="button" class="home-sidebar__shortcut is-active" data-ui-shortcut data-default aria-pressed="true" data-i18n="home.sidebar.all">All</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="current_month" aria-pressed="false" data-i18n="home.sidebar.current_month">This Month</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="favorites" aria-pressed="false" data-i18n="home.sidebar.favorites">Favorites</button>
+        <button type="button" class="home-sidebar__shortcut" data-ui-shortcut data-shortcut="random" aria-pressed="false" data-i18n="home.sidebar.random">Random</button>
+      </div>
+    </section>
+
+    <section class="home-sidebar__section">
+      <div class="home-sidebar__section-heading">
+        <h2 class="home-sidebar__section-title" data-i18n="home.sidebar.filters">Filters</h2>
+        <button id="homeClearFiltersButton" class="home-sidebar__clear-button" type="button" data-i18n="home.sidebar.clear">Clear Filters</button>
+      </div>
+
+      <div class="home-filter-block">
+        <div class="home-filter-block__header">
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.tags">Tags</h3>
+          <div class="home-segmented" data-ui-segment data-filter-mode="tags">
+            <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-mode="or" aria-pressed="true">OR</button>
+            <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
+          </div>
+        </div>
+        <div class="home-tag-search-wrap">
+          <label class="app-field home-search-field home-search-field--sidebar">
+            <span class="app-visually-hidden" data-i18n="home.tag_search.label">Tag search</span>
+            <span class="home-search-field__icon" aria-hidden="true"></span>
+            <input id="homeTagSearchInput" class="app-input" type="search" placeholder="Filter tags" data-i18n-placeholder="home.sidebar.tag_search" autocomplete="off">
+          </label>
+          <div id="homeTagSugPanel" class="home-tag-sug-panel" hidden>
+            <div id="homeTagSugList" class="home-tag-sug-list"></div>
+          </div>
+        </div>
+        <div id="homeTagChipList" class="home-filter-chip-list" data-ui-chip-list="tags"></div>
+        <button id="homeTagMoreBtn" type="button" class="home-tag-more-btn">+more</button>
+      </div>
+
+      <div class="home-filter-block">
+        <div class="home-filter-block__header">
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.colors">Color Tags</h3>
+          <div class="home-segmented" data-ui-segment data-filter-mode="colors">
+            <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-mode="or" aria-pressed="true">OR</button>
+            <button type="button" class="home-segmented__button" data-ui-segment-button data-mode="and" aria-pressed="false">AND</button>
+          </div>
+        </div>
+        <div id="homeColorList" class="home-filter-color-list" data-ui-color-list></div>
+      </div>
+
+      <div class="home-filter-block">
+        <div class="home-filter-block__header">
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.shot_date">Shot Date</h3>
+          <div class="home-filter-preset-list" data-ui-option-group data-date-presets="shot">
+            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true" data-i18n="home.sidebar.none">Any</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false" data-i18n="home.sidebar.this_month">This Month</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false" data-i18n="home.sidebar.this_year">This Year</button>
+          </div>
+        </div>
+        <div class="home-filter-date-grid" data-date-grid="shot">
+          <label class="app-field">
+            <span class="app-visually-hidden" data-i18n="home.date.shot_from">Shot date from</span>
+            <input id="homeShotDateFrom" class="app-input" type="date">
+          </label>
+          <label class="app-field">
+            <span class="app-visually-hidden" data-i18n="home.date.shot_to">Shot date to</span>
+            <input id="homeShotDateTo" class="app-input" type="date">
           </label>
         </div>
+      </div>
 
-        <div class="home-toolbar__group">
-          <label class="app-field home-toolbar__field home-toolbar__field--compact">
-            <span class="app-visually-hidden">並び順</span>
-            <select id="homeSortSelect" class="app-select">
-              <option value="latest">新しい順</option>
-              <option value="oldest">古い順</option>
-              <option value="popular">人気順</option>
-            </select>
-          </label>
-
-          <label class="app-field home-toolbar__field home-toolbar__field--compact">
-            <span class="app-visually-hidden">表示件数</span>
-            <select id="homePerPageSelect" class="app-select">
-              <option value="24">24件</option>
-              <option value="48">48件</option>
-              <option value="96">96件</option>
-            </select>
-          </label>
-
-          <button id="homeReloadButton" class="app-button app-button--ghost" type="button">再読込</button>
+      <div class="home-filter-block">
+        <div class="home-filter-block__header">
+          <h3 class="home-filter-block__title" data-i18n="home.sidebar.posted_date">Posted Date</h3>
+          <div class="home-filter-preset-list" data-ui-option-group data-date-presets="posted">
+            <button type="button" class="home-filter-preset is-active" data-ui-option data-default data-preset="none" aria-pressed="true" data-i18n="home.sidebar.none">Any</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_month" aria-pressed="false" data-i18n="home.sidebar.this_month">This Month</button>
+            <button type="button" class="home-filter-preset" data-ui-option data-preset="this_year" aria-pressed="false" data-i18n="home.sidebar.this_year">This Year</button>
+          </div>
         </div>
-      </section>
-
-      <section class="home-status" aria-live="polite">
-        <div id="homeStatusText" class="home-status__text">読み込み待機中です。</div>
-      </section>
-
-      <section class="home-gallery-section">
-        <div id="homeLoadingState" class="home-state-card" hidden>読み込み中です。</div>
-        <div id="homeErrorState" class="home-state-card home-state-card--error" hidden></div>
-        <div id="homeEmptyState" class="home-state-card" hidden>該当する画像がありません。</div>
-
-        <div id="homeGalleryGrid" class="home-gallery-grid" hidden></div>
-      </section>
-
-      <section class="home-pagination" aria-label="ページ移動">
-        <div id="homePaginationMeta" class="home-pagination__meta"></div>
-        <div class="app-button-row app-button-row--end">
-          <button id="homePrevPageButton" class="app-button app-button--ghost" type="button">前へ</button>
-          <button id="homeNextPageButton" class="app-button app-button--ghost" type="button">次へ</button>
+        <div class="home-filter-date-grid" data-date-grid="posted">
+          <label class="app-field">
+            <span class="app-visually-hidden" data-i18n="home.date.posted_from">Posted date from</span>
+            <input id="homePostedDateFrom" class="app-input" type="date">
+          </label>
+          <label class="app-field">
+            <span class="app-visually-hidden" data-i18n="home.date.posted_to">Posted date to</span>
+            <input id="homePostedDateTo" class="app-input" type="date">
+          </label>
         </div>
-      </section>
+      </div>
+    </section>
+
+    <section class="home-sidebar__section">
+      <div class="home-sidebar__section-heading">
+        <h2 class="home-sidebar__section-title" data-i18n="home.sidebar.archive">Date Archive</h2>
+        <div class="home-segmented" data-ui-segment id="homeArchiveKindSegment">
+          <button type="button" class="home-segmented__button is-active" data-ui-segment-button data-default data-archive-kind="shot" aria-pressed="true" data-i18n="home.sidebar.archive_shot">Shot Date</button>
+          <button type="button" class="home-segmented__button" data-ui-segment-button data-archive-kind="posted" aria-pressed="false" data-i18n="home.sidebar.archive_posted">Posted Date</button>
+        </div>
+      </div>
+
+      <div id="homeArchiveList" class="home-archive-list"></div>
+    </section>
+  </div>
+</aside>
+
+        <div class="home-shell-layout__content">
+          <div class="home-mobile-toolbar" id="homeMobileToolbar">
+            <button type="button" id="homeMobileSearchBtn" class="home-mobile-toolbar__btn" aria-label="Search" data-i18n-aria-label="home.mobile.search">
+              <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--search" aria-hidden="true"></span>
+              <span class="home-mobile-toolbar__label" data-i18n="home.mobile.search">Search</span>
+            </button>
+            <button type="button" id="homeMobileFilterBtn" class="home-mobile-toolbar__btn" aria-label="Filter" data-i18n-aria-label="home.mobile.filter">
+              <span class="home-mobile-toolbar__icon home-mobile-toolbar__icon--filter" aria-hidden="true"></span>
+              <span class="home-mobile-toolbar__label" data-i18n="home.mobile.filter">Filter</span>
+            </button>
+          </div>
+
+          <div id="homeMobileSearchModal" class="home-mobile-search-modal" hidden>
+            <div class="home-mobile-search-modal__inner">
+              <div class="home-mobile-search-modal__header">
+                <div class="home-mobile-search-modal__field-wrap">
+                  <span class="home-search-field__icon" aria-hidden="true"></span>
+                  <div id="homeMobileSearchOwnerBadge" class="home-search-owner-badge" hidden>
+                    <span id="homeMobileSearchOwnerBadgeLabel" class="home-search-owner-badge__label"></span>
+                    <button type="button" id="homeMobileSearchOwnerBadgeClear" class="home-search-owner-badge__clear" aria-label="Clear user filter" data-i18n-aria-label="home.owner_filter.clear">×</button>
+                  </div>
+                  <input
+                    id="homeMobileSearchInput"
+                    class="app-input home-mobile-search-modal__input"
+                    type="search"
+                    placeholder="Search title / alt / tags / users"
+                    data-i18n-placeholder="home.search.placeholder"
+                    autocomplete="off"
+                  >
+                </div>
+                <button type="button" id="homeMobileSearchClose" class="home-mobile-search-modal__close app-icon-button" aria-label="Close search" data-i18n-aria-label="home.search.close">×</button>
+              </div>
+              <div id="homeMobileSearchSugPanel" class="home-search-sug-panel home-search-sug-panel--mobile" hidden>
+                <div id="homeMobileSearchSugImages" class="home-search-sug-section" hidden>
+                  <div class="home-search-sug-section__heading" data-i18n="home.search.images">Images</div>
+                  <div id="homeMobileSearchSugImagesList" class="home-search-sug-section__list"></div>
+                </div>
+                <div id="homeMobileSearchSugTags" class="home-search-sug-section" hidden>
+                  <div class="home-search-sug-section__heading" data-i18n="home.search.tags">Tags</div>
+                  <div id="homeMobileSearchSugTagsList" class="home-search-sug-section__list"></div>
+                </div>
+                <div id="homeMobileSearchSugUsers" class="home-search-sug-section" hidden>
+                  <div class="home-search-sug-section__heading" data-i18n="home.search.users">Users</div>
+                  <div id="homeMobileSearchSugUsersList" class="home-search-sug-section__list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <section class="home-status" aria-live="polite">
+  <div class="home-status__summary">
+    <div class="home-status__meta">
+      <span class="home-status-chip">
+        <span class="home-status-chip__label" data-i18n="home.status.query">Query</span>
+        <span id="homeStatusQuery" class="home-status-chip__value" data-i18n="home.status.none">None</span>
+      </span>
+      <span class="home-status-chip">
+        <span class="home-status-chip__label" data-i18n="home.status.sort">Sort</span>
+        <span id="homeStatusSort" class="home-status-chip__value" data-i18n="home.sort.latest">Latest</span>
+      </span>
+      <span class="home-status-chip">
+        <span class="home-status-chip__label" data-i18n="home.status.showing">Showing</span>
+        <span id="homeStatusRange" class="home-status-chip__value" data-i18n="home.status.range_initial">0-0 items</span>
+      </span>
+      <span class="home-status-chip">
+        <span class="home-status-chip__label" data-i18n="home.status.total">Total</span>
+        <span id="homeStatusTotal" class="home-status-chip__value" data-i18n="home.status.total_initial">0 items</span>
+      </span>
+    </div>
+  </div>
+  <div class="home-status__actions">
+    <label class="app-field home-status__sort-field">
+      <span class="app-visually-hidden" data-i18n="home.sort.label">Sort order</span>
+      <select id="homeSortSelect" class="app-select">
+        <option value="latest" data-i18n="home.sort.latest">Latest</option>
+        <option value="oldest" data-i18n="home.sort.oldest">Oldest</option>
+        <option value="popular" data-i18n="home.sort.popular">Popular</option>
+      </select>
+    </label>
+    <div id="homeGridColumnsControls" class="home-grid-columns" aria-label="Switch columns" data-i18n-aria-label="home.grid.switch">
+      <button type="button" class="home-grid-columns__button" data-grid-cols="1" aria-label="Show 1 column" data-i18n-aria-label="home.grid.1">1</button>
+      <button type="button" class="home-grid-columns__button" data-grid-cols="2" aria-label="Show 2 columns" data-i18n-aria-label="home.grid.2">2</button>
+      <button type="button" class="home-grid-columns__button" data-grid-cols="3" aria-label="Show 3 columns" data-i18n-aria-label="home.grid.3">3</button>
+      <button type="button" class="home-grid-columns__button" data-grid-cols="4" aria-label="Show 4 columns" data-i18n-aria-label="home.grid.4">4</button>
+    </div>
+  </div>
+</section>
+
+          <section class="home-gallery-section">
+            <div id="homeLoadingState" class="home-state-card home-state-card--loading" hidden>
+              <div class="home-loading-state__spinner" aria-hidden="true"></div>
+              <div class="home-loading-state__message" data-i18n="home.loading">Loading</div>
+            </div>
+            <div id="homeErrorState" class="home-state-card home-state-card--error" hidden></div>
+            <div id="homeEmptyState" class="home-state-card home-state-card--empty" hidden>
+              <div class="home-empty-state__icon" aria-hidden="true"></div>
+              <div class="home-empty-state__message" data-i18n="home.empty">No matching images found</div>
+            </div>
+
+            <div id="homeGalleryGrid" class="home-gallery-grid" data-grid-cols="3" hidden></div>
+          </section>
+
+          <section class="home-pagination" aria-label="Pagination" data-i18n-aria-label="home.pagination.aria">
+            <div id="homePaginationMeta" class="home-pagination__meta"></div>
+            <div class="app-button-row app-button-row--end">
+              <button id="homePrevPageButton" class="app-button app-button--ghost" type="button" data-i18n="home.pagination.prev">Prev</button>
+              <button id="homeNextPageButton" class="app-button app-button--ghost" type="button" data-i18n="home.pagination.next">Next</button>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   </main>
-
   <div id="appModalRoot" class="app-modal-root" aria-live="polite">
     <button
       id="appGlobalClose"
       class="app-global-close"
       type="button"
-      aria-label="閉じる"
+      aria-label="Close"
+      data-i18n-aria-label="shell.static.close"
       hidden
     >
       ×
@@ -127,148 +343,220 @@
       <div class="app-modal-backdrop" data-modal-backdrop="user-info"></div>
       <div class="app-modal-dialog shell-user-dialog" role="dialog" aria-modal="true" aria-labelledby="userInfoTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="userInfoTitle" class="app-modal-title">ユーザー情報</h2>
+          <h2 id="userInfoTitle" class="app-modal-title" data-i18n="shell.static.user_info">User Info</h2>
           <div class="app-modal-header-actions">
-            <button type="button" class="shell-header-link" data-modal-open="settings">設定</button>
-            <button type="button" class="shell-header-link" data-modal-open="help">ヘルプ</button>
-            <button type="button" class="shell-header-link" data-modal-open="credits">クレジット</button>
+            <button type="button" class="shell-header-link" data-modal-open="settings" data-i18n="shell.static.settings">Settings</button>
+            <button type="button" class="shell-header-link" data-modal-open="help" data-i18n="shell.static.help">Help</button>
+            <button type="button" class="shell-header-link" data-modal-open="credits" data-i18n="shell.static.credits">Credits</button>
           </div>
         </div>
 
         <div class="app-modal-body">
           <section id="shellUserCard" class="shell-user-card">
             <div id="shellGuestOverlay" class="shell-user-card__guest-overlay" hidden>
-              <button id="shellLoginButton" type="button" class="app-button app-button--primary">ログイン</button>
+              <button id="shellLoginButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.login">Log In</button>
             </div>
 
             <div class="shell-user-card__content">
-              <div class="shell-user-card__profile">
-                <div class="shell-user-card__avatar" aria-hidden="true"></div>
 
+              <!-- Profile header -->
+              <div class="shell-user-card__profile">
+                <div id="shellUserCardAvatar" class="shell-user-card__avatar" aria-hidden="true">
+                  <img id="shellUserCardAvatarImg" class="shell-user-card__avatar-img" src="" alt="" hidden>
+                </div>
                 <div class="shell-user-card__identity">
                   <div class="shell-user-card__name-row">
                     <div id="shellUserDisplayName" class="shell-user-card__display-name">-</div>
-                    <button
-                      id="shellAccountEditButton"
-                      type="button"
-                      class="app-icon-button shell-pen-button"
-                      aria-label="アカウント設定"
-                      data-modal-open="account"
-                      hidden
-                    >
-                      <span class="shell-pen-icon" aria-hidden="true"></span>
-                    </button>
+                    <div class="shell-user-card__name-actions">
+                      <button
+                        id="shellAccountEditButton"
+                        type="button"
+                        class="app-icon-button shell-pen-button"
+                        aria-label="Edit profile"
+                        data-i18n-aria-label="shell.static.profile_edit"
+                        data-modal-open="account"
+                        hidden
+                      >
+                        <span class="shell-pen-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></span>
+                      </button>
+                      <button
+                        id="shellProfilePreviewButton"
+                        type="button"
+                        class="app-icon-button shell-profile-preview-button"
+                        aria-label="View profile"
+                        data-i18n-aria-label="shell.static.profile_preview"
+                        hidden
+                      >
+                        <span class="shell-profile-preview-icon" aria-hidden="true"></span>
+                      </button>
+                    </div>
                   </div>
                   <div id="shellUserKey" class="shell-user-card__subline">-</div>
                 </div>
               </div>
 
-              <dl class="app-definition-list">
+              <!-- Bio -->
+              <p id="shellUserBio" class="shell-user-card__bio" hidden></p>
+
+              <!-- Links -->
+              <div id="shellUserCardLinks" class="shell-user-card__links" hidden></div>
+
+              <!-- Display badges -->
+              <div id="shellUserDisplayBadges" class="shell-user-display-badges" hidden></div>
+
+              <!-- Meta info -->
+              <dl class="app-definition-list shell-user-card__meta-list">
                 <div class="app-definition-list__row">
-                  <dt>メールアドレス</dt>
+                  <dt data-i18n="shell.static.email">Email</dt>
                   <dd id="shellUserEmail">-</dd>
                 </div>
                 <div class="app-definition-list__row">
-                  <dt>登録日時</dt>
+                  <dt data-i18n="shell.static.created_at">Created At</dt>
                   <dd id="shellUserCreatedAt">-</dd>
                 </div>
                 <div class="app-definition-list__row">
-                  <dt>2段階認証</dt>
+                  <dt data-i18n="shell.static.twofactor">Two-Factor Auth</dt>
                   <dd id="shellUserTwoFactor">-</dd>
                 </div>
                 <div id="shellUserRoleRow" class="app-definition-list__row" hidden>
-                  <dt>ロール</dt>
-                  <dd id="shellUserRole">-</dd>
+                  <dt data-i18n="shell.static.role">Role</dt>
+                  <dd class="shell-role-cell">
+                    <span id="shellUserRole">-</span>
+                    <a
+                      id="shellAdminLink"
+                      href="/gallery/admin"
+                      class="app-link-button app-button--small"
+                      hidden
+                    data-i18n="shell.static.admin">Admin Console</a>
+                  </dd>
                 </div>
               </dl>
 
+              <!-- Upload -->
               <p id="shellUploadDisabledMessage" class="shell-inline-warning" hidden>
-                現在、画像投稿は無効化されています。
+                <span data-i18n="shell.static.upload_disabled">Image uploads are currently disabled.</span>
               </p>
-
-              <div class="app-button-row">
-                <button
-                  id="shellAccountOpenButton"
-                  type="button"
-                  class="app-button"
-                  data-modal-open="account"
-                  hidden
-                >
-                  アカウント設定
-                </button>
-
-                <a
-                  id="shellAdminLink"
-                  href="/gallery/admin"
-                  class="app-link-button"
-                  hidden
-                >
-                  管理画面へ
-                </a>
+              <div class="shell-user-card__upload-row">
+                <button id="shellUploadOpenButton" type="button" class="app-button app-button--primary" hidden data-i18n="shell.static.upload">Upload</button>
               </div>
+
             </div>
           </section>
         </div>
 
-        <div id="shellUserFooter" class="app-modal-footer app-modal-footer--end" hidden>
-          <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost">全端末ログアウト</button>
-          <button id="shellLogoutButton" type="button" class="app-button app-button--danger">ログアウト</button>
+        <div id="shellUserFooter" class="app-modal-footer shell-user-footer" hidden>
+          <div class="shell-user-footer__secondary">
+            <button
+              id="shellAccountOpenButton"
+              type="button"
+              class="app-button app-button--ghost app-button--small"
+              data-modal-open="account-security"
+              hidden
+            data-i18n="shell.static.account_settings">Account Settings</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="user-profile" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="user-profile"></div>
+      <div class="app-modal-dialog shell-user-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="userProfileTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="userProfileTitle" class="app-modal-title" data-i18n="shell.static.profile">Profile</h2>
+        </div>
+        <div class="app-modal-body">
+          <div id="userProfileLoading" class="shell-user-profile__loading" data-i18n="public_profile.loading">Loading...</div>
+          <div id="userProfileError" class="shell-user-profile__error" hidden data-i18n="public_profile.not_found">User not found.</div>
+          <div id="userProfileContent" class="shell-user-profile" hidden>
+            <div class="shell-user-profile__left">
+              <div id="userProfileAvatar" class="shell-user-profile__avatar" aria-hidden="true">
+                <img id="userProfileAvatarImg" class="shell-user-profile__avatar-img" src="" alt="" hidden>
+              </div>
+              <div id="userProfileDisplayName" class="shell-user-profile__name">-</div>
+              <div id="userProfileUserKey" class="shell-user-profile__key">-</div>
+            </div>
+            <div class="shell-user-profile__right">
+              <p id="userProfileBio" class="shell-user-profile__bio" hidden></p>
+              <div id="userProfileLinks" class="shell-user-card__links" hidden></div>
+              <div id="userProfileBadges" class="user-profile-badges" hidden></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="app-modal-layer" data-modal-layer data-modal-id="settings" hidden>
       <div class="app-modal-backdrop" data-modal-backdrop="settings"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="settingsTitle" class="app-modal-title">設定</h2>
+          <h2 id="settingsTitle" class="app-modal-title" data-i18n="shell.static.settings">Settings</h2>
         </div>
         <div class="app-modal-body">
-          <form class="app-form-stack">
-            <label class="app-field">
-              <span class="app-field__label">言語</span>
-              <select id="shellSettingLanguage" class="app-select">
-                <option value="ja">日本語</option>
-                <option value="en">English</option>
-              </select>
-            </label>
 
-            <label class="app-field">
-              <span class="app-field__label">カラーテーマ</span>
-              <select id="shellSettingTheme" class="app-select">
-                <option value="system">システム</option>
-                <option value="dark">ダーク</option>
-                <option value="light">ライト</option>
-              </select>
-            </label>
+          <div class="shell-settings-group">
+            <h3 class="shell-settings-group__title" data-i18n="shell.static.display_group">Display</h3>
+            <div class="app-form-stack">
+              <label class="app-field">
+                <span class="app-field__label" data-i18n="shell.static.language">Language</span>
+                <select id="shellSettingLanguage" class="app-select">
+                  <option value="ja" data-i18n="shell.static.language_ja">日本語</option>
+                  <option value="en-us" data-i18n="shell.static.language_en_us">English (US)</option>
+                  <option value="de" data-i18n="shell.static.language_de">Deutsch</option>
+                  <option value="fr" data-i18n="shell.static.language_fr">Français</option>
+                  <option value="ru" data-i18n="shell.static.language_ru">Русский</option>
+                  <option value="es" data-i18n="shell.static.language_es">Español</option>
+                  <option value="zh-cn" data-i18n="shell.static.language_zh_cn">中文（简体）</option>
+                  <option value="ko" data-i18n="shell.static.language_ko">한국어</option>
+                </select>
+              </label>
 
-            <label class="app-field">
-              <span class="app-field__label">画像クリック時の挙動</span>
-              <select id="shellSettingImageOpenBehavior" class="app-select">
-                <option value="modal">モーダルで表示</option>
-                <option value="new_tab">別タブで表示</option>
-              </select>
-            </label>
+              <label class="app-field">
+                <span class="app-field__label" data-i18n="shell.static.theme">Theme</span>
+                <select id="shellSettingTheme" class="app-select">
+                  <option value="system" data-i18n="shell.static.theme_system">Use System Setting</option>
+                  <option value="dark" data-i18n="shell.static.theme_dark">Dark</option>
+                  <option value="light" data-i18n="shell.static.theme_light">Light</option>
+                </select>
+              </label>
+            </div>
+          </div>
 
-            <label class="app-field app-field--switch app-switch">
-              <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
-              <span class="app-switch__track" aria-hidden="true">
-                <span class="app-switch__thumb"></span>
-              </span>
-              <span class="app-switch__label">画像モーダルの背景クリックで閉じる</span>
-            </label>
+          <div class="shell-settings-group">
+            <h3 class="shell-settings-group__title" data-i18n="shell.static.image_group">Images</h3>
+            <div class="app-form-stack">
+              <label class="app-field">
+                <span class="app-field__label" data-i18n="shell.static.image_open_behavior">Click Behavior</span>
+                <select id="shellSettingImageOpenBehavior" class="app-select">
+                  <option value="modal" data-i18n="shell.static.image_open_modal">Open in Modal</option>
+                  <option value="new_tab" data-i18n="shell.static.image_open_tab">Open in New Tab</option>
+                </select>
+              </label>
 
-            <label class="app-field app-field--switch app-switch">
-              <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
-              <span class="app-switch__track" aria-hidden="true">
-                <span class="app-switch__thumb"></span>
-              </span>
-              <span class="app-switch__label">画像モーダルのメタ情報バーを常時表示する</span>
-            </label>
-          </form>
+              <div class="app-switch-row">
+                <span class="app-switch-row__label" data-i18n="shell.static.backdrop_close">Close modal on backdrop click</span>
+                <label class="app-switch">
+                  <input id="shellSettingImageBackdropClose" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true">
+                    <span class="app-switch__thumb"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="app-switch-row">
+                <span class="app-switch-row__label" data-i18n="shell.static.meta_pinned">Keep meta bar visible</span>
+                <label class="app-switch">
+                  <input id="shellSettingImageMetaPinned" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true">
+                    <span class="app-switch__thumb"></span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--primary" data-modal-close="settings">閉じる</button>
+          <button type="button" class="app-button app-button--primary" data-modal-close="settings" data-i18n="shell.static.close">Close</button>
         </div>
       </div>
     </section>
@@ -277,13 +565,38 @@
       <div class="app-modal-backdrop" data-modal-backdrop="help"></div>
       <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="helpTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="helpTitle" class="app-modal-title">ヘルプ</h2>
+          <h2 id="helpTitle" class="app-modal-title" data-i18n="shell.static.help">Help</h2>
         </div>
         <div class="app-modal-body">
-          <div class="shell-empty-block"></div>
+          <div class="shell-help-content">
+            <section>
+              <h3 data-i18n="shell.help.search_title">Search and Filters</h3>
+              <ul>
+                <li data-i18n="shell.help.search_item1">Use the header search to filter across titles, ALT text, tags, and users.</li>
+                <li data-i18n="shell.help.search_item2">Use the sidebar to combine tags, color tags, shot dates, posted dates, and archives.</li>
+                <li data-i18n="shell.help.search_item3">Archives are recalculated for the current filters and update when conditions change.</li>
+              </ul>
+            </section>
+            <section>
+              <h3 data-i18n="shell.help.view_title">Viewing Images</h3>
+              <ul>
+                <li data-i18n="shell.help.view_item1">Open a card to view the image in a larger modal.</li>
+                <li data-i18n="shell.help.view_item2">Use the details action to inspect shot date, posted date, tags, and color tags.</li>
+                <li data-i18n="shell.help.view_item3">Select the author icon to open the profile modal.</li>
+              </ul>
+            </section>
+            <section>
+              <h3 data-i18n="shell.help.account_title">Account and Settings</h3>
+              <ul>
+                <li data-i18n="shell.help.account_item1">Use the user icon in the top right to open profile editing, display settings, and account settings.</li>
+                <li data-i18n="shell.help.account_item2">Email change, Discord link, two-factor auth, and logout are grouped in account settings.</li>
+                <li data-i18n-html="shell.help.account_item3">Use <code>/gallery/auth/</code> as the primary authentication flow.</li>
+              </ul>
+            </section>
+          </div>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--primary" data-modal-close="help">閉じる</button>
+          <button type="button" class="app-button app-button--primary" data-modal-close="help" data-i18n="shell.static.close">Close</button>
         </div>
       </div>
     </section>
@@ -292,81 +605,174 @@
       <div class="app-modal-backdrop" data-modal-backdrop="credits"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="creditsTitle" class="app-modal-title">クレジット</h2>
+          <h2 id="creditsTitle" class="app-modal-title" data-i18n="shell.static.credits">Credits</h2>
         </div>
         <div class="app-modal-body">
           <dl class="app-definition-list">
             <div class="app-definition-list__row">
-              <dt>サービス名</dt>
+              <dt data-i18n="shell.static.credit_service">Service</dt>
               <dd>Felixxsv Gallery</dd>
             </div>
             <div class="app-definition-list__row">
-              <dt>作成者</dt>
+              <dt data-i18n="shell.static.credit_author">Author</dt>
               <dd id="shellCreditAuthor">-</dd>
             </div>
             <div class="app-definition-list__row">
-              <dt>使用技術</dt>
+              <dt data-i18n="shell.static.credit_stack">Stack</dt>
               <dd id="shellCreditStack">-</dd>
             </div>
             <div class="app-definition-list__row">
-              <dt>ライセンス</dt>
+              <dt data-i18n="shell.static.credit_license">License</dt>
               <dd id="shellCreditLicense">-</dd>
             </div>
             <div class="app-definition-list__row">
-              <dt>更新日</dt>
+              <dt data-i18n="shell.static.credit_updated_at">Updated At</dt>
               <dd id="shellCreditUpdatedAt">-</dd>
             </div>
             <div class="app-definition-list__row">
-              <dt>バージョン</dt>
+              <dt data-i18n="shell.static.credit_version">Version</dt>
               <dd id="shellCreditVersion">-</dd>
             </div>
           </dl>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--primary" data-modal-close="credits">閉じる</button>
+          <button type="button" class="app-button app-button--primary" data-modal-close="credits" data-i18n="shell.static.close">Close</button>
         </div>
       </div>
     </section>
 
     <section class="app-modal-layer" data-modal-layer data-modal-id="account" hidden>
       <div class="app-modal-backdrop" data-modal-backdrop="account"></div>
-      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="accountTitle" tabindex="-1">
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="accountTitle" class="app-modal-title">アカウント設定</h2>
+          <h2 id="accountTitle" class="app-modal-title" data-i18n="shell.static.profile_edit">Edit Profile</h2>
         </div>
         <div class="app-modal-body">
-          <dl class="app-definition-list">
-            <div class="app-definition-list__row">
-              <dt>表示名</dt>
-              <dd id="shellAccountDisplayName">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>user_key</dt>
-              <dd id="shellAccountUserKey">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>メールアドレス</dt>
-              <dd id="shellAccountEmail">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>登録日時</dt>
-              <dd id="shellAccountCreatedAt">-</dd>
-            </div>
-            <div class="app-definition-list__row">
-              <dt>2段階認証</dt>
-              <dd id="shellAccountTwoFactor">-</dd>
-            </div>
-          </dl>
 
-          <div class="shell-account-actions">
-            <button id="shellEmailActionButton" type="button" class="app-button" data-modal-open="email">メールアドレス変更</button>
-            <button id="shellPasswordActionButton" type="button" class="app-button" data-modal-open="password">パスワード変更</button>
-            <button id="shellTwoFactorEnableButton" type="button" class="app-button">2段階認証を有効化</button>
-            <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button" hidden>2段階認証を無効化</button>
+          <!-- Avatar section -->
+          <div class="shell-profile-avatar-section">
+            <div class="shell-profile-avatar-wrap">
+              <div id="shellAccountAvatar" class="shell-profile-avatar">
+                <span id="shellAccountAvatarInitial" class="shell-profile-avatar__initial"></span>
+                <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="Avatar" hidden>
+              </div>
+              <div class="shell-profile-avatar-controls">
+                <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
+                  <span data-i18n="shell.static.icon_change">Change Avatar</span>
+                </label>
+                <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
+                <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden>
+                  <span data-i18n="shell.action.remove">Remove</span>
+                </button>
+              </div>
+            </div>
           </div>
+
+          <!-- Profile fields -->
+          <div class="shell-profile-fields app-form-stack">
+            <label class="app-field">
+              <span class="app-field__label" data-i18n="shell.static.display_name">Display Name</span>
+                <input id="shellProfileDisplayNameInput" class="app-input" type="text" autocomplete="name" maxlength="100" placeholder="e.g. Felix" data-i18n-placeholder="shell.static.display_name_placeholder">
+            </label>
+            <label class="app-field">
+              <span class="app-field__label" data-i18n="shell.static.user_id">User ID</span>
+              <div class="shell-user-key-field">
+                <span class="shell-user-key-field__prefix">@</span>
+                <input id="shellProfileUserKeyInput" class="app-input shell-user-key-field__input" type="text" autocomplete="username" maxlength="20" placeholder="e.g. felix_x21" data-i18n-placeholder="shell.static.user_id_placeholder">
+              </div>
+              <span class="app-field__hint" data-i18n="shell.static.user_id_hint">4-20 chars, starts with a letter, letters/numbers/underscore/hyphen only.</span>
+            </label>
+            <label class="app-field">
+              <span class="app-field__label" data-i18n="shell.static.bio">Bio</span>
+              <textarea id="shellProfileBioInput" class="app-input app-textarea" rows="4" maxlength="300" placeholder="Write a short bio (up to 300 characters)" data-i18n-placeholder="shell.static.bio_placeholder"></textarea>
+              <span class="app-field__hint"><span id="shellProfileBioCount">0</span> / 300 chars</span>
+            </label>
+          </div>
+
+          <!-- Links section -->
+          <div class="shell-profile-links">
+            <h3 class="shell-profile-links__title" data-i18n="shell.static.links">Links</h3>
+            <div class="shell-profile-links__grid" id="shellProfileLinksGrid"></div>
+          </div>
+
+          <!-- Badge selection section -->
+          <div id="shellProfileBadgeSection" class="shell-profile-badge-section" hidden>
+            <h3 class="shell-profile-links__title"><span data-i18n="shell.static.badges">Badges</span> <span class="shell-profile-badge-section__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span></h3>
+            <div id="shellProfileBadgePool" class="shell-badge-pool__list shell-profile-badge-pool">
+              <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
+            </div>
+          </div>
+
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button type="button" class="app-button app-button--primary" data-modal-close="account">閉じる</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="account" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="account-security" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="account-security"></div>
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="accountSecurityTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="accountSecurityTitle" class="app-modal-title" data-i18n="shell.static.account_settings">Account Settings</h2>
+        </div>
+        <div class="app-modal-body">
+
+          <div class="shell-security-section">
+            <h3 class="shell-security-section__title" data-i18n="shell.static.login_auth">Login and Auth</h3>
+            <div class="shell-security-list">
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="shell.static.email">Email</span>
+                  <span id="shellAccountEmail" class="shell-security-item__value">-</span>
+                </div>
+                <button id="shellEmailActionButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="email" data-i18n="shell.action.change">Change</button>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="shell.static.password">Password</span>
+                  <span id="shellAccountPasswordStatus" class="shell-security-item__value">-</span>
+                </div>
+                <button id="shellPasswordChangeButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password" hidden data-i18n="shell.action.change">Change</button>
+                <button id="shellPasswordSetButton" type="button" class="app-button app-button--ghost app-button--small" data-modal-open="password-set" hidden data-i18n="shell.static.set">Set</button>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="shell.static.discord_link">Discord Link</span>
+                  <span id="shellAccountDiscordStatus" class="shell-security-item__value">-</span>
+                </div>
+                <button id="shellDiscordLinkButton" type="button" class="app-button app-button--ghost app-button--small" hidden data-i18n="shell.static.link">Link</button>
+                <button id="shellDiscordUnlinkButton" type="button" class="app-button app-button--ghost app-button--small" hidden data-i18n="shell.static.unlink">Unlink</button>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="shell.static.registration_route">Registration Route</span>
+                  <span id="shellAccountRegistrationRoute" class="shell-security-item__value">-</span>
+                </div>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="shell.static.twofactor">Two-Factor Auth</span>
+                  <span id="shellAccountTwoFactor" class="shell-security-item__value">-</span>
+                </div>
+                <button id="shellTwoFactorEnableButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="shell.static.enable">Enable</button>
+                <button id="shellTwoFactorDisableOpenButton" type="button" class="app-button app-button--ghost app-button--small" hidden data-i18n="shell.static.disable">Disable</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="shell-security-section">
+            <h3 class="shell-security-section__title" data-i18n="shell.static.session">Session</h3>
+            <div class="shell-account-actions">
+              <button id="shellLogoutAllButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.logout_all">Log Out All Devices</button>
+              <button id="shellLogoutButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.logout">Log Out</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--primary" data-modal-close="account-security" data-i18n="shell.static.close">Close</button>
         </div>
       </div>
     </section>
@@ -375,19 +781,83 @@
       <div class="app-modal-backdrop" data-modal-backdrop="email"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="emailTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="emailTitle" class="app-modal-title">メールアドレス変更</h2>
+          <h2 id="emailTitle" class="app-modal-title" data-i18n="shell.static.email_change">Change Email</h2>
         </div>
         <div class="app-modal-body">
-          <form class="app-form-stack">
+          <!-- Step 1: enter a new email address -->
+          <div id="shellEmailStep1">
+            <div class="app-form-stack">
+              <label class="app-field">
+                <span class="app-field__label" data-i18n="shell.static.new_email">New Email Address</span>
+                <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
+              </label>
+            </div>
+          </div>
+          <!-- Step 2: enter the verification code -->
+          <div id="shellEmailStep2" hidden>
+            <div class="app-form-stack">
+              <p id="shellEmailCodeInfo" class="app-field__hint"></p>
+              <label class="app-field">
+                <span class="app-field__label" data-i18n="shell.static.code_6digit">Verification Code (6 digits)</span>
+                <input id="shellEmailCodeInput" class="app-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" data-i18n-placeholder="shell.static.code_placeholder">
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="app-modal-footer">
+          <button id="shellEmailResendButton" type="button" class="app-button app-button--ghost" hidden data-i18n="shell.static.resend">Resend</button>
+          <div class="app-modal-footer__spacer"></div>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="email" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.send_confirmation_email">Send Verification Email</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="add-link" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="add-link"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="addLinkTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="addLinkTitle" class="app-modal-title" data-i18n="shell.action.add_link">Add Link</h2>
+        </div>
+        <div class="app-modal-body">
+          <form class="app-form-stack" id="shellAddLinkForm">
             <label class="app-field">
-              <span class="app-field__label">メールアドレス</span>
-              <input id="shellEmailInput" class="app-input" type="email" autocomplete="email">
+              <span class="app-field__label" data-i18n="shell.static.url">URL</span>
+              <input id="shellAddLinkInput" class="app-input" type="url" placeholder="https://x.com/yourname" autocomplete="off" data-i18n-placeholder="shell.static.url_placeholder">
+              <span class="app-field__hint" data-i18n="shell.static.url_hint">Enter a URL starting with https://</span>
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellEmailSaveButton" type="button" class="app-button app-button--primary">保存</button>
-          <button type="button" class="app-button app-button--ghost" data-modal-close="email">キャンセル</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="add-link" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellAddLinkSubmitButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.add">Add</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="crop-avatar" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="crop-avatar"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="cropAvatarTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="cropAvatarTitle" class="app-modal-title" data-i18n="shell.static.avatar_adjust">Adjust Avatar</h2>
+        </div>
+        <div class="app-modal-body">
+          <div class="shell-avatar-crop">
+            <div class="shell-avatar-crop__stage" id="shellAvatarCropStage">
+              <canvas id="shellAvatarCropCanvas" class="shell-avatar-crop__canvas" width="240" height="240"></canvas>
+            </div>
+            <div class="shell-avatar-crop__controls">
+              <label class="shell-avatar-crop__zoom-label">
+                <span class="shell-avatar-crop__zoom-text" data-i18n="shell.static.zoom">Zoom</span>
+                <input id="shellAvatarZoomSlider" type="range" class="shell-avatar-crop__zoom" min="0" max="100" value="0">
+              </label>
+            </div>
+            <p class="shell-avatar-crop__hint" data-i18n="shell.static.crop_hint">Drag to adjust the position.</p>
+          </div>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--ghost" id="shellAvatarCropCancelButton" data-i18n="shell.static.cancel">Cancel</button>
+          <button type="button" class="app-button app-button--primary" id="shellAvatarCropConfirmButton" data-i18n="shell.static.apply">Apply</button>
         </div>
       </div>
     </section>
@@ -396,24 +866,46 @@
       <div class="app-modal-backdrop" data-modal-backdrop="password"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="passwordTitle" class="app-modal-title">パスワード変更</h2>
+          <h2 id="passwordTitle" class="app-modal-title" data-i18n="shell.static.password_change">Change Password</h2>
         </div>
         <div class="app-modal-body">
           <form class="app-form-stack">
             <label class="app-field">
-              <span class="app-field__label">現在のパスワード</span>
+              <span class="app-field__label" data-i18n="shell.static.current_password">Current Password</span>
               <input id="shellCurrentPasswordInput" class="app-input" type="password" autocomplete="current-password">
             </label>
 
             <label class="app-field">
-              <span class="app-field__label">新しいパスワード</span>
+              <span class="app-field__label" data-i18n="shell.static.new_password">New Password</span>
               <input id="shellNewPasswordInput" class="app-input" type="password" autocomplete="new-password">
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary">変更する</button>
-          <button type="button" class="app-button app-button--ghost" data-modal-close="password">キャンセル</button>
+          <button type="button" class="app-button app-button--ghost" data-modal-close="password" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellPasswordSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.change">Change</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="password-set" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="password-set"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordSetTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="passwordSetTitle" class="app-modal-title" data-i18n="shell.static.password_set">Set Password</h2>
+        </div>
+        <div class="app-modal-body">
+          <p class="app-modal-desc" data-i18n="shell.static.password_set_desc">Setting a password enables email and password sign-in as well.</p>
+          <form class="app-form-stack">
+            <label class="app-field">
+              <span class="app-field__label" data-i18n="shell.static.new_password">New Password</span>
+              <input id="shellSetPasswordInput" class="app-input" type="password" autocomplete="new-password">
+            </label>
+          </form>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" class="app-button app-button--ghost" data-modal-close="password-set" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellSetPasswordSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.set">Set</button>
         </div>
       </div>
     </section>
@@ -422,21 +914,21 @@
       <div class="app-modal-backdrop" data-modal-backdrop="twofactor-setup"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorSetupTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="twofactorSetupTitle" class="app-modal-title">2段階認証の確認</h2>
+          <h2 id="twofactorSetupTitle" class="app-modal-title" data-i18n="shell.static.twofactor_setup">Verify Two-Factor Auth</h2>
         </div>
         <div class="app-modal-body">
           <p id="shellTwoFactorSetupMessage" class="shell-inline-message"></p>
           <form class="app-form-stack">
             <label class="app-field">
-              <span class="app-field__label">確認コード</span>
+              <span class="app-field__label" data-i18n="shell.static.verify_code">Verification Code</span>
               <input id="shellTwoFactorCodeInput" class="app-input" type="text" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary">確認</button>
-          <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost">再送</button>
-          <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+          <button id="shellTwoFactorSetupResendButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.resend">Resend</button>
+          <button id="shellTwoFactorSetupCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellTwoFactorSetupConfirmButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.verify">Verify</button>
         </div>
       </div>
     </section>
@@ -445,21 +937,21 @@
       <div class="app-modal-backdrop" data-modal-backdrop="twofactor-disable"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorDisableTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="twofactorDisableTitle" class="app-modal-title">2段階認証の無効化</h2>
+          <h2 id="twofactorDisableTitle" class="app-modal-title" data-i18n="shell.static.twofactor_disable">Disable Two-Factor Auth</h2>
         </div>
         <div class="app-modal-body">
           <form class="app-form-stack">
-            <p id="shellTwoFactorDisableMessage" class="app-form-message">確認コードを送信します。</p>
+            <p id="shellTwoFactorDisableMessage" class="app-form-message" data-i18n="shell.static.send_verify_code_notice">A verification code will be sent.</p>
             <label class="app-field">
-              <span class="app-field__label">確認コード</span>
+              <span class="app-field__label" data-i18n="shell.static.verify_code">Verification Code</span>
               <input id="shellTwoFactorDisableCodeInput" class="app-input" type="text" inputmode="numeric" autocomplete="one-time-code">
             </label>
           </form>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger">無効化する</button>
-          <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost">再送</button>
-          <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+          <button id="shellTwoFactorDisableResendButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.resend">Resend</button>
+          <button id="shellTwoFactorDisableCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellTwoFactorDisableConfirmButton" type="button" class="app-button app-button--danger" data-i18n="shell.static.disable">Disable</button>
         </div>
       </div>
     </section>
@@ -468,14 +960,14 @@
       <div class="app-modal-backdrop" data-modal-backdrop="twofactor-action-confirm"></div>
       <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="twofactorActionConfirmTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="twofactorActionConfirmTitle" class="app-modal-title">確認</h2>
+          <h2 id="twofactorActionConfirmTitle" class="app-modal-title" data-i18n="auth.confirm.title">Confirm</h2>
         </div>
         <div class="app-modal-body">
-          <p id="shellTwoFactorActionConfirmMessage" class="app-form-message">本当に実行しますか？</p>
+          <p id="shellTwoFactorActionConfirmMessage" class="app-form-message" data-i18n="auth.confirm.defaultMessage">Are you sure you want to continue?</p>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary">実行する</button>
-          <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost">キャンセル</button>
+          <button id="shellTwoFactorActionConfirmCancelButton" type="button" class="app-button app-button--ghost" data-i18n="shell.static.cancel">Cancel</button>
+          <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary" data-i18n="auth.actions.confirm">Confirm</button>
         </div>
       </div>
     </section>
@@ -487,11 +979,23 @@
     <article class="home-gallery-card">
       <a class="home-gallery-card__media" data-card-link href="#" target="_blank" rel="noopener noreferrer">
         <img class="home-gallery-card__image" data-card-image alt="">
-        <div class="home-gallery-card__image-empty" data-card-empty hidden>No Image</div>
+        <div class="home-gallery-card__image-empty" data-card-empty hidden data-i18n="home.no_image">No Image</div>
+        <div class="home-gallery-card__badge" data-card-badge hidden>
+          <span class="home-gallery-card__badge-count" data-card-image-count>0</span>
+        </div>
       </a>
       <div class="home-gallery-card__body">
         <div class="home-gallery-card__title" data-card-title></div>
-        <div class="home-gallery-card__meta" data-card-meta></div>
+        <div class="home-gallery-card__footer">
+          <div class="home-gallery-card__meta" data-card-meta></div>
+          <button type="button" class="home-gallery-card__user" data-card-user aria-label="Open profile" data-i18n-aria-label="home.card.user_open" hidden>
+            <span class="home-gallery-card__user-avatar" data-card-user-avatar></span>
+          </button>
+          <button type="button" class="home-gallery-card__like" data-action="toggle-like" aria-label="Like" data-i18n-aria-label="home.card.like" aria-pressed="false">
+            <span class="home-gallery-card__like-icon" data-card-like-icon aria-hidden="true">♡</span>
+            <span class="home-gallery-card__like-count" data-card-like-count>0</span>
+          </button>
+        </div>
       </div>
     </article>
   </template>

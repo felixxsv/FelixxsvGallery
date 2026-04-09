@@ -271,6 +271,7 @@ def create_verify_ticket(
     user_id: int,
     purpose: str,
     email: str,
+    preferred_language: str | None = None,
     expires_in_sec: int = DEFAULT_VERIFY_TICKET_EXPIRES_SEC,
     now: int | float | datetime | None = None,
 ) -> str:
@@ -286,6 +287,7 @@ def create_verify_ticket(
         extra={
             "purpose": purpose,
             "email": normalized_email,
+            "preferred_language": preferred_language,
         },
         now=now,
     )
@@ -299,6 +301,7 @@ def parse_verify_ticket(
     payload = _parse_and_validate_token(token, "verify_ticket", now=now)
     purpose = _extract_required(payload, "purpose")
     email = _extract_required(payload, "email")
+    preferred_language = payload.get("preferred_language")
 
     if purpose not in _VERIFY_PURPOSES:
         raise InvalidAuthTokenError()
@@ -310,6 +313,7 @@ def parse_verify_ticket(
         "user_id": _coerce_user_id(_extract_required(payload, "sub")),
         "purpose": purpose,
         "email": email,
+        "preferred_language": preferred_language if isinstance(preferred_language, str) and preferred_language.strip() != "" else None,
         "jti": str(_extract_required(payload, "jti")),
         "iat": int(_extract_required(payload, "iat")),
         "exp": int(_extract_required(payload, "exp")),
@@ -320,6 +324,7 @@ def create_challenge_token(
     user_id: int,
     auth_flow_id: str,
     email: str,
+    preferred_language: str | None = None,
     expires_in_sec: int = DEFAULT_CHALLENGE_TOKEN_EXPIRES_SEC,
     now: int | float | datetime | None = None,
 ) -> str:
@@ -335,6 +340,7 @@ def create_challenge_token(
             "auth_flow_id": normalized_flow_id,
             "email": normalized_email,
             "purpose": _CHALLENGE_PURPOSE,
+            "preferred_language": preferred_language,
         },
         now=now,
     )
@@ -349,6 +355,7 @@ def parse_challenge_token(
     auth_flow_id = _extract_required(payload, "auth_flow_id")
     email = _extract_required(payload, "email")
     purpose = _extract_required(payload, "purpose")
+    preferred_language = payload.get("preferred_language")
 
     if not isinstance(auth_flow_id, str) or auth_flow_id.strip() == "":
         raise InvalidAuthTokenError()
@@ -363,6 +370,7 @@ def parse_challenge_token(
         "auth_flow_id": auth_flow_id,
         "email": email,
         "purpose": purpose,
+        "preferred_language": preferred_language if isinstance(preferred_language, str) and preferred_language.strip() != "" else None,
         "jti": str(_extract_required(payload, "jti")),
         "iat": int(_extract_required(payload, "iat")),
         "exp": int(_extract_required(payload, "exp")),
@@ -414,6 +422,7 @@ def create_registration_token(
     provider_email: str | None,
     provider_display_name: str | None,
     provider_username: str | None,
+    provider_avatar_hash: str | None = None,
     expires_in_sec: int = DEFAULT_REGISTRATION_TOKEN_EXPIRES_SEC,
     now: int | float | datetime | None = None,
 ) -> str:
@@ -431,6 +440,7 @@ def create_registration_token(
             "provider_email": provider_email,
             "provider_display_name": provider_display_name,
             "provider_username": provider_username,
+            "provider_avatar_hash": provider_avatar_hash,
         },
         now=now,
     )
@@ -453,12 +463,15 @@ def parse_registration_token(
     provider_email = payload.get("provider_email")
     provider_display_name = payload.get("provider_display_name")
     provider_username = payload.get("provider_username")
+    provider_avatar_hash = payload.get("provider_avatar_hash")
 
     if provider_email is not None and not isinstance(provider_email, str):
         raise InvalidAuthTokenError()
     if provider_display_name is not None and not isinstance(provider_display_name, str):
         raise InvalidAuthTokenError()
     if provider_username is not None and not isinstance(provider_username, str):
+        raise InvalidAuthTokenError()
+    if provider_avatar_hash is not None and not isinstance(provider_avatar_hash, str):
         raise InvalidAuthTokenError()
 
     return {
@@ -468,6 +481,7 @@ def parse_registration_token(
         "provider_email": provider_email,
         "provider_display_name": provider_display_name,
         "provider_username": provider_username,
+        "provider_avatar_hash": provider_avatar_hash,
         "jti": str(_extract_required(payload, "jti")),
         "iat": int(_extract_required(payload, "iat")),
         "exp": int(_extract_required(payload, "exp")),
@@ -477,6 +491,7 @@ def parse_registration_token(
 def create_reset_token(
     user_id: int,
     email: str | None,
+    preferred_language: str | None = None,
     expires_in_sec: int = DEFAULT_RESET_TOKEN_EXPIRES_SEC,
     now: int | float | datetime | None = None,
 ) -> str:
@@ -488,6 +503,7 @@ def create_reset_token(
         expires_in_sec=expires_in_sec,
         extra={
             "email": email,
+            "preferred_language": preferred_language,
         },
         now=now,
     )
@@ -500,6 +516,7 @@ def parse_reset_token(
 ) -> dict:
     payload = _parse_and_validate_token(token, "reset_token", now=now)
     email = payload.get("email")
+    preferred_language = payload.get("preferred_language")
     if email is not None and not isinstance(email, str):
         raise InvalidAuthTokenError()
 
@@ -507,6 +524,7 @@ def parse_reset_token(
         "kind": "reset_token",
         "user_id": _coerce_user_id(_extract_required(payload, "sub")),
         "email": email,
+        "preferred_language": preferred_language if isinstance(preferred_language, str) and preferred_language.strip() != "" else None,
         "jti": str(_extract_required(payload, "jti")),
         "iat": int(_extract_required(payload, "iat")),
         "exp": int(_extract_required(payload, "exp")),

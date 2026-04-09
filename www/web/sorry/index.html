@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sorry - Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/special-page.css">
+</head>
+<body
+  class="app-page special-page"
+  data-app-base="/gallery"
+  data-page-kind="sorry"
+  data-page-title="This route is currently unavailable"
+>
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <a href="/gallery/" class="app-site-logo" aria-label="Felixxsv Gallery">
+          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+          <span class="app-site-logo__label">Felixxsv Gallery</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="special-page__main">
+    <div class="app-container">
+      <div class="special-page__layout">
+        <section class="special-page__panel" aria-labelledby="specialTitle">
+          <div class="special-page__eyebrow">Sorry</div>
+          <div class="special-page__status" id="specialStatusCode">INFO</div>
+          <h1 class="special-page__title" id="specialTitle">This route is currently unavailable</h1>
+          <p class="special-page__description" id="specialDescription">
+            This page is intentionally paused for cases such as access restrictions, invitation-only access, or pre-maintenance guidance. Check permissions and visibility.
+          </p>
+          <div class="special-page__meta" id="specialMeta">Use this when you want to intentionally return guidance separate from 404 or maintenance.</div>
+          <div class="special-page__actions">
+            <a class="app-button app-button--primary" href="/gallery/">Back to Gallery</a>
+            <a class="app-button" href="/gallery/auth/">Open Login</a>
+          </div>
+        </section>
+
+        <aside class="special-page__aside" aria-label="Unavailable route details">
+          <h2 class="special-page__aside-title">Role separation</h2>
+          <p class="special-page__aside-copy">This page explicitly explains a route that exists but is currently blocked for a reason, rather than a missing page.</p>
+          <div class="special-page__list">
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">Difference from 404</span>
+              <span class="special-page__list-value">The URL itself is expected, but the route is unavailable right now.</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">Difference from maintenance</span>
+              <span class="special-page__list-value">It can be used not only during active work, but also for restrictions or guidance.</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">Route handling</span>
+              <span class="special-page__list-value">Guide the user back naturally to the top page or auth page.</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/gallery/assets/js/page/special-page.js"></script>
+</body>
+</html>

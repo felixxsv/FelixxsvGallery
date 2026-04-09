@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>404 - Felixxsv Gallery</title>
+  <link rel="stylesheet" href="/gallery/assets/css/common.css">
+  <link rel="stylesheet" href="/gallery/assets/css/components.css">
+  <link rel="stylesheet" href="/gallery/assets/css/page/special-page.css">
+</head>
+<body
+  class="app-page special-page"
+  data-app-base="/gallery"
+  data-page-kind="not-found"
+  data-page-title="Page not found"
+>
+  <header class="app-site-header">
+    <div class="app-site-header__inner">
+      <div class="app-site-header__left">
+        <a href="/gallery/" class="app-site-logo" aria-label="Felixxsv Gallery">
+          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+          <span class="app-site-logo__label">Felixxsv Gallery</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="special-page__main">
+    <div class="app-container">
+      <div class="special-page__layout">
+        <section class="special-page__panel" aria-labelledby="specialTitle">
+          <div class="special-page__eyebrow">Not Found</div>
+          <div class="special-page__status" id="specialStatusCode">404</div>
+          <h1 class="special-page__title" id="specialTitle">Page not found</h1>
+          <p class="special-page__description" id="specialDescription">
+            The URL may have changed or the page may no longer be public. Return to the gallery top and search again.
+          </p>
+          <div class="special-page__meta" id="specialMeta">This is the not-found page for public routes under /gallery.</div>
+          <div class="special-page__actions">
+            <a class="app-button app-button--primary" href="/gallery/">Back to Gallery</a>
+            <button class="app-button" type="button" data-special-action="back">Back</button>
+          </div>
+        </section>
+
+        <aside class="special-page__aside" aria-label="Guidance">
+          <h2 class="special-page__aside-title">What to check</h2>
+          <p class="special-page__aside-copy">Checking these items in order makes it easier to tell broken links from visibility restrictions.</p>
+          <div class="special-page__list">
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">Link</span>
+              <span class="special-page__list-value">Confirm the trailing URL and the path under /gallery/ are correct.</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">Visibility</span>
+              <span class="special-page__list-value">Confirm the image or profile is not private or quarantined.</span>
+            </div>
+            <div class="special-page__list-item">
+              <span class="special-page__list-label">Retry</span>
+              <span class="special-page__list-value">Search again from the top page using search, tags, or archive.</span>
+            </div>
+          </div>
+          <p class="special-page__footer-note">Use this together with Apache or reverse-proxy 404 routing.</p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/gallery/assets/js/page/special-page.js"></script>
+</body>
+</html>

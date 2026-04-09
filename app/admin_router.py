@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 import os
 import secrets
 import shutil
@@ -14,6 +15,8 @@ import ipaddress
 import csv
 import io
 
+logger = logging.getLogger(__name__)
+
 from fastapi import APIRouter, Body, Cookie, Path, Query
 from fastapi.responses import JSONResponse, Response
 
@@ -21,6 +24,7 @@ from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_option
 from auth_service import get_current_user_profile
 from auth_mail import AuthMailError, build_text_message, send_message
 from db import db_conn, load_conf
+from badge_defs import BADGE_CATALOG, AUTO_BADGE_KEYS, POST_COUNT_BADGES, serialize_badge, list_catalog as list_badge_catalog
 
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -277,6 +281,7 @@ LIMIT 1
     try:
         return json.loads(value)
     except Exception:
+        logger.exception("Unhandled error")
         return default_value
 
 
@@ -594,6 +599,7 @@ WHERE moderation_status='quarantined'
             q_row = cur.fetchone() or {}
         quarantine_count = int(q_row.get("c") or 0)
     except Exception:
+        logger.exception("Unhandled error")
         quarantine_count = 0
 
     conf = _get_conf()
@@ -606,6 +612,7 @@ WHERE moderation_status='quarantined'
             storage_total_bytes = int(usage.total)
             storage_used_bytes = int(usage.used)
         except Exception:
+            logger.exception("Unhandled error")
             storage_total_bytes = None
             storage_used_bytes = None
 
@@ -1028,13 +1035,57 @@ LIMIT %s OFFSET %s
         "items": items,
     }
 
+def _users_has_bio(conn) -> bool:
+    return _users_has_column(conn, "bio")
+
+
+def _users_has_display_badges(conn) -> bool:
+    return _users_has_column(conn, "display_badges")
+
+
+def _load_user_links_for_admin(conn, user_id: int) -> list[dict]:
+    """Load all user links regardless of gallery."""
+    conf = _get_conf()
+    gallery = conf.get("gallery") or "felixxsv"
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, url, display_order FROM user_links WHERE user_id=%s AND gallery=%s ORDER BY display_order ASC, id ASC",
+            (user_id, gallery),
+        )
+        return list(cur.fetchall() or [])
+
+
+def _load_user_badges_for_admin(conn, user_id: int) -> list[dict]:
+    if not _detect_table(conn, "user_badges"):
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT badge_key, granted_by, granted_at FROM user_badges WHERE user_id=%s ORDER BY granted_at ASC",
+            (user_id,),
+        )
+        rows = cur.fetchall() or []
+    result = []
+    for row in rows:
+        s = serialize_badge(
+            row["badge_key"],
+            granted_at=_coerce_utc_text(row.get("granted_at")),
+            granted_by=row.get("granted_by"),
+        )
+        result.append(s)
+    return result
+
+
 def _load_user_detail(conn, user_id: int) -> dict | None:
     email_col = _users_email_column(conn)
     upload_col = _users_upload_column(conn)
     avatar_col = _users_avatar_column(conn)
+    has_bio = _users_has_bio(conn)
+    has_display_badges = _users_has_display_badges(conn)
     email_select = f"{email_col} AS primary_email" if email_col else "NULL AS primary_email"
     upload_select = f"{upload_col} AS upload_enabled" if upload_col else "1 AS upload_enabled"
     avatar_select = f"{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path"
+    bio_select = "bio" if has_bio else "NULL AS bio"
+    display_badges_select = "display_badges" if has_display_badges else "NULL AS display_badges"
 
     with conn.cursor() as cur:
         cur.execute(
@@ -1050,6 +1101,8 @@ SELECT
     is_email_verified,
     must_reset_password,
     {avatar_select},
+    {bio_select},
+    {display_badges_select},
     created_at,
     updated_at,
     deleted_at,
@@ -1066,10 +1119,28 @@ LIMIT 1
     providers_map = _load_user_providers_map(conn, [user_id])
     two_factor_map = _load_user_two_factor_map(conn, [user_id])
     last_seen_map = _load_user_last_seen_map(conn, [user_id])
-    item = _serialize_user_list_item(row, providers_map, two_factor_map, last_seen_map)
+    # Fix: apply last_seen_map to row before passing to serializer (was causing 500)
+    row = dict(row)
+    row["last_seen_at"] = last_seen_map.get(int(row["id"]))
+    item = _serialize_user_list_item(row, providers_map, two_factor_map)
     item["must_reset_password"] = bool(row.get("must_reset_password")) if row.get("must_reset_password") is not None else False
     item["deleted_at"] = _coerce_utc_text(row.get("deleted_at"))
     item["force_logout_after"] = _coerce_utc_text(row.get("force_logout_after"))
+    item["bio"] = row.get("bio") or ""
+    # display_badges: JSON string or None in DB
+    raw_display = row.get("display_badges")
+    if isinstance(raw_display, str):
+        try:
+            item["display_badges"] = json.loads(raw_display)
+        except Exception:
+            logger.exception("Unhandled error")
+            item["display_badges"] = []
+    elif isinstance(raw_display, list):
+        item["display_badges"] = raw_display
+    else:
+        item["display_badges"] = []
+    item["links"] = _load_user_links_for_admin(conn, user_id)
+    item["badges"] = _load_user_badges_for_admin(conn, user_id)
     return item
 
 def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
@@ -1089,6 +1160,7 @@ def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
         try:
             normalized["user_key"] = _validate_user_key(payload.get("user_key"))
         except Exception:
+            logger.exception("Unhandled error")
             field_errors["user_key"] = {"code": "invalid", "message": "ID の形式が正しくありません。"}
 
     if "role" in payload:
@@ -1107,6 +1179,13 @@ def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
 
     if "upload_enabled" in payload:
         normalized["upload_enabled"] = bool(payload.get("upload_enabled"))
+
+    if "bio" in payload:
+        bio_val = str(payload.get("bio") or "").strip()
+        if len(bio_val) > 300:
+            field_errors["bio"] = {"code": "too_long", "message": "自己紹介文は300文字以内で入力してください。"}
+        else:
+            normalized["bio"] = bio_val or None
 
     return normalized, field_errors
 
@@ -1232,6 +1311,7 @@ def admin_dashboard(session_token: str | None = Cookie(default=None, alias=DEFAU
             message="ダッシュボードデータを取得しました。",
         )
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(
             status_code=500,
             request_id=request_id,
@@ -1276,6 +1356,7 @@ def update_dashboard_preferences(
             message="ダッシュボード設定を更新しました。",
         )
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -1314,6 +1395,7 @@ def admin_users_list(
         data = _load_users_page(conn, page=page, per_page=per_page, q=q, role=role, status=status, provider=provider, sort=sort)
         return _json_success(request_id=request_id, data=data, message="ユーザー一覧を取得しました。")
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "ユーザー一覧の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -1338,6 +1420,7 @@ def admin_user_detail(
             return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
         return _json_success(request_id=request_id, data={"user": data}, message="ユーザー詳細を取得しました。")
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "ユーザー詳細の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -1395,7 +1478,12 @@ def admin_user_update(
         set_clauses = []
         params = []
         for key, value in changes.items():
-            db_key = upload_col if key == "upload_enabled" else key
+            if key == "upload_enabled":
+                db_key = upload_col
+            elif key == "bio":
+                db_key = "bio" if _users_has_bio(conn) else None
+            else:
+                db_key = key
             if db_key is None:
                 continue
             set_clauses.append(f"{db_key}=%s")
@@ -1432,6 +1520,7 @@ def admin_user_update(
         updated = _load_user_detail(conn, user_id)
         return _json_success(request_id=request_id, data={"changed": True, "user": updated}, message="ユーザー情報を更新しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -1441,6 +1530,190 @@ def admin_user_update(
     finally:
         if conn is not None:
             conn.close()
+
+
+@router.put("/users/{user_id}/links")
+def admin_user_update_links(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    """Bulk-replace all links for a user (admin). payload: {"links": [{"url": "..."}]}"""
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    raw_links = payload.get("links") or []
+    if not isinstance(raw_links, list):
+        return _json_error(400, request_id, "validation_error", "links must be a list.")
+    if len(raw_links) > 5:
+        return _json_error(400, request_id, "validation_error", "リンクは最大5件までです。")
+
+    conf = _get_conf()
+    gallery = conf.get("gallery") or "felixxsv"
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        if not conn.cursor().__class__:
+            pass
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+            cur.execute("DELETE FROM user_links WHERE user_id=%s AND gallery=%s", (user_id, gallery))
+            for i, lnk in enumerate(raw_links):
+                url = str(lnk.get("url") or "").strip()
+                if url:
+                    cur.execute(
+                        "INSERT INTO user_links (user_id, gallery, url, display_order) VALUES (%s, %s, %s, %s)",
+                        (user_id, gallery, url[:500], i),
+                    )
+        _log_audit_event(conn, int(actor.get("id") or 0) or None, "admin.users.update_links", "user", str(user_id), "success", "リンクを更新しました。", None)
+        conn.commit()
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, url, display_order FROM user_links WHERE user_id=%s AND gallery=%s ORDER BY display_order ASC, id ASC", (user_id, gallery))
+            links = list(cur.fetchall() or [])
+        return _json_success(request_id=request_id, data={"links": [{"id": r["id"], "url": r["url"]} for r in links]}, message="リンクを更新しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "リンクの更新に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.get("/users/{user_id}/badges")
+def admin_user_badges(
+    user_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        badges = _load_user_badges_for_admin(conn, user_id)
+        return _json_success(request_id=request_id, data={"badges": badges, "catalog": list_badge_catalog()}, message="バッジ一覧を取得しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        return _json_error(500, request_id, "server_error", "バッジ情報の取得に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.post("/users/{user_id}/badges")
+def admin_user_grant_badge(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    badge_key = str(payload.get("badge_key") or "").strip()
+    if badge_key not in BADGE_CATALOG:
+        return _json_error(400, request_id, "validation_error", "無効なバッジキーです。")
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        if not _detect_table(conn, "user_badges"):
+            return _json_error(503, request_id, "not_available", "バッジ機能はまだ有効になっていません。")
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+            cur.execute(
+                "INSERT IGNORE INTO user_badges (user_id, badge_key, granted_by) VALUES (%s, %s, %s)",
+                (user_id, badge_key, int(actor.get("id") or 0) or None),
+            )
+        _log_audit_event(conn, int(actor.get("id") or 0) or None, "admin.users.grant_badge", "user", str(user_id), "success", f"バッジを付与しました: {badge_key}", {"badge_key": badge_key})
+        conn.commit()
+        badges = _load_user_badges_for_admin(conn, user_id)
+        return _json_success(request_id=request_id, data={"badges": badges}, message="バッジを付与しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "バッジの付与に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.delete("/users/{user_id}/badges/{badge_key}")
+def admin_user_revoke_badge(
+    user_id: int = Path(..., ge=1),
+    badge_key: str = Path(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        if not _detect_table(conn, "user_badges"):
+            return _json_error(503, request_id, "not_available", "バッジ機能はまだ有効になっていません。")
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM user_badges WHERE user_id=%s AND badge_key=%s", (user_id, badge_key))
+            deleted = cur.rowcount
+        if deleted == 0:
+            conn.rollback()
+            return _json_error(404, request_id, "not_found", "対象バッジが見つかりません。")
+        # Also remove from display_badges if present
+        if _users_has_display_badges(conn):
+            with conn.cursor() as cur:
+                cur.execute("SELECT display_badges FROM users WHERE id=%s LIMIT 1", (user_id,))
+                row = cur.fetchone()
+                if row:
+                    raw = row.get("display_badges")
+                    if isinstance(raw, str):
+                        try: current_display = json.loads(raw)
+                        except Exception: current_display = []
+                    elif isinstance(raw, list):
+                        current_display = raw
+                    else:
+                        current_display = []
+                    if badge_key in current_display:
+                        new_display = [k for k in current_display if k != badge_key]
+                        cur.execute("UPDATE users SET display_badges=%s WHERE id=%s", (json.dumps(new_display), user_id))
+        _log_audit_event(conn, int(actor.get("id") or 0) or None, "admin.users.revoke_badge", "user", str(user_id), "success", f"バッジを剥奪しました: {badge_key}", {"badge_key": badge_key})
+        conn.commit()
+        badges = _load_user_badges_for_admin(conn, user_id)
+        return _json_success(request_id=request_id, data={"badges": badges}, message="バッジを剥奪しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "バッジの剥奪に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.get("/badges")
+def admin_badge_catalog(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    return _json_success(request_id=request_id, data={"catalog": list_badge_catalog()}, message="バッジカタログを取得しました。")
 
 
 @router.post("/users/create")
@@ -1586,6 +1859,7 @@ INSERT INTO two_factor_settings (
             message="仮ユーザーを作成しました。",
         )
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -1644,6 +1918,7 @@ WHERE id=%s
         conn.commit()
         return _json_success(request_id=request_id, data={"deleted": True, "user_id": user_id}, message="ユーザーを削除しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -2190,6 +2465,7 @@ def admin_content_list(
         )
         return _json_success(request_id=request_id, data=data, message="コンテンツ一覧を取得しました。")
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "コンテンツ一覧の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -2214,6 +2490,7 @@ def admin_content_detail(
             return _json_error(404, request_id, "not_found", "対象コンテンツが見つかりません。")
         return _json_success(request_id=request_id, data={"content": data}, message="コンテンツ詳細を取得しました。")
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "コンテンツ詳細の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -2251,6 +2528,7 @@ def admin_content_visibility_update(
                 pass
         return _json_error(409, request_id, "visibility_unsupported", "この環境では公開状態の変更に対応していません。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -2282,6 +2560,7 @@ def admin_content_quarantine(
         conn.commit()
         return _json_success(request_id=request_id, data={"content": updated}, message="コンテンツを隔離しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -2313,6 +2592,7 @@ def admin_content_restore(
         conn.commit()
         return _json_success(request_id=request_id, data={"content": updated}, message="コンテンツを復元しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -2344,6 +2624,7 @@ def admin_content_delete(
         conn.commit()
         return _json_success(request_id=request_id, data={"content": updated}, message="コンテンツを削除状態にしました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -2365,6 +2646,7 @@ def _normalize_ip_value(value) -> str | None:
             try:
                 return value.decode("utf-8", errors="ignore")
             except Exception:
+                logger.exception("Unhandled error")
                 return None
     text = str(value).strip()
     return text or None
@@ -2380,6 +2662,7 @@ def _normalize_meta_json(value):
             text = value.decode("utf-8") if isinstance(value, bytes) else value
             return json.loads(text)
         except Exception:
+            logger.exception("Unhandled error")
             return value.decode("utf-8", errors="ignore") if isinstance(value, bytes) else value
     return value
 
@@ -2708,6 +2991,7 @@ def admin_audit_logs(
         payload = _load_audit_logs_page(conn, page, per_page, date_from, date_to, actor_user_id, action_type, result, q)
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "監査ログ一覧の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -2732,6 +3016,7 @@ def admin_audit_log_detail(
             return _json_error(404, request_id, "not_found", "監査ログが見つかりません。")
         return _json_success(request_id=request_id, data={"item": item}, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "監査ログ詳細の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -2767,6 +3052,7 @@ def admin_audit_logs_export(
             },
         )
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "監査ログCSVの出力に失敗しました。")
     finally:
         if conn is not None:
@@ -2853,6 +3139,7 @@ def _normalize_draft_recipient_ids(value) -> list[int]:
         try:
             user_id = int(item)
         except Exception:
+            logger.exception("Unhandled error")
             continue
         if user_id > 0 and user_id not in out:
             out.append(user_id)
@@ -2953,6 +3240,7 @@ LIMIT 1
         try:
             recipient_user_ids = json.loads(recipient_user_ids)
         except Exception:
+            logger.exception("Unhandled error")
             recipient_user_ids = []
     recipient_user_ids = _normalize_draft_recipient_ids(recipient_user_ids)
     selected_recipients = _resolve_mail_draft_recipients(conn, recipient_user_ids)
@@ -3228,6 +3516,7 @@ def _build_mail_send_payload(payload: dict | None) -> tuple[dict, dict]:
             try:
                 iv = int(value)
             except Exception:
+                logger.exception("Unhandled error")
                 continue
             if iv > 0 and iv not in ids:
                 ids.append(iv)
@@ -3462,6 +3751,7 @@ def admin_mail_draft(
         draft = _load_admin_mail_draft(conn, int(actor.get("id") or 0))
         return _json_success(request_id=request_id, data={"draft": draft}, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "メール下書きの取得に失敗しました。")
     finally:
         if conn is not None:
@@ -3490,6 +3780,7 @@ def admin_mail_draft_save(
         conn.commit()
         return _json_success(request_id=request_id, data={"draft": draft}, message="下書きを保存しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -3522,6 +3813,7 @@ def admin_mail_templates(
             message=None,
         )
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "メール設定の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -3547,6 +3839,7 @@ def admin_mail_recipients(
         payload = _load_mail_recipients_page(conn, page, per_page, q, role, status)
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "宛先一覧の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -3569,6 +3862,7 @@ def admin_mail_history(
         payload = _load_mail_history_page(conn, page, per_page)
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "送信履歴の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -3613,6 +3907,7 @@ def admin_mail_send(
             message="メールを送信しました。",
         )
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -3673,6 +3968,7 @@ def _decode_setting_json(value, fallback=None):
         try:
             return json.loads(value)
         except Exception:
+            logger.exception("Unhandled error")
             return fallback if fallback is not None else value
     return fallback if fallback is not None else value
 
@@ -3695,6 +3991,7 @@ def _coerce_int_setting(value, default=0, min_value=None, max_value=None) -> int
     try:
         n = int(value)
     except Exception:
+        logger.exception("Unhandled error")
         n = int(default)
     if min_value is not None and n < min_value:
         n = min_value
@@ -3901,6 +4198,7 @@ def _normalize_settings_group_payload(group: str, payload: dict) -> tuple[dict, 
                 if hour < 0 or hour > 23 or minute < 0 or minute > 59:
                     raise ValueError("invalid")
             except Exception:
+                logger.exception("Unhandled error")
                 field_errors["run_at_hhmm"] = "invalid"
                 run_at_hhmm = "05:00"
         raw_weekly_days = data.get("weekly_days")
@@ -4046,6 +4344,7 @@ def _decode_json_field(value, fallback=None):
         try:
             return json.loads(value)
         except Exception:
+            logger.exception("Unhandled error")
             return fallback if fallback is not None else value
     return fallback if fallback is not None else value
 
@@ -4300,6 +4599,7 @@ def admin_settings_integrity(
         payload = _load_site_settings_group(conn, "integrity")
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "整合性チェック設定の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4326,6 +4626,7 @@ def admin_settings_integrity_update(
         conn.commit()
         return _json_success(request_id=request_id, data=result, message="整合性チェック設定を更新しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -4351,6 +4652,7 @@ def admin_integrity_summary(
         data = _load_integrity_summary(conn)
         return _json_success(request_id=request_id, data=data, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "整合性チェック結果の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4398,6 +4700,7 @@ def admin_integrity_run(
             message="整合性チェックを実行キューへ追加しました。",
         )
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -4425,6 +4728,7 @@ def admin_integrity_runs(
         data = _load_integrity_runs_page(conn, page, per_page)
         return _json_success(request_id=request_id, data=data, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "整合性チェック履歴の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4448,6 +4752,7 @@ def admin_integrity_run_detail(
             return _json_error(404, request_id, "not_found", "指定された整合性チェック実行が見つかりません。")
         return _json_success(request_id=request_id, data={"run": run}, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "整合性チェック実行の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4472,6 +4777,7 @@ def admin_integrity_run_issues(
         issues = _load_integrity_issues(conn, run_id)
         return _json_success(request_id=request_id, data={"run": run, "issues": issues}, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "整合性チェック問題一覧の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4492,6 +4798,7 @@ def admin_settings_general(
         payload = _load_site_settings_group(conn, "general")
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "全般設定の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4518,6 +4825,7 @@ def admin_settings_general_update(
         conn.commit()
         return _json_success(request_id=request_id, data=result, message="全般設定を更新しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -4543,6 +4851,7 @@ def admin_settings_security(
         payload = _load_site_settings_group(conn, "security")
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "セキュリティ設定の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4569,6 +4878,7 @@ def admin_settings_security_update(
         conn.commit()
         return _json_success(request_id=request_id, data=result, message="セキュリティ設定を更新しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -4594,6 +4904,7 @@ def admin_settings_smtp(
         payload = _load_site_settings_group(conn, "smtp")
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "SMTP 設定の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4620,6 +4931,7 @@ def admin_settings_smtp_update(
         conn.commit()
         return _json_success(request_id=request_id, data=result, message="SMTP 設定を更新しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
@@ -4645,6 +4957,7 @@ def admin_settings_storage(
         payload = _load_site_settings_group(conn, "storage")
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "ストレージ設定の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4665,6 +4978,7 @@ def admin_settings_storage_usage(
         payload = _load_storage_usage_payload(conn)
         return _json_success(request_id=request_id, data=payload, message=None)
     except Exception:
+        logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "ストレージ使用状況の取得に失敗しました。")
     finally:
         if conn is not None:
@@ -4691,6 +5005,7 @@ def admin_settings_storage_update(
         conn.commit()
         return _json_success(request_id=request_id, data=result, message="ストレージ設定を更新しました。")
     except Exception:
+        logger.exception("Unhandled error")
         if conn is not None:
             try:
                 conn.rollback()
