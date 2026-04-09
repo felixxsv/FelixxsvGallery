@@ -8,7 +8,7 @@ import ssl
 
 _VERIFY_PURPOSES = {"signup", "email_signup", "email_change", "2fa_setup", "2fa_disable"}
 
-_SUPPORTED_MAIL_LANGUAGES = {"ja", "en-us", "es", "ko"}
+_SUPPORTED_MAIL_LANGUAGES = {"ja", "en-us", "de", "es", "ko"}
 
 
 class AuthMailError(Exception):
@@ -34,10 +34,14 @@ def _normalize_mail_language(value: str | None) -> str:
         return "ja"
     if raw in {"ko", "ko-kr"}:
         return "ko"
+    if raw in {"de", "de-de", "de-at", "de-ch"}:
+        return "de"
     if raw in {"es", "es-es", "es-419"}:
         return "es"
     if raw.startswith("ja-"):
         return "ja"
+    if raw.startswith("de-"):
+        return "de"
     if raw.startswith("ko-"):
         return "ko"
     if raw.startswith("es-"):
@@ -95,6 +99,8 @@ def _format_expiry_minutes(expires_in_sec: int, language: str = "ja") -> str:
             return "1分未満"
         if locale == "ko":
             return "1분 미만"
+        if locale == "de":
+            return "weniger als 1 Minute"
         if locale == "es":
             return "menos de 1 minuto"
         return "less than 1 minute"
@@ -102,6 +108,8 @@ def _format_expiry_minutes(expires_in_sec: int, language: str = "ja") -> str:
         return f"{minutes}分"
     if locale == "ko":
         return f"{minutes}분"
+    if locale == "de":
+        return f"{minutes} Minuten"
     if locale == "es":
         return f"{minutes} minutos"
     return f"{minutes} minutes"
@@ -118,6 +126,8 @@ def _build_greeting(display_name: str | None = None, language: str = "ja") -> st
         return f"{normalized} 様\n\n"
     if locale == "ko":
         return f"{normalized}님,\n\n"
+    if locale == "de":
+        return f"Hallo {normalized},\n\n"
     if locale == "es":
         return f"Hola {normalized},\n\n"
     return f"Hello {normalized},\n\n"
@@ -241,6 +251,15 @@ def send_message(smtp_settings: dict, message: EmailMessage) -> None:
 
 def build_verification_subject(purpose: str, language: str = "ja") -> str:
     locale = _normalize_mail_language(language)
+    if locale == "de":
+        if purpose in {"signup", "email_signup"}:
+            return "[Felixxsv Gallery] E-Mail-Bestätigungscode"
+        if purpose == "email_change":
+            return "[Felixxsv Gallery] Bestätigungscode für E-Mail-Änderung"
+        if purpose == "2fa_setup":
+            return "[Felixxsv Gallery] Bestätigungscode für Zwei-Faktor-Einrichtung"
+        if purpose == "2fa_disable":
+            return "[Felixxsv Gallery] Bestätigungscode zum Deaktivieren der Zwei-Faktor-Authentifizierung"
     if locale == "es":
         if purpose in {"signup", "email_signup"}:
             return "[Felixxsv Gallery] Codigo de verificacion de correo"
@@ -320,6 +339,27 @@ def build_verification_body_text(
             f"본인이 요청하지 않았다면 이 메일은 무시하셔도 됩니다.\n"
         )
 
+    if locale == "de":
+        if purpose in {"signup", "email_signup"}:
+            purpose_text = "Gib den unten stehenden Bestätigungscode ein, um deine Felixxsv Gallery Kontoregistrierung abzuschließen."
+        elif purpose == "email_change":
+            purpose_text = "Gib den unten stehenden Bestätigungscode ein, um die Änderung deiner E-Mail-Adresse abzuschließen."
+        elif purpose == "2fa_setup":
+            purpose_text = "Gib den unten stehenden Bestätigungscode ein, um die Einrichtung der Zwei-Faktor-Authentifizierung abzuschließen."
+        else:
+            purpose_text = "Gib den unten stehenden Bestätigungscode ein, um die Zwei-Faktor-Authentifizierung zu deaktivieren."
+
+        return (
+            f"{greeting}"
+            f"{purpose_text}\n\n"
+            f"Bestätigungscode\n"
+            f"{normalized_code}\n\n"
+            f"Gültig für\n"
+            f"{expiry_text}\n\n"
+            f"Teile diesen Code nicht mit anderen.\n"
+            f"Falls du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.\n"
+        )
+
     if locale == "es":
         if purpose in {"signup", "email_signup"}:
             purpose_text = "Introduce el codigo de verificacion de abajo para completar el registro de tu cuenta de Felixxsv Gallery."
@@ -385,6 +425,8 @@ def build_verification_body_text(
 
 def build_two_factor_subject(language: str = "ja") -> str:
     locale = _normalize_mail_language(language)
+    if locale == "de":
+        return "[Felixxsv Gallery] Zwei-Faktor-Authentifizierungscode"
     if locale == "es":
         return "[Felixxsv Gallery] Codigo de autenticacion en dos pasos"
     if locale == "ko":
@@ -415,6 +457,18 @@ def build_two_factor_body_text(
             f"{expiry_text}\n\n"
             f"이 코드를 다른 사람과 공유하지 마세요.\n"
             f"본인이 요청하지 않았다면 비밀번호 변경을 검토해 주세요.\n"
+        )
+
+    if locale == "de":
+        return (
+            f"{greeting}"
+            f"Gib den unten stehenden Authentifizierungscode ein, um dich bei Felixxsv Gallery anzumelden.\n\n"
+            f"Authentifizierungscode\n"
+            f"{normalized_code}\n\n"
+            f"Gültig für\n"
+            f"{expiry_text}\n\n"
+            f"Teile diesen Code nicht mit anderen.\n"
+            f"Falls du diese Anfrage nicht gestellt hast, erwäge dein Passwort zu ändern.\n"
         )
 
     if locale == "es":
@@ -455,6 +509,8 @@ def build_two_factor_body_text(
 
 def build_password_reset_subject(language: str = "ja") -> str:
     locale = _normalize_mail_language(language)
+    if locale == "de":
+        return "[Felixxsv Gallery] Anleitung zum Zurücksetzen des Passworts"
     if locale == "es":
         return "[Felixxsv Gallery] Instrucciones para restablecer la contrasena"
     if locale == "ko":
@@ -474,6 +530,17 @@ def build_password_reset_body_text(
     locale = _normalize_mail_language(language)
     expiry_text = _format_expiry_minutes(expires_in_sec, locale)
     greeting = _build_greeting(display_name, locale)
+
+    if locale == "de":
+        return (
+            f"{greeting}"
+            f"Für dein Felixxsv Gallery Konto wurde eine Passwortzurücksetzung angefordert.\n"
+            f"Verwende den folgenden Link, um fortzufahren.\n\n"
+            f"{normalized_reset_url}\n\n"
+            f"Gültig für\n"
+            f"{expiry_text}\n\n"
+            f"Falls du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.\n"
+        )
 
     if locale == "es":
         return (
