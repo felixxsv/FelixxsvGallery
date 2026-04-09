@@ -4,14 +4,14 @@ function parseParam(name) {
 }
 
 function safeNext(v) {
-  const n = String(v || "").trim() || "/gallery/"
-  if (!n.startsWith("/")) return "/gallery/"
-  if (n.startsWith("//")) return "/gallery/"
+  const n = String(v || "").trim() || "/"
+  if (!n.startsWith("/")) return "/"
+  if (n.startsWith("//")) return "/"
   return n
 }
 
 async function verifyToken(token) {
-  const u = `/gallery/api/auth/register/verify?token=${encodeURIComponent(token)}`
+  const u = `/api/auth/register/verify?token=${encodeURIComponent(token)}`
   const res = await fetch(u, { method: "GET", cache: "no-store", credentials: "same-origin" })
   const data = await res.json().catch(() => ({}))
   return { res, data }
@@ -23,17 +23,17 @@ async function boot() {
   const next = safeNext(parseParam("next"))
 
   if (!token) {
-    location.replace(`/gallery/auth/register/?next=${encodeURIComponent(next)}`)
+    location.replace(`/auth/register/?next=${encodeURIComponent(next)}`)
     return
   }
 
   const { res } = await verifyToken(token)
   if (!res || !res.ok) {
-    location.replace(`/gallery/auth/register/?next=${encodeURIComponent(next)}`)
+    location.replace(`/auth/register/?next=${encodeURIComponent(next)}`)
     return
   }
 
-  location.replace(`/gallery/auth/complete/?token=${encodeURIComponent(token)}&next=${encodeURIComponent(next)}`)
+  location.replace(`/auth/complete/?token=${encodeURIComponent(token)}&next=${encodeURIComponent(next)}`)
 }
 
 if (document.readyState === "loading") {

@@ -1338,7 +1338,7 @@ def confirm_email_verification(
             conn.commit()
             return build_service_success(
                 next_kind="redirect",
-                next_to="/gallery/",
+                next_to="/",
                 message="メールアドレスの変更を完了しました。",
             )
 
@@ -1373,7 +1373,7 @@ def confirm_email_verification(
         conn.commit()
         return build_service_success(
             next_kind="redirect",
-            next_to="/gallery/",
+            next_to="/",
             message="2段階認証の設定を完了しました。",
         )
     except AuthTokenError as exc:
@@ -1595,7 +1595,7 @@ def confirm_two_factor_challenge(
         return build_service_success(
             data={},
             next_kind="redirect",
-            next_to="/gallery/",
+            next_to="/",
             message="ログインしました。",
             session_token=session_token,
         )
@@ -1699,7 +1699,7 @@ def request_password_reset(
     finally:
         _safe_close(conn)
 
-    reset_url = build_gallery_url(f"/gallery/auth/reset?token={reset_token}")
+    reset_url = build_gallery_url(f"/auth/reset?token={reset_token}")
     _try_send_password_reset_email(
         to_email=user["primary_email"],
         reset_url=reset_url,
@@ -1951,7 +1951,7 @@ def change_password_for_current_session(
         return build_service_success(
             data={"revoked_sessions": revoked_count},
             next_kind="redirect",
-            next_to="/gallery/auth",
+            next_to="/auth",
             message="パスワードを変更しました。再度ログインしてください。",
             clear_session_cookie=True,
         )
@@ -2174,7 +2174,7 @@ def reset_password(
         conn.commit()
         return build_service_success(
             next_kind="redirect",
-            next_to="/gallery/auth/reset/done",
+            next_to="/auth/reset/done",
             message="パスワードを再設定しました。",
             clear_session_cookie=True,
         )
@@ -3175,7 +3175,7 @@ def handle_discord_callback(
                 base_url = _get_base_url(conf)
                 return build_service_success(
                     next_kind="redirect",
-                    next_to=f"{base_url}/gallery/auth/?error=discord_link_not_authenticated",
+                    next_to=f"{base_url}/auth/?error=discord_link_not_authenticated",
                     message="連携にはログインが必要です。",
                 )
             link_user = current["user"]
@@ -3188,7 +3188,7 @@ def handle_discord_callback(
                     base_url = _get_base_url(conf)
                     return build_service_success(
                         next_kind="redirect",
-                        next_to=f"{base_url}/gallery/?discord_link=already",
+                        next_to=f"{base_url}/?discord_link=already",
                         message="このDiscordアカウントはすでに連携済みです。",
                     )
                 if not same_user and already_enabled:
@@ -3197,7 +3197,7 @@ def handle_discord_callback(
                     base_url = _get_base_url(conf)
                     return build_service_success(
                         next_kind="redirect",
-                        next_to=f"{base_url}/gallery/?discord_link=conflict",
+                        next_to=f"{base_url}/?discord_link=conflict",
                         message="このDiscordアカウントは別のアカウントに紐付いています。",
                     )
                 # disabled identity (same or different user) → reactivate
@@ -3248,7 +3248,7 @@ def handle_discord_callback(
             base_url = _get_base_url(conf)
             return build_service_success(
                 next_kind="redirect",
-                next_to=f"{base_url}/gallery/?discord_link=ok",
+                next_to=f"{base_url}/?discord_link=ok",
                 message="Discordアカウントを連携しました。",
             )
 
@@ -3757,7 +3757,7 @@ def complete_registration(
         conn.commit()
         return build_service_success(
             next_kind="redirect",
-            next_to="/gallery/auth",
+            next_to="/auth",
             message="アカウントを作成しました。ログインしてください。",
         )
     except AuthTokenError as exc:
@@ -4637,12 +4637,12 @@ def _build_login_reset_result(conn, user: dict, ip_address: bytes | None, user_a
         user_agent=user_agent,
         summary="パスワード再設定が必要です。",
     )
-    reset_url = build_gallery_url(f"/gallery/auth/reset?token={reset_token}")
+    reset_url = build_gallery_url(f"/auth/reset?token={reset_token}")
     return {
         "result": build_service_success(
             data={"reset_token": reset_token},
             next_kind="reset_password",
-            next_to=f"/gallery/auth/reset?token={reset_token}",
+            next_to=f"/auth/reset?token={reset_token}",
             message="パスワードの再設定が必要です。",
         ),
         "mail_job": {
@@ -4789,7 +4789,7 @@ def _create_authenticated_session_result(conn, user: dict, ip_address: bytes | N
     return build_service_success(
         data={},
         next_kind="redirect",
-        next_to="/gallery/",
+        next_to="/",
         message="ログインしました。",
         session_token=session_token,
     )
@@ -4889,19 +4889,19 @@ def _build_pending_user_key() -> str:
 
 
 def _build_register_verify_path(verify_ticket: str) -> str:
-    return f"/gallery/auth/?{urlencode({'step': 'verify-email', 'ticket': verify_ticket})}"
+    return f"/auth/?{urlencode({'step': 'verify-email', 'ticket': verify_ticket})}"
 
 
 def _build_register_complete_path(registration_token: str) -> str:
-    return f"/gallery/auth/?{urlencode({'step': 'complete-registration', 'registration': registration_token})}"
+    return f"/auth/?{urlencode({'step': 'complete-registration', 'registration': registration_token})}"
 
 
 def _build_verify_email_path(verify_ticket: str) -> str:
-    return f"/gallery/auth/verify?{urlencode({'mode': 'email', 'ticket': verify_ticket})}"
+    return f"/auth/verify?{urlencode({'mode': 'email', 'ticket': verify_ticket})}"
 
 
 def _build_verify_2fa_path(challenge_token: str) -> str:
-    return f"/gallery/auth/verify?{urlencode({'mode': '2fa', 'challenge': challenge_token})}"
+    return f"/auth/verify?{urlencode({'mode': '2fa', 'challenge': challenge_token})}"
 
 
 def _build_candidate_user_key(provider_username: str | None, provider_display_name: str | None, provider_user_id: str) -> str:

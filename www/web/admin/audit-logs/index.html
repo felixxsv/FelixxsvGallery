@@ -5,13 +5,13 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title data-i18n="admin_audit.page_title">監査ログ</title>
-<link href="/gallery/assets/css/common.css" rel="stylesheet"/>
-<link href="/gallery/assets/css/components.css" rel="stylesheet"/>
-<link href="/gallery/assets/css/components/date-picker.css" rel="stylesheet"/>
-<link href="/gallery/assets/css/page/admin/common.css" rel="stylesheet"/>
-<link href="/gallery/assets/css/page/admin/audit-logs.css" rel="stylesheet"/>
+<link href="/assets/css/common.css" rel="stylesheet"/>
+<link href="/assets/css/components.css" rel="stylesheet"/>
+<link href="/assets/css/components/date-picker.css" rel="stylesheet"/>
+<link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
+<link href="/assets/css/page/admin/audit-logs.css" rel="stylesheet"/>
 </head>
-<body class="admin-page" data-admin-description="監査ログ一覧、詳細表示、CSV 出力を行います。" data-admin-page="audit-logs" data-app-base="/gallery" data-hide-admin-link-in-shell="1">
+<body class="admin-page" data-admin-description="監査ログ一覧、詳細表示、CSV 出力を行います。" data-admin-page="audit-logs" data-app-base="" data-hide-admin-link-in-shell="1">
 <section class="admin-state-screen" id="adminLoadingState">
 <div class="admin-state-card">
 <h1 class="admin-state-card__title" data-i18n="admin_layout.loading_title">管理画面を確認しています</h1>
@@ -23,7 +23,7 @@
 <h1 class="admin-state-card__title">404</h1>
 <p class="admin-state-card__description" data-i18n="admin_layout.not_found_desc">お探しのページは見つかりませんでした。</p>
 <div class="admin-state-card__actions">
-<a class="app-button app-button--primary" href="/gallery/" data-i18n="admin_layout.home_back">ホームへ戻る</a>
+<a class="app-button app-button--primary" href="/" data-i18n="admin_layout.home_back">ホームへ戻る</a>
 </div>
 </div>
 </section>
@@ -40,8 +40,8 @@
 <div class="app-site-header__inner">
 <div class="app-site-header__left">
 
-<a aria-label="Felixxsv Gallery" class="app-site-logo" href="/gallery/" id="adminHomeLink">
-<img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+<a aria-label="Felixxsv Gallery" class="app-site-logo" href="/" id="adminHomeLink">
+<img class="app-site-logo__mark" src="/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
 <span class="app-site-logo__label">Felixxsv Gallery</span>
 </a>
 </div>
@@ -65,12 +65,12 @@
 </div>
 <div class="admin-sidebar__scroll">
 <nav aria-label="管理画面ナビゲーション" class="admin-sidebar__nav" id="adminSidebarNav" data-i18n-aria-label="admin_layout.nav_label">
-<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="dashboard" href="/gallery/admin/"><span aria-hidden="true" class="admin-sidebar__icon">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
-<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="content" href="/gallery/admin/content/"><span aria-hidden="true" class="admin-sidebar__icon">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
-<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="users" href="/gallery/admin/users/"><span aria-hidden="true" class="admin-sidebar__icon">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
-<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="mail" href="/gallery/admin/mail/"><span aria-hidden="true" class="admin-sidebar__icon">✉</span><span class="admin-sidebar__label">メール配信</span></a>
-<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="settings" href="/gallery/admin/settings/"><span aria-hidden="true" class="admin-sidebar__icon">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
-<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="audit-logs" href="/gallery/admin/audit-logs/"><span aria-hidden="true" class="admin-sidebar__icon">☰</span><span class="admin-sidebar__label">監査ログ</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="dashboard" href="/admin/"><span aria-hidden="true" class="admin-sidebar__icon">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="content" href="/admin/content/"><span aria-hidden="true" class="admin-sidebar__icon">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="users" href="/admin/users/"><span aria-hidden="true" class="admin-sidebar__icon">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="mail" href="/admin/mail/"><span aria-hidden="true" class="admin-sidebar__icon">✉</span><span class="admin-sidebar__label">メール配信</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="settings" href="/admin/settings/"><span aria-hidden="true" class="admin-sidebar__icon">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="audit-logs" href="/admin/audit-logs/"><span aria-hidden="true" class="admin-sidebar__icon">☰</span><span class="admin-sidebar__label">監査ログ</span></a>
 </nav>
 </div>
 <div class="admin-sidebar__footer" data-i18n="admin_layout.sidebar_footer">管理画面は権限確認後にのみ表示します。</div>
@@ -380,7 +380,7 @@
           <ul>
             <li data-i18n="shell.help.account_item1">Use the user icon in the top right to open profile editing, display settings, and account settings.</li>
             <li data-i18n="shell.help.account_item2">Email change, Discord link, two-factor auth, and logout are grouped in account settings.</li>
-            <li data-i18n-html="shell.help.account_item3">Use <code>/gallery/auth/</code> as the primary authentication flow.</li>
+            <li data-i18n-html="shell.help.account_item3">Use <code>/auth/</code> as the primary authentication flow.</li>
           </ul>
         </section>
       </div>
@@ -814,7 +814,7 @@
 </section>
 </div>
 <div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
-<script src="/gallery/assets/js/components/admin-layout.js" type="module"></script>
-<script src="/gallery/assets/js/page/admin/audit-logs.js" type="module"></script>
+<script src="/assets/js/components/admin-layout.js" type="module"></script>
+<script src="/assets/js/page/admin/audit-logs.js" type="module"></script>
 </body>
 </html>

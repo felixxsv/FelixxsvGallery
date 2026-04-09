@@ -51,9 +51,9 @@ function showToastOk(text, ms) { showToast(text, ms || 2600, "ok") }
 
 function parseNext() {
   const u = new URL(location.href)
-  const n = u.searchParams.get("next") || "/gallery/"
-  if (!n.startsWith("/")) return "/gallery/"
-  if (n.startsWith("//")) return "/gallery/"
+  const n = u.searchParams.get("next") || "/"
+  if (!n.startsWith("/")) return "/"
+  if (n.startsWith("//")) return "/"
   return n
 }
 
@@ -82,7 +82,7 @@ async function postForm(url, obj) {
 
 async function startRegister(email, password) {
   const language = i18n?.getLanguage?.() || "en-us"
-  const { res, data } = await postForm("/gallery/api/auth/register/start", { email, password, next: NEXT, preferred_language: language })
+  const { res, data } = await postForm("/api/auth/register/start", { email, password, next: NEXT, preferred_language: language })
   if (!res.ok) {
     const msg = resolveLocalizedMessage(data?.error?.message || data?.message || data?.detail, `register failed status=${res.status}`, i18n?.getLanguage?.() || document.documentElement.lang)
     throw new Error(msg)
@@ -106,7 +106,7 @@ function showDevVerifyLink(url) {
 async function init() {
   const settings = createSettingsStore()
   i18n = createI18n(settings)
-  await i18n.loadCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage())).catch(() => ({}))
+  await i18n.loadCatalogs("/assets/i18n", buildLocaleLoadOrder(settings.getLanguage())).catch(() => ({}))
   if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
   if (!form) return
   form.addEventListener("submit", async (e) => {

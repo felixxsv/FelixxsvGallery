@@ -53,9 +53,9 @@ function parseParam(name) {
 }
 
 function safeNext(v) {
-  const n = String(v || "").trim() || "/gallery/"
-  if (!n.startsWith("/")) return "/gallery/"
-  if (n.startsWith("//")) return "/gallery/"
+  const n = String(v || "").trim() || "/"
+  if (!n.startsWith("/")) return "/"
+  if (n.startsWith("//")) return "/"
   return n
 }
 
@@ -84,7 +84,7 @@ async function postForm(url, obj) {
 }
 
 async function completeRegister(user_key, display_name) {
-  const { res, data } = await postForm("/gallery/api/auth/register/complete", { token: TOKEN, user_key, display_name, next: NEXT })
+  const { res, data } = await postForm("/api/auth/register/complete", { token: TOKEN, user_key, display_name, next: NEXT })
   if (!res.ok) {
     const msg = String(data && data.detail ? data.detail : `complete failed status=${res.status}`)
     throw new Error(msg)
@@ -95,10 +95,10 @@ async function completeRegister(user_key, display_name) {
 async function init() {
   const settings = createSettingsStore()
   i18n = createI18n(settings)
-  await i18n.loadCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage())).catch(() => ({}))
+  await i18n.loadCatalogs("/assets/i18n", buildLocaleLoadOrder(settings.getLanguage())).catch(() => ({}))
   if (typeof window.initAuthHeroSlideshow === "function") window.initAuthHeroSlideshow()
   if (!TOKEN) {
-    location.replace(`/gallery/auth/register/?next=${encodeURIComponent(NEXT)}`)
+    location.replace(`/auth/register/?next=${encodeURIComponent(NEXT)}`)
     return
   }
   if (!form) return

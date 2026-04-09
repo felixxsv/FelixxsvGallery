@@ -27,7 +27,7 @@ const ADMIN_PAGE_I18N_PREFIX = {
 };
 
 function createAdminContext() {
-  const appBase = document.body.dataset.appBase || "/gallery";
+  const appBase = document.body.dataset.appBase || "";
   const api = createApiClient({ baseUrl: appBase });
   const settings = createSettingsStore();
   const session = createSessionStore(api);
@@ -527,7 +527,7 @@ export async function initAdminLayout() {
     if (event.button !== 0) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
-    const href = refs.homeLink.getAttribute("href") || "/gallery/";
+    const href = refs.homeLink.getAttribute("href") || "/";
     event.preventDefault();
 
     const ok = await dirtyGuard.confirmIfNeeded(t("discard_move", "You have unsaved changes. Discard them and continue?"));

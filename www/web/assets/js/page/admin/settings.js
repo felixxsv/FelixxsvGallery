@@ -1,6 +1,6 @@
 import { createApiClient } from "../../core/api.js";
 
-const appBase = document.body.dataset.appBase || "/gallery";
+const appBase = document.body.dataset.appBase || "";
 const api = createApiClient({ baseUrl: appBase });
 
 function t(key, fallback, vars = {}) {

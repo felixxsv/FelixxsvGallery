@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Error - Felixxsv Gallery</title>
-  <link rel="stylesheet" href="/gallery/assets/css/common.css">
-  <link rel="stylesheet" href="/gallery/assets/css/components.css">
-  <link rel="stylesheet" href="/gallery/assets/css/page/special-page.css">
+  <link rel="stylesheet" href="/assets/css/common.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/page/special-page.css">
 </head>
 <body
   class="app-page special-page"
-  data-app-base="/gallery"
+  data-app-base=""
   data-page-kind="error"
   data-page-title="An error occurred"
   data-page-description="A problem occurred while processing your request. Please try again later."
@@ -18,8 +18,8 @@
   <header class="app-site-header">
     <div class="app-site-header__inner">
       <div class="app-site-header__left">
-        <a href="/gallery/" class="app-site-logo" aria-label="Felixxsv Gallery">
-          <img class="app-site-logo__mark" src="/gallery/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+        <a href="/" class="app-site-logo" aria-label="Felixxsv Gallery">
+          <img class="app-site-logo__mark" src="/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
           <span class="app-site-logo__label">Felixxsv Gallery</span>
         </a>
       </div>
@@ -39,7 +39,7 @@
           <div class="special-page__meta" id="specialMeta" hidden></div>
           <div class="special-page__actions">
             <button class="app-button app-button--primary" type="button" data-special-action="reload">Reload</button>
-            <a class="app-button" href="/gallery/">Back to Gallery</a>
+            <a class="app-button" href="/">Back to Gallery</a>
           </div>
         </section>
 
@@ -60,12 +60,12 @@
               <span class="special-page__list-value">Customize details with ?code=, ?title=, ?message=, and ?request_id=.</span>
             </div>
           </div>
-          <p class="special-page__footer-note">Example: /gallery/error/?code=503&title=Temporarily Paused&request_id=abc123</p>
+          <p class="special-page__footer-note">Example: /error/?code=503&title=Temporarily Paused&request_id=abc123</p>
         </aside>
       </div>
     </div>
   </main>
 
-  <script type="module" src="/gallery/assets/js/page/special-page.js"></script>
+  <script type="module" src="/assets/js/page/special-page.js"></script>
 </body>
 </html>

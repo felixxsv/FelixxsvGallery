@@ -49,13 +49,11 @@ function normalizeLikeCount(value) {
 }
 
 function withAppBase(path) {
-  const appBase = document.body.dataset.appBase || "/gallery";
+  const appBase = document.body.dataset.appBase || "";
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  if (path.startsWith("/gallery/")) return path;
-  if (path.startsWith("/storage/") || path.startsWith("/media/") || path.startsWith("/api/")) return `${appBase}${path}`;
+  if (path.startsWith("/")) return path;
   if (path.startsWith("storage/") || path.startsWith("media/") || path.startsWith("api/")) return `${appBase}/${path}`;
-  if (path.startsWith("/")) return `${appBase}${path}`;
   return `${appBase}/storage/${path.replace(/^\/+/, "")}`;
 }
 
