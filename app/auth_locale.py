@@ -214,20 +214,203 @@ _KO_REGEX = [
     (re.compile(r"^リンクは(\d+)件まで登録できます。$"), lambda m: f"링크는 최대 {m.group(1)}개까지 등록할 수 있습니다."),
 ]
 
+_ES_EXACT = {
+    "入力内容を確認してください。": "Revisa los datos introducidos.",
+    "入力してください。": "Introduce este valor.",
+    "ログインしました。": "Has iniciado sesion.",
+    "ログインに失敗しました。": "No se pudo iniciar sesion.",
+    "ログイン処理に失敗しました。": "No se pudo completar el inicio de sesion.",
+    "ログインが必要です。": "Es necesario iniciar sesion.",
+    "ログアウトしました。": "Has cerrado sesion.",
+    "ログアウト処理に失敗しました。": "No se pudo cerrar la sesion.",
+    "全端末からログアウトしました。": "Has cerrado sesion en todos los dispositivos.",
+    "全端末ログアウトに失敗しました。": "No se pudo cerrar la sesion en todos los dispositivos.",
+    "メールアドレスまたはパスワードが正しくありません。": "La direccion de correo o la contrasena no son correctas.",
+    "アカウントが一時的にロックされています。": "La cuenta esta bloqueada temporalmente.",
+    "このアカウントは削除されています。": "Esta cuenta ha sido eliminada.",
+    "このアカウントは無効化されています。": "Esta cuenta esta desactivada.",
+    "メール確認が必要です。": "Es necesario verificar el correo.",
+    "メールアドレスの確認が必要です。": "Es necesario verificar la direccion de correo.",
+    "パスワード再設定が必要です。": "Es necesario restablecer la contrasena.",
+    "パスワードの再設定が必要です。": "Es necesario restablecer la contrasena.",
+    "2段階認証が必要です。": "Se requiere autenticacion en dos pasos.",
+    "送信済みの認証コードを入力してください。": "Introduce el codigo de verificacion que ya se envio.",
+    "確認しました。": "Verificado.",
+    "確認コードを送信しました。": "Se ha enviado el codigo de verificacion.",
+    "確認コードを再送しました。": "Se ha reenviado el codigo de verificacion.",
+    "確認コードの再送に失敗しました。": "No se pudo reenviar el codigo de verificacion.",
+    "確認コードが正しくありません。": "El codigo de verificacion no es correcto.",
+    "確認コードの入力回数が上限に達しました。": "Se alcanzo el limite de intentos del codigo de verificacion.",
+    "確認状態を取得しました。": "Se obtuvo el estado de verificacion.",
+    "確認状態の取得に失敗しました。": "No se pudo obtener el estado de verificacion.",
+    "確認トークンが無効です。": "El token de verificacion no es valido.",
+    "確認トークンの有効期限が切れています。": "El token de verificacion ha caducado.",
+    "登録開始処理に失敗しました。": "No se pudo iniciar el registro.",
+    "登録開始用の確認コードを再利用しました。": "Se reutilizo el codigo de verificacion de inicio de registro.",
+    "登録開始用の確認コードを送信しました。": "Se envio el codigo de verificacion de inicio de registro.",
+    "このメールアドレスはすでに使用されています。": "Esta direccion de correo ya esta en uso.",
+    "登録開始メールの確認を完了しました。": "Se completo la verificacion del correo de inicio de registro.",
+    "メール認証が完了しました。": "La verificacion del correo se completo.",
+    "メール確認に失敗しました。": "No se pudo verificar el correo.",
+    "メール確認を完了しました。": "La verificacion del correo se completo.",
+    "メール確認コードを再送しました。": "Se reenviaron los codigos de verificacion del correo.",
+    "登録処理に失敗しました。": "No se pudo completar el registro.",
+    "アカウントを登録しました。": "La cuenta se ha registrado.",
+    "アカウント登録を完了しました。": "Se completo el registro de la cuenta.",
+    "登録完了処理に失敗しました。": "No se pudo completar el cierre del registro.",
+    "アカウントを作成しました。ログインしてください。": "La cuenta se ha creado. Inicia sesion.",
+    "user_key の確認に失敗しました。": "No se pudo verificar el user_key.",
+    "この user_key はすでに使用されています。": "Este user_key ya esta en uso.",
+    "このユーザーIDは既に使用されています。": "Este ID de usuario ya esta en uso.",
+    "しばらく待ってから再送してください。": "Espera un momento antes de reenviar.",
+    "しばらく待ってから再度お試しください。": "Espera un momento antes de volver a intentarlo.",
+    "認証処理に失敗しました。": "No se pudo completar la autenticacion.",
+    "認証コードが正しくありません。": "El codigo de autenticacion no es correcto.",
+    "認証コードの入力回数が上限に達しました。": "Se alcanzo el limite de intentos del codigo de autenticacion.",
+    "2段階認証コードを再送しました。": "Se ha reenviado el codigo de autenticacion en dos pasos.",
+    "2段階認証コードの再送に失敗しました。": "No se pudo reenviar el codigo de autenticacion en dos pasos.",
+    "2段階認証に失敗しました。": "No se pudo completar la autenticacion en dos pasos.",
+    "2段階認証の開始に失敗しました。": "No se pudo iniciar la autenticacion en dos pasos.",
+    "2段階認証設定コードを再利用しました。": "Se reutilizo el codigo de configuracion de autenticacion en dos pasos.",
+    "2段階認証設定コードを送信しました。": "Se envio el codigo de configuracion de autenticacion en dos pasos.",
+    "2段階認証設定確認に失敗しました。": "No se pudo confirmar la configuracion de autenticacion en dos pasos.",
+    "2段階認証のメール確認を完了しました。": "Se completo la verificacion por correo de la autenticacion en dos pasos.",
+    "2段階認証の設定を完了しました。": "Se completo la configuracion de la autenticacion en dos pasos.",
+    "2段階認証を完了しました。": "Se completo la autenticacion en dos pasos.",
+    "2段階認証を有効化しました。": "La autenticacion en dos pasos se activo.",
+    "2段階認証の有効化に失敗しました。": "No se pudo activar la autenticacion en dos pasos.",
+    "2段階認証はすでに有効です。": "La autenticacion en dos pasos ya esta activada.",
+    "2段階認証無効化コードを再利用しました。": "Se reutilizo el codigo para desactivar la autenticacion en dos pasos.",
+    "2段階認証無効化コードを送信しました。": "Se envio el codigo para desactivar la autenticacion en dos pasos.",
+    "2段階認証無効化確認に失敗しました.": "No se pudo confirmar la desactivacion de la autenticacion en dos pasos.",
+    "2段階認証無効化確認に失敗しました。": "No se pudo confirmar la desactivacion de la autenticacion en dos pasos.",
+    "2段階認証を無効化しました。": "La autenticacion en dos pasos se desactivo.",
+    "2段階認証の無効化に失敗しました。": "No se pudo desactivar la autenticacion en dos pasos.",
+    "2段階認証の無効化開始に失敗しました。": "No se pudo iniciar la desactivacion de la autenticacion en dos pasos.",
+    "2段階認証は有効ではありません。": "La autenticacion en dos pasos no esta activada.",
+    "2段階認証トークンが無効です。": "El token de autenticacion en dos pasos no es valido.",
+    "2段階認証トークンの有効期限が切れています。": "El token de autenticacion en dos pasos ha caducado.",
+    "パスワード再設定受付を処理しました。": "Se ha procesado la solicitud de restablecimiento de contrasena.",
+    "メールアドレスが登録されていれば、再設定案内を送信しました。": "Si la direccion de correo esta registrada, se envio la guia para restablecer la contrasena.",
+    "パスワード再設定受付に失敗しました。": "No se pudo procesar la solicitud de restablecimiento de contrasena.",
+    "再設定トークンを確認しました。": "Se verifico el token de restablecimiento.",
+    "再設定トークンの確認に失敗しました。": "No se pudo verificar el token de restablecimiento.",
+    "再設定トークンが無効です。": "El token de restablecimiento no es valido.",
+    "再設定トークンの有効期限が切れています。": "El token de restablecimiento ha caducado.",
+    "パスワードを再設定しました。": "La contrasena se ha restablecido.",
+    "パスワード再設定に失敗しました。": "No se pudo restablecer la contrasena.",
+    "現在のパスワードが正しくありません。": "La contrasena actual no es correcta.",
+    "パスワードを変更しました。": "La contrasena se ha cambiado.",
+    "パスワードを変更しました。再度ログインしてください。": "La contrasena se ha cambiado. Inicia sesion de nuevo.",
+    "パスワード変更に失敗しました。": "No se pudo cambiar la contrasena.",
+    "パスワードを設定しました。": "La contrasena se ha establecido.",
+    "パスワードの設定に失敗しました。": "No se pudo establecer la contrasena.",
+    "プロフィールを更新しました。": "El perfil se ha actualizado.",
+    "プロフィールの更新に失敗しました。": "No se pudo actualizar el perfil.",
+    "ユーザー情報の取得に失敗しました。": "No se pudo obtener la informacion del usuario.",
+    "ログイン中ユーザー情報を取得しました。": "Se obtuvo la informacion del usuario conectado.",
+    "アイコンを更新しました。": "El icono se ha actualizado.",
+    "アイコンの更新に失敗しました。": "No se pudo actualizar el icono.",
+    "アイコンを削除しました。": "El icono se ha eliminado.",
+    "アイコンの削除に失敗しました。": "No se pudo eliminar el icono.",
+    "リンクを追加しました。": "El enlace se ha anadido.",
+    "リンクの追加に失敗しました。": "No se pudo anadir el enlace.",
+    "リンクを削除しました。": "El enlace se ha eliminado.",
+    "リンクの削除に失敗しました。": "No se pudo eliminar el enlace.",
+    "リンクが見つかりません。": "No se encontro el enlace.",
+    "画面状態の更新に失敗しました。": "No se pudo actualizar el estado de la pantalla.",
+    "メールアドレス変更を開始しました。": "Se inicio el cambio de direccion de correo.",
+    "メールアドレス変更の開始に失敗しました。": "No se pudo iniciar el cambio de direccion de correo.",
+    "メールアドレス変更を確認しました。": "Se confirmo el cambio de direccion de correo.",
+    "メールアドレスの変更を完了しました。": "Se completo el cambio de direccion de correo.",
+    "利用可能なメールアドレスが設定されていません。": "No hay una direccion de correo disponible configurada.",
+    "Discordの認証ページに移動します。": "Te redirigiremos a la pagina de autenticacion de Discord.",
+    "Discord OAuth 開始に失敗しました。": "No se pudo iniciar Discord OAuth.",
+    "Discord認証の開始に失敗しました。": "No se pudo iniciar la autenticacion de Discord.",
+    "Discord認証パラメータが不正です。": "Los parametros de autenticacion de Discord no son validos.",
+    "Discord認証のstateが無効または期限切れです。": "El state de autenticacion de Discord no es valido o ha caducado.",
+    "Discord認証の確認に失敗しました。": "No se pudo verificar la autenticacion de Discord.",
+    "Discord認証処理中にエラーが発生しました。": "Se produjo un error durante la autenticacion de Discord.",
+    "Discordトークンの取得に失敗しました。": "No se pudo obtener el token de Discord.",
+    "Discordユーザー情報の取得に失敗しました。": "No se pudo obtener la informacion del usuario de Discord.",
+    "Discordアカウントが見つかりませんでした。アカウントを作成してください。": "No se encontro la cuenta de Discord. Crea una cuenta.",
+    "Discordでログインしました。": "Has iniciado sesion con Discord.",
+    "Discord連携の開始に失敗しました。": "No se pudo iniciar la vinculacion con Discord.",
+    "連携にはログインが必要です。": "Debes iniciar sesion para vincular la cuenta.",
+    "このDiscordアカウントはすでに連携済みです。": "Esta cuenta de Discord ya esta vinculada.",
+    "このDiscordアカウントは別のアカウントに紐付いています。": "Esta cuenta de Discord esta vinculada a otra cuenta.",
+    "このDiscordアカウントは別のアカウントに連携されています。": "Esta cuenta de Discord esta vinculada a otra cuenta.",
+    "Discordアカウントを連携しました。": "La cuenta de Discord se ha vinculado.",
+    "メール衝突後にDiscordアカウントを連携しました。": "La cuenta de Discord se vinculo tras resolver el conflicto de correo.",
+    "Discord連携中にエラーが発生しました。": "Se produjo un error durante la vinculacion con Discord.",
+    "Discordアカウントが連携されていません。": "La cuenta de Discord no esta vinculada.",
+    "Discord連携が設定されていません。": "La vinculacion con Discord no esta configurada.",
+    "パスワードが設定されていないため、Discord連携を解除できません。先にパスワードを設定してください。": "No se puede desvincular Discord porque no hay una contrasena configurada. Configura primero una contrasena.",
+    "Discord連携を解除しました。": "La cuenta de Discord se ha desvinculado.",
+    "Discord連携解除に失敗しました。": "No se pudo desvincular la cuenta de Discord.",
+    "Discord連携解除中にエラーが発生しました。": "Se produjo un error al desvincular la cuenta de Discord.",
+    "Discord callback の処理に失敗しました。": "No se pudo procesar el callback de Discord.",
+    "Discord登録情報を取得しました。": "Se obtuvo la informacion de registro de Discord.",
+    "Discord登録情報の取得に失敗しました。": "No se pudo obtener la informacion de registro de Discord.",
+    "このメールアドレスは既に登録されています。既存のアカウントにDiscordを連携できます。": "Esta direccion de correo ya esta registrada. Puedes vincular Discord a la cuenta existente.",
+    "Discord登録を完了しました。": "Se completo el registro con Discord.",
+    "Discord登録の完了に失敗しました。": "No se pudo completar el registro con Discord.",
+    "Discord登録後にログインしました。": "Has iniciado sesion despues del registro con Discord.",
+    "Discord登録後のログインに失敗しました。": "No se pudo iniciar sesion despues del registro con Discord.",
+    "registrationトークンが無効です。": "El token de registration no es valido.",
+    "registrationトークンが無効または期限切れです。": "El token de registration no es valido o ha caducado.",
+    "登録トークンが正しくありません。": "El token de registro no es correcto.",
+    "登録トークンが無効です。": "El token de registro no es valido.",
+    "登録トークンの有効期限が切れています。": "El token de registro ha caducado.",
+    "画像ファイル（JPEG・PNG・GIF・WebP）のみアップロードできます。": "Solo se pueden subir archivos de imagen (JPEG, PNG, GIF, WebP).",
+    "ファイルサイズは5MB以下にしてください。": "El tamano del archivo debe ser de 5 MB o menos.",
+    "有効な画像ファイルを選択してください。": "Selecciona un archivo de imagen valido.",
+    "challenge が必要です。": "Se requiere challenge.",
+    "ticket が必要です。": "Se requiere ticket.",
+    "mode の指定が正しくありません。": "El valor de mode no es valido.",
+    "メールアドレスの形式が正しくありません。": "El formato de la direccion de correo no es valido.",
+    "先頭は英字で入力してください。": "El primer caracter debe ser una letra.",
+    "使用できる文字は英数字、アンダースコア、ハイフンのみです。": "Solo se permiten letras, numeros, guion bajo y guion.",
+    "改行は使用できません。": "No se permiten saltos de linea.",
+    "英字を1文字以上含めてください。": "Incluye al menos una letra.",
+    "数字を1文字以上含めてください。": "Incluye al menos un numero.",
+    "認証コードは数字のみで入力してください。": "El codigo de verificacion debe contener solo numeros.",
+    "トークンの形式が正しくありません。": "El formato del token no es valido.",
+    "真偽値の形式が正しくありません。": "El formato del valor booleano no es valido.",
+    "利用規約への同意が必要です。": "Debes aceptar los terminos de uso.",
+}
+
+_ES_REGEX = [
+    (re.compile(r"^(\d+)文字以上で入力してください。$"), lambda m: f"Introduce al menos {m.group(1)} caracteres."),
+    (re.compile(r"^(\d+)文字以下で入力してください。$"), lambda m: f"Introduce como maximo {m.group(1)} caracteres."),
+    (re.compile(r"^認証コードは(\d+)桁で入力してください。$"), lambda m: f"Introduce un codigo de verificacion de {m.group(1)} digitos."),
+    (re.compile(r"^リンクは(\d+)件まで登録できます。$"), lambda m: f"Puedes registrar hasta {m.group(1)} enlaces."),
+]
+
 
 def localize_auth_message(message: str | None, language: str | None) -> str:
     text = str(message or "").strip()
     if text == "":
         return ""
-    if normalize_auth_language(language) != "ko":
+    locale = normalize_auth_language(language)
+    if locale == "ko":
+        localized = _KO_EXACT.get(text)
+        if localized:
+            return localized
+        for pattern, formatter in _KO_REGEX:
+            matched = pattern.match(text)
+            if matched:
+                return formatter(matched)
         return text
-    localized = _KO_EXACT.get(text)
-    if localized:
-        return localized
-    for pattern, formatter in _KO_REGEX:
-        matched = pattern.match(text)
-        if matched:
-            return formatter(matched)
+    if locale == "es":
+        localized = _ES_EXACT.get(text)
+        if localized:
+            return localized
+        for pattern, formatter in _ES_REGEX:
+            matched = pattern.match(text)
+            if matched:
+                return formatter(matched)
+        return text
     return text
 
 

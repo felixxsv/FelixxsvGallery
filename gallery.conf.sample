@@ -35,6 +35,11 @@ use_auth = false
 from_email = "noreply@felixxsv.net"
 from_name = "Felixxsv Gallery"
 
+[discord]
+client_id = ""
+client_secret = ""
+redirect_uri = "https://felixxsv.net/gallery/api/auth/discord/callback"
+
 [discord_bot]
 token = ""
 guild_id = 0
