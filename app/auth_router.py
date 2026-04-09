@@ -872,6 +872,7 @@ async def two_factor_setup_start(
             session_token=gallery_session,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
+            preferred_language=context["preferred_language"],
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:
@@ -923,6 +924,7 @@ async def two_factor_disable_start(
             session_token=gallery_session,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
+            preferred_language=context["preferred_language"],
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:
@@ -998,6 +1000,7 @@ async def email_change_start(
             new_email=payload.new_email,
             ip_address=context["ip_address"],
             user_agent=context["user_agent"],
+            preferred_language=context["preferred_language"],
         )
         return _build_response_from_service_result(request_id, result)
     except Exception:

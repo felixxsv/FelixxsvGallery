@@ -1972,6 +1972,7 @@ def start_email_change_for_session(
     new_email: str | None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
+    preferred_language: str | None = None,
     now=None,
 ) -> dict:
     new_email_value = str(new_email or "").strip().lower()
@@ -2067,7 +2068,7 @@ def start_email_change_for_session(
             user_id=int(user["id"]),
             purpose="email_change",
             email=new_email_value,
-            preferred_language="en-us",
+            preferred_language=preferred_language,
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             now=now_dt,
         )
@@ -2421,6 +2422,7 @@ def start_two_factor_setup_for_current_session(
     session_token: str | None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
+    preferred_language: str | None = None,
     now=None,
 ) -> dict:
     if session_token is None or str(session_token).strip() == "":
@@ -2486,7 +2488,7 @@ def start_two_factor_setup_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_setup",
                 email=primary_email,
-                preferred_language="en-us",
+                preferred_language=preferred_language,
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -2518,7 +2520,7 @@ def start_two_factor_setup_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_setup",
                 email=primary_email,
-                preferred_language="en-us",
+                preferred_language=preferred_language,
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -2552,7 +2554,7 @@ def start_two_factor_setup_for_current_session(
             purpose="2fa_setup",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=user.get("display_name"),
-            preferred_language="en-us",
+            preferred_language=preferred_language,
         )
 
     return build_service_success(
@@ -2723,6 +2725,7 @@ def start_two_factor_disable_for_current_session(
     session_token: str | None,
     ip_address: bytes | None = None,
     user_agent: str | None = None,
+    preferred_language: str | None = None,
     now=None,
 ) -> dict:
     if session_token is None or str(session_token).strip() == "":
@@ -2788,7 +2791,7 @@ def start_two_factor_disable_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_disable",
                 email=primary_email,
-                preferred_language="en-us",
+                preferred_language=preferred_language,
                 expires_in_sec=response_expires_in_sec,
                 now=now_dt,
             )
@@ -2820,7 +2823,7 @@ def start_two_factor_disable_for_current_session(
                 user_id=user["id"],
                 purpose="2fa_disable",
                 email=primary_email,
-                preferred_language="en-us",
+                preferred_language=preferred_language,
                 expires_in_sec=auth_conf["verify_code_expires_sec"],
                 now=now_dt,
             )
@@ -2854,7 +2857,7 @@ def start_two_factor_disable_for_current_session(
             purpose="2fa_disable",
             expires_in_sec=auth_conf["verify_code_expires_sec"],
             display_name=user.get("display_name"),
-            preferred_language="en-us",
+            preferred_language=preferred_language,
         )
 
     return build_service_success(
