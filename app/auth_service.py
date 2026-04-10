@@ -3270,6 +3270,49 @@ def handle_discord_callback(
                     message="アカウントが無効または停止されています。",
                 )
 
+            # If the user has an email that hasn't been verified yet, block login
+            # and redirect back to the email verification step.
+            if not bool(user.get("is_email_verified")) and user.get("primary_email"):
+                auth_conf = _get_auth_conf()
+                expire_active_email_verifications(conn, user["id"], now_dt)
+                verify_code = _generate_otp_code()
+                create_email_verification(
+                    conn=conn,
+                    user_id=user["id"],
+                    email=user["primary_email"],
+                    code_hash=hash_token_value(verify_code),
+                    purpose="signup",
+                    expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
+                )
+                verify_ticket = create_verify_ticket(
+                    user_id=user["id"],
+                    purpose="signup",
+                    email=user["primary_email"],
+                    preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
+                    expires_in_sec=auth_conf["verify_code_expires_sec"],
+                    now=now_dt,
+                )
+                conn.commit()
+                _try_send_verification_email(
+                    to_email=user["primary_email"],
+                    code=verify_code,
+                    purpose="signup",
+                    expires_in_sec=auth_conf["verify_code_expires_sec"],
+                    display_name=user.get("display_name") or user.get("user_key") or "",
+                    preferred_language=normalize_preferred_language(user.get("preferred_language")) or "en-us",
+                )
+                return build_service_success(
+                    data={
+                        "verify_ticket": verify_ticket,
+                        "masked_email": mask_email_address(user["primary_email"]),
+                        "expires_in_sec": auth_conf["verify_code_expires_sec"],
+                        "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
+                    },
+                    next_kind="verify_email",
+                    next_to=_build_verify_email_path(verify_ticket),
+                    message="メールアドレスの確認が必要です。確認コードを送信しました。",
+                )
+
             update_auth_identity_last_used(conn, identity["id"], now_dt)
 
             two_factor_settings = get_two_factor_settings_by_user_id(conn, user["id"])
