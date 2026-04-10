@@ -350,12 +350,13 @@ def perform_gallery_upload(
                     st = abs_path.stat()
                     mtime_epoch = int(st.st_mtime)
 
+                    now_jst = _now_local_naive(conf)
                     img_cols_list = [
-                        "gallery", "shot_at", "title", "alt", "width", "height", "format",
+                        "gallery", "shot_at", "created_at", "title", "alt", "width", "height", "format",
                         "thumb_path_480", "thumb_path_960", "preview_path", "content_hash",
                     ]
                     img_vals = [
-                        gallery, resolved_shot_at, t, str(alt or ""), x["width"], x["height"], x["format"],
+                        gallery, resolved_shot_at, now_jst, t, str(alt or ""), x["width"], x["height"], x["format"],
                         "", "", "", x["sha_hex"],
                     ]
 
@@ -473,6 +474,9 @@ def perform_gallery_upload(
                     if "image_count" in content_cols:
                         content_cols_list.append("image_count")
                         content_vals.append(int(len(created_items)))
+                    if "created_at" in content_cols:
+                        content_cols_list.append("created_at")
+                        content_vals.append(now_jst)
                     with conn.cursor() as cur:
                         cur.execute(
                             f"INSERT INTO gallery_contents ({', '.join(content_cols_list)}) VALUES ({', '.join(['%s'] * len(content_cols_list))})",
