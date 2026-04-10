@@ -758,7 +758,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function canOpen() {
     const authenticated = Boolean(app.session?.getState?.()?.authenticated);
     if (!authenticated && scope === "public") {
-      window.location.href = buildAuthUrl(app.appBase || "/gallery");
+      window.location.href = buildAuthUrl(app.appBase || "");
       return false;
     }
     const user = currentUser();

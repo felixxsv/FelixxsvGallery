@@ -25,7 +25,7 @@ const HOME_SIDEBAR_ANIMATION_MS = 180;
 const HOME_SIDEBAR_REVEAL_DELAY_MS = HOME_SIDEBAR_ANIMATION_MS + 20;
 
 function createAppContext() {
-  const appBase = document.body.dataset.appBase || "/gallery";
+  const appBase = document.body.dataset.appBase || "";
   const api = createApiClient({ baseUrl: appBase });
   const settings = createSettingsStore();
   const theme = createThemeController(settings);

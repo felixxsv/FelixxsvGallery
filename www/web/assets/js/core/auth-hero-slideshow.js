@@ -10,13 +10,13 @@
     if (container.dataset.heroInitialized === "1") return
     container.dataset.heroInitialized = "1"
 
-    const appBase = document.body?.dataset?.appBase || "/gallery"
+    const appBase = document.body?.dataset?.appBase || ""
 
     function resolveUrl(path) {
       const raw = String(path || "").trim()
       if (!raw) return ""
       if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
-      if (raw.startsWith("/gallery/")) return raw
+      if (raw.startsWith("/")) return raw
       if (raw.startsWith("/")) return `${appBase}${raw}`
       return `${appBase}/storage/${raw}`
     }

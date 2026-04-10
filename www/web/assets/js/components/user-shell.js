@@ -43,7 +43,7 @@ function getLinkIconSlug(url) {
 
 function getLinkIconUrl(url) {
   const slug = getLinkIconSlug(url);
-  return `/gallery/assets/icons/social/${slug}.svg`;
+  return `/assets/icons/social/${slug}.svg`;
 }
 
 const DEFAULT_CREDIT_META = Object.freeze({
@@ -103,7 +103,7 @@ export function initUserShell(app) {
 
   async function ensureLanguageCatalog(language) {
     const normalized = languageToLocaleTag(language);
-    if (!app.i18n?.loadCatalog || !app.appBase) return;
+    if (!app.i18n?.loadCatalog) return;
     try {
       await app.i18n.loadCatalog(language, `${app.appBase}/assets/i18n/${String(language || "").trim().toLowerCase()}.json`);
     } catch {
@@ -401,7 +401,7 @@ export function initUserShell(app) {
           <ul>
             <li>${escapeHtml(t("shell.help.account_item1", "Use the user menu in the top-right corner to open profile editing, display settings, and account settings."))}</li>
             <li>${escapeHtml(t("shell.help.account_item2", "Email changes, Discord linking, two-factor authentication, and logout actions are grouped under account settings."))}</li>
-            <li>${t("shell.help.account_item3", "The canonical authentication flow is provided at <code>/gallery/auth/</code>.")}</li>
+            <li>${t("shell.help.account_item3", "The canonical authentication flow is provided at <code>/auth/</code>.")}</li>
           </ul>
         </section>
       </div>
@@ -945,7 +945,7 @@ export function initUserShell(app) {
       renderUserCard();
       toast.success(t("shell.toast.logout", "Logged out."));
       window.setTimeout(() => {
-        window.location.href = "/gallery/auth";
+        window.location.href = "/auth";
       }, 250);
     } catch (error) {
       toast.error(resolveLocalizedMessage(error, t("shell.toast.logout_error", "Failed to log out.")));
@@ -963,7 +963,7 @@ export function initUserShell(app) {
       renderUserCard();
       toast.success(t("shell.toast.logout_all", "Logged out from all sessions."));
       window.setTimeout(() => {
-        window.location.href = "/gallery/auth";
+        window.location.href = "/auth";
       }, 250);
     } catch (error) {
       toast.error(resolveLocalizedMessage(error, t("shell.toast.logout_all_error", "Failed to log out from all sessions.")));
@@ -978,7 +978,7 @@ export function initUserShell(app) {
       });
       toast.success(t("shell.toast.password_changed", "Password changed. Please sign in again."));
       window.setTimeout(() => {
-        window.location.href = "/gallery/auth";
+        window.location.href = "/auth";
       }, 300);
     } catch (error) {
       toast.error(resolveLocalizedMessage(error, t("shell.toast.password_change_error", "Failed to change password.")));
@@ -1501,7 +1501,7 @@ export function initUserShell(app) {
     });
 
     refs.loginButton.addEventListener("click", () => {
-      window.location.href = "/gallery/auth";
+      window.location.href = "/auth";
     });
 
     if (refs.logoutButton) {

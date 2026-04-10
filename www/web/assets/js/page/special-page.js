@@ -50,7 +50,7 @@ function getPageConfig(i18n, kind) {
       status: "404",
       title: t("special.not_found.title", "Page not found"),
       description: t("special.not_found.description", "The URL may have changed or the page may no longer be public. Please return to the gallery top and search again."),
-      meta: t("special.not_found.meta", "This is the not-found page for public routes under /gallery."),
+      meta: t("special.not_found.meta", "This is the not-found page for public routes under ."),
       primaryAction: common.backHome,
       secondaryAction: common.backPrevious,
       asideLabel: t("special.not_found.aside_label", "Guidance"),
@@ -59,7 +59,7 @@ function getPageConfig(i18n, kind) {
       list: [
         {
           label: t("special.not_found.list_link_label", "Link"),
-          value: t("special.not_found.list_link_value", "Confirm the trailing URL and the path under /gallery/ are correct."),
+          value: t("special.not_found.list_link_value", "Confirm the trailing URL and the path under / are correct."),
         },
         {
           label: t("special.not_found.list_visibility_label", "Visibility"),
@@ -151,7 +151,7 @@ function getPageConfig(i18n, kind) {
           value: t("special.error.list_dynamic_value", "Customize details with ?code=, ?title=, ?message=, and ?request_id=."),
         },
       ],
-      footerNote: t("special.error.footer_note", "Example: /gallery/error/?code=503&title=Temporarily Paused&request_id=abc123"),
+      footerNote: t("special.error.footer_note", "Example: /error/?code=503&title=Temporarily Paused&request_id=abc123"),
     },
   };
   return { common, ...(configs[kind] || configs["not-found"]) };
@@ -206,7 +206,7 @@ function initActions() {
         if (window.history.length > 1) {
           window.history.back();
         } else {
-          window.location.assign("/gallery/");
+          window.location.assign("/");
         }
       }
     });
@@ -218,7 +218,7 @@ async function initSpecialPages() {
   const i18n = createI18n(settings);
 
   try {
-    await i18n.loadCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage()));
+    await i18n.loadCatalogs("/assets/i18n", buildLocaleLoadOrder(settings.getLanguage()));
   } catch {
     // Keep in-module dictionaries as fallback when shared catalogs are unavailable.
   }

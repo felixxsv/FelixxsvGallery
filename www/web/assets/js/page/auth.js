@@ -58,7 +58,7 @@ const FALLBACK_MESSAGES = {
 };
 
 async function loadSharedMessages() {
-  const catalogs = await fetchLocaleCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(settings.getLanguage()));
+  const catalogs = await fetchLocaleCatalogs("/assets/i18n", buildLocaleLoadOrder(settings.getLanguage()));
   Object.entries(catalogs).forEach(([locale, messages]) => {
     if (!MESSAGES[locale]) MESSAGES[locale] = {};
     MESSAGES[locale] = { ...MESSAGES[locale], ...(messages || {}) };
@@ -70,7 +70,7 @@ async function ensureLanguageMessages(language) {
   if (MESSAGES[normalized] && Object.keys(MESSAGES[normalized]).length > 0) {
     return;
   }
-  const catalogs = await fetchLocaleCatalogs("/gallery/assets/i18n", buildLocaleLoadOrder(normalized));
+  const catalogs = await fetchLocaleCatalogs("/assets/i18n", buildLocaleLoadOrder(normalized));
   Object.entries(catalogs).forEach(([locale, messages]) => {
     if (!MESSAGES[locale]) MESSAGES[locale] = {};
     MESSAGES[locale] = { ...MESSAGES[locale], ...(messages || {}) };
@@ -349,9 +349,9 @@ function getJson(url) {
 
 function safeRelativePath(path) {
   const raw = String(path || "").trim();
-  if (!raw) return "/gallery/";
-  if (!raw.startsWith("/")) return "/gallery/";
-  if (raw.startsWith("//")) return "/gallery/";
+  if (!raw) return "/";
+  if (!raw.startsWith("/")) return "/";
+  if (raw.startsWith("//")) return "/";
   return raw;
 }
 
@@ -551,7 +551,7 @@ async function confirmLeaveFlow(message) {
 async function getVerifyStatus(mode, token) {
   if (!token) return null;
   const key = mode === "2fa" ? "challenge" : "ticket";
-  const { res, data } = await getJson(`/gallery/api/auth/verify/status?mode=${encodeURIComponent(mode)}&${key}=${encodeURIComponent(token)}`);
+  const { res, data } = await getJson(`/api/auth/verify/status?mode=${encodeURIComponent(mode)}&${key}=${encodeURIComponent(token)}`);
   if (!res.ok) return null;
   return data?.data || null;
 }
@@ -626,7 +626,7 @@ async function doLogin() {
     return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/login", { email: em, password: pw, preferred_language: currentLanguage });
+  const { res, data } = await postJson("/api/auth/login", { email: em, password: pw, preferred_language: currentLanguage });
 
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `login failed (${res.status})`), 5200);
@@ -649,7 +649,7 @@ async function doLogin() {
   if (state.discordLinkRegistrationToken) {
     const linkToken = state.discordLinkRegistrationToken;
     clearPersistedState();
-    const { res: lRes, data: lData } = await postJson("/gallery/api/auth/discord/link/via-token", { registration_token: linkToken });
+    const { res: lRes, data: lData } = await postJson("/api/auth/discord/link/via-token", { registration_token: linkToken });
     if (!lRes.ok) {
       showToastErr(getErrorMessage(lData, "Discord link failed."), 6000);
       setTimeout(() => { location.replace(data?.next?.to || nextUrl()); }, 1200);
@@ -672,7 +672,7 @@ async function doLoginTwoFactorVerify() {
     return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/2fa/challenge/verify", {
+  const { res, data } = await postJson("/api/auth/2fa/challenge/verify", {
     challenge_token: state.challengeToken,
     code,
     remember_for_30_days: false,
@@ -700,7 +700,7 @@ async function doLoginTwoFactorResend() {
     return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/2fa/challenge/send", { challenge_token: state.challengeToken });
+  const { res, data } = await postJson("/api/auth/2fa/challenge/send", { challenge_token: state.challengeToken });
 
   if (!res.ok) {
     if (res.status === 429) {
@@ -719,7 +719,7 @@ async function doLoginTwoFactorResend() {
 }
 
 async function startDiscordOAuth() {
-  const { res, data } = await postJson("/gallery/api/auth/discord/start", {});
+  const { res, data } = await postJson("/api/auth/discord/start", {});
 
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `Discord OAuth start failed (${res.status})`), 5200);
@@ -746,7 +746,7 @@ async function startRegistration() {
   const ok = await confirmSendCode(t("auth.confirm.loginCode"));
   if (!ok) return;
 
-  const { res, data } = await postJson("/gallery/api/auth/register/start", { email, preferred_language: currentLanguage });
+  const { res, data } = await postJson("/api/auth/register/start", { email, preferred_language: currentLanguage });
 
   if (!res.ok) {
     showToastErr(getErrorMessage(data, `register start failed (${res.status})`), 5200);
@@ -775,7 +775,7 @@ async function resendRegistrationCode() {
     return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/verify/email/send", { verify_ticket: state.verifyTicket });
+  const { res, data } = await postJson("/api/auth/verify/email/send", { verify_ticket: state.verifyTicket });
 
   if (!res.ok) {
     if (res.status === 429) {
@@ -800,7 +800,7 @@ async function confirmRegistrationCode() {
     return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/verify/email/confirm", {
+  const { res, data } = await postJson("/api/auth/verify/email/confirm", {
     verify_ticket: state.verifyTicket,
     code,
   });
@@ -829,7 +829,7 @@ async function completeRegistration() {
       return;
     }
 
-    const { res, data } = await postJson("/gallery/api/auth/register/discord", {
+    const { res, data } = await postJson("/api/auth/register/discord", {
       registration_token: state.registrationToken,
       user_key: userKey,
       display_name: displayName,
@@ -846,7 +846,7 @@ async function completeRegistration() {
     setQuery({});
     clearPersistedState();
     const nextTo = data?.next?.to;
-    setTimeout(() => { location.replace(nextTo || "/gallery/"); }, 600);
+    setTimeout(() => { location.replace(nextTo || "/"); }, 600);
     return;
   }
 
@@ -856,7 +856,7 @@ async function completeRegistration() {
     return;
   }
 
-  const { res, data } = await postJson("/gallery/api/auth/register/complete", {
+  const { res, data } = await postJson("/api/auth/register/complete", {
     registration_token: state.registrationToken,
     user_key: userKey,
     display_name: displayName,
@@ -882,7 +882,7 @@ async function completeRegistration() {
 
 async function hydrateDiscordRegistrationPrefill() {
   if (!state.registrationToken) return;
-  const { res, data } = await getJson(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.registrationToken)}`);
+  const { res, data } = await getJson(`/api/auth/register/discord/status?registration=${encodeURIComponent(state.registrationToken)}`);
   if (!res.ok || !data?.data?.prefill) return;
   const prefill = data.data.prefill;
   if (completeUserKey && prefill.user_key && !completeUserKey.value) {
@@ -924,7 +924,7 @@ async function restoreFromLocation() {
       state.discordLinkRegistrationToken = state.registrationToken;
       state.registrationToken = "";
       try {
-        const statusRes = await fetch(`/gallery/api/auth/register/discord/status?registration=${encodeURIComponent(state.discordLinkRegistrationToken)}`, {
+        const statusRes = await fetch(`/api/auth/register/discord/status?registration=${encodeURIComponent(state.discordLinkRegistrationToken)}`, {
           headers: {
             "X-Gallery-Language": currentLanguage || document.documentElement.lang || "en-US",
           },
@@ -1045,7 +1045,7 @@ async function init() {
     authHeaderBackButton.addEventListener("click", () => {
       handleLeaveCurrentFlow(() => {
         allowBrowserLeave = true;
-        location.href = "/gallery/";
+        location.href = "/";
       });
     });
   }
