@@ -1035,13 +1035,23 @@ export function initUserShell(app) {
     }
 
     if (!currentEmail()) {
-      toast.error(t("shell.toast.2fa_email_required", "Two-factor authentication requires a registered email address."), 6000);
-      if (refs.twoFactor) {
-        app.modal.open("account");
-        setTimeout(() => {
-          const emailSection = refs.twoFactor.closest(".modal-section") || document.getElementById("shellAccountEmail");
-          if (emailSection) emailSection.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 200);
+      const discordEmail = getSessionState().data?.security?.discord_email || "";
+      if (discordEmail) {
+        renderEmailModal();
+        app.modal.open("email");
+        setTimeout(async () => {
+          refs.emailInput.value = discordEmail;
+          await handleEmailSave();
+        }, 150);
+      } else {
+        toast.error(t("shell.toast.2fa_email_required", "Two-factor authentication requires a registered email address."), 6000);
+        if (refs.twoFactor) {
+          app.modal.open("account");
+          setTimeout(() => {
+            const emailSection = refs.twoFactor.closest(".modal-section") || document.getElementById("shellAccountEmail");
+            if (emailSection) emailSection.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 200);
+        }
       }
       return;
     }
