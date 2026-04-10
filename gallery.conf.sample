@@ -1,4 +1,4 @@
-base_url = "https://felixxsv.net"
+base_url = "https://gallery.felixxsv.net"
 
 [app]
 gallery = "vrchat"
@@ -38,7 +38,7 @@ from_name = "Felixxsv Gallery"
 [discord]
 client_id = ""
 client_secret = ""
-redirect_uri = "https://felixxsv.net/gallery/api/auth/discord/callback"
+redirect_uri = "https://gallery.felixxsv.net/api/auth/discord/callback"
 
 [discord_bot]
 token = ""
