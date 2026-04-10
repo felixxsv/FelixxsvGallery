@@ -4897,11 +4897,11 @@ def _build_register_complete_path(registration_token: str) -> str:
 
 
 def _build_verify_email_path(verify_ticket: str) -> str:
-    return f"/auth/verify?{urlencode({'mode': 'email', 'ticket': verify_ticket})}"
+    return f"/auth/?{urlencode({'step': 'verify-email', 'ticket': verify_ticket})}"
 
 
 def _build_verify_2fa_path(challenge_token: str) -> str:
-    return f"/auth/verify?{urlencode({'mode': '2fa', 'challenge': challenge_token})}"
+    return f"/auth/?{urlencode({'step': 'verify-2fa', 'challenge': challenge_token})}"
 
 
 def _build_candidate_user_key(provider_username: str | None, provider_display_name: str | None, provider_user_id: str) -> str:
