@@ -150,6 +150,18 @@ def _coerce_utc_text(value) -> str | None:
     return str(value)
 
 
+def _coerce_local_text(value) -> str | None:
+    """Return naive ISO string for datetimes stored in local (JST) timezone.
+    JS treats timezone-free ISO 8601 datetime strings as local time, so
+    the browser renders the correct JST value without any offset conversion.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.replace(tzinfo=None).isoformat()
+    return str(value)
+
+
 def _coerce_utc_datetime(value) -> datetime | None:
     if value is None:
         return None
@@ -524,8 +536,8 @@ LIMIT 1
         "view_count": int(row.get("view_count") or 0),
         "like_count_text": _format_count_short(row.get("like_count")),
         "view_count_text": _format_count_short(row.get("view_count")),
-        "posted_at": _coerce_utc_text(row.get("posted_at")),
-        "shot_at": _coerce_utc_text(row.get("shot_at")),
+        "posted_at": _coerce_local_text(row.get("posted_at")),
+        "shot_at": _coerce_local_text(row.get("shot_at")),
         "is_public": bool(row.get("is_public")),
         "user": {
             "display_name": row.get("user_display_name"),
@@ -2000,8 +2012,8 @@ def _build_content_list_item(row: dict) -> dict:
         "title": row.get("title") or "(無題)",
         "alt": row.get("alt") or "",
         "preview_url": _content_preview_url(row),
-        "posted_at": _coerce_utc_text(row.get("posted_at")),
-        "shot_at": _coerce_utc_text(row.get("shot_at")),
+        "posted_at": _coerce_local_text(row.get("posted_at")),
+        "shot_at": _coerce_local_text(row.get("shot_at")),
         "visibility": "public" if visibility else "private",
         "status": moderation_status,
         "like_count": int(row.get("like_count") or 0),
@@ -2290,8 +2302,8 @@ LIMIT 1
         "alt": row.get("alt") or "",
         "preview_url": _content_preview_url(row),
         "original_url": f"/media/original/{int(row.get('image_id'))}",
-        "posted_at": _coerce_utc_text(row.get("posted_at")),
-        "shot_at": _coerce_utc_text(row.get("shot_at")),
+        "posted_at": _coerce_local_text(row.get("posted_at")),
+        "shot_at": _coerce_local_text(row.get("shot_at")),
         "visibility": "public" if bool(row.get("is_public")) else "private",
         "status": str(row.get("moderation_status") or "normal"),
         "image_width": row.get("image_width"),
