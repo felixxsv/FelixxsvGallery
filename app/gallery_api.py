@@ -751,7 +751,7 @@ def list_images(
         viewer_liked_params.append(viewer_user_id)
 
     if sort_key == "popular":
-        order_sql = "ORDER BY COALESCE(st.view_count,0) DESC, i.shot_at DESC"
+        order_sql = "ORDER BY i.like_count DESC, COALESCE(st.view_count,0) DESC, i.shot_at DESC"
     elif sort_key == "oldest":
         order_sql = "ORDER BY i.shot_at ASC"
     elif sort_key == "random":
@@ -1243,7 +1243,7 @@ def _content_key_expr(image_alias: str = "i", mapping_alias: str = "gci") -> str
 def _content_sort_clause(sort_key: str) -> str:
     key = (sort_key or "latest").lower()
     if key == "popular":
-        return "ORDER BY view_count_sum DESC, content_shot_at DESC, content_created_at DESC, content_key DESC"
+        return "ORDER BY like_count_sum DESC, view_count_sum DESC, content_shot_at DESC, content_created_at DESC, content_key DESC"
     if key == "oldest":
         return "ORDER BY content_shot_at ASC, content_created_at ASC, content_key ASC"
     return "ORDER BY content_shot_at DESC, content_created_at DESC, content_key DESC"
@@ -1387,6 +1387,7 @@ SELECT
   MAX(COALESCE(gc.shot_at, i.shot_at, i.created_at)) AS content_shot_at,
   MAX(COALESCE(gc.created_at, i.created_at, i.shot_at)) AS content_created_at,
   SUM(COALESCE(st.view_count, 0)) AS view_count_sum,
+  SUM(COALESCE(i.like_count, 0)) AS like_count_sum,
   MAX(COALESCE(NULLIF(gc.title, ''), i.title, i.alt, CONCAT('image-', i.id))) AS content_title,
   MAX(COALESCE(gc.alt, i.alt, '')) AS content_alt
 FROM images i
