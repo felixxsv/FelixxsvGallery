@@ -927,6 +927,11 @@ def like_image(image_id: int, req: Request):
                     "UPDATE images SET like_count = like_count + 1 WHERE id=%s",
                     (image_id,),
                 )
+                cur.execute(
+                    "INSERT INTO image_stats (image_id, like_count) VALUES (%s, 1) "
+                    "ON DUPLICATE KEY UPDATE like_count = like_count + 1",
+                    (image_id,),
+                )
 
         return {"ok": True, "liked": True, "like_count": _get_image_like_count(conn, image_id)}
     finally:
@@ -959,6 +964,11 @@ def unlike_image(image_id: int, req: Request):
             if deleted:
                 cur.execute(
                     "UPDATE images SET like_count = CASE WHEN like_count > 0 THEN like_count - 1 ELSE 0 END WHERE id=%s",
+                    (image_id,),
+                )
+                cur.execute(
+                    "INSERT INTO image_stats (image_id, like_count) VALUES (%s, 0) "
+                    "ON DUPLICATE KEY UPDATE like_count = CASE WHEN like_count > 0 THEN like_count - 1 ELSE 0 END",
                     (image_id,),
                 )
 
