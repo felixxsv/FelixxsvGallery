@@ -39,12 +39,12 @@ _ALLOWED_PAGES = {
 }
 
 _NAV_ITEMS = [
-    {"key": "dashboard", "label": "ダッシュボード", "href": "/gallery/admin/"},
-    {"key": "content", "label": "コンテンツ管理", "href": "/gallery/admin/content/"},
-    {"key": "users", "label": "ユーザー管理", "href": "/gallery/admin/users/"},
-    {"key": "mail", "label": "メール配信", "href": "/gallery/admin/mail/"},
-    {"key": "settings", "label": "サイト設定", "href": "/gallery/admin/settings/"},
-    {"key": "audit-logs", "label": "監査ログ", "href": "/gallery/admin/audit-logs/"},
+    {"key": "dashboard", "label": "ダッシュボード", "href": "/admin/"},
+    {"key": "content", "label": "コンテンツ管理", "href": "/admin/content/"},
+    {"key": "users", "label": "ユーザー管理", "href": "/admin/users/"},
+    {"key": "mail", "label": "メール配信", "href": "/admin/mail/"},
+    {"key": "settings", "label": "サイト設定", "href": "/admin/settings/"},
+    {"key": "audit-logs", "label": "監査ログ", "href": "/admin/audit-logs/"},
 ]
 
 _DASHBOARD_PREFERENCE_KEY = "admin_dashboard.clock_mode"
@@ -325,19 +325,19 @@ def _build_preview_url(path_value: str | None) -> str | None:
         return None
     if raw.startswith("http://") or raw.startswith("https://"):
         return raw
-    if raw.startswith("/gallery/"):
+    if raw.startswith("/"):
         return raw
     if raw.startswith("/storage/"):
-        return f"/gallery{raw}"
+        return raw
     if raw.startswith("/media/"):
-        return f"/gallery{raw}"
+        return raw
     if raw.startswith("storage/"):
-        return f"/gallery/{raw}"
+        return f"/{raw}"
     if raw.startswith("media/"):
-        return f"/gallery/{raw}"
+        return f"/{raw}"
     if raw.startswith("/"):
-        return f"/gallery/storage{raw}"
-    return f"/gallery/storage/{raw}"
+        return f"/storage{raw}"
+    return f"/storage/{raw}"
 
 
 def _load_active_users(conn) -> list[dict]:
@@ -2289,7 +2289,7 @@ LIMIT 1
         "title": row.get("title") or "(無題)",
         "alt": row.get("alt") or "",
         "preview_url": _content_preview_url(row),
-        "original_url": f"/gallery/media/original/{int(row.get('image_id'))}",
+        "original_url": f"/media/original/{int(row.get('image_id'))}",
         "posted_at": _coerce_utc_text(row.get("posted_at")),
         "shot_at": _coerce_utc_text(row.get("shot_at")),
         "visibility": "public" if bool(row.get("is_public")) else "private",
@@ -3308,7 +3308,7 @@ def _mail_sender_settings() -> dict:
         app.get("base_url")
         or app.get("public_base_url")
         or app.get("site_url")
-        or "https://felixxsv.net/gallery"
+        or "https://gallery.felixxsv.net"
     ).strip()
     return {
         "host": smtp.get("host") or "127.0.0.1",
@@ -4546,7 +4546,7 @@ def _mail_sender_settings(conn=None) -> dict:
         app_conf.get("base_url")
         or app_conf.get("public_base_url")
         or app_conf.get("site_url")
-        or "https://felixxsv.net/gallery"
+        or "https://gallery.felixxsv.net"
     ).strip()
 
     effective = _settings_smtp_defaults_from_conf()

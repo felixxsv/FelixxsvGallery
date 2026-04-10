@@ -2,7 +2,7 @@ import { createApiClient } from "../../core/api.js";
 import { escapeHtml } from "../../core/dom.js";
 import { languageToLocaleTag } from "../../core/settings.js";
 
-const appBase = document.body.dataset.appBase || "/gallery";
+const appBase = document.body.dataset.appBase || "";
 const api = createApiClient({ baseUrl: appBase });
 
 const DRAFT_SAVE_DELAY_MS = 4000;

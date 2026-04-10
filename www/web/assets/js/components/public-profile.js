@@ -34,9 +34,9 @@ function getLinkIconUrl(url) {
   try {
     const hostname = new URL(url).hostname.replace(/^www\./, "");
     const slug = LINK_ICON_MAP[hostname] ?? "_default";
-    return `/gallery/assets/icons/social/${slug}.svg`;
+    return `/assets/icons/social/${slug}.svg`;
   } catch {
-    return `/gallery/assets/icons/social/_default.svg`;
+    return `/assets/icons/social/_default.svg`;
   }
 }
 
