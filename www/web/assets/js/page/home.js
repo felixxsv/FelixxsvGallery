@@ -438,6 +438,7 @@ export function initHomePage(app) {
     contentShell: document.querySelector(".home-shell-layout__content"),
     searchInput: byId("homeSearchInput"),
     sortSelect: byId("homeSortSelect"),
+    sortField: byId("homeSortSelect")?.closest(".home-status__sort-field"),
     statusQuery: byId("homeStatusQuery"),
     statusSort: byId("homeStatusSort"),
     statusRange: byId("homeStatusRange"),
@@ -498,6 +499,11 @@ export function initHomePage(app) {
   const storedSort = readStoredSort();
   if (storedSort && refs.sortSelect) {
     refs.sortSelect.value = storedSort;
+  }
+
+  function updateSortVisibility() {
+    const activeShortcut = readActiveButton(refs.shortcutList, "[data-ui-shortcut]")?.dataset.shortcut;
+    if (refs.sortField) refs.sortField.hidden = activeShortcut === "random";
   }
 
   [
@@ -1860,6 +1866,7 @@ export function initHomePage(app) {
         state.randomSeed = createRandomSeed();
       }
 
+      updateSortVisibility();
       reloadFromFilters();
     });
 
@@ -2147,6 +2154,7 @@ export function initHomePage(app) {
   applyStaticTranslations();
   window.addEventListener("gallery:language-changed", applyStaticTranslations);
 
+  updateSortVisibility();
   Promise.all([hydrateSidebarOptions(), loadArchives()]).finally(() => {
     load();
   });
