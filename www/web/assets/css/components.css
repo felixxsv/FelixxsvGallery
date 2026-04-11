@@ -881,6 +881,23 @@ body {
   width: 100%;
 }
 
+.shell-user-profile__link-badge-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.shell-user-profile__link-badge-row > .shell-user-profile__section:first-child {
+  flex: 0 0 auto;
+  min-width: 212px;
+}
+
+.shell-user-profile__link-badge-row > .shell-user-profile__section:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .shell-user-profile__section {
   display: flex;
   flex-direction: column;

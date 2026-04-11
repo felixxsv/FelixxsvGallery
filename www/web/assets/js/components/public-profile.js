@@ -69,6 +69,7 @@ export function initPublicProfileModal(app) {
     linksSection: byId("userProfileLinksSection"),
     badges: byId("userProfileBadges"),
     badgesSection: byId("userProfileBadgesSection"),
+    linkBadgeRow: byId("userProfileLinkBadgeRow"),
     footer: byId("userProfileFooter"),
     filterButton: byId("userProfileFilterButton"),
   };
@@ -148,7 +149,8 @@ export function initPublicProfileModal(app) {
 
       // Links
       const links = user.links || [];
-      if (refs.linksSection) refs.linksSection.hidden = links.length === 0;
+      const hasLinks = links.length > 0;
+      if (refs.linksSection) refs.linksSection.hidden = !hasLinks;
       if (refs.links) {
         refs.links.innerHTML = links.slice(0, 5).map((link) => {
           const iconUrl = getLinkIconUrl(link.url);
@@ -158,8 +160,9 @@ export function initPublicProfileModal(app) {
 
       // Badges
       const badges = Array.isArray(user.badges) ? user.badges : [];
+      const hasBadges = badges.length > 0;
       currentUser = user;
-      if (refs.badgesSection) refs.badgesSection.hidden = badges.length === 0;
+      if (refs.badgesSection) refs.badgesSection.hidden = !hasBadges;
       if (refs.badges) {
         refs.badges.innerHTML = "";
         for (const badge of badges.slice(0, 3)) {
@@ -170,6 +173,7 @@ export function initPublicProfileModal(app) {
           refs.badges.appendChild(el);
         }
       }
+      if (refs.linkBadgeRow) refs.linkBadgeRow.hidden = !hasLinks && !hasBadges;
 
       refs.loading.hidden = true;
       refs.content.hidden = false;
