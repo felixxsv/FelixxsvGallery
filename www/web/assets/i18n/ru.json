@@ -272,6 +272,7 @@
   "shell.static.verify": "Подтвердить",
   "shell.static.disable": "Отключить",
   "shell.static.cancel": "Отмена",
+  "shell.static.view_my_posts": "Мои публикации",
   "shell.static.apply": "Применить",
   "shell.static.add": "Добавить",
   "shell.static.close": "Закрыть",

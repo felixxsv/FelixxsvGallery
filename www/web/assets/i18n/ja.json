@@ -272,6 +272,7 @@
   "shell.static.verify": "確認",
   "shell.static.disable": "無効化する",
   "shell.static.cancel": "キャンセル",
+  "shell.static.view_my_posts": "自分の投稿を見る",
   "shell.static.apply": "適用",
   "shell.static.add": "追加",
   "shell.static.close": "閉じる",

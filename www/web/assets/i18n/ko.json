@@ -272,6 +272,7 @@
   "shell.static.verify": "확인",
   "shell.static.disable": "비활성화",
   "shell.static.cancel": "취소",
+  "shell.static.view_my_posts": "내 투고 보기",
   "shell.static.apply": "적용",
   "shell.static.add": "추가",
   "shell.static.close": "닫기",
