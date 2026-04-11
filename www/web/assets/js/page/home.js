@@ -854,6 +854,8 @@ export function initHomePage(app) {
   function applyOwnerFilter(userKey, displayName) {
     state.ownerUserKey = userKey;
     state.ownerDisplayName = displayName || userKey;
+    if (refs.searchInput) refs.searchInput.value = "";
+    if (refs.mobileSearchInput) refs.mobileSearchInput.value = "";
     syncOwnerBadge();
     closeMobileSearchModal(false);
     closeSearchSug(refs.searchSugPanel);
