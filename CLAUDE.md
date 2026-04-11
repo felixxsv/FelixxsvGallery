@@ -23,10 +23,10 @@
 
 ## サーバー構成（2台）
 
-| サーバー | ホスト名 | 役割 |
-|---|---|---|
-| `192.168.10.102` | felixxsv2 | Apache リバースプロキシ・HTTPS終端。ファイルは配信しない |
-| `192.168.10.120` | web02 | **実際の配信サーバー**。FastAPI + 静的ファイルをここから配信 |
+| サーバー | ホスト名 | 役割 | ブランチ |
+|---|---|---|---|
+| `192.168.10.102` | felixxsv2 | Apache リバースプロキシ・HTTPS終端。ファイルは配信しない | `syu` |
+| `192.168.10.120` | web02 | **実際の配信サーバー**。FastAPI + 静的ファイルをここから配信 | `main` |
 
 **静的ファイル（HTML/CSS/JS）も含めすべて `.120` から配信される。`.102` だけにpullしても本番に反映されない。**
 
@@ -35,7 +35,7 @@
 ### 前提
 - 編集の実態はサーバー (`felix@192.168.10.102`, `/data/felixxsv-gallery`) にある
 - ローカル (`/home/felix/felixxsv-gallery`) はgitで管理するための場所
-- **デプロイは `.102` と `.120` の両方に行う**
+- **`.102` は `syu` ブランチ、`.120` は `main` ブランチで運用**
 
 ### 手順
 
@@ -48,20 +48,26 @@ sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 "cd /data/felixxsv-gallery &&
 sshpass -p "jimon.jp0710" scp felix@192.168.10.102:/data/felixxsv-gallery/<path> /home/felix/felixxsv-gallery/<path>
 ```
 
-#### 2. ローカルでコミット・プッシュ
+#### 2. ローカルでコミット・プッシュ（syu → main マージ）
 ```bash
 git add <files>
 git commit -m "..."
 git push origin syu
+
+# .120 は main ブランチなので syu を main にマージしてpush
+git checkout main
+git merge syu
+git push origin main
+git checkout syu
 ```
 
 #### 3. 両サーバーでpull・再起動
 ```bash
-# .102 のワーキングツリーをリセットしてpull
+# .102（syuブランチ）をpull
 sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 \
   "cd /data/felixxsv-gallery && git reset HEAD . && git checkout -- . && git pull"
 
-# .120（実際の配信サーバー）もpull ← これをしないと本番に反映されない
+# .120（mainブランチ）をpull ← これをしないと本番に反映されない
 sshpass -p "jimon.jp0710" ssh felix@192.168.10.120 \
   "cd /data/felixxsv-gallery && git reset HEAD . && git checkout -- . && git pull"
 
