@@ -21,11 +21,21 @@
 - コミット・プッシュは必ず事前に確認を取ること
 - **サーバー上で `git stash` は使わない**（未コミットの編集が消えてバグの原因になる）
 
+## サーバー構成（2台）
+
+| サーバー | ホスト名 | 役割 |
+|---|---|---|
+| `192.168.10.102` | felixxsv2 | Apache リバースプロキシ・HTTPS終端。ファイルは配信しない |
+| `192.168.10.120` | web02 | **実際の配信サーバー**。FastAPI + 静的ファイルをここから配信 |
+
+**静的ファイル（HTML/CSS/JS）も含めすべて `.120` から配信される。`.102` だけにpullしても本番に反映されない。**
+
 ## デプロイ手順（必ずこの順序で行う）
 
 ### 前提
 - 編集の実態はサーバー (`felix@192.168.10.102`, `/data/felixxsv-gallery`) にある
 - ローカル (`/home/felix/felixxsv-gallery`) はgitで管理するための場所
+- **デプロイは `.102` と `.120` の両方に行う**
 
 ### 手順
 
@@ -45,14 +55,18 @@ git commit -m "..."
 git push origin syu
 ```
 
-#### 3. サーバーでpull・再起動
+#### 3. 両サーバーでpull・再起動
 ```bash
-# サーバーのワーキングツリーをクリーン（取り込み済みなので安全）
+# .102 のワーキングツリーをリセットしてpull
 sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 \
   "cd /data/felixxsv-gallery && git reset HEAD . && git checkout -- . && git pull"
 
+# .120（実際の配信サーバー）もpull ← これをしないと本番に反映されない
+sshpass -p "jimon.jp0710" ssh felix@192.168.10.120 \
+  "cd /data/felixxsv-gallery && git reset HEAD . && git checkout -- . && git pull"
+
 # APIサーバー再起動（Pythonバックエンドの変更時のみ）
-sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 \
+sshpass -p "jimon.jp0710" ssh felix@192.168.10.120 \
   "echo 'jimon.jp0710' | sudo -S systemctl restart felixxsv-gallery-api"
 ```
 
@@ -61,6 +75,7 @@ sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 \
 - pullの前に必ずサーバー側のワーキングツリーをリセット（`git reset HEAD . && git checkout -- .`）する
 - フロントエンド（HTML/CSS/JS）の変更のみならAPIサーバー再起動は不要
 - Pythonファイル（`app/`）を変更した場合は必ず再起動する
+- **再起動は `.120` に対して行う**（`.102` ではAPIは動いていない）
 
 ## deploy/ ディレクトリ
 - `deploy/` 以下のsystemdファイル等、本番環境に関わるファイルの変更は必ず事前確認すること
