@@ -777,7 +777,7 @@ body {
 }
 
 .shell-user-profile-dialog .app-modal-body {
-  height: 240px;
+  height: 310px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -817,7 +817,7 @@ body {
 .shell-user-profile__right {
   flex: 1;
   min-width: 0;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
