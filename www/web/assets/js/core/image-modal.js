@@ -229,11 +229,13 @@ export function createImageModalController({ app, body = document.body } = {}) {
   function syncPagerUi() {
     const total = state.items.length;
     const multi = total > 1;
+    const isFirst = state.currentIndex <= 0;
+    const isLast = state.currentIndex >= total - 1;
     pagerNode.hidden = !multi;
-    prevButton.hidden = !multi;
-    nextButton.hidden = !multi;
-    prevButton.disabled = !multi || state.currentIndex <= 0;
-    nextButton.disabled = !multi || state.currentIndex >= total - 1;
+    prevButton.hidden = !multi || isFirst;
+    nextButton.hidden = !multi || isLast;
+    prevButton.disabled = !multi || isFirst;
+    nextButton.disabled = !multi || isLast;
     pagerCurrentNode.textContent = String(Math.min(total, state.currentIndex + 1));
     pagerTotalNode.textContent = String(total || 1);
   }
