@@ -273,7 +273,7 @@
   "shell.static.verify": "Verificar",
   "shell.static.disable": "Desactivar",
   "shell.static.cancel": "Cancelar",
-  "shell.static.view_my_posts": "Ver mis publicaciones",
+  "shell.static.view_my_posts": "Ver publicaciones",
   "shell.static.apply": "Aplicar",
   "shell.static.add": "Anadir",
   "shell.static.close": "Cerrar",
@@ -1069,5 +1069,5 @@
   "public_profile.title": "Perfil",
   "public_profile.loading": "Cargando...",
   "public_profile.not_found": "Usuario no encontrado.",
-  "public_profile.view_posts": "Ver publicaciones"
+  "public_profile.view_posts": "Publicaciones"
 }

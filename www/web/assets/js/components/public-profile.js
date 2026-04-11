@@ -82,7 +82,7 @@ export function initPublicProfileModal(app) {
     if (title) title.textContent = t("title", "Profile");
     refs.loading.textContent = t("loading", "Loading...");
     refs.error.textContent = t("not_found", "User not found.");
-    if (refs.filterButton) refs.filterButton.textContent = t("view_posts", "この人の投稿を見る");
+    if (refs.filterButton) refs.filterButton.textContent = t("view_posts", "投稿を見る");
   }
 
   applyStaticTranslations();

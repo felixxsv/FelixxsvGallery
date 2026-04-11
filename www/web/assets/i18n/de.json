@@ -273,7 +273,7 @@
   "shell.static.verify": "Bestätigen",
   "shell.static.disable": "Deaktivieren",
   "shell.static.cancel": "Abbrechen",
-  "shell.static.view_my_posts": "Meine Beiträge",
+  "shell.static.view_my_posts": "Beiträge ansehen",
   "shell.static.apply": "Anwenden",
   "shell.static.add": "Hinzufügen",
   "shell.static.close": "Schließen",
@@ -1069,5 +1069,5 @@
   "public_profile.title": "Profil",
   "public_profile.loading": "Wird geladen...",
   "public_profile.not_found": "Benutzer nicht gefunden.",
-  "public_profile.view_posts": "Beiträge ansehen"
+  "public_profile.view_posts": "Beiträge"
 }
