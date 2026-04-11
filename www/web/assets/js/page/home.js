@@ -3,6 +3,8 @@ import { attachDatePicker } from "../core/date-picker.js";
 import { languageToLocaleTag } from "../core/settings.js";
 
 const GRID_COLS_STORAGE_KEY = "gallery.home.gridColumns";
+const SORT_STORAGE_KEY = "gallery.home.sort";
+const VALID_SORT_KEYS = ["popular", "shot_newest", "shot_oldest", "posted_newest", "posted_oldest"];
 const MOBILE_GRID_MEDIA = "(max-width: 820px)";
 const DEFAULT_GRID_COLS = 3;
 const DEFAULT_ROW_COUNT = 30;
@@ -312,6 +314,26 @@ function writeStoredGridCols(value) {
   }
 }
 
+function readStoredSort() {
+  try {
+    const value = window.localStorage.getItem(SORT_STORAGE_KEY) || "";
+    if (VALID_SORT_KEYS.includes(value)) {
+      return value;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function writeStoredSort(value) {
+  try {
+    window.localStorage.setItem(SORT_STORAGE_KEY, String(value));
+  } catch {
+    return;
+  }
+}
+
 function createRandomSeed() {
   if (window.crypto?.randomUUID) {
     return window.crypto.randomUUID();
@@ -471,6 +493,12 @@ export function initHomePage(app) {
     mobileSearchOwnerBadgeLabel: byId("homeMobileSearchOwnerBadgeLabel"),
     mobileSearchOwnerBadgeClear: byId("homeMobileSearchOwnerBadgeClear"),
   };
+
+  // Restore sort preference from localStorage
+  const storedSort = readStoredSort();
+  if (storedSort && refs.sortSelect) {
+    refs.sortSelect.value = storedSort;
+  }
 
   [
     refs.shotDateFrom,
@@ -2085,6 +2113,7 @@ export function initHomePage(app) {
   });
 
   refs.sortSelect?.addEventListener("change", () => {
+    writeStoredSort(refs.sortSelect.value);
     state.page = 1;
     load();
   });
