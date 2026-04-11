@@ -121,12 +121,18 @@ export function initPublicProfileModal(app) {
         refs.avatarImg.src = `${app.appBase}${avatarUrl}?t=${Date.now()}`;
         refs.avatarImg.hidden = false;
         refs.avatar.classList.add("has-avatar");
-        if (refs.avatarInitial) refs.avatarInitial.textContent = "";
+        if (refs.avatarInitial) {
+          refs.avatarInitial.hidden = true;
+          refs.avatarInitial.textContent = "";
+        }
       } else {
         refs.avatarImg.src = "";
         refs.avatarImg.hidden = true;
         refs.avatar.classList.remove("has-avatar");
-        if (refs.avatarInitial) refs.avatarInitial.textContent = initial;
+        if (refs.avatarInitial) {
+          refs.avatarInitial.hidden = false;
+          refs.avatarInitial.textContent = initial;
+        }
       }
 
       // Bio

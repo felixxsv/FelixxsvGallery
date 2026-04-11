@@ -493,15 +493,15 @@ body {
   background-color: color-mix(in srgb, currentColor 20%, transparent);
 }
 
+.shell-user-icon--auth:not([style*="background-image"]) {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
 .shell-user-icon--auth:not([style*="background-image"])::before {
-  content: "";
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow: 0 12px 0 4px currentColor;
-  transform: translateY(-5px);
+  content: attr(data-initial, "");
 }
 
 .shell-user-dialog .app-modal-header {
@@ -847,6 +847,15 @@ body {
 .shell-user-profile__avatar.has-avatar {
   background: none;
   color: inherit;
+}
+
+.shell-user-profile__avatar-initial {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  pointer-events: none;
 }
 
 .shell-user-profile__avatar-img {
