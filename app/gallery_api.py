@@ -752,14 +752,18 @@ def list_images(
 
     if sort_key == "popular":
         order_sql = "ORDER BY i.like_count DESC, COALESCE(st.view_count,0) DESC, i.shot_at DESC"
-    elif sort_key == "oldest":
-        order_sql = "ORDER BY i.shot_at ASC"
+    elif sort_key in ("shot_oldest", "oldest"):
+        order_sql = "ORDER BY i.shot_at ASC, i.created_at ASC, i.id ASC"
+    elif sort_key == "posted_newest":
+        order_sql = "ORDER BY i.created_at DESC, i.shot_at DESC, i.id DESC"
+    elif sort_key == "posted_oldest":
+        order_sql = "ORDER BY i.created_at ASC, i.shot_at ASC, i.id ASC"
     elif sort_key == "random":
         seed = str(random_seed or "").strip() or _now_local_naive(CONF).strftime("%Y%m%d")
         order_sql = "ORDER BY SHA2(CONCAT(%s, ':', i.id), 256)"
         order_params.append(seed)
-    else:
-        order_sql = "ORDER BY i.shot_at DESC"
+    else:  # shot_newest, latest (alias), default
+        order_sql = "ORDER BY i.shot_at DESC, i.created_at DESC, i.id DESC"
 
     sql_count = f"""
 SELECT COUNT(*)
