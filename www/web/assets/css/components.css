@@ -912,6 +912,11 @@ body {
   letter-spacing: 0.06em;
 }
 
+.shell-user-profile__bio-area {
+  height: calc(9 * 0.88rem * 1.65);
+  overflow-y: auto;
+}
+
 .shell-user-profile__bio {
   font-size: 0.88rem;
   color: var(--color-text);
