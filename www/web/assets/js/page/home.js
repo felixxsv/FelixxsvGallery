@@ -503,7 +503,7 @@ export function initHomePage(app) {
 
   function updateSortVisibility() {
     const activeShortcut = readActiveButton(refs.shortcutList, "[data-ui-shortcut]")?.dataset.shortcut;
-    if (refs.sortField) refs.sortField.hidden = activeShortcut === "random";
+    if (refs.sortField) refs.sortField.style.visibility = activeShortcut === "random" ? "hidden" : "";
   }
 
   [
