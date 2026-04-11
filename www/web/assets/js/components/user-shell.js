@@ -356,10 +356,15 @@ export function initUserShell(app) {
     refs.guestIcon.hidden = authed;
     refs.authIcon.hidden = !authed;
     if (authed) {
-      const avatarUrl = getUser()?.avatar_url || null;
-      refs.authIcon.style.backgroundImage = avatarUrl
-        ? `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`
-        : "";
+      const user = getUser();
+      const avatarUrl = user?.avatar_url || null;
+      if (avatarUrl) {
+        refs.authIcon.style.backgroundImage = `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`;
+        refs.authIcon.dataset.initial = "";
+      } else {
+        refs.authIcon.style.backgroundImage = "";
+        refs.authIcon.dataset.initial = (user?.display_name || user?.user_key || "?")[0].toUpperCase();
+      }
     }
   }
 
@@ -607,12 +612,16 @@ export function initUserShell(app) {
       refs.userCardAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.userCardAvatarImg.hidden = false;
       refs.userCardAvatar.classList.add("has-avatar");
-      if (refs.userCardAvatarInitial) refs.userCardAvatarInitial.textContent = "";
+      if (refs.userCardAvatarInitial) {
+        refs.userCardAvatarInitial.hidden = true;
+        refs.userCardAvatarInitial.textContent = "";
+      }
     } else {
       refs.userCardAvatarImg.src = "";
       refs.userCardAvatarImg.hidden = true;
       refs.userCardAvatar.classList.remove("has-avatar");
       if (refs.userCardAvatarInitial) {
+        refs.userCardAvatarInitial.hidden = false;
         refs.userCardAvatarInitial.textContent = (user.display_name || user.user_key || "?")[0].toUpperCase();
       }
     }
