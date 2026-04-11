@@ -569,6 +569,20 @@ body {
   flex-shrink: 0;
 }
 
+.shell-user-card__avatar-initial {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 .shell-user-card__avatar.has-avatar {
   background: var(--color-surface);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 65%, transparent);
@@ -858,14 +872,34 @@ body {
   width: 100%;
 }
 
+.shell-user-profile__section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.shell-user-profile__section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .shell-user-profile__bio {
-  flex: 1;
-  min-height: 3rem;
   font-size: 0.88rem;
   color: var(--color-text);
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
+  margin: 0;
+  min-height: 0;
+}
+
+.shell-user-profile__bio-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-style: italic;
   margin: 0;
 }
 

@@ -1069,5 +1069,9 @@
   "public_profile.title": "Profil",
   "public_profile.loading": "Chargement...",
   "public_profile.not_found": "Utilisateur introuvable.",
-  "public_profile.view_posts": "Publications"
+  "public_profile.view_posts": "Publications",
+  "public_profile.bio_label": "À propos",
+  "public_profile.no_bio": "Rien d'écrit pour l'instant",
+  "public_profile.links_label": "Liens",
+  "public_profile.badges_label": "Badges"
 }

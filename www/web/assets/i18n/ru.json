@@ -1069,5 +1069,9 @@
   "public_profile.title": "Профиль",
   "public_profile.loading": "Загрузка...",
   "public_profile.not_found": "Пользователь не найден.",
-  "public_profile.view_posts": "Публикации"
+  "public_profile.view_posts": "Публикации",
+  "public_profile.bio_label": "О себе",
+  "public_profile.no_bio": "Пока ничего не написано",
+  "public_profile.links_label": "Ссылки",
+  "public_profile.badges_label": "Значки"
 }
