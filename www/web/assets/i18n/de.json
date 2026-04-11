@@ -532,7 +532,7 @@
   "admin_users.edit_title": "Benutzer bearbeiten",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "Uploads erlauben",
-  "admin_users.hidden_from_search": "Aus Suche ausblenden",
+  "admin_users.hidden_from_search": "In Suche anzeigen erlauben",
   "admin_users.bio_limit": "Biografie (max. 300 Zeichen)",
   "admin_users.bio_placeholder": "Biografie eingeben...",
   "admin_users.links_limit": "Links (max. 5)",

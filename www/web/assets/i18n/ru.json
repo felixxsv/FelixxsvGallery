@@ -532,7 +532,7 @@
   "admin_users.edit_title": "Редактировать пользователя",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "Разрешить загрузку",
-  "admin_users.hidden_from_search": "Скрыть из поиска",
+  "admin_users.hidden_from_search": "Разрешить отображение в поиске",
   "admin_users.bio_limit": "О себе (до 300 символов)",
   "admin_users.bio_placeholder": "Введите биографию...",
   "admin_users.links_limit": "Ссылки (до 5)",

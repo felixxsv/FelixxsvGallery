@@ -532,7 +532,7 @@
   "admin_users.edit_title": "编辑用户",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "允许上传",
-  "admin_users.hidden_from_search": "从搜索中隐藏",
+  "admin_users.hidden_from_search": "允许出现在搜索中",
   "admin_users.bio_limit": "简介（最多300字）",
   "admin_users.bio_placeholder": "输入简介...",
   "admin_users.links_limit": "链接（最多5个）",

@@ -532,7 +532,7 @@
   "admin_users.edit_title": "ユーザー編集",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "投稿を許可する",
-  "admin_users.hidden_from_search": "検索に表示しない",
+  "admin_users.hidden_from_search": "検索への表示を許可する",
   "admin_users.bio_limit": "自己紹介（300文字以内）",
   "admin_users.bio_placeholder": "自己紹介文を入力...",
   "admin_users.links_limit": "リンク（最大5件）",
