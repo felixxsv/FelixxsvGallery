@@ -311,7 +311,9 @@ body.is-image-modal-open {
   left: 50%;
   width: min(900px, calc(100vw - 48px));
   max-height: min(82vh, 920px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   transform: translate(-50%, -50%);
   border-radius: 20px;
   background: rgba(12, 18, 28, 0.96);
