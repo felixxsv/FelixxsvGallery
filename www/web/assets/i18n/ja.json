@@ -272,7 +272,7 @@
   "shell.static.verify": "確認",
   "shell.static.disable": "無効化する",
   "shell.static.cancel": "キャンセル",
-  "shell.static.view_my_posts": "自分の投稿を見る",
+  "shell.static.view_my_posts": "投稿を見る",
   "shell.static.apply": "適用",
   "shell.static.add": "追加",
   "shell.static.close": "閉じる",
@@ -1069,5 +1069,5 @@
   "public_profile.title": "プロフィール",
   "public_profile.loading": "読み込み中...",
   "public_profile.not_found": "ユーザーが見つかりませんでした。",
-  "public_profile.view_posts": "この人の投稿を見る"
+  "public_profile.view_posts": "投稿を見る"
 }

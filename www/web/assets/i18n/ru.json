@@ -272,7 +272,7 @@
   "shell.static.verify": "Подтвердить",
   "shell.static.disable": "Отключить",
   "shell.static.cancel": "Отмена",
-  "shell.static.view_my_posts": "Мои публикации",
+  "shell.static.view_my_posts": "Публикации",
   "shell.static.apply": "Применить",
   "shell.static.add": "Добавить",
   "shell.static.close": "Закрыть",
@@ -1069,5 +1069,5 @@
   "public_profile.title": "Профиль",
   "public_profile.loading": "Загрузка...",
   "public_profile.not_found": "Пользователь не найден.",
-  "public_profile.view_posts": "Посмотреть публикации"
+  "public_profile.view_posts": "Публикации"
 }
