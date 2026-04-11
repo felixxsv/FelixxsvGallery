@@ -1,0 +1,50 @@
+/* ── 404 panel ───────────────────────────────────────────────────────────── */
+
+.notfound-panel {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notfound-code {
+  font-size: clamp(5rem, 14vw, 8rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  color: var(--color-primary);
+  text-shadow: 0 0 80px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.notfound-title {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.notfound-desc {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.notfound-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Mobile: glass card (mirrors .auth-form-panel on mobile) */
+@media (max-width: 899px) {
+  .notfound-panel {
+    background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(12px);
+  }
+}

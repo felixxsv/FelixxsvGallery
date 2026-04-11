@@ -6,14 +6,11 @@
   <title>404 - Felixxsv Gallery</title>
   <link rel="stylesheet" href="/assets/css/common.css">
   <link rel="stylesheet" href="/assets/css/components.css">
-  <link rel="stylesheet" href="/assets/css/page/special-page.css">
+  <link rel="stylesheet" href="/assets/css/page/auth.css">
+  <link rel="stylesheet" href="/assets/css/page/not-found.css">
 </head>
-<body
-  class="app-page special-page"
-  data-app-base=""
-  data-page-kind="not-found"
-  data-page-title="Page not found"
->
+<body class="app-page auth-page" data-app-base="">
+
   <header class="app-site-header">
     <div class="app-site-header__inner">
       <div class="app-site-header__left">
@@ -25,46 +22,53 @@
     </div>
   </header>
 
-  <main class="special-page__main">
-    <div class="app-container">
-      <div class="special-page__layout">
-        <section class="special-page__panel" aria-labelledby="specialTitle">
-          <div class="special-page__eyebrow">Not Found</div>
-          <div class="special-page__status" id="specialStatusCode">404</div>
-          <h1 class="special-page__title" id="specialTitle">Page not found</h1>
-          <p class="special-page__description" id="specialDescription">
+  <main class="auth-main">
+    <div class="auth-split">
+
+      <!-- Left: hero slideshow -->
+      <div class="auth-hero" aria-hidden="true">
+        <div id="authHeroSlides" class="auth-hero__slides"></div>
+        <div class="auth-hero__overlay">
+          <div class="auth-hero__brand">
+            <img class="auth-hero__brand-mark" src="/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+            <span class="auth-hero__brand-name">Felixxsv Gallery</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: 404 content -->
+      <div class="auth-form-side">
+
+        <div class="auth-lang-bar">
+          <select id="authLangSelect" class="app-select auth-lang-select" aria-label="Language" data-i18n-aria-label="shell.static.language">
+            <option value="ja" data-i18n="shell.static.language_ja">Japanese</option>
+            <option value="en-us" data-i18n="shell.static.language_en_us">English (US)</option>
+            <option value="de" data-i18n="shell.static.language_de">German</option>
+            <option value="fr" data-i18n="shell.static.language_fr">French</option>
+            <option value="ru" data-i18n="shell.static.language_ru">Russian</option>
+            <option value="es" data-i18n="shell.static.language_es">Spanish</option>
+            <option value="zh-cn" data-i18n="shell.static.language_zh_cn">Chinese (Simplified)</option>
+            <option value="ko" data-i18n="shell.static.language_ko">Korean</option>
+          </select>
+        </div>
+
+        <div class="notfound-panel">
+          <div class="notfound-code" aria-hidden="true">404</div>
+          <h1 class="notfound-title" data-i18n="special.not_found.title">Page not found</h1>
+          <p class="notfound-desc" data-i18n="special.not_found.description">
             The URL may have changed or the page may no longer be public. Return to the gallery top and search again.
           </p>
-          <div class="special-page__meta" id="specialMeta">This is the not-found page for public routes under .</div>
-          <div class="special-page__actions">
-            <a class="app-button app-button--primary" href="/">Back to Gallery</a>
-            <button class="app-button" type="button" data-special-action="back">Back</button>
+          <div class="notfound-actions">
+            <a class="app-button app-button--primary" href="/" data-i18n="special.common.back_home">Back to Gallery</a>
+            <button class="app-button" type="button" id="notFoundBackBtn" data-i18n="special.common.back_previous">Back</button>
           </div>
-        </section>
+        </div>
 
-        <aside class="special-page__aside" aria-label="Guidance">
-          <h2 class="special-page__aside-title">What to check</h2>
-          <p class="special-page__aside-copy">Checking these items in order makes it easier to tell broken links from visibility restrictions.</p>
-          <div class="special-page__list">
-            <div class="special-page__list-item">
-              <span class="special-page__list-label">Link</span>
-              <span class="special-page__list-value">Confirm the trailing URL and the path under / are correct.</span>
-            </div>
-            <div class="special-page__list-item">
-              <span class="special-page__list-label">Visibility</span>
-              <span class="special-page__list-value">Confirm the image or profile is not private or quarantined.</span>
-            </div>
-            <div class="special-page__list-item">
-              <span class="special-page__list-label">Retry</span>
-              <span class="special-page__list-value">Search again from the top page using search, tags, or archive.</span>
-            </div>
-          </div>
-          <p class="special-page__footer-note">Use this together with Apache or reverse-proxy 404 routing.</p>
-        </aside>
       </div>
     </div>
   </main>
 
-  <script type="module" src="/assets/js/page/special-page.js"></script>
+  <script src="/assets/js/core/auth-hero-slideshow.js"></script>
+  <script type="module" src="/assets/js/page/not-found.js"></script>
 </body>
 </html>
