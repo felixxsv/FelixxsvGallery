@@ -121,6 +121,7 @@ function setEditDirty() {
       byId("adminUsersEditRole")?.value !== (original.role || "user") ||
       byId("adminUsersEditStatus")?.value !== (original.status || "active") ||
       Boolean(byId("adminUsersEditUploadEnabled")?.checked) !== Boolean(original.upload_enabled) ||
+      Boolean(byId("adminUsersEditHiddenFromSearch")?.checked) !== Boolean(original.is_hidden_from_search) ||
       (byId("adminUsersEditBio")?.value || "") !== (original.bio || "")
     );
   }
@@ -386,6 +387,7 @@ async function openEditModal(userId) {
       role: user.role || "user",
       status: user.status || "active",
       upload_enabled: Boolean(user.upload_enabled),
+      is_hidden_from_search: Boolean(user.is_hidden_from_search),
       bio: user.bio || "",
     };
     state.editLinks = Array.isArray(user.links) ? user.links.map((l) => ({ url: l.url || "" })) : [];
@@ -397,6 +399,8 @@ async function openEditModal(userId) {
     byId("adminUsersEditRole").value = state.editOriginal.role;
     byId("adminUsersEditStatus").value = state.editOriginal.status;
     byId("adminUsersEditUploadEnabled").checked = state.editOriginal.upload_enabled;
+    const hiddenFromSearchEl = byId("adminUsersEditHiddenFromSearch");
+    if (hiddenFromSearchEl) hiddenFromSearchEl.checked = state.editOriginal.is_hidden_from_search;
     const bioEl = byId("adminUsersEditBio");
     if (bioEl) bioEl.value = state.editOriginal.bio;
     byId("adminUsersEditEmail").textContent = user.primary_email || t("unregistered", "Not registered");
@@ -424,6 +428,7 @@ async function saveEdit() {
     role: byId("adminUsersEditRole")?.value || "user",
     status: byId("adminUsersEditStatus")?.value || "active",
     upload_enabled: Boolean(byId("adminUsersEditUploadEnabled")?.checked),
+    is_hidden_from_search: Boolean(byId("adminUsersEditHiddenFromSearch")?.checked),
     bio: currentBio,
   };
   const linksChanged = JSON.stringify(state.editLinks.map((l) => l.url)) !==
@@ -434,6 +439,7 @@ async function saveEdit() {
     profilePayload.role !== state.editOriginal.role ||
     profilePayload.status !== state.editOriginal.status ||
     profilePayload.upload_enabled !== state.editOriginal.upload_enabled ||
+    profilePayload.is_hidden_from_search !== state.editOriginal.is_hidden_from_search ||
     profilePayload.bio !== state.editOriginal.bio
   );
   if (!hasProfileChanges && !linksChanged) {
@@ -625,6 +631,7 @@ function bindModals() {
     "adminUsersEditRole",
     "adminUsersEditStatus",
     "adminUsersEditUploadEnabled",
+    "adminUsersEditHiddenFromSearch",
     "adminUsersEditBio",
   ].forEach((id) => {
     const el = byId(id);
