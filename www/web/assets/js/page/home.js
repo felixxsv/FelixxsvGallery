@@ -1013,6 +1013,11 @@ export function initHomePage(app) {
     }
   }
 
+  document.addEventListener("app:filter-by-owner", (event) => {
+    const { userKey, displayName } = event.detail || {};
+    if (userKey) applyOwnerFilter(userKey, displayName);
+  });
+
   function scheduleSugFetch(q, panelRefs) {
     window.clearTimeout(state.sugDebounceTimer);
     if (!q || q.length < 1) {

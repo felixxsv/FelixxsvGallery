@@ -1067,5 +1067,6 @@
   "badges.star.description": "有特殊贡献的用户",
   "public_profile.title": "个人资料",
   "public_profile.loading": "加载中...",
-  "public_profile.not_found": "未找到用户。"
+  "public_profile.not_found": "未找到用户。",
+  "public_profile.view_posts": "查看该用户的投稿"
 }

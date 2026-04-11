@@ -1067,5 +1067,6 @@
   "badges.star.description": "Benutzer mit besonderen Beiträgen",
   "public_profile.title": "Profil",
   "public_profile.loading": "Wird geladen...",
-  "public_profile.not_found": "Benutzer nicht gefunden."
+  "public_profile.not_found": "Benutzer nicht gefunden.",
+  "public_profile.view_posts": "Beiträge ansehen"
 }

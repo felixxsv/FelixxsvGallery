@@ -1067,5 +1067,6 @@
   "badges.star.description": "A user with special contributions",
   "public_profile.title": "Profile",
   "public_profile.loading": "Loading...",
-  "public_profile.not_found": "User not found."
+  "public_profile.not_found": "User not found.",
+  "public_profile.view_posts": "View this user's posts"
 }

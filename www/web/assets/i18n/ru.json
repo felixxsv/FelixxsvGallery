@@ -1067,5 +1067,6 @@
   "badges.star.description": "Пользователь с особым вкладом",
   "public_profile.title": "Профиль",
   "public_profile.loading": "Загрузка...",
-  "public_profile.not_found": "Пользователь не найден."
+  "public_profile.not_found": "Пользователь не найден.",
+  "public_profile.view_posts": "Посмотреть публикации"
 }
