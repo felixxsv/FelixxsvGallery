@@ -1291,6 +1291,7 @@ def list_contents(
     per_page: int = Query(90, ge=1),
     sort: str = Query("latest"),
     q: str | None = None,
+    owner_user_key: str | None = None,
     tags_any: str | None = None,
     tags_all: str | None = None,
     colors_any: str | None = None,
@@ -1314,6 +1315,7 @@ def list_contents(
                 per_page=per_page,
                 sort=sort,
                 q=q,
+                owner_user_key=owner_user_key,
                 tags_any=tags_any,
                 tags_all=tags_all,
                 colors_any=colors_any,
@@ -1353,8 +1355,14 @@ def list_contents(
         )
         text_sql, text_params = build_text_search_sql(GALLERY, q)
         shortcut_sql, shortcut_params = build_shortcut_filter_sql(shortcut, _now_local_naive(CONF), viewer_user_id=viewer_user_id)
-        where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}"
-        where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
+        owner_key_str = (owner_user_key or "").strip()
+        if owner_key_str and re.match(r'^[a-zA-Z0-9_-]{1,20}$', owner_key_str) and _HAS_IMAGES_OWNER_USER_ID:
+            owner_sql = " AND EXISTS (SELECT 1 FROM users uu WHERE uu.id=i.owner_user_id AND uu.user_key=%s AND uu.status='active')"
+            owner_params: list = [owner_key_str]
+        else:
+            owner_sql, owner_params = "", []
+        where_extra_sql = f"{tag_sql}{color_sql}{date_sql}{text_sql}{shortcut_sql}{owner_sql}"
+        where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params, *owner_params]
         join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
         join_content = "LEFT JOIN gallery_content_images gci ON gci.image_id=i.id LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery"
         content_key_expr = _content_key_expr("i", "gci")
