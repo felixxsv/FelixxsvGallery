@@ -410,12 +410,13 @@ export async function initAdminLayout() {
   }
 
   function showNotFound() {
-    hide(refs.loading);
-    hide(refs.error);
-    hide(refs.appShell);
-    show(refs.notFound);
-    document.title = "404 - Felixxsv Gallery";
-    document.dispatchEvent(new CustomEvent("admin:not-found"));
+    fetch("/404/")
+      .then((r) => r.text())
+      .then((html) => {
+        document.open();
+        document.write(html);
+        document.close();
+      });
   }
 
   function showError(message) {
