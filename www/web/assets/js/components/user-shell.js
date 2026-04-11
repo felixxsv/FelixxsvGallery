@@ -1282,7 +1282,7 @@ export function initUserShell(app) {
   byId("shellViewMyPostsButton")?.addEventListener("click", () => {
     const user = getUser();
     if (!user?.user_key) return;
-    app.modal.close("account");
+    app.modal.close("user-info");
     document.dispatchEvent(new CustomEvent("app:filter-by-owner", {
       detail: { userKey: user.user_key, displayName: user.display_name || user.user_key },
     }));
