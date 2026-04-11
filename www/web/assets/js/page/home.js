@@ -526,9 +526,11 @@ export function initHomePage(app) {
       [".home-status-chip__label", 1, "home.status.sort"],
       [".home-status-chip__label", 2, "home.status.showing"],
       [".home-status-chip__label", 3, "home.status.total"],
-      ["#homeSortSelect option[value='latest']", 0, "home.sort.latest"],
-      ["#homeSortSelect option[value='oldest']", 0, "home.sort.oldest"],
       ["#homeSortSelect option[value='popular']", 0, "home.sort.popular"],
+      ["#homeSortSelect option[value='shot_newest']", 0, "home.sort.shot_newest"],
+      ["#homeSortSelect option[value='shot_oldest']", 0, "home.sort.shot_oldest"],
+      ["#homeSortSelect option[value='posted_newest']", 0, "home.sort.posted_newest"],
+      ["#homeSortSelect option[value='posted_oldest']", 0, "home.sort.posted_oldest"],
       ["#homePrevPageButton", 0, "home.pagination.prev"],
       ["#homeNextPageButton", 0, "home.pagination.next"],
     ];
@@ -551,7 +553,7 @@ export function initHomePage(app) {
     page: 1,
     rowCount: DEFAULT_ROW_COUNT,
     perPage: 0,
-    sort: refs.sortSelect?.value || "latest",
+    sort: refs.sortSelect?.value || "popular",
     q: "",
     ownerUserKey: null,
     ownerDisplayName: null,
@@ -660,7 +662,7 @@ export function initHomePage(app) {
     return {
       q: refs.searchInput?.value.trim() || "",
       ownerUserKey: state.ownerUserKey || null,
-      sort: refs.sortSelect?.value || "latest",
+      sort: refs.sortSelect?.value || "popular",
       shortcut: shortcutButton?.dataset.shortcut || null,
       tagsMode: tagsModeButton?.dataset.mode || "or",
       tagsSelected: getSelectedValues("[data-ui-chip][aria-pressed='true']", "value"),
@@ -1315,9 +1317,11 @@ export function initHomePage(app) {
     const end = Math.min(state.page * state.perPage, state.total);
     const maxPage = Math.max(1, Math.ceil(state.total / Math.max(1, state.perPage)));
     const sortLabels = {
-      latest: t("home.sort.latest", "Latest"),
-      oldest: t("home.sort.oldest", "Oldest"),
       popular: t("home.sort.popular", "Popular"),
+      shot_newest: t("home.sort.shot_newest", "Shot date (newest)"),
+      shot_oldest: t("home.sort.shot_oldest", "Shot date (oldest)"),
+      posted_newest: t("home.sort.posted_newest", "Posted date (newest)"),
+      posted_oldest: t("home.sort.posted_oldest", "Posted date (oldest)"),
       random: t("home.sort.random", "Random"),
     };
     if (refs.statusQuery) {
