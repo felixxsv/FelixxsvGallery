@@ -1067,5 +1067,6 @@
   "badges.star.description": "특별한 기여를 한 사용자",
   "public_profile.title": "프로필",
   "public_profile.loading": "불러오는 중...",
-  "public_profile.not_found": "사용자를 찾을 수 없습니다."
+  "public_profile.not_found": "사용자를 찾을 수 없습니다.",
+  "public_profile.view_posts": "이 사람의 투고 보기"
 }

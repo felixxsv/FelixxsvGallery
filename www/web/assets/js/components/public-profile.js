@@ -65,6 +65,8 @@ export function initPublicProfileModal(app) {
     bio: byId("userProfileBio"),
     links: byId("userProfileLinks"),
     badges: byId("userProfileBadges"),
+    footer: byId("userProfileFooter"),
+    filterButton: byId("userProfileFilterButton"),
   };
 
   if (!refs.loading) return;
@@ -80,6 +82,7 @@ export function initPublicProfileModal(app) {
     if (title) title.textContent = t("title", "Profile");
     refs.loading.textContent = t("loading", "Loading...");
     refs.error.textContent = t("not_found", "User not found.");
+    if (refs.filterButton) refs.filterButton.textContent = t("view_posts", "この人の投稿を見る");
   }
 
   applyStaticTranslations();
@@ -92,6 +95,7 @@ export function initPublicProfileModal(app) {
     refs.loading.hidden = false;
     refs.error.hidden = true;
     refs.content.hidden = true;
+    if (refs.footer) refs.footer.hidden = true;
 
     app.modal.open("user-profile");
 
@@ -148,11 +152,24 @@ export function initPublicProfileModal(app) {
 
       refs.loading.hidden = true;
       refs.content.hidden = false;
+      if (refs.footer) refs.footer.hidden = false;
+      if (refs.filterButton) {
+        refs.filterButton.dataset.userKey = user.user_key || "";
+        refs.filterButton.dataset.displayName = user.display_name || "";
+      }
     } catch {
       refs.loading.hidden = true;
       refs.error.hidden = false;
     }
   }
+
+  refs.filterButton?.addEventListener("click", () => {
+    const userKey = refs.filterButton.dataset.userKey;
+    const displayName = refs.filterButton.dataset.displayName;
+    if (!userKey) return;
+    app.modal.close("user-profile");
+    document.dispatchEvent(new CustomEvent("app:filter-by-owner", { detail: { userKey, displayName } }));
+  });
 
   document.addEventListener("app:open-user-profile", (event) => {
     const userKey = normalizeUserKey(event.detail?.userKey);

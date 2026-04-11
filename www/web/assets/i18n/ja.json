@@ -1067,5 +1067,6 @@
   "badges.star.description": "特別な貢献をしたユーザー",
   "public_profile.title": "プロフィール",
   "public_profile.loading": "読み込み中...",
-  "public_profile.not_found": "ユーザーが見つかりませんでした。"
+  "public_profile.not_found": "ユーザーが見つかりませんでした。",
+  "public_profile.view_posts": "この人の投稿を見る"
 }

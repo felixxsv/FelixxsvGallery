@@ -1067,5 +1067,6 @@
   "badges.star.description": "Un utilisateur avec des contributions spéciales",
   "public_profile.title": "Profil",
   "public_profile.loading": "Chargement...",
-  "public_profile.not_found": "Utilisateur introuvable."
+  "public_profile.not_found": "Utilisateur introuvable.",
+  "public_profile.view_posts": "Voir les publications"
 }
