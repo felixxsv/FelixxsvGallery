@@ -456,6 +456,7 @@ export function initUserShell(app) {
       ["#shellLogoutAllButton", 0, "shell.static.logout_all", "Log Out All Devices"],
       ["#shellLogoutButton", 0, "shell.static.logout", "Log Out"],
       ["#shellProfileSaveButton", 0, "shell.static.save", "Save"],
+      ["#shellViewMyPostsButton", 0, "shell.static.view_my_posts", "自分の投稿を見る"],
       ["#shellPasswordSaveButton", 0, "shell.static.change", "Change"],
       ["#shellSetPasswordSaveButton", 0, "shell.static.set", "Set"],
       ["#shellTwoFactorSetupConfirmButton", 0, "shell.static.verify", "Verify"],
@@ -1277,6 +1278,15 @@ export function initUserShell(app) {
       refs.profileSaveButton.disabled = false;
     }
   }
+
+  byId("shellViewMyPostsButton")?.addEventListener("click", () => {
+    const user = getUser();
+    if (!user?.user_key) return;
+    app.modal.close("account");
+    document.dispatchEvent(new CustomEvent("app:filter-by-owner", {
+      detail: { userKey: user.user_key, displayName: user.display_name || user.user_key },
+    }));
+  });
 
   // --- Avatar crop ---
 

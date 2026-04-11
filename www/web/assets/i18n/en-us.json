@@ -272,6 +272,7 @@
   "shell.static.verify": "Verify",
   "shell.static.disable": "Disable",
   "shell.static.cancel": "Cancel",
+  "shell.static.view_my_posts": "View my posts",
   "shell.static.apply": "Apply",
   "shell.static.add": "Add",
   "shell.static.close": "Close",
