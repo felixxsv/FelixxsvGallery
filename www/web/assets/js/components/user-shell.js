@@ -116,6 +116,7 @@ export function initUserShell(app) {
     userTrigger: byId("shellUserTrigger"),
     guestIcon: byId("shellUserTriggerGuestIcon"),
     authIcon: byId("shellUserTriggerAuthIcon"),
+    authIconInitial: byId("shellUserTriggerInitial"),
 
     userCard: byId("shellUserCard"),
     guestOverlay: byId("shellGuestOverlay"),
@@ -360,10 +361,13 @@ export function initUserShell(app) {
       const avatarUrl = user?.avatar_url || null;
       if (avatarUrl) {
         refs.authIcon.style.backgroundImage = `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`;
-        refs.authIcon.dataset.initial = "";
+        if (refs.authIconInitial) refs.authIconInitial.hidden = true;
       } else {
         refs.authIcon.style.backgroundImage = "";
-        refs.authIcon.dataset.initial = (user?.display_name || user?.user_key || "?")[0].toUpperCase();
+        if (refs.authIconInitial) {
+          refs.authIconInitial.hidden = false;
+          refs.authIconInitial.textContent = (user?.display_name || user?.user_key || "?")[0].toUpperCase();
+        }
       }
     }
   }
