@@ -532,7 +532,7 @@
   "admin_users.edit_title": "Modifier l'utilisateur",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "Autoriser les téléversements",
-  "admin_users.hidden_from_search": "Masquer des résultats de recherche",
+  "admin_users.hidden_from_search": "Autoriser l'apparition dans la recherche",
   "admin_users.bio_limit": "Biographie (jusqu'à 300 caractères)",
   "admin_users.bio_placeholder": "Entrez une biographie...",
   "admin_users.links_limit": "Liens (jusqu'à 5)",
