@@ -1069,5 +1069,9 @@
   "public_profile.title": "Profil",
   "public_profile.loading": "Wird geladen...",
   "public_profile.not_found": "Benutzer nicht gefunden.",
-  "public_profile.view_posts": "Beiträge"
+  "public_profile.view_posts": "Beiträge",
+  "public_profile.bio_label": "Über mich",
+  "public_profile.no_bio": "Noch nichts geschrieben",
+  "public_profile.links_label": "Links",
+  "public_profile.badges_label": "Abzeichen"
 }

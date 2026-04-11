@@ -59,12 +59,16 @@ export function initPublicProfileModal(app) {
     error: byId("userProfileError"),
     content: byId("userProfileContent"),
     avatar: byId("userProfileAvatar"),
+    avatarInitial: byId("userProfileAvatarInitial"),
     avatarImg: byId("userProfileAvatarImg"),
     displayName: byId("userProfileDisplayName"),
     userKey: byId("userProfileUserKey"),
     bio: byId("userProfileBio"),
+    bioEmpty: byId("userProfileBioEmpty"),
     links: byId("userProfileLinks"),
+    linksSection: byId("userProfileLinksSection"),
     badges: byId("userProfileBadges"),
+    badgesSection: byId("userProfileBadgesSection"),
     footer: byId("userProfileFooter"),
     filterButton: byId("userProfileFilterButton"),
   };
@@ -83,6 +87,10 @@ export function initPublicProfileModal(app) {
     refs.loading.textContent = t("loading", "Loading...");
     refs.error.textContent = t("not_found", "User not found.");
     if (refs.filterButton) refs.filterButton.textContent = t("view_posts", "投稿を見る");
+    if (refs.bioEmpty) refs.bioEmpty.textContent = t("no_bio", "まだ書かれていません");
+    document.querySelectorAll("[data-i18n='public_profile.bio_label']").forEach(el => { el.textContent = t("bio_label", "ひとこと"); });
+    document.querySelectorAll("[data-i18n='public_profile.links_label']").forEach(el => { el.textContent = t("links_label", "リンク"); });
+    document.querySelectorAll("[data-i18n='public_profile.badges_label']").forEach(el => { el.textContent = t("badges_label", "バッジ"); });
   }
 
   applyStaticTranslations();
@@ -106,29 +114,36 @@ export function initPublicProfileModal(app) {
       refs.displayName.textContent = user.display_name || "-";
       refs.userKey.textContent = `@${user.user_key || "-"}`;
 
+      // Avatar + initial
       const avatarUrl = user.avatar_url || null;
+      const initial = (user.display_name || user.user_key || "?")[0].toUpperCase();
       if (avatarUrl) {
         refs.avatarImg.src = `${app.appBase}${avatarUrl}?t=${Date.now()}`;
         refs.avatarImg.hidden = false;
         refs.avatar.classList.add("has-avatar");
+        if (refs.avatarInitial) refs.avatarInitial.textContent = "";
       } else {
         refs.avatarImg.src = "";
         refs.avatarImg.hidden = true;
         refs.avatar.classList.remove("has-avatar");
+        if (refs.avatarInitial) refs.avatarInitial.textContent = initial;
       }
 
+      // Bio
       const bio = (user.bio || "").trim();
       if (bio) {
         refs.bio.textContent = bio;
         refs.bio.hidden = false;
+        if (refs.bioEmpty) refs.bioEmpty.hidden = true;
       } else {
         refs.bio.hidden = true;
+        if (refs.bioEmpty) refs.bioEmpty.hidden = false;
       }
 
-      // Links (always show container, max 5 slots reserved)
+      // Links
       const links = user.links || [];
+      if (refs.linksSection) refs.linksSection.hidden = links.length === 0;
       if (refs.links) {
-        refs.links.hidden = false;
         refs.links.innerHTML = links.slice(0, 5).map((link) => {
           const iconUrl = getLinkIconUrl(link.url);
           return `<a class="shell-user-link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}"><span class="shell-user-link__icon" style="--link-icon: url('${iconUrl}')"></span></a>`;
@@ -138,9 +153,9 @@ export function initPublicProfileModal(app) {
       // Badges
       const badges = Array.isArray(user.badges) ? user.badges : [];
       currentUser = user;
+      if (refs.badgesSection) refs.badgesSection.hidden = badges.length === 0;
       if (refs.badges) {
         refs.badges.innerHTML = "";
-        refs.badges.hidden = badges.length === 0;
         for (const badge of badges.slice(0, 3)) {
           const el = document.createElement("span");
           el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;

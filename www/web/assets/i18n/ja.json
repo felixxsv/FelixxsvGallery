@@ -1069,5 +1069,9 @@
   "public_profile.title": "プロフィール",
   "public_profile.loading": "読み込み中...",
   "public_profile.not_found": "ユーザーが見つかりませんでした。",
-  "public_profile.view_posts": "投稿を見る"
+  "public_profile.view_posts": "投稿を見る",
+  "public_profile.bio_label": "ひとこと",
+  "public_profile.no_bio": "まだ書かれていません",
+  "public_profile.links_label": "リンク",
+  "public_profile.badges_label": "バッジ"
 }

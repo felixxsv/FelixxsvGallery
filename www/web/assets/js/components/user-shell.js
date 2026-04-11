@@ -125,6 +125,7 @@ export function initUserShell(app) {
     accountEditButton: byId("shellAccountEditButton"),
     userKey: byId("shellUserKey"),
     userCardAvatar: byId("shellUserCardAvatar"),
+    userCardAvatarInitial: byId("shellUserCardAvatarInitial"),
     userCardAvatarImg: byId("shellUserCardAvatarImg"),
     userBio: byId("shellUserBio"),
     userCardLinks: byId("shellUserCardLinks"),
@@ -606,10 +607,14 @@ export function initUserShell(app) {
       refs.userCardAvatarImg.src = app.appBase + avatarUrl + "?t=" + Date.now();
       refs.userCardAvatarImg.hidden = false;
       refs.userCardAvatar.classList.add("has-avatar");
+      if (refs.userCardAvatarInitial) refs.userCardAvatarInitial.textContent = "";
     } else {
       refs.userCardAvatarImg.src = "";
       refs.userCardAvatarImg.hidden = true;
       refs.userCardAvatar.classList.remove("has-avatar");
+      if (refs.userCardAvatarInitial) {
+        refs.userCardAvatarInitial.textContent = (user.display_name || user.user_key || "?")[0].toUpperCase();
+      }
     }
 
     // Bio

@@ -1069,5 +1069,9 @@
   "public_profile.title": "个人资料",
   "public_profile.loading": "加载中...",
   "public_profile.not_found": "未找到用户。",
-  "public_profile.view_posts": "查看投稿"
+  "public_profile.view_posts": "查看投稿",
+  "public_profile.bio_label": "简介",
+  "public_profile.no_bio": "尚未填写",
+  "public_profile.links_label": "链接",
+  "public_profile.badges_label": "徽章"
 }
