@@ -940,7 +940,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
 .home-gallery-grid {
   --home-grid-columns: 3;
-  --home-card-media-ratio: 5 / 4;
+  --home-card-media-ratio: 15 / 8;
   display: grid;
   grid-template-columns: repeat(var(--home-grid-columns), minmax(0, 1fr));
   gap: 12px;
@@ -949,12 +949,12 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
 .home-gallery-grid[data-grid-cols="1"] {
   --home-grid-columns: 1;
-  --home-card-media-ratio: 16 / 9;
+  --home-card-media-ratio: 8 / 3;
 }
 
 .home-gallery-grid[data-grid-cols="2"] {
   --home-grid-columns: 2;
-  --home-card-media-ratio: 4 / 3;
+  --home-card-media-ratio: 2 / 1;
 }
 
 .home-gallery-grid[data-grid-cols="3"] {
@@ -963,7 +963,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
 .home-gallery-grid[data-grid-cols="4"] {
   --home-grid-columns: 4;
-  --home-card-media-ratio: 1 / 1;
+  --home-card-media-ratio: 3 / 2;
 }
 
 .home-gallery-card {
@@ -1291,7 +1291,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   }
 
   .home-gallery-grid {
-    --home-card-media-ratio: 4 / 3;
+    --home-card-media-ratio: 2 / 1;
   }
 }
 
