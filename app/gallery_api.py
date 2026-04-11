@@ -1248,8 +1248,13 @@ def _content_sort_clause(sort_key: str) -> str:
     key = (sort_key or "latest").lower()
     if key == "popular":
         return "ORDER BY like_count_sum DESC, view_count_sum DESC, content_shot_at DESC, content_created_at DESC, content_key DESC"
-    if key == "oldest":
+    if key in ("shot_oldest", "oldest"):
         return "ORDER BY content_shot_at ASC, content_created_at ASC, content_key ASC"
+    if key == "posted_newest":
+        return "ORDER BY content_created_at DESC, content_shot_at DESC, content_key DESC"
+    if key == "posted_oldest":
+        return "ORDER BY content_created_at ASC, content_shot_at ASC, content_key ASC"
+    # shot_newest, latest (alias), default
     return "ORDER BY content_shot_at DESC, content_created_at DESC, content_key DESC"
 
 
