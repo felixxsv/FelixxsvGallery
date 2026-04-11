@@ -447,6 +447,7 @@ def _check_column_exists(table: str, column: str) -> bool:
 
 # Cache column-existence checks at startup to avoid per-request overhead
 _HAS_IMAGES_OWNER_USER_ID: bool = _check_column_exists("images", "owner_user_id")
+_HAS_USERS_HIDDEN_FROM_SEARCH: bool = _check_column_exists("users", "is_hidden_from_search")
 
 
 @app.get("/api/health")
@@ -662,10 +663,11 @@ def search_suggest(q: str | None = None):
                 [GALLERY, GALLERY, GALLERY, like],
             )
             tags = list(cur.fetchall())
+            hidden_filter = " AND u.is_hidden_from_search=0" if _HAS_USERS_HIDDEN_FROM_SEARCH else ""
             cur.execute(
                 "SELECT u.user_key, u.display_name "
                 "FROM users u "
-                "WHERE u.status='active' "
+                f"WHERE u.status='active'{hidden_filter} "
                 "AND (u.user_key LIKE %s ESCAPE '\\\\' OR u.display_name LIKE %s ESCAPE '\\\\') "
                 "LIMIT 3",
                 [like, like],

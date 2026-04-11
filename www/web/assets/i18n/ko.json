@@ -532,6 +532,7 @@
   "admin_users.edit_title": "사용자 편집",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "업로드 허용",
+  "admin_users.hidden_from_search": "검색에서 숨기기",
   "admin_users.bio_limit": "소개 (최대 300자)",
   "admin_users.bio_placeholder": "소개를 입력하세요...",
   "admin_users.links_limit": "링크 (최대 5개)",

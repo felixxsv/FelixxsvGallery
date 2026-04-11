@@ -532,6 +532,7 @@
   "admin_users.edit_title": "Edit User",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "Allow uploads",
+  "admin_users.hidden_from_search": "Hide from search",
   "admin_users.bio_limit": "Bio (up to 300 chars)",
   "admin_users.bio_placeholder": "Enter a bio...",
   "admin_users.links_limit": "Links (up to 5)",

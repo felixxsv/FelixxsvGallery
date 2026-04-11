@@ -532,6 +532,7 @@
   "admin_users.edit_title": "Editar usuario",
   "admin_users.id": "ID",
   "admin_users.upload_enabled": "Permitir subidas",
+  "admin_users.hidden_from_search": "Ocultar de la búsqueda",
   "admin_users.bio_limit": "Biografia (max. 300 caracteres)",
   "admin_users.bio_placeholder": "Escribe una biografia...",
   "admin_users.links_limit": "Enlaces (max. 5)",

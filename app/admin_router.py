@@ -251,6 +251,8 @@ def _normalize_user_row_runtime(row: dict) -> dict:
         out["upload_enabled"] = out.get("can_upload") if out.get("can_upload") is not None else True
     if "avatar_path" not in out:
         out["avatar_path"] = None
+    if "is_hidden_from_search" not in out:
+        out["is_hidden_from_search"] = False
     return out
 
 def _ensure_admin_user_preferences_table(conn) -> None:
@@ -1055,6 +1057,10 @@ def _users_has_display_badges(conn) -> bool:
     return _users_has_column(conn, "display_badges")
 
 
+def _users_has_hidden_from_search(conn) -> bool:
+    return _users_has_column(conn, "is_hidden_from_search")
+
+
 def _load_user_links_for_admin(conn, user_id: int) -> list[dict]:
     """Load all user links regardless of gallery."""
     conf = _get_conf()
@@ -1093,11 +1099,13 @@ def _load_user_detail(conn, user_id: int) -> dict | None:
     avatar_col = _users_avatar_column(conn)
     has_bio = _users_has_bio(conn)
     has_display_badges = _users_has_display_badges(conn)
+    has_hidden_from_search = _users_has_hidden_from_search(conn)
     email_select = f"{email_col} AS primary_email" if email_col else "NULL AS primary_email"
     upload_select = f"{upload_col} AS upload_enabled" if upload_col else "1 AS upload_enabled"
     avatar_select = f"{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path"
     bio_select = "bio" if has_bio else "NULL AS bio"
     display_badges_select = "display_badges" if has_display_badges else "NULL AS display_badges"
+    hidden_from_search_select = "is_hidden_from_search" if has_hidden_from_search else "0 AS is_hidden_from_search"
 
     with conn.cursor() as cur:
         cur.execute(
@@ -1115,6 +1123,7 @@ SELECT
     {avatar_select},
     {bio_select},
     {display_badges_select},
+    {hidden_from_search_select},
     created_at,
     updated_at,
     deleted_at,
@@ -1151,6 +1160,7 @@ LIMIT 1
         item["display_badges"] = raw_display
     else:
         item["display_badges"] = []
+    item["is_hidden_from_search"] = bool(row.get("is_hidden_from_search"))
     item["links"] = _load_user_links_for_admin(conn, user_id)
     item["badges"] = _load_user_badges_for_admin(conn, user_id)
     return item
@@ -1191,6 +1201,9 @@ def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
 
     if "upload_enabled" in payload:
         normalized["upload_enabled"] = bool(payload.get("upload_enabled"))
+
+    if "is_hidden_from_search" in payload:
+        normalized["is_hidden_from_search"] = bool(payload.get("is_hidden_from_search"))
 
     if "bio" in payload:
         bio_val = str(payload.get("bio") or "").strip()
@@ -1494,6 +1507,8 @@ def admin_user_update(
                 db_key = upload_col
             elif key == "bio":
                 db_key = "bio" if _users_has_bio(conn) else None
+            elif key == "is_hidden_from_search":
+                db_key = "is_hidden_from_search" if _users_has_hidden_from_search(conn) else None
             else:
                 db_key = key
             if db_key is None:
