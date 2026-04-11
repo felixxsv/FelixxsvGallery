@@ -3503,9 +3503,6 @@ def complete_discord_registration(
 
     conn = None
     now_dt = _utc_now(now)
-    auth_conf = _get_auth_conf()
-    verify_code = None
-    verify_ticket = None
     parsed = None
 
     try:
@@ -3535,7 +3532,7 @@ def complete_discord_registration(
             role="user",
             status="active",
             upload_enabled=True,
-            is_email_verified=False,
+            is_email_verified=True,
             must_reset_password=False,
             avatar_path=None,
         )
@@ -3557,25 +3554,6 @@ def complete_discord_registration(
             is_enabled=False,
             is_required=False,
         )
-
-        if parsed.get("provider_email"):
-            verify_code = _generate_otp_code()
-            create_email_verification(
-                conn=conn,
-                user_id=user_id,
-                email=parsed["provider_email"],
-                code_hash=hash_token_value(verify_code),
-                purpose="signup",
-                expires_at=_shift_seconds(now_dt, auth_conf["verify_code_expires_sec"]),
-            )
-            verify_ticket = create_verify_ticket(
-                user_id=user_id,
-                purpose="signup",
-                email=parsed["provider_email"],
-                preferred_language=normalize_preferred_language(preferred_language) or "en-us",
-                expires_in_sec=auth_conf["verify_code_expires_sec"],
-                now=now_dt,
-            )
 
         log_auth_event(
             conn=conn,
@@ -3601,27 +3579,6 @@ def complete_discord_registration(
         )
     finally:
         _safe_close(conn)
-
-    if parsed.get("provider_email") and verify_ticket is not None and verify_code is not None:
-        _try_send_verification_email(
-            to_email=parsed["provider_email"],
-            code=verify_code,
-            purpose="signup",
-            expires_in_sec=auth_conf["verify_code_expires_sec"],
-            display_name=validated["display_name"],
-            preferred_language=normalize_preferred_language(preferred_language) or "en-us",
-        )
-        return build_service_success(
-            data={
-                "verify_ticket": verify_ticket,
-                "masked_email": mask_email_address(parsed["provider_email"]),
-                "expires_in_sec": auth_conf["verify_code_expires_sec"],
-                "resend_cooldown_sec": auth_conf["verify_resend_cooldown_sec"],
-            },
-            next_kind="verify_email",
-            next_to=_build_verify_email_path(verify_ticket),
-            message="確認コードを送信しました。",
-        )
 
     conn = None
     try:
@@ -3989,6 +3946,7 @@ def get_current_user_profile(
                     "has_discord": discord_identity is not None and bool(discord_identity.get("is_enabled")),
                     "auth_providers": enabled_auth_providers,
                     "registration_route": registration_route,
+                    "discord_email": discord_identity.get("provider_email") if discord_identity and bool(discord_identity.get("is_enabled")) else None,
                 },
                 "features": {
                     "can_open_admin": can_open_admin,
