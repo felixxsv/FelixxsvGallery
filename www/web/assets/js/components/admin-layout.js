@@ -413,9 +413,23 @@ export async function initAdminLayout() {
     fetch("/404/")
       .then((r) => r.text())
       .then((html) => {
-        document.open();
-        document.write(html);
-        document.close();
+        const parsed = new DOMParser().parseFromString(html, "text/html");
+
+        document.documentElement.lang = parsed.documentElement.lang;
+        document.head.innerHTML = parsed.head.innerHTML;
+        document.body.className = parsed.body.className;
+        document.body.innerHTML = parsed.body.innerHTML;
+
+        for (const old of parsed.querySelectorAll("script")) {
+          const s = document.createElement("script");
+          if (old.type) s.type = old.type;
+          if (old.src) {
+            s.src = old.src;
+          } else {
+            s.textContent = old.textContent;
+          }
+          document.body.appendChild(s);
+        }
       });
   }
 
