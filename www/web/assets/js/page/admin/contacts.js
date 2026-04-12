@@ -67,13 +67,12 @@ async function loadContacts(silent = false) {
   if (state.statusFilter) params.set("status", state.statusFilter);
 
   try {
-    const { res, data } = await api.get(`/api/admin/contacts?${params}`);
-    if (!res.ok) return;
-    const d = data?.data || {};
-    state.items = d.items || [];
-    state.total = d.total || 0;
-    state.page = d.page || 1;
-    state.pages = d.pages || 1;
+    const payload = await api.get(`/api/admin/contacts?${params}`);
+    const d = payload.data || {};
+    state.items = Array.isArray(d.items) ? d.items : [];
+    state.total = Number(d.total || 0);
+    state.page = Number(d.page || 1);
+    state.pages = Number(d.pages || 1);
     renderTable();
   } catch {
     // silent fail on poll
