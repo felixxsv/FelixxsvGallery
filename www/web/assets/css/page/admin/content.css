@@ -83,6 +83,12 @@
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+.admin-content-thumb--child {
+  width: 76px;
+  height: 48px;
+  margin-left: 20px;
+}
+
 .admin-content-thumb img {
   width: 100%;
   height: 100%;
@@ -106,6 +112,13 @@
   gap: 6px;
 }
 
+.admin-content-main__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .admin-content-main__title {
   font-size: 14px;
   font-weight: 600;
@@ -114,6 +127,57 @@
 .admin-content-main__sub {
   font-size: 12px;
   color: rgba(255,255,255,0.72);
+}
+
+.admin-content-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.9);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-content-group-toggle:hover,
+.admin-content-group-toggle:focus-visible {
+  background: rgba(255,255,255,0.12);
+}
+
+.admin-content-group-toggle span {
+  color: rgba(255,255,255,0.66);
+}
+
+.admin-content-row--group > td {
+  background: rgba(255,255,255,0.025);
+}
+
+.admin-content-row--child > td {
+  background: rgba(255,255,255,0.04);
+}
+
+.admin-content-child-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-content-child-main__marker {
+  min-width: 44px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.66);
+  font-size: 12px;
 }
 
 .admin-content-badges {
