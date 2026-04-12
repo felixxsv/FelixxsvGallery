@@ -527,7 +527,9 @@ async function bootstrap() {
   const publicUploadTriggers = [byId("shellHeaderUploadButton"), byId("shellUploadOpenButton")].filter(Boolean);
   for (const trigger of publicUploadTriggers) {
     trigger.addEventListener("click", () => {
-      app.uploadModal?.open();
+      app.uploadModal?.open({
+        onUploaded: () => document.dispatchEvent(new CustomEvent("gallery:uploaded")),
+      });
     });
   }
 

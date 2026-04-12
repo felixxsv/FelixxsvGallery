@@ -2167,6 +2167,7 @@ export function initHomePage(app) {
   syncGridColumnsUi();
   applyStaticTranslations();
   window.addEventListener("gallery:language-changed", applyStaticTranslations);
+  document.addEventListener("gallery:uploaded", () => reloadFromFilters());
 
   updateSortVisibility();
   Promise.all([hydrateSidebarOptions(), loadArchives()]).finally(() => {
