@@ -559,6 +559,7 @@ export function initUserShell(app) {
   function renderUserCard() {
     renderHeaderIcon();
 
+    const contactBtn = byId("shellContactButton");
     if (!isAuthenticated()) {
       refs.userCard.classList.add("is-guest");
       refs.guestOverlay.hidden = false;
@@ -576,8 +577,10 @@ export function initUserShell(app) {
       if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = true;
       if (refs.adminLink) refs.adminLink.hidden = true;
       refs.userFooter.hidden = true;
+      if (contactBtn) contactBtn.hidden = true;
       return;
     }
+    if (contactBtn) contactBtn.hidden = false;
 
     const user = getUser();
     const twoFactor = getTwoFactor();
@@ -1658,6 +1661,51 @@ export function initUserShell(app) {
       }
       if (id === "email") {
         renderEmailModal();
+      }
+      if (id === "contact") {
+        const msg = byId("contactMessage");
+        const err = byId("contactError");
+        if (msg) msg.value = "";
+        if (err) err.hidden = true;
+        const cat = byId("contactCategory");
+        if (cat) cat.selectedIndex = 0;
+        const submit = byId("contactSubmitButton");
+        if (submit) { submit.disabled = false; submit.textContent = t("shell.contact.submit", "Send"); }
+      }
+    });
+
+    byId("contactSubmitButton")?.addEventListener("click", async () => {
+      const category = byId("contactCategory")?.value || "other";
+      const message = (byId("contactMessage")?.value || "").trim();
+      const errEl = byId("contactError");
+      const submit = byId("contactSubmitButton");
+
+      if (errEl) errEl.hidden = true;
+      if (!message) {
+        if (errEl) { errEl.textContent = t("shell.contact.error_empty", "Please enter a message."); errEl.hidden = false; }
+        return;
+      }
+
+      if (submit) { submit.disabled = true; submit.textContent = t("shell.contact.sending", "Sending..."); }
+
+      try {
+        const res = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category, message }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = data?.detail || t("shell.contact.error_failed", "Failed to send. Please try again.");
+          if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
+          if (submit) { submit.disabled = false; submit.textContent = t("shell.contact.submit", "Send"); }
+          return;
+        }
+        app.modal?.close?.("contact");
+        toast.success(t("shell.contact.success", "Your message has been sent."));
+      } catch {
+        if (errEl) { errEl.textContent = t("shell.contact.error_failed", "Failed to send. Please try again."); errEl.hidden = false; }
+        if (submit) { submit.disabled = false; submit.textContent = t("shell.contact.submit", "Send"); }
       }
     });
 

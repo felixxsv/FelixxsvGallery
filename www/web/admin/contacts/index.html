@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title data-i18n="admin_contacts.page_title">お問い合わせ</title>
+<link href="/assets/css/common.css" rel="stylesheet"/>
+<link href="/assets/css/components.css" rel="stylesheet"/>
+<link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
+<link href="/assets/css/page/admin/contacts.css" rel="stylesheet"/>
+</head>
+<body class="admin-page" data-admin-description="ユーザーからのお問い合わせを管理します。" data-admin-page="contacts" data-app-base="" data-hide-admin-link-in-shell="1">
+<section class="admin-state-screen" id="adminLoadingState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title" data-i18n="admin_layout.loading_title">管理画面を確認しています</h1>
+<p class="admin-state-card__description">
+        <span data-i18n="admin_layout.loading_desc">admin 権限の確認が完了するまで、管理画面本体は描画しません。</span>
+      </p>
+</div>
+</section>
+<section class="admin-state-screen" hidden="" id="adminNotFoundState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title">404</h1>
+<p class="admin-state-card__description" data-i18n="admin_layout.not_found_desc">お探しのページは見つかりませんでした。</p>
+<div class="admin-state-card__actions">
+<a class="app-button app-button--primary" href="/" data-i18n="admin_layout.home_back">ホームへ戻る</a>
+</div>
+</div>
+</section>
+<section class="admin-state-screen" hidden="" id="adminErrorState">
+<div class="admin-state-card">
+<h1 class="admin-state-card__title" data-i18n="admin_layout.error_title">初期化に失敗しました</h1>
+<p class="admin-state-card__description" data-i18n="admin_layout.error_desc">管理画面の初期化中にエラーが発生しました。</p>
+<div class="admin-state-card__actions">
+<button class="app-button app-button--primary" id="adminReloadButton" type="button" data-i18n="admin_layout.reload">再読み込み</button>
+</div>
+</div>
+</section>
+<header class="app-site-header app-site-header--admin">
+<div class="app-site-header__inner">
+<div class="app-site-header__left">
+<a aria-label="Felixxsv Gallery" class="app-site-logo" href="/" id="adminHomeLink">
+<img class="app-site-logo__mark" src="/assets/icons/WolfLogoNOBG.png" alt="" aria-hidden="true">
+<span class="app-site-logo__label">Felixxsv Gallery</span>
+</a>
+</div>
+<div class="app-site-header__right">
+<button aria-label="ユーザー情報" class="app-icon-button" id="shellUserTrigger" type="button" data-i18n-aria-label="shell.static.user_info">
+<span aria-hidden="true" class="shell-user-icon shell-user-icon--guest" id="shellUserTriggerGuestIcon"></span>
+<span aria-hidden="true" class="shell-user-icon shell-user-icon--auth" hidden="" id="shellUserTriggerAuthIcon"></span>
+</button>
+</div>
+</div>
+</header>
+<section class="admin-shell" hidden="" id="adminAppShell">
+<aside class="admin-sidebar" id="adminSidebar">
+<div class="admin-sidebar__header">
+<div class="admin-sidebar__brand">
+<div class="admin-sidebar__title">Felixxsv Gallery</div>
+<div class="admin-sidebar__subtitle">Admin Console</div>
+</div>
+<button aria-expanded="true" aria-label="サイドバーを閉じる" class="app-icon-button admin-sidebar__toggle" id="adminSidebarToggle" type="button" data-i18n-aria-label="admin_layout.sidebar_close">
+<span aria-hidden="true">×</span>
+</button>
+</div>
+<div class="admin-sidebar__scroll">
+<nav aria-label="管理画面ナビゲーション" class="admin-sidebar__nav" id="adminSidebarNav" data-i18n-aria-label="admin_layout.nav_label">
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="dashboard" href="/admin/"><span aria-hidden="true" class="admin-sidebar__icon">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="content" href="/admin/content/"><span aria-hidden="true" class="admin-sidebar__icon">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="users" href="/admin/users/"><span aria-hidden="true" class="admin-sidebar__icon">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="contacts" href="/admin/contacts/"><span aria-hidden="true" class="admin-sidebar__icon">💬</span><span class="admin-sidebar__label">お問い合わせ</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="mail" href="/admin/mail/"><span aria-hidden="true" class="admin-sidebar__icon">✉</span><span class="admin-sidebar__label">メール配信</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="settings" href="/admin/settings/"><span aria-hidden="true" class="admin-sidebar__icon">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="audit-logs" href="/admin/audit-logs/"><span aria-hidden="true" class="admin-sidebar__icon">☰</span><span class="admin-sidebar__label">監査ログ</span></a>
+</nav>
+</div>
+<div class="admin-sidebar__footer" data-i18n="admin_layout.sidebar_footer">管理画面は権限確認後にのみ表示します。</div>
+</aside>
+<div class="admin-shell__main">
+<main class="admin-main-scroll">
+<section class="admin-page-grid admin-contacts-grid">
+  <article class="admin-panel admin-contacts-panel admin-contacts-panel--toolbar">
+    <div class="admin-contacts-toolbar">
+      <div class="admin-contacts-toolbar__left">
+        <label class="admin-form-label" for="adminContactsStatusFilter" data-i18n="admin_contacts.status">ステータス</label>
+        <select class="app-select" id="adminContactsStatusFilter">
+          <option value="" data-i18n="admin_contacts.status_all">すべて</option>
+          <option value="open" data-i18n="admin_contacts.status_open">未対応</option>
+          <option value="done" data-i18n="admin_contacts.status_done">完了</option>
+        </select>
+      </div>
+      <div class="admin-contacts-toolbar__right">
+        <button class="app-button" id="adminContactsReloadButton" type="button" data-i18n="admin_contacts.reload">再読み込み</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="admin-panel admin-contacts-panel admin-contacts-panel--list">
+    <div class="admin-panel__header">
+      <h2 class="admin-panel__title" data-i18n="admin_contacts.list_title">お問い合わせ一覧</h2>
+    </div>
+    <div class="admin-contacts-table-wrap">
+      <table class="admin-contacts-table admin-table">
+        <thead>
+          <tr>
+            <th data-i18n="admin_contacts.col_user">ユーザー</th>
+            <th data-i18n="admin_contacts.col_user_id">ユーザーID</th>
+            <th data-i18n="admin_contacts.col_role">ロール</th>
+            <th data-i18n="admin_contacts.col_category">カテゴリ</th>
+            <th data-i18n="admin_contacts.col_message">内容</th>
+            <th data-i18n="admin_contacts.col_created_at">お問い合わせ日</th>
+            <th data-i18n="admin_contacts.col_status">状態</th>
+            <th data-i18n="admin_contacts.col_action">操作</th>
+          </tr>
+        </thead>
+        <tbody id="adminContactsTableBody"></tbody>
+      </table>
+    </div>
+    <div class="admin-contacts-pagination" id="adminContactsPagination">
+      <button class="app-button app-button--small" id="adminContactsPrevPage" type="button" data-i18n="admin_contacts.prev">前へ</button>
+      <span class="admin-contacts-page-meta" id="adminContactsPageMeta">1 / 1</span>
+      <button class="app-button app-button--small" id="adminContactsNextPage" type="button" data-i18n="admin_contacts.next">次へ</button>
+    </div>
+  </article>
+</section>
+</main>
+</div>
+</section>
+
+<!-- Detail modal -->
+<div id="appModalRoot">
+  <section class="app-modal-layer" data-modal-layer data-modal-id="admin-contacts-detail" hidden>
+    <div class="app-modal-backdrop" data-modal-backdrop="admin-contacts-detail"></div>
+    <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="adminContactDetailTitle" tabindex="-1">
+      <div class="app-modal-header">
+        <h2 id="adminContactDetailTitle" class="app-modal-title" data-i18n="admin_contacts.detail_title">お問い合わせ詳細</h2>
+      </div>
+      <div class="app-modal-body" id="adminContactDetailBody">
+      </div>
+      <div class="app-modal-footer">
+        <button type="button" class="app-button" data-modal-close="admin-contacts-detail" id="adminContactDetailClose" data-i18n="admin_contacts.close">閉じる</button>
+        <button type="button" class="app-button app-button--primary" id="adminContactDetailDoneButton" data-i18n="admin_contacts.mark_done">完了</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="/assets/js/components/admin-layout.js" type="module"></script>
+<script src="/assets/js/page/admin/contacts.js" type="module"></script>
+</body>
+</html>

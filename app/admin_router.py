@@ -42,6 +42,7 @@ _NAV_ITEMS = [
     {"key": "dashboard", "label": "ダッシュボード", "href": "/admin/"},
     {"key": "content", "label": "コンテンツ管理", "href": "/admin/content/"},
     {"key": "users", "label": "ユーザー管理", "href": "/admin/users/"},
+    {"key": "contacts", "label": "お問い合わせ", "href": "/admin/contacts/"},
     {"key": "mail", "label": "メール配信", "href": "/admin/mail/"},
     {"key": "settings", "label": "サイト設定", "href": "/admin/settings/"},
     {"key": "audit-logs", "label": "監査ログ", "href": "/admin/audit-logs/"},
@@ -5042,3 +5043,114 @@ def admin_settings_storage_update(
     finally:
         if conn is not None:
             conn.close()
+
+
+# ── Contact inquiries ──────────────────────────────────────────────────────────
+
+@router.get("/contacts")
+def admin_contacts_list(
+    status: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=50, ge=1, le=200),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = _get_db_connection(autocommit=True)
+    try:
+        where_clauses = []
+        params = []
+        if status in ("open", "done"):
+            where_clauses.append("ci.status = %s")
+            params.append(status)
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+        offset = (page - 1) * per_page
+
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT COUNT(*) AS total FROM contact_inquiries ci {where_sql}",
+                params,
+            )
+            total = (cur.fetchone() or {}).get("total") or 0
+
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ci.id, ci.user_id, ci.category, ci.message, ci.status,
+                       ci.created_at, ci.updated_at,
+                       u.display_name, u.user_key, u.role, u.avatar_url
+                FROM contact_inquiries ci
+                LEFT JOIN users u ON u.id = ci.user_id
+                {where_sql}
+                ORDER BY ci.created_at DESC
+                LIMIT %s OFFSET %s
+                """,
+                [*params, per_page, offset],
+            )
+            rows = cur.fetchall() or []
+
+        items = []
+        for row in rows:
+            items.append({
+                "id": int(row["id"]),
+                "user_id": int(row["user_id"]),
+                "user_display_name": row.get("display_name") or "",
+                "user_key": row.get("user_key") or "",
+                "user_role": row.get("role") or "user",
+                "user_avatar_url": row.get("avatar_url") or None,
+                "category": row.get("category") or "",
+                "message": row.get("message") or "",
+                "status": row.get("status") or "open",
+                "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+                "updated_at": row["updated_at"].isoformat() if row.get("updated_at") else None,
+            })
+
+        return _json_success(
+            request_id=request_id,
+            data={
+                "items": items,
+                "total": int(total),
+                "page": page,
+                "per_page": per_page,
+                "pages": max(1, -(-int(total) // per_page)),
+            },
+        )
+    except Exception:
+        logger.exception("Unhandled error in admin_contacts_list")
+        return _json_error(500, request_id, "server_error", "お問い合わせ一覧の取得に失敗しました。")
+    finally:
+        conn.close()
+
+
+@router.patch("/contacts/{contact_id}/done")
+def admin_contacts_done(
+    contact_id: int,
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result_auth, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+
+    conn = _get_db_connection(autocommit=True)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE contact_inquiries SET status='done' WHERE id=%s AND status='open'",
+                (contact_id,),
+            )
+            affected = cur.rowcount
+
+        if affected == 0:
+            return _json_error(404, request_id, "not_found", "対象のお問い合わせが見つかりません。")
+
+        return _json_success(request_id=request_id, data={"id": contact_id, "status": "done"}, message="完了にしました。")
+    except Exception:
+        logger.exception("Unhandled error in admin_contacts_done")
+        return _json_error(500, request_id, "server_error", "更新に失敗しました。")
+    finally:
+        conn.close()

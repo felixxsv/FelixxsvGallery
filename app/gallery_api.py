@@ -15,7 +15,7 @@ import hmac
 
 logger = logging.getLogger(__name__)
 
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request, Response, Cookie
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request, Response, Cookie, Body
 from fastapi.responses import FileResponse
 import pymysql
 from pymysql.err import IntegrityError
@@ -1761,5 +1761,40 @@ ORDER BY
             "uploader_avatar_url": primary.get("uploader_avatar_url"),
             "images": images,
         }
+    finally:
+        conn.close()
+
+
+_CONTACT_CATEGORIES = {"bug", "feature", "account", "other"}
+
+@app.post("/api/contact")
+def submit_contact(
+    payload: dict = Body(...),
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    session_result = get_current_user_by_session_token(gallery_session)
+    user = (session_result or {}).get("user") if session_result else None
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です。")
+
+    category = str(payload.get("category") or "").strip()
+    message = str(payload.get("message") or "").strip()
+
+    if category not in _CONTACT_CATEGORIES:
+        raise HTTPException(status_code=400, detail="無効なカテゴリです。")
+    if not message:
+        raise HTTPException(status_code=400, detail="メッセージを入力してください。")
+    if len(message) > 2000:
+        raise HTTPException(status_code=400, detail="メッセージは2000文字以内で入力してください。")
+
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO contact_inquiries (user_id, category, message, status) VALUES (%s, %s, %s, 'open')",
+                (int(user["id"]), category, message),
+            )
+        conn.commit()
+        return {"ok": True, "message": "お問い合わせを送信しました。"}
     finally:
         conn.close()
