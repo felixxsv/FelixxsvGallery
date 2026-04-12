@@ -257,6 +257,7 @@
   "shell.static.user_info": "Информация о пользователе",
   "shell.static.profile": "Профиль",
   "shell.static.profile_edit": "Редактировать профиль",
+  "shell.static.account": "Аккаунт",
   "shell.static.account_settings": "Настройки аккаунта",
   "shell.static.login_auth": "Вход и безопасность",
   "shell.static.password_change": "Изменить пароль",
