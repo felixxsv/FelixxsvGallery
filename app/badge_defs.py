@@ -152,21 +152,13 @@ BADGE_CATALOG: dict[str, dict] = {
         "icon": "notable.png",
         "sort_order": 33,
     },
-    "star": {
-        "name": "スター",
-        "description": "特別な貢献をしたユーザー",
-        "color": "gold",
-        "type": "manual",
-        "icon": None,
-        "sort_order": 34,
-    },
     "supporter": {
         "name": "サポーター",
         "description": "ギャラリーを支援したユーザー",
         "color": "gold",
         "type": "manual",
         "icon": "supporter.png",
-        "sort_order": 35,
+        "sort_order": 34,
     },
     "tester": {
         "name": "テスター",
@@ -174,7 +166,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "color": "blue",
         "type": "manual",
         "icon": "tester.png",
-        "sort_order": 36,
+        "sort_order": 35,
     },
 }
 
