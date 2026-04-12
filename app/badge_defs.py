@@ -1,25 +1,27 @@
 """
 Badge catalog shared across admin_router, gallery_api, and auth_service.
 
-SVG icon files should be placed in:
-  www/web/assets/images/badges/<icon_file>
+PNG icon files should be placed in:
+  www/web/assets/icons/badges/<icon_file>
 
 Badge keys and expected icon filenames:
-  year_1         → badge_year_1.svg
-  year_2         → badge_year_2.svg
-  year_3         → badge_year_3.svg
-  year_5         → badge_year_5.svg
-  role_admin     → badge_role_admin.svg
-  post_first     → badge_post_first.svg
-  post_50        → badge_post_50.svg
-  post_100       → badge_post_100.svg
-  post_500       → badge_post_500.svg
-  post_1000      → badge_post_1000.svg
-  pioneer        → badge_pioneer.svg
-  photographer   → badge_photographer.svg
-  regular        → badge_regular.svg
-  notable        → badge_notable.svg
-  star           → badge_star.svg
+  year_1         → year_1.png
+  year_2         → year_2.png
+  year_3         → year_3.png
+  year_4         → year_4.png
+  year_5         → year_5.png
+  role_admin     → role_admin.png
+  post_first     → post_first.png
+  post_50        → post_50.png
+  post_100       → post_100.png
+  post_500       → post_500.png
+  post_1000      → post_1000.png
+  pioneer        → pioneer.png
+  photographer   → photographer.png
+  regular        → regular.png
+  notable        → notable.png
+  supporter      → supporter.png
+  tester         → tester.png
 """
 
 from __future__ import annotations
@@ -32,7 +34,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "アカウント作成から1年以上",
         "color": "blue",
         "type": "auto",
-        "icon": "badge_year_1.svg",
+        "icon": "year_1.png",
         "sort_order": 10,
     },
     "year_2": {
@@ -40,7 +42,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "アカウント作成から2年以上",
         "color": "blue",
         "type": "auto",
-        "icon": "badge_year_2.svg",
+        "icon": "year_2.png",
         "sort_order": 11,
     },
     "year_3": {
@@ -48,16 +50,24 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "アカウント作成から3年以上",
         "color": "blue",
         "type": "auto",
-        "icon": "badge_year_3.svg",
+        "icon": "year_3.png",
         "sort_order": 12,
+    },
+    "year_4": {
+        "name": "4年生",
+        "description": "アカウント作成から4年以上",
+        "color": "blue",
+        "type": "auto",
+        "icon": "year_4.png",
+        "sort_order": 13,
     },
     "year_5": {
         "name": "5年生",
         "description": "アカウント作成から5年以上",
         "color": "blue",
         "type": "auto",
-        "icon": "badge_year_5.svg",
-        "sort_order": 13,
+        "icon": "year_5.png",
+        "sort_order": 14,
     },
     # --- Role (auto) ---
     "role_admin": {
@@ -65,7 +75,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "ギャラリー管理者",
         "color": "red",
         "type": "auto",
-        "icon": "badge_role_admin.svg",
+        "icon": "role_admin.png",
         "sort_order": 1,
     },
     # --- Post count (auto) ---
@@ -74,7 +84,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "初めての投稿",
         "color": "green",
         "type": "auto",
-        "icon": "badge_post_first.svg",
+        "icon": "post_first.png",
         "sort_order": 20,
     },
     "post_50": {
@@ -82,7 +92,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "投稿数50件以上",
         "color": "green",
         "type": "auto",
-        "icon": "badge_post_50.svg",
+        "icon": "post_50.png",
         "sort_order": 21,
     },
     "post_100": {
@@ -90,7 +100,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "投稿数100件以上",
         "color": "green",
         "type": "auto",
-        "icon": "badge_post_100.svg",
+        "icon": "post_100.png",
         "sort_order": 22,
     },
     "post_500": {
@@ -98,7 +108,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "投稿数500件以上",
         "color": "green",
         "type": "auto",
-        "icon": "badge_post_500.svg",
+        "icon": "post_500.png",
         "sort_order": 23,
     },
     "post_1000": {
@@ -106,7 +116,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "投稿数1000件以上",
         "color": "green",
         "type": "auto",
-        "icon": "badge_post_1000.svg",
+        "icon": "post_1000.png",
         "sort_order": 24,
     },
     # --- Manual (admin grants) ---
@@ -115,7 +125,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "初期メンバーとして特別に認定されたユーザー",
         "color": "gold",
         "type": "manual",
-        "icon": "badge_pioneer.svg",
+        "icon": "pioneer.png",
         "sort_order": 30,
     },
     "photographer": {
@@ -123,7 +133,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "質の高い写真を投稿すると認定されたユーザー",
         "color": "gold",
         "type": "manual",
-        "icon": "badge_photographer.svg",
+        "icon": "photographer.png",
         "sort_order": 31,
     },
     "regular": {
@@ -131,7 +141,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "長期にわたって活発に活動しているユーザー",
         "color": "gold",
         "type": "manual",
-        "icon": "badge_regular.svg",
+        "icon": "regular.png",
         "sort_order": 32,
     },
     "notable": {
@@ -139,7 +149,7 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "コミュニティで特に注目されているユーザー",
         "color": "gold",
         "type": "manual",
-        "icon": "badge_notable.svg",
+        "icon": "notable.png",
         "sort_order": 33,
     },
     "star": {
@@ -147,8 +157,24 @@ BADGE_CATALOG: dict[str, dict] = {
         "description": "特別な貢献をしたユーザー",
         "color": "gold",
         "type": "manual",
-        "icon": "badge_star.svg",
+        "icon": None,
         "sort_order": 34,
+    },
+    "supporter": {
+        "name": "サポーター",
+        "description": "ギャラリーを支援したユーザー",
+        "color": "gold",
+        "type": "manual",
+        "icon": "supporter.png",
+        "sort_order": 35,
+    },
+    "tester": {
+        "name": "テスター",
+        "description": "機能改善に協力したユーザー",
+        "color": "blue",
+        "type": "manual",
+        "icon": "tester.png",
+        "sort_order": 36,
     },
 }
 
@@ -213,7 +239,9 @@ def ensure_auto_badges(conn, user_id: int, user_role: str | None, created_at) ->
             now_dt = datetime.now(timezone.utc)
             years = (now_dt - created_dt).days // 365
             if years >= 5:
-                badges_to_grant += ["year_1", "year_2", "year_3", "year_5"]
+                badges_to_grant += ["year_1", "year_2", "year_3", "year_4", "year_5"]
+            elif years >= 4:
+                badges_to_grant += ["year_1", "year_2", "year_3", "year_4"]
             elif years >= 3:
                 badges_to_grant += ["year_1", "year_2", "year_3"]
             elif years >= 2:

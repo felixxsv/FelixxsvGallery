@@ -69,7 +69,7 @@ window._BADGE_DEFAULT_ICON = BADGE_DEFAULT_ICON;
 
 function getBadgeIconHtml(badge, appBase) {
   if (!badge.icon) return `<img class="badge-icon" src="${BADGE_DEFAULT_ICON}" alt="" aria-hidden="true">`;
-  const src = `${appBase}/assets/images/badges/${badge.icon}`;
+  const src = `${appBase}/assets/icons/badges/${badge.icon}`;
   return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src=window._BADGE_DEFAULT_ICON">`;
 }
 
