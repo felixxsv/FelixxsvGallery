@@ -41,6 +41,7 @@ function getLinkIconUrl(url) {
 }
 
 const BADGE_DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='6'/%3E%3Cpath d='M8 14l-3 7 7-3 7 3-3-7'/%3E%3C/svg%3E";
+window._BADGE_DEFAULT_ICON = window._BADGE_DEFAULT_ICON || BADGE_DEFAULT_ICON;
 
 function normalizeUserKey(value) {
   const userKey = typeof value === "string" ? value.trim() : "";
@@ -49,7 +50,8 @@ function normalizeUserKey(value) {
 
 function getBadgeIconHtml(badge, appBase) {
   if (!badge.icon) return `<img class="badge-icon" src="${BADGE_DEFAULT_ICON}" alt="" aria-hidden="true">`;
-  const src = `${appBase}/assets/icons/badges/${badge.icon}`;
+  const icon = String(badge.icon).replace(/^badge_/, "").replace(/\.svg$/i, ".png");
+  const src = `${appBase}/assets/icons/badges/${icon}`;
   return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src=window._BADGE_DEFAULT_ICON">`;
 }
 
