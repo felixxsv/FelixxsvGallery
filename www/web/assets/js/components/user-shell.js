@@ -49,8 +49,7 @@ function getLinkIconUrl(url) {
 const DEFAULT_CREDIT_META = Object.freeze({
   service: "Felixxsv Gallery",
   author: "Felix",
-  stack: "FastAPI / MySQL / JavaScript / CSS / Apache",
-  license: "All Rights Reserved",
+  license: "© gallery.felixxsv.net All Rights Reserved.",
   updatedAt: "2026-04-12",
   version: "2026.04.12-build-v0456",
 });
@@ -414,7 +413,6 @@ export function initUserShell(app) {
     if (!creditsBody) return;
     const service = document.body.dataset.creditService || DEFAULT_CREDIT_META.service;
     const author = document.body.dataset.creditAuthor || DEFAULT_CREDIT_META.author;
-    const stack = document.body.dataset.creditStack || DEFAULT_CREDIT_META.stack;
     const license = document.body.dataset.creditLicense || DEFAULT_CREDIT_META.license;
     const updatedAt = document.body.dataset.creditUpdatedAt || DEFAULT_CREDIT_META.updatedAt;
     const version = document.body.dataset.appVersion || DEFAULT_CREDIT_META.version;
@@ -427,10 +425,6 @@ export function initUserShell(app) {
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_author", "Author"))}</dt>
           <dd>${escapeHtml(author)}</dd>
-        </div>
-        <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("shell.static.credit_stack", "Tech Stack"))}</dt>
-          <dd>${escapeHtml(stack)}</dd>
         </div>
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_license", "License"))}</dt>
@@ -515,10 +509,9 @@ export function initUserShell(app) {
 
     setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(1) dt", t("shell.static.credit_service", "Service"));
     setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(2) dt", t("shell.static.credit_author", "Author"));
-    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(3) dt", t("shell.static.credit_stack", "Tech Stack"));
-    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(4) dt", t("shell.static.credit_license", "License"));
-    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(5) dt", t("shell.static.credit_updated_at", "Updated"));
-    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(6) dt", t("shell.static.credit_version", "Version"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(3) dt", t("shell.static.credit_license", "License"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(4) dt", t("shell.static.credit_updated_at", "Updated"));
+    setText("[data-modal-id='credits'] .app-definition-list__row:nth-of-type(5) dt", t("shell.static.credit_version", "Version"));
 
     setText(".shell-user-card__meta-list .app-definition-list__row:nth-of-type(1) dt", t("shell.static.email", "Email"));
     setText(".shell-user-card__meta-list .app-definition-list__row:nth-of-type(2) dt", t("shell.static.created_at", "Created"));
