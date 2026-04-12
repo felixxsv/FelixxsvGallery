@@ -50,9 +50,9 @@ const DEFAULT_CREDIT_META = Object.freeze({
   service: "Felixxsv Gallery",
   author: "Felix",
   stack: "FastAPI / MySQL / JavaScript / CSS / Apache",
-  license: "TBD",
-  updatedAt: "2026-03-16",
-  version: "2026.03-rebuild-v2",
+  license: "All Rights Reserved",
+  updatedAt: "2026-04-12",
+  version: "2026.04.12-build-v0456",
 });
 
 function escapeHtml(value) {
@@ -373,16 +373,7 @@ export function initUserShell(app) {
   }
 
   function renderCredits() {
-    const creditAuthor = byId("shellCreditAuthor");
-    const creditStack = byId("shellCreditStack");
-    const creditLicense = byId("shellCreditLicense");
-    const creditUpdatedAt = byId("shellCreditUpdatedAt");
-    const creditVersion = byId("shellCreditVersion");
-    if (creditAuthor) creditAuthor.textContent = document.body.dataset.creditAuthor || DEFAULT_CREDIT_META.author;
-    if (creditStack) creditStack.textContent = document.body.dataset.creditStack || DEFAULT_CREDIT_META.stack;
-    if (creditLicense) creditLicense.textContent = document.body.dataset.creditLicense || DEFAULT_CREDIT_META.license;
-    if (creditUpdatedAt) creditUpdatedAt.textContent = document.body.dataset.creditUpdatedAt || DEFAULT_CREDIT_META.updatedAt;
-    if (creditVersion) creditVersion.textContent = document.body.dataset.appVersion || DEFAULT_CREDIT_META.version;
+    renderCreditsContent();
   }
 
   function renderHelpContent() {
@@ -421,31 +412,37 @@ export function initUserShell(app) {
   function renderCreditsContent() {
     const creditsBody = document.querySelector("[data-modal-id='credits'] .app-modal-body");
     if (!creditsBody) return;
+    const service = document.body.dataset.creditService || DEFAULT_CREDIT_META.service;
+    const author = document.body.dataset.creditAuthor || DEFAULT_CREDIT_META.author;
+    const stack = document.body.dataset.creditStack || DEFAULT_CREDIT_META.stack;
+    const license = document.body.dataset.creditLicense || DEFAULT_CREDIT_META.license;
+    const updatedAt = document.body.dataset.creditUpdatedAt || DEFAULT_CREDIT_META.updatedAt;
+    const version = document.body.dataset.appVersion || DEFAULT_CREDIT_META.version;
     creditsBody.innerHTML = `
       <dl class="app-definition-list">
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_service", "Service"))}</dt>
-          <dd>${escapeHtml(document.body.dataset.creditService || DEFAULT_CREDIT_META.service)}</dd>
+          <dd>${escapeHtml(service)}</dd>
         </div>
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_author", "Author"))}</dt>
-          <dd id="shellCreditAuthor">-</dd>
+          <dd>${escapeHtml(author)}</dd>
         </div>
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_stack", "Tech Stack"))}</dt>
-          <dd id="shellCreditStack">-</dd>
+          <dd>${escapeHtml(stack)}</dd>
         </div>
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_license", "License"))}</dt>
-          <dd id="shellCreditLicense">-</dd>
+          <dd>${escapeHtml(license)}</dd>
         </div>
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_updated_at", "Updated"))}</dt>
-          <dd id="shellCreditUpdatedAt">-</dd>
+          <dd>${escapeHtml(updatedAt)}</dd>
         </div>
         <div class="app-definition-list__row">
           <dt>${escapeHtml(t("shell.static.credit_version", "Version"))}</dt>
-          <dd id="shellCreditVersion">-</dd>
+          <dd>${escapeHtml(version)}</dd>
         </div>
       </dl>
     `;
