@@ -74,6 +74,7 @@ const state = {
   pages: 1,
   items: [],
   currentContent: null,
+  expandedContentKeys: new Set(),
   pendingConfirm: null,
   filterTimer: null,
   uploadSubmitting: false,
@@ -105,15 +106,26 @@ function renderTable() {
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
+      const contentKey = String(item.content_key || item.content_id || `i-${item.image_id}`);
+      const children = Array.isArray(item.children) ? item.children : [];
+      const isGroup = children.length > 1 || Number(item.image_count || 0) > 1;
+      const isExpanded = state.expandedContentKeys.has(contentKey);
       const preview = item.preview_url
         ? `<div class="admin-content-thumb" data-image-open="true" data-image-id="${item.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || t("preview_alt", "preview"))}"></div>`
         : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
+      const groupToggle = isGroup
+        ? `<button type="button" class="admin-content-group-toggle" data-action="toggle-group" data-content-key="${escapeHtml(contentKey)}" aria-expanded="${isExpanded ? "true" : "false"}">${escapeHtml(isExpanded ? t("collapse", "閉じる") : t("expand", "展開"))}<span>${escapeHtml(t("image_count", "{count}枚", { count: Number(item.image_count || children.length || 1) }))}</span></button>`
+        : "";
+      tr.className = isGroup ? "admin-content-row admin-content-row--group" : "admin-content-row";
       tr.innerHTML = `
         <td>${preview}</td>
         <td>
           <div class="admin-content-main">
-            <div class="admin-content-main__title">${escapeHtml(item.title || t("no_title", "(Untitled)"))}</div>
+            <div class="admin-content-main__title-row">
+              <div class="admin-content-main__title">${escapeHtml(item.title || t("no_title", "(Untitled)"))}</div>
+              ${groupToggle}
+            </div>
             <div class="admin-content-main__sub">${escapeHtml(uploaderLabel)} ・ ${escapeHtml(formatDateTime(item.posted_at))}</div>
           </div>
         </td>
@@ -129,6 +141,40 @@ function renderTable() {
         </td>
       `;
       tbody.appendChild(tr);
+
+      if (isGroup && isExpanded) {
+        for (const child of children) {
+          const childTr = document.createElement("tr");
+          childTr.className = "admin-content-row admin-content-row--child";
+          const childPreview = child.preview_url
+            ? `<div class="admin-content-thumb admin-content-thumb--child" data-image-open="true" data-image-id="${child.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(child.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(child.preview_url)}" alt="${escapeHtml(child.title || t("preview_alt", "preview"))}"></div>`
+            : `<div class="admin-content-thumb admin-content-thumb--child"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
+          const childUploaderLabel = child.uploader?.display_name || child.uploader?.user_key || uploaderLabel;
+          childTr.innerHTML = `
+            <td>${childPreview}</td>
+            <td>
+              <div class="admin-content-child-main">
+                <div class="admin-content-child-main__marker">${escapeHtml(t("child_image", "画像"))}</div>
+                <div>
+                  <div class="admin-content-main__title">${escapeHtml(child.title || t("no_title", "(Untitled)"))}</div>
+                  <div class="admin-content-main__sub">${escapeHtml(childUploaderLabel)} ・ ${escapeHtml(formatDateTime(child.posted_at))}</div>
+                </div>
+              </div>
+            </td>
+            <td>${buildPill(child.visibility || "-", child.visibility === "public" ? "admin-content-pill--public" : "admin-content-pill--private")}</td>
+            <td>${buildPill(child.status || "-", `admin-content-pill--${escapeHtml(child.status || "normal")}`)}</td>
+            <td>${escapeHtml(child.like_count_text || "0")}</td>
+            <td>${escapeHtml(child.view_count_text || "0")}</td>
+            <td>${escapeHtml(formatDateTime(child.posted_at))}</td>
+            <td>
+              <div class="admin-content-actions">
+                <button type="button" class="app-button app-button--ghost admin-content-mini-button" data-action="detail" data-image-id="${child.image_id}">${escapeHtml(t("detail", "Details"))}</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(childTr);
+        }
+      }
     }
   }
 
@@ -215,7 +261,13 @@ async function openDetail(imageId) {
 }
 
 function findContentItem(imageId) {
-  return state.items.find((item) => Number(item.image_id || item.id || 0) === Number(imageId || 0)) || null;
+  const targetId = Number(imageId || 0);
+  for (const item of state.items) {
+    if (Number(item.image_id || item.id || 0) === targetId) return item;
+    const child = (Array.isArray(item.children) ? item.children : []).find((row) => Number(row.image_id || row.id || 0) === targetId);
+    if (child) return child;
+  }
+  return null;
 }
 
 function openImageModal(item) {
@@ -530,6 +582,17 @@ function bindTableEvents() {
     const button = event.target.closest("button[data-action]");
     if (button) {
       const imageId = Number(button.dataset.imageId || 0);
+      if (button.dataset.action === "toggle-group") {
+        const key = String(button.dataset.contentKey || "");
+        if (!key) return;
+        if (state.expandedContentKeys.has(key)) {
+          state.expandedContentKeys.delete(key);
+        } else {
+          state.expandedContentKeys.add(key);
+        }
+        renderTable();
+        return;
+      }
       if (!imageId) return;
       if (button.dataset.action === "detail") {
         openDetail(imageId);

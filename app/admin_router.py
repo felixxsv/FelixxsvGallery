@@ -2013,7 +2013,8 @@ ON DUPLICATE KEY UPDATE image_id=image_id
 
 def _content_preview_url(row: dict) -> str | None:
     return (
-        _build_preview_url(row.get("preview_path"))
+        row.get("preview_url")
+        or _build_preview_url(row.get("preview_path"))
         or _build_preview_url(row.get("thumb_path_960"))
         or _build_preview_url(row.get("thumb_path_480"))
         or _build_preview_url(row.get("thumb_path"))
@@ -2025,6 +2026,7 @@ def _build_content_list_item(row: dict) -> dict:
     visibility = bool(row.get("is_public")) if row.get("is_public") is not None else True
     return {
         "image_id": int(row.get("image_id")),
+        "id": int(row.get("image_id")),
         "title": row.get("title") or "(無題)",
         "alt": row.get("alt") or "",
         "preview_url": _content_preview_url(row),
@@ -2045,6 +2047,36 @@ def _build_content_list_item(row: dict) -> dict:
     }
 
 
+def _content_group_key_expr() -> str:
+    return "COALESCE(CONCAT('c-', gci.content_id), CONCAT('i-', i.id))"
+
+
+def _content_group_status_expr() -> str:
+    return """
+CASE
+    WHEN SUM(CASE WHEN COALESCE(acs.moderation_status, 'normal')='deleted' THEN 1 ELSE 0 END) > 0 THEN 'deleted'
+    WHEN SUM(CASE WHEN COALESCE(acs.moderation_status, 'normal')='quarantined' THEN 1 ELSE 0 END) > 0 THEN 'quarantined'
+    ELSE 'normal'
+END
+"""
+
+
+def _build_content_group_item(row: dict, children: list[dict]) -> dict:
+    item = _build_content_list_item(row)
+    content_key = str(row.get("content_key") or f"i-{item['image_id']}")
+    image_count = int(row.get("image_count") or len(children) or 1)
+    item.update(
+        {
+            "content_id": content_key,
+            "content_key": content_key,
+            "image_count": image_count,
+            "children": children,
+            "is_group": image_count > 1,
+        }
+    )
+    return item
+
+
 def _load_content_page(conn, page: int, per_page: int, q: str | None, visibility: str | None, status: str | None, uploader_user_id: int | None, sort: str | None) -> dict:
     _ensure_admin_content_states_table(conn)
 
@@ -2063,14 +2095,20 @@ def _load_content_page(conn, page: int, per_page: int, q: str | None, visibility
     avatar_col = _users_avatar_column(conn)
     has_stats = _image_stats_table(conn) is not None
     has_tags = _image_tags_table(conn) is not None and _tags_table(conn) is not None
+    has_content_tables = _detect_table(conn, "gallery_contents") is not None and _detect_table(conn, "gallery_content_images") is not None
 
     where = ["1=1"]
     params: list = []
 
     if q_value:
         like = f"%{q_value}%"
-        q_parts = ["COALESCE(i.title, '') LIKE %s", "COALESCE(i.alt, '') LIKE %s"]
-        q_params = [like, like]
+        q_parts = [
+            "COALESCE(i.title, '') LIKE %s",
+            "COALESCE(i.alt, '') LIKE %s",
+            "COALESCE(gc.title, '') LIKE %s",
+            "COALESCE(gc.alt, '') LIKE %s",
+        ]
+        q_params = [like, like, like, like]
         if has_tags:
             q_parts.append("EXISTS (SELECT 1 FROM image_tags it JOIN tags t ON t.id=it.tag_id WHERE it.image_id=i.id AND t.name LIKE %s)")
             q_params.append(like)
@@ -2093,18 +2131,27 @@ def _load_content_page(conn, page: int, per_page: int, q: str | None, visibility
             where.append("1=0")
 
     if sort_value == "posted_asc":
-        order_sql = "COALESCE(i.created_at, i.shot_at) ASC, i.id ASC"
+        order_sql = "posted_at ASC, content_key ASC"
     elif sort_value == "likes_desc" and has_stats:
-        order_sql = "COALESCE(st.like_count, 0) DESC, i.id DESC"
+        order_sql = "like_count DESC, content_key DESC"
     elif sort_value == "views_desc" and has_stats:
-        order_sql = "COALESCE(st.view_count, 0) DESC, i.id DESC"
+        order_sql = "view_count DESC, content_key DESC"
     elif sort_value == "title_asc":
-        order_sql = "COALESCE(i.title, '') ASC, i.id ASC"
+        order_sql = "title ASC, content_key ASC"
     else:
-        order_sql = "COALESCE(i.created_at, i.shot_at) DESC, i.id DESC"
+        order_sql = "posted_at DESC, content_key DESC"
 
     where_sql = " AND ".join(where)
     stats_join = "LEFT JOIN image_stats st ON st.image_id=i.id" if has_stats else "LEFT JOIN (SELECT NULL AS image_id, 0 AS like_count, 0 AS view_count) st ON st.image_id=i.id"
+    content_join = """
+LEFT JOIN gallery_content_images gci ON gci.image_id=i.id
+LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery
+""" if has_content_tables else """
+LEFT JOIN (SELECT NULL AS image_id, NULL AS content_id, NULL AS is_thumbnail, NULL AS sort_order) gci ON gci.image_id=i.id
+LEFT JOIN (SELECT NULL AS id, NULL AS gallery, NULL AS title, NULL AS alt, NULL AS shot_at, NULL AS created_at, NULL AS thumbnail_image_id) gc ON gc.id=gci.content_id
+"""
+    content_key_expr = _content_group_key_expr()
+    status_expr = _content_group_status_expr()
 
     uploader_join = ""
     uploader_select = "NULL AS uploader_user_id, NULL AS uploader_display_name, NULL AS uploader_user_key, NULL AS uploader_avatar_path"
@@ -2117,15 +2164,23 @@ def _load_content_page(conn, page: int, per_page: int, q: str | None, visibility
             parts.append("NULL AS uploader_avatar_path")
         uploader_select = ", ".join(parts)
 
-    visibility_select = f"COALESCE(i.{visibility_col}, 1) AS is_public" if visibility_col else "1 AS is_public"
+    visibility_expr = f"COALESCE(i.{visibility_col}, 1)" if visibility_col else "1"
+    visibility_select = f"{visibility_expr} AS is_public"
 
     with conn.cursor() as cur:
         cur.execute(
             f"""
 SELECT COUNT(*) AS c
-FROM images i
-LEFT JOIN admin_content_states acs ON acs.image_id=i.id
-WHERE {where_sql}
+FROM (
+    SELECT {content_key_expr} AS content_key
+    FROM images i
+    LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+    {stats_join}
+    {content_join}
+    {uploader_join}
+    WHERE {where_sql}
+    GROUP BY content_key
+) grouped
 """,
             params,
         )
@@ -2134,6 +2189,48 @@ WHERE {where_sql}
         cur.execute(
             f"""
 SELECT
+    {content_key_expr} AS content_key,
+    COALESCE(gc.thumbnail_image_id, MIN(i.id)) AS thumbnail_image_id,
+    COUNT(DISTINCT i.id) AS image_count,
+    MAX(COALESCE(NULLIF(gc.title, ''), i.title, i.alt, CONCAT('image-', i.id))) AS title,
+    MAX(COALESCE(gc.alt, i.alt, '')) AS alt,
+    MAX(COALESCE(gc.shot_at, i.shot_at)) AS shot_at,
+    MAX(COALESCE(gc.created_at, i.created_at, i.shot_at)) AS posted_at,
+    MIN({visibility_expr}) AS is_public,
+    {status_expr} AS moderation_status,
+    SUM(COALESCE(st.like_count, 0)) AS like_count,
+    SUM(COALESCE(st.view_count, 0)) AS view_count
+FROM images i
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+{stats_join}
+{content_join}
+{uploader_join}
+WHERE {where_sql}
+GROUP BY content_key, gc.thumbnail_image_id
+ORDER BY {order_sql}
+LIMIT %s OFFSET %s
+""",
+            [*params, per_page, offset],
+        )
+        group_rows = cur.fetchall()
+
+    content_keys = [str(row.get("content_key")) for row in group_rows if row.get("content_key")]
+    children_by_key: dict[str, list[dict]] = {key: [] for key in content_keys}
+
+    if content_keys:
+        placeholders = ",".join(["%s"] * len(content_keys))
+        child_order_sql = """
+CASE WHEN gc.thumbnail_image_id=i.id THEN 0 ELSE 1 END,
+CASE WHEN COALESCE(gci.is_thumbnail, 0)=1 THEN 0 ELSE 1 END,
+CASE WHEN gci.sort_order IS NULL THEN 1 ELSE 0 END,
+COALESCE(gci.sort_order, 2147483647),
+i.id ASC
+"""
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+SELECT
+    {content_key_expr} AS content_key,
     i.id AS image_id,
     i.title,
     i.alt,
@@ -2150,23 +2247,49 @@ SELECT
 FROM images i
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id
 {stats_join}
+{content_join}
 {uploader_join}
-WHERE {where_sql}
-ORDER BY {order_sql}
-LIMIT %s OFFSET %s
+WHERE {content_key_expr} IN ({placeholders})
+ORDER BY content_key ASC, {child_order_sql}
 """,
-            [*params, per_page, offset],
-        )
-        rows = cur.fetchall()
+                content_keys,
+            )
+            child_rows = cur.fetchall()
 
-    items = [_build_content_list_item(row) for row in rows]
+        for child in child_rows:
+            key = str(child.get("content_key") or "")
+            if key not in children_by_key:
+                continue
+            children_by_key[key].append(_build_content_list_item(child))
+
+    rows: list[dict] = []
+    for row in group_rows:
+        key = str(row.get("content_key") or "")
+        children = children_by_key.get(key, [])
+        thumbnail_id = row.get("thumbnail_image_id")
+        parent_row = None
+        if thumbnail_id is not None:
+            for child in children:
+                if int(child.get("image_id") or 0) == int(thumbnail_id):
+                    parent_row = child
+                    break
+        if parent_row is None and children:
+            parent_row = children[0]
+        merged = dict(parent_row or {})
+        merged.update(row)
+        merged["image_id"] = int((parent_row or {}).get("image_id") or row.get("thumbnail_image_id") or 0)
+        merged["preview_path"] = (parent_row or {}).get("preview_path")
+        merged["thumb_path_960"] = (parent_row or {}).get("thumb_path_960")
+        merged["thumb_path_480"] = (parent_row or {}).get("thumb_path_480")
+        rows.append(_build_content_group_item(merged, children))
+
     pages = (total + per_page - 1) // per_page if total > 0 else 1
     return {
         "page": page,
         "per_page": per_page,
         "pages": pages,
         "total": total,
-        "items": items,
+        "items": rows,
     }
 
 
