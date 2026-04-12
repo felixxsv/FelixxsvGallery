@@ -51,7 +51,7 @@ function normalizeUserKey(value) {
 function getBadgeIconHtml(badge, appBase) {
   if (!badge.icon) return `<img class="badge-icon" src="${BADGE_DEFAULT_ICON}" alt="" aria-hidden="true">`;
   const icon = String(badge.icon).replace(/^badge_/, "").replace(/\.svg$/i, ".png");
-  const src = `${appBase}/assets/icons/badges/${icon}`;
+  const src = `${appBase}/assets/icons/badges/${icon}?v=20260413-crop`;
   return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src=window._BADGE_DEFAULT_ICON">`;
 }
 
