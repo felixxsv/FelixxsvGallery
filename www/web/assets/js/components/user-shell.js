@@ -504,6 +504,7 @@ export function initUserShell(app) {
     const accountSecurityBody = accountSecurityLayer?.querySelector(".app-modal-body");
     if (accountSecurityBody && !settingsBody.querySelector("[data-settings-account-security]")) {
       const accountContainer = document.createElement("div");
+      accountContainer.className = "shell-settings-group shell-settings-group--account";
       accountContainer.dataset.settingsAccountSecurity = "";
       while (accountSecurityBody.firstChild) {
         accountContainer.appendChild(accountSecurityBody.firstChild);

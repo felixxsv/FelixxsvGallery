@@ -1711,6 +1711,11 @@ body {
   margin-bottom: 0;
 }
 
+.shell-settings-group--account {
+  display: grid;
+  gap: var(--space-6);
+}
+
 .shell-settings-group__title {
   font-size: 0.8rem;
   font-weight: 600;
