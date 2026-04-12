@@ -1,0 +1,37 @@
+.admin-contacts-grid { display: grid; gap: 20px; }
+.admin-contacts-panel--toolbar, .admin-contacts-panel--list { min-width: 0; }
+.admin-contacts-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: end; }
+.admin-contacts-toolbar__left { display: flex; gap: 14px; flex-wrap: wrap; align-items: end; }
+.admin-contacts-toolbar__right { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; align-items: end; }
+
+.admin-contacts-table-wrap { border: 1px solid rgba(255,255,255,.08); border-radius: 18px; overflow: auto; background: rgba(15,23,42,.36); }
+.admin-contacts-table { width: 100%; border-collapse: collapse; min-width: 960px; }
+.admin-contacts-table thead th { position: sticky; top: 0; z-index: 1; background: rgba(15,23,42,.96); color: rgba(226,232,240,.72); font-size: .78rem; font-weight: 600; letter-spacing: .02em; text-align: left; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.admin-contacts-table tbody td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: middle; }
+.admin-contacts-table tbody tr:hover { background: rgba(255,255,255,.04); }
+.admin-contacts-empty { text-align: center !important; color: rgba(226,232,240,.64); padding: 26px 16px !important; }
+
+.admin-contacts-user-cell { display: flex; align-items: center; gap: 10px; }
+.admin-contacts-avatar { width: 36px; height: 36px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; display: grid; place-items: center; font-size: .85rem; color: rgba(226,232,240,.84); flex-shrink: 0; }
+.admin-contacts-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.admin-contacts-avatar--fallback { font-weight: 700; }
+
+.admin-contacts-mono { font-family: var(--font-mono, monospace); font-size: .82rem; color: rgba(226,232,240,.72); }
+.admin-contacts-message-preview { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(226,232,240,.82); }
+
+.admin-contacts-status { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; border: 1px solid rgba(255,255,255,.08); }
+.admin-contacts-status--open { color: #fde68a; background: rgba(245,158,11,.16); border-color: rgba(252,211,77,.24); }
+.admin-contacts-status--done { color: #bbf7d0; background: rgba(22,163,74,.18); border-color: rgba(34,197,94,.28); }
+
+.admin-contacts-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.admin-contacts-page-meta { min-width: 60px; text-align: center; color: rgba(226,232,240,.72); }
+
+/* Detail modal */
+.admin-contacts-detail-user { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-contacts-detail-message-row { align-items: flex-start; }
+.admin-contacts-detail-message { white-space: pre-wrap; word-break: break-word; line-height: 1.8; color: rgba(226,232,240,.9); }
+
+@media (max-width: 1080px) {
+  .admin-contacts-toolbar { grid-template-columns: 1fr; }
+  .admin-contacts-toolbar__right { justify-content: flex-start; }
+}
