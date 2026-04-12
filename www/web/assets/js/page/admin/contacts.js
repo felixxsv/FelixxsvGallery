@@ -193,15 +193,14 @@ async function markDone(contactId) {
   if (doneBtn) { doneBtn.disabled = true; doneBtn.textContent = t("marking", "処理中..."); }
 
   try {
-    const { res, data } = await api.patch(`/api/admin/contacts/${contactId}/done`, {});
-    if (res.ok) {
-      window.AdminApp?.toast?.success?.(t("done_success", "完了にしました。"));
-      window.AdminApp?.modal?.close?.("admin-contacts-detail");
-      await loadContacts(true);
-    } else {
-      window.AdminApp?.toast?.error?.(data?.message || t("done_error", "更新に失敗しました。"));
-      if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = t("mark_done", "完了"); }
-    }
+    await api.patch(`/api/admin/contacts/${contactId}/done`, {});
+    // Update state immediately for instant feedback
+    const item = state.items.find((i) => i.id === contactId);
+    if (item) item.status = "done";
+    if (state.currentItem?.id === contactId) state.currentItem.status = "done";
+    window.AdminApp?.modal?.close?.("admin-contacts-detail");
+    renderTable();
+    window.AdminApp?.toast?.success?.(t("done_success", "完了にしました。"));
   } catch {
     window.AdminApp?.toast?.error?.(t("done_error", "更新に失敗しました。"));
     if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = t("mark_done", "完了"); }
