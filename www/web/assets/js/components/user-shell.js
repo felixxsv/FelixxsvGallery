@@ -1533,7 +1533,7 @@ export function initUserShell(app) {
       app.modal.open("user-info");
     });
 
-    refs.loginButton.addEventListener("click", () => {
+    refs.loginButton?.addEventListener("click", () => {
       window.location.href = "/auth";
     });
 
@@ -1562,17 +1562,17 @@ export function initUserShell(app) {
       });
     }
 
-    refs.passwordSaveButton.addEventListener("click", handlePasswordSave);
+    refs.passwordSaveButton?.addEventListener("click", handlePasswordSave);
     if (refs.setPasswordSaveButton) refs.setPasswordSaveButton.addEventListener("click", handleSetPasswordSave);
     if (refs.discordLinkButton) refs.discordLinkButton.addEventListener("click", handleDiscordLink);
     if (refs.discordUnlinkButton) refs.discordUnlinkButton.addEventListener("click", handleDiscordUnlink);
-    refs.profileSaveButton.addEventListener("click", handleProfileSave);
-    refs.avatarFileInput.addEventListener("change", () => {
+    refs.profileSaveButton?.addEventListener("click", handleProfileSave);
+    refs.avatarFileInput?.addEventListener("change", () => {
       const file = refs.avatarFileInput.files?.[0] || null;
       refs.avatarFileInput.value = "";
       if (file) openAvatarCropModal(file);
     });
-    refs.profileBioInput.addEventListener("input", () => {
+    refs.profileBioInput?.addEventListener("input", () => {
       refs.profileBioCount.textContent = refs.profileBioInput.value.length;
     });
     if (refs.avatarZoomSlider) {
@@ -1592,22 +1592,22 @@ export function initUserShell(app) {
       });
     }
     bindCropDrag();
-    refs.addLinkSubmitButton.addEventListener("click", handleLinkAdd);
-    refs.addLinkInput.addEventListener("keydown", (e) => {
+    refs.addLinkSubmitButton?.addEventListener("click", handleLinkAdd);
+    refs.addLinkInput?.addEventListener("keydown", (e) => {
       if (e.key === "Enter") handleLinkAdd();
     });
-    refs.avatarDeleteButton.addEventListener("click", handleAvatarDelete);
-    refs.twoFactorEnableButton.addEventListener("click", handleTwoFactorEnable);
-    refs.twoFactorSetupConfirmButton.addEventListener("click", handleTwoFactorSetupConfirm);
-    refs.twoFactorSetupResendButton.addEventListener("click", handleTwoFactorSetupResend);
-    refs.twoFactorSetupCancelButton.addEventListener("click", () => requestDiscardVerificationFlow("setup"));
-    refs.twoFactorDisableOpenButton.addEventListener("click", handleTwoFactorDisableStart);
-    refs.twoFactorDisableConfirmButton.addEventListener("click", handleTwoFactorDisableConfirm);
-    refs.twoFactorDisableResendButton.addEventListener("click", handleTwoFactorDisableResend);
-    refs.twoFactorDisableCancelButton.addEventListener("click", () => requestDiscardVerificationFlow("disable"));
-    refs.actionConfirmApproveButton.addEventListener("click", () => closeActionConfirm(true));
-    refs.actionConfirmCancelButton.addEventListener("click", () => closeActionConfirm(false));
-    refs.emailSaveButton.addEventListener("click", handleEmailSave);
+    refs.avatarDeleteButton?.addEventListener("click", handleAvatarDelete);
+    refs.twoFactorEnableButton?.addEventListener("click", handleTwoFactorEnable);
+    refs.twoFactorSetupConfirmButton?.addEventListener("click", handleTwoFactorSetupConfirm);
+    refs.twoFactorSetupResendButton?.addEventListener("click", handleTwoFactorSetupResend);
+    refs.twoFactorSetupCancelButton?.addEventListener("click", () => requestDiscardVerificationFlow("setup"));
+    refs.twoFactorDisableOpenButton?.addEventListener("click", handleTwoFactorDisableStart);
+    refs.twoFactorDisableConfirmButton?.addEventListener("click", handleTwoFactorDisableConfirm);
+    refs.twoFactorDisableResendButton?.addEventListener("click", handleTwoFactorDisableResend);
+    refs.twoFactorDisableCancelButton?.addEventListener("click", () => requestDiscardVerificationFlow("disable"));
+    refs.actionConfirmApproveButton?.addEventListener("click", () => closeActionConfirm(true));
+    refs.actionConfirmCancelButton?.addEventListener("click", () => closeActionConfirm(false));
+    refs.emailSaveButton?.addEventListener("click", handleEmailSave);
     if (refs.emailResendButton) refs.emailResendButton.addEventListener("click", handleEmailResend);
 
     if (refs.settingLanguage) {
