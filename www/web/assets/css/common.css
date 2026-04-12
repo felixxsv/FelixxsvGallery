@@ -193,6 +193,10 @@ body.is-custom-scrollbar-dragging {
   background: var(--scrollbar-thumb-active);
 }
 
+body.is-image-modal-open .app-custom-scrollbar {
+  display: none;
+}
+
 img,
 svg,
 video,
