@@ -502,8 +502,9 @@ export function initUserShell(app) {
     const createdContactModal = ensureContactModal();
     const accountSecurityLayer = document.querySelector("[data-modal-id='account-security']");
     const accountSecurityBody = accountSecurityLayer?.querySelector(".app-modal-body");
+    let accountContainer = settingsBody.querySelector("[data-settings-account-security]");
     if (accountSecurityBody && !settingsBody.querySelector("[data-settings-account-security]")) {
-      const accountContainer = document.createElement("div");
+      accountContainer = document.createElement("div");
       accountContainer.className = "shell-settings-group shell-settings-group--account";
       accountContainer.dataset.settingsAccountSecurity = "";
       while (accountSecurityBody.firstChild) {
@@ -513,6 +514,38 @@ export function initUserShell(app) {
     }
     if (accountSecurityLayer) {
       accountSecurityLayer.remove();
+    }
+    const accountSecurityList = accountContainer?.querySelector(".shell-security-list");
+    const sessionSection = accountContainer?.querySelector(".shell-account-actions")?.closest(".shell-security-section");
+    const logoutAllButton = accountContainer?.querySelector("#shellLogoutAllButton");
+    const logoutButton = accountContainer?.querySelector("#shellLogoutButton");
+    if (accountSecurityList && sessionSection) {
+      if (logoutAllButton && !accountSecurityList.querySelector("[data-settings-logout-all-item]")) {
+        const row = document.createElement("div");
+        row.className = "shell-security-item";
+        row.dataset.settingsLogoutAllItem = "";
+        row.innerHTML = `
+          <div class="shell-security-item__left">
+            <span class="shell-security-item__label" data-i18n="shell.static.logout_all">Log Out All Devices</span>
+          </div>
+        `;
+        row.appendChild(logoutAllButton);
+        accountSecurityList.appendChild(row);
+      }
+      if (logoutButton && !accountSecurityList.querySelector("[data-settings-logout-item]")) {
+        const row = document.createElement("div");
+        row.className = "shell-security-item";
+        row.dataset.settingsLogoutItem = "";
+        row.innerHTML = `
+          <div class="shell-security-item__left">
+            <span class="shell-security-item__label" data-i18n="shell.static.logout">Log Out</span>
+          </div>
+        `;
+        row.appendChild(logoutButton);
+        accountSecurityList.appendChild(row);
+      }
+      sessionSection.remove();
+      app.i18n?.apply?.(accountContainer);
     }
 
     if (!settingsBody.querySelector("[data-settings-support-links]")) {
