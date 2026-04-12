@@ -149,13 +149,15 @@ body.is-image-modal-open {
 .image-modal.is-controls-visible .image-modal__close,
 .image-modal.is-controls-visible .image-modal__footer,
 .image-modal.is-controls-visible .image-modal__slider-wrap,
-.image-modal.is-controls-visible .image-detail-modal,
 .image-modal.is-detail-open .image-modal__close,
 .image-modal.is-detail-open .image-modal__footer,
-.image-modal.is-detail-open .image-modal__slider-wrap,
-.image-modal.is-detail-open .image-detail-modal {
+.image-modal.is-detail-open .image-modal__slider-wrap {
   opacity: 1;
   transform: translateY(0);
+}
+
+.image-modal.is-detail-open .image-detail-modal {
+  opacity: 1;
 }
 
 .image-modal.is-controls-visible .image-modal__nav,
@@ -296,6 +298,7 @@ body.is-image-modal-open {
   inset: 0;
   z-index: 3;
   opacity: 0;
+  transform: translateY(0);
   transition: opacity 0.18s ease;
 }
 
@@ -313,7 +316,6 @@ body.is-image-modal-open {
   max-height: min(82vh, 920px);
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-gutter: stable;
   transform: translate(-50%, -50%);
   border-radius: 20px;
   background: rgba(12, 18, 28, 0.96);
