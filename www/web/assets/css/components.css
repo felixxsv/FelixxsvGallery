@@ -772,12 +772,12 @@ body {
 
 /* Public user profile modal */
 .shell-user-profile-dialog {
-  max-width: 560px;
+  max-width: 920px;
   width: 100%;
 }
 
 .shell-user-profile-dialog .app-modal-body {
-  height: 360px;
+  height: 400px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -890,7 +890,7 @@ body {
 
 .shell-user-profile__link-badge-row > .shell-user-profile__section:first-child {
   flex: 0 0 auto;
-  min-width: 212px;
+  min-width: 432px;
 }
 
 .shell-user-profile__link-badge-row > .shell-user-profile__section:last-child {
@@ -934,6 +934,66 @@ body {
   margin: 0;
 }
 
+.shell-user-profile .shell-user-link,
+.shell-user-profile .user-profile-badge {
+  width: 80px;
+  height: 80px;
+}
+
+.shell-user-profile .shell-user-link__icon {
+  width: 40px;
+  height: 40px;
+}
+
+.shell-user-profile .user-profile-badge .badge-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.admin-shell .shell-user-profile-dialog {
+  max-width: 920px;
+}
+
+@media (max-width: 860px) {
+  .shell-user-profile__link-badge-row {
+    flex-direction: column;
+  }
+
+  .shell-user-profile__link-badge-row > .shell-user-profile__section:first-child {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .shell-user-profile-dialog .app-modal-body {
+    height: auto;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .shell-user-profile {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .shell-user-profile__left {
+    flex-direction: row;
+    width: auto;
+    text-align: left;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .shell-user-profile__right {
+    overflow-y: visible;
+  }
+
+  .shell-user-profile__name {
+    -webkit-line-clamp: unset;
+  }
+}
+
 /* Mobile: vertical scrollable layout */
 @media (max-width: 500px) {
   .shell-user-profile-dialog .app-modal-body {
@@ -961,6 +1021,17 @@ body {
     height: 60px;
     font-size: 1.4rem;
     flex-shrink: 0;
+  }
+
+  .shell-user-profile .shell-user-link,
+  .shell-user-profile .user-profile-badge {
+    width: 60px;
+    height: 60px;
+  }
+
+  .shell-user-profile .shell-user-link__icon {
+    width: 30px;
+    height: 30px;
   }
 
   .shell-user-profile__right {
