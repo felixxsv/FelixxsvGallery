@@ -148,12 +148,15 @@ body.is-image-modal-open {
 
 .image-modal.is-controls-visible .image-modal__close,
 .image-modal.is-controls-visible .image-modal__footer,
-.image-modal.is-controls-visible .image-modal__slider-wrap,
 .image-modal.is-detail-open .image-modal__close,
-.image-modal.is-detail-open .image-modal__footer,
-.image-modal.is-detail-open .image-modal__slider-wrap {
+.image-modal.is-detail-open .image-modal__footer {
   opacity: 1;
   transform: translateY(0);
+}
+
+.image-modal.is-controls-visible .image-modal__slider-wrap,
+.image-modal.is-detail-open .image-modal__slider-wrap {
+  opacity: 1;
 }
 
 .image-modal.is-detail-open .image-detail-modal {
