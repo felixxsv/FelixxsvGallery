@@ -129,7 +129,8 @@
 </section>
 
 <!-- Detail modal -->
-<div id="appModalRoot">
+<div aria-live="polite" class="app-modal-root" id="appModalRoot">
+<button aria-label="閉じる" class="app-global-close" hidden="" id="appGlobalClose" type="button" data-i18n-aria-label="shell.static.close">×</button>
   <section class="app-modal-layer" data-modal-layer data-modal-id="admin-contacts-detail" hidden>
     <div class="app-modal-backdrop" data-modal-backdrop="admin-contacts-detail"></div>
     <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="adminContactDetailTitle" tabindex="-1">
@@ -145,6 +146,7 @@
     </div>
   </section>
 </div>
+<div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
 
 <script src="/assets/js/components/admin-layout.js" type="module"></script>
 <script src="/assets/js/page/admin/contacts.js" type="module"></script>
