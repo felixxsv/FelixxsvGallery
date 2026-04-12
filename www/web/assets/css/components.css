@@ -982,8 +982,8 @@ body {
 
 /* Badge icon shared style */
 .badge-icon {
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
   object-fit: contain;
   vertical-align: middle;
@@ -1000,15 +1000,17 @@ body {
 .user-profile-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 0.85rem;
   font-weight: 700;
   border: 1.5px solid transparent;
   box-shadow: 0 1px 6px rgba(0,0,0,0.14), 0 0 0 2px transparent;
   white-space: nowrap;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 .user-profile-badge--blue {
@@ -1085,6 +1087,11 @@ body {
   cursor: pointer;
   transition: box-shadow 0.15s ease, opacity 0.15s ease;
   user-select: none;
+}
+
+.shell-badge-pool__item .badge-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .shell-badge-pool__item.is-selected {

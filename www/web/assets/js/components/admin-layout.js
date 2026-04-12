@@ -9,8 +9,8 @@ import { createImageModalController } from "../core/image-modal.js";
 import { initSidebar } from "../core/sidebar.js";
 import { createDirtyGuard } from "../core/dirty-guard.js";
 import { createThemeController } from "../core/theme.js";
-import { initUserShell } from "./user-shell.js";
-import { initPublicProfileModal } from "./public-profile.js";
+import { initUserShell } from "./user-shell.js?v=20260412-badges2";
+import { initPublicProfileModal } from "./public-profile.js?v=20260412-badges2";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;

@@ -74,6 +74,10 @@ function getBadgeIconHtml(badge, appBase) {
   return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src=window._BADGE_DEFAULT_ICON">`;
 }
 
+function isActiveBadge(badge) {
+  return badge?.key && String(badge.key) !== "star";
+}
+
 function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -813,7 +817,7 @@ export function initUserShell(app) {
   function renderDisplayBadges(user) {
     const container = byId("shellUserDisplayBadges");
     if (!container) return;
-    const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
+    const pool = Array.isArray(user.badge_pool) ? user.badge_pool.filter(isActiveBadge) : [];
     const displayKeys = Array.isArray(user.display_badges) ? user.display_badges : [];
     const poolMap = Object.fromEntries(pool.map((b) => [b.key, b]));
     const toShow = displayKeys.map((k) => poolMap[k]).filter(Boolean);
@@ -834,7 +838,7 @@ export function initUserShell(app) {
     const list = byId("shellProfileBadgePool");
     if (!list) return;
 
-    const pool = Array.isArray(user.badge_pool) ? user.badge_pool : [];
+    const pool = Array.isArray(user.badge_pool) ? user.badge_pool.filter(isActiveBadge) : [];
     if (section) section.hidden = pool.length === 0;
     if (pool.length === 0) {
       list.innerHTML = `<span class="shell-badge-pool__empty">${t("shell.value.none", "Not set")}</span>`;
@@ -859,7 +863,7 @@ export function initUserShell(app) {
   }
 
   async function handleBadgeToggle(badgeKey, user) {
-    const currentDisplay = Array.isArray(user.display_badges) ? [...user.display_badges] : [];
+    const currentDisplay = Array.isArray(user.display_badges) ? user.display_badges.filter((key) => String(key) !== "star") : [];
     const isSelected = currentDisplay.includes(badgeKey);
     let newDisplay;
     if (isSelected) {
