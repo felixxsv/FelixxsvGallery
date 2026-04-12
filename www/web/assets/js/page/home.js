@@ -578,6 +578,13 @@ export function initHomePage(app) {
     if (loadingMessage) loadingMessage.textContent = t("home.loading", loadingMessage.textContent || "Loading");
     const emptyMessage = refs.emptyState?.querySelector(".home-empty-state__message");
     if (emptyMessage) emptyMessage.textContent = t("home.empty", emptyMessage.textContent || "No matching images found");
+
+    for (const metaNode of refs.galleryGrid.querySelectorAll("[data-card-meta]")) {
+      if (metaNode.dataset.date !== undefined) {
+        metaNode.textContent = formatDisplayDateTime(metaNode.dataset.date);
+      }
+    }
+
     updateStatus();
   }
 
@@ -1424,7 +1431,9 @@ export function initHomePage(app) {
     }
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
-    metaNode.textContent = formatDisplayDateTime(image.shot_at || image.created_at || image.date || "");
+    const rawDate = image.shot_at || image.created_at || image.date || "";
+    metaNode.dataset.date = rawDate;
+    metaNode.textContent = formatDisplayDateTime(rawDate);
 
     const detail = buildPublicDetail(image);
     const user = detail.user || {};
