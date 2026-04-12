@@ -259,6 +259,8 @@
   "shell.static.profile_edit": "Edit Profile",
   "shell.static.account": "Account",
   "shell.static.account_settings": "Account Settings",
+  "shell.static.open": "Open",
+  "shell.static.support_group": "Support",
   "shell.static.login_auth": "Login & Security",
   "shell.static.password_change": "Change Password",
   "shell.static.password_set": "Set Password",

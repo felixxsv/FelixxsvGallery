@@ -259,6 +259,8 @@
   "shell.static.profile_edit": "プロフィール編集",
   "shell.static.account": "アカウント",
   "shell.static.account_settings": "アカウント設定",
+  "shell.static.open": "開く",
+  "shell.static.support_group": "サポート",
   "shell.static.login_auth": "ログイン・認証",
   "shell.static.password_change": "パスワード変更",
   "shell.static.password_set": "パスワード設定",
