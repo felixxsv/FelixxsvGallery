@@ -257,6 +257,7 @@
   "shell.static.user_info": "用户信息",
   "shell.static.profile": "个人资料",
   "shell.static.profile_edit": "编辑个人资料",
+  "shell.static.account": "账户",
   "shell.static.account_settings": "账户设置",
   "shell.static.login_auth": "登录与安全",
   "shell.static.password_change": "更改密码",

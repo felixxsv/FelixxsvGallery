@@ -444,12 +444,12 @@ export function initUserShell(app) {
 
   function applyStaticTranslations() {
     const mappings = [
-      ["#userInfoTitle", 0, "shell.static.account_settings", "Account Settings"],
+      ["#userInfoTitle", 0, "shell.static.account", "Account"],
       ["[data-modal-id='settings'] .app-modal-title", 0, "shell.static.settings", "Settings"],
       ["[data-modal-id='help'] .app-modal-title", 0, "shell.static.help", "Help"],
       ["[data-modal-id='credits'] .app-modal-title", 0, "shell.static.credits", "Credits"],
       ["[data-modal-id='account'] .app-modal-title", 0, "shell.static.profile_edit", "Edit Profile"],
-      ["[data-modal-id='account-security'] .app-modal-title", 0, "shell.static.account_settings", "Account Settings"],
+      ["[data-modal-id='account-security'] .app-modal-title", 0, "shell.static.account", "Account"],
       ["[data-modal-id='password'] .app-modal-title", 0, "shell.static.password_change", "Change Password"],
       ["[data-modal-id='password-set'] .app-modal-title", 0, "shell.static.password_set", "Set Password"],
       ["[data-modal-id='twofactor-setup'] .app-modal-title", 0, "shell.static.twofactor_setup", "Two-Factor Verification"],
