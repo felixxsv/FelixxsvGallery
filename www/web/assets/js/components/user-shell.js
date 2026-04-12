@@ -442,6 +442,110 @@ export function initUserShell(app) {
     `;
   }
 
+  function ensureContactModal() {
+    if (document.querySelector("[data-modal-id='contact']")) return false;
+    const root = document.getElementById("appModalRoot");
+    if (!root) return false;
+    const section = document.createElement("section");
+    section.className = "app-modal-layer";
+    section.dataset.modalLayer = "";
+    section.dataset.modalId = "contact";
+    section.hidden = true;
+    section.innerHTML = `
+      <div class="app-modal-backdrop" data-modal-backdrop="contact"></div>
+      <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="contactTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="contactTitle" class="app-modal-title" data-i18n="shell.contact.title">Contact</h2>
+        </div>
+        <div class="app-modal-body" id="contactModalBody">
+          <div class="app-field">
+            <label class="app-field__label" for="contactCategory" data-i18n="shell.contact.category">Category</label>
+            <select class="app-select" id="contactCategory">
+              <option value="bug" data-i18n="shell.contact.category_bug">Bug report</option>
+              <option value="feature" data-i18n="shell.contact.category_feature">Feature request</option>
+              <option value="account" data-i18n="shell.contact.category_account">About my account</option>
+              <option value="other" data-i18n="shell.contact.category_other">Other</option>
+            </select>
+          </div>
+          <div class="app-field" style="margin-top:14px">
+            <label class="app-field__label" for="contactMessage" data-i18n="shell.contact.message_label">Message</label>
+            <textarea class="app-textarea" id="contactMessage" rows="6" maxlength="2000" data-i18n-placeholder="shell.contact.message_placeholder"></textarea>
+          </div>
+          <div id="contactError" class="app-field-error" hidden style="margin-top:8px;color:var(--color-danger);font-size:.88rem"></div>
+        </div>
+        <div class="app-modal-footer">
+          <button type="button" class="app-button" data-modal-close="contact" id="contactCancelButton" data-i18n="shell.static.cancel">Cancel</button>
+          <button type="button" class="app-button app-button--primary" id="contactSubmitButton" data-i18n="shell.contact.submit">Send</button>
+        </div>
+      </div>
+    `;
+    root.appendChild(section);
+    app.i18n?.apply?.(section);
+    return true;
+  }
+
+  function prepareSettingsModal() {
+    const settingsBody = document.querySelector("[data-modal-id='settings'] .app-modal-body");
+    if (!settingsBody) return;
+
+    document.querySelectorAll("[data-modal-id='user-info'] .app-modal-header-actions [data-modal-open='contact'], [data-modal-id='user-info'] .app-modal-header-actions [data-modal-open='credits']").forEach((node) => node.remove());
+
+    if (refs.accountOpenButton) {
+      const secondary = refs.accountOpenButton.closest(".shell-user-footer__secondary");
+      refs.accountOpenButton.remove();
+      refs.accountOpenButton = null;
+      if (secondary && !secondary.querySelector("button, a")) {
+        secondary.remove();
+      }
+    }
+
+    const createdContactModal = ensureContactModal();
+    const accountSecurityLayer = document.querySelector("[data-modal-id='account-security']");
+    const accountSecurityBody = accountSecurityLayer?.querySelector(".app-modal-body");
+    if (accountSecurityBody && !settingsBody.querySelector("[data-settings-account-security]")) {
+      const accountContainer = document.createElement("div");
+      accountContainer.dataset.settingsAccountSecurity = "";
+      while (accountSecurityBody.firstChild) {
+        accountContainer.appendChild(accountSecurityBody.firstChild);
+      }
+      settingsBody.appendChild(accountContainer);
+    }
+    if (accountSecurityLayer) {
+      accountSecurityLayer.remove();
+    }
+
+    if (!settingsBody.querySelector("[data-settings-support-links]")) {
+      const supportGroup = document.createElement("div");
+      supportGroup.className = "shell-settings-group";
+      supportGroup.dataset.settingsSupportLinks = "";
+      supportGroup.innerHTML = `
+        <h3 class="shell-settings-group__title" data-i18n="shell.static.support_group">Support</h3>
+        <div class="shell-security-list">
+          <div class="shell-security-item" data-settings-contact-item>
+            <div class="shell-security-item__left">
+              <span class="shell-security-item__label" data-i18n="shell.contact.button">Contact</span>
+              <span class="shell-security-item__value" data-i18n="shell.contact.title">Contact</span>
+            </div>
+            <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="contact" data-i18n="shell.static.open">Open</button>
+          </div>
+          <div class="shell-security-item">
+            <div class="shell-security-item__left">
+              <span class="shell-security-item__label" data-i18n="shell.static.credits">Credits</span>
+              <span class="shell-security-item__value">Felixxsv Gallery</span>
+            </div>
+            <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="credits" data-i18n="shell.static.open">Open</button>
+          </div>
+        </div>
+      `;
+      settingsBody.appendChild(supportGroup);
+      app.i18n?.apply?.(supportGroup);
+    }
+
+    if (createdContactModal || accountSecurityLayer) {
+      app.modal?.refresh?.();
+    }
+  }
+
   function applyStaticTranslations() {
     const mappings = [
       ["#userInfoTitle", 0, "shell.static.account", "Account"],
@@ -449,7 +553,6 @@ export function initUserShell(app) {
       ["[data-modal-id='help'] .app-modal-title", 0, "shell.static.help", "Help"],
       ["[data-modal-id='credits'] .app-modal-title", 0, "shell.static.credits", "Credits"],
       ["[data-modal-id='account'] .app-modal-title", 0, "shell.static.profile_edit", "Edit Profile"],
-      ["[data-modal-id='account-security'] .app-modal-title", 0, "shell.static.account", "Account"],
       ["[data-modal-id='password'] .app-modal-title", 0, "shell.static.password_change", "Change Password"],
       ["[data-modal-id='password-set'] .app-modal-title", 0, "shell.static.password_set", "Set Password"],
       ["[data-modal-id='twofactor-setup'] .app-modal-title", 0, "shell.static.twofactor_setup", "Two-Factor Verification"],
@@ -470,12 +573,10 @@ export function initUserShell(app) {
       ["#shellAddLinkSubmitButton", 0, "shell.static.add", "Add"],
       ["#shellLoginButton", 0, "shell.static.login", "Log In"],
       ["#shellUploadOpenButton", 0, "shell.static.upload", "Upload"],
-      ["#shellAccountOpenButton", 0, "shell.static.account_settings", "Account Settings"],
       ["#shellAdminLink", 0, "shell.static.admin", "Open Admin"],
       ["[data-modal-id='settings'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
       ["[data-modal-id='help'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
       ["[data-modal-id='credits'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
-      ["[data-modal-id='account-security'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
       ["[data-modal-id='account'] .app-modal-footer .app-button--ghost", 0, "shell.static.cancel", "Cancel"],
       ["[data-modal-id='email'] .app-modal-footer .app-button--ghost[data-modal-close='email']", 0, "shell.static.cancel", "Cancel"],
       ["[data-modal-id='add-link'] .app-modal-footer .app-button--ghost", 0, "shell.static.cancel", "Cancel"],
@@ -554,6 +655,19 @@ export function initUserShell(app) {
     if (refs.settingImageMetaPinned) {
       refs.settingImageMetaPinned.checked = Boolean(app.settings.getImageMetaPinned());
     }
+    const accountSecurity = document.querySelector("[data-settings-account-security]");
+    if (accountSecurity) {
+      accountSecurity.hidden = !isAuthenticated();
+    }
+    const contactItem = document.querySelector("[data-settings-contact-item]");
+    if (contactItem) {
+      contactItem.hidden = !isAuthenticated();
+    }
+  }
+
+  function renderUserFooter() {
+    if (!refs.userFooter) return;
+    refs.userFooter.hidden = !refs.userFooter.querySelector("button:not([hidden]), a:not([hidden])");
   }
 
   function renderUserCard() {
@@ -575,7 +689,7 @@ export function initUserShell(app) {
       refs.role.textContent = "-";
       refs.uploadDisabled.hidden = true;
       if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = true;
-      refs.accountOpenButton.hidden = true;
+      if (refs.accountOpenButton) refs.accountOpenButton.hidden = true;
       if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = true;
       if (refs.adminLink) refs.adminLink.hidden = true;
       refs.userFooter.hidden = true;
@@ -650,12 +764,12 @@ export function initUserShell(app) {
     const uploadEnabled = user.upload_enabled !== false;
     refs.uploadDisabled.hidden = uploadEnabled;
     if (refs.uploadOpenButton) refs.uploadOpenButton.hidden = !uploadEnabled;
-    refs.accountOpenButton.hidden = false;
+    if (refs.accountOpenButton) refs.accountOpenButton.hidden = false;
     if (refs.profilePreviewButton) refs.profilePreviewButton.hidden = false;
     if (refs.adminLink) {
       refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
     }
-    refs.userFooter.hidden = false;
+    renderUserFooter();
   }
 
   // ---- Badge UI ----
@@ -1741,6 +1855,7 @@ export function initUserShell(app) {
     window.addEventListener("beforeunload", handleBeforeUnload);
   }
 
+  prepareSettingsModal();
   renderHelpContent();
   renderCreditsContent();
   renderCredits();
@@ -1755,6 +1870,7 @@ export function initUserShell(app) {
     renderCreditsContent();
     renderCredits();
     applyStaticTranslations();
+    app.i18n?.apply?.(document.querySelector("[data-settings-support-links]") || document);
     refreshResendButtons();
     renderUserCard();
     renderAccountSecurityModal();

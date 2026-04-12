@@ -259,6 +259,8 @@
   "shell.static.profile_edit": "Editar perfil",
   "shell.static.account": "Cuenta",
   "shell.static.account_settings": "Configuracion de la cuenta",
+  "shell.static.open": "Abrir",
+  "shell.static.support_group": "Soporte",
   "shell.static.login_auth": "Inicio de sesion y seguridad",
   "shell.static.password_change": "Cambiar contrasena",
   "shell.static.password_set": "Establecer contrasena",
