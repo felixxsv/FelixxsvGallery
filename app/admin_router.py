@@ -5077,12 +5077,15 @@ def admin_contacts_list(
             )
             total = (cur.fetchone() or {}).get("total") or 0
 
+        avatar_col = _users_avatar_column(conn)
+        avatar_select = f"u.{avatar_col} AS user_avatar_path" if avatar_col else "NULL AS user_avatar_path"
+
         with conn.cursor() as cur:
             cur.execute(
                 f"""
                 SELECT ci.id, ci.user_id, ci.category, ci.message, ci.status,
                        ci.created_at, ci.updated_at,
-                       u.display_name, u.user_key, u.role, u.avatar_url
+                       u.display_name, u.user_key, u.role, {avatar_select}
                 FROM contact_inquiries ci
                 LEFT JOIN users u ON u.id = ci.user_id
                 {where_sql}
@@ -5101,7 +5104,7 @@ def admin_contacts_list(
                 "user_display_name": row.get("display_name") or "",
                 "user_key": row.get("user_key") or "",
                 "user_role": row.get("role") or "user",
-                "user_avatar_url": row.get("avatar_url") or None,
+                "user_avatar_url": _build_preview_url(row.get("user_avatar_path")) or None,
                 "category": row.get("category") or "",
                 "message": row.get("message") or "",
                 "status": row.get("status") or "open",

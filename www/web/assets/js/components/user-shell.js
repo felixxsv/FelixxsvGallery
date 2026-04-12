@@ -844,7 +844,7 @@ export function initUserShell(app) {
   }
 
   function renderAccountSecurityModal() {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated() || !refs.accountEmail) {
       return;
     }
 
