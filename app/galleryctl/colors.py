@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import colorsys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,16 @@ class ColorExtractSettings:
     other_max_dist: int
     min_ratio: float
     max_colors: int
+
+
+@dataclass(frozen=True)
+class PaletteSample:
+    id: int
+    name: str
+    rgb: tuple[int, int, int]
+    hue: float
+    saturation: float
+    value: float
 
 
 def _default_palette() -> list[PaletteColor]:
@@ -120,14 +131,91 @@ def _dist2(a: tuple[int, int, int], b: tuple[int, int, int]) -> int:
     return dr * dr + dg * dg + db * db
 
 
+def _rgb_to_hsv(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
+    return colorsys.rgb_to_hsv(rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0)
+
+
+def _palette_samples(palette: list[PaletteColor]) -> list[PaletteSample]:
+    out: list[PaletteSample] = []
+    for color in palette:
+        h, s, v = _rgb_to_hsv(color.rgb)
+        out.append(PaletteSample(color.id, color.name.lower(), color.rgb, h, s, v))
+    return out
+
+
+def _find_palette_sample(samples: list[PaletteSample], *names: str) -> PaletteSample | None:
+    wanted = {name.casefold() for name in names}
+    for sample in samples:
+        if sample.name.casefold() in wanted:
+            return sample
+    return None
+
+
+def _is_neutral_sample(sample: PaletteSample) -> bool:
+    return sample.id in (9, 10) or sample.name.casefold() in {"white", "black"}
+
+
+def _pick_neutral_color(samples: list[PaletteSample], value: float) -> int | None:
+    white = _find_palette_sample(samples, "white") or next(
+        (sample for sample in samples if sample.id == 9),
+        None,
+    )
+    black = _find_palette_sample(samples, "black") or next(
+        (sample for sample in samples if sample.id == 10),
+        None,
+    )
+    if value >= 0.72 and white is not None:
+        return white.id
+    if value <= 0.28 and black is not None:
+        return black.id
+    return None
+
+
+def _hue_distance(a: float, b: float) -> float:
+    diff = abs(a - b)
+    return min(diff, 1.0 - diff)
+
+
+def _color_distance(
+    rgb: tuple[int, int, int],
+    sample: PaletteSample,
+    hue: float,
+    saturation: float,
+    value: float,
+) -> float:
+    if _is_neutral_sample(sample):
+        return 10.0
+    hue_score = _hue_distance(hue, sample.hue) * 5.0
+    saturation_score = abs(saturation - sample.saturation) * 0.8
+    value_score = abs(value - sample.value) * 0.55
+    rgb_score = (_dist2(rgb, sample.rgb) ** 0.5) / 255.0 * 0.2
+    return hue_score + saturation_score + value_score + rgb_score
+
+
+def _classify_pixel(
+    rgb: tuple[int, int, int],
+    samples: list[PaletteSample],
+    other_max_d2: int,
+) -> int | None:
+    hue, saturation, value = _rgb_to_hsv(rgb)
+    if saturation < 0.18:
+        return _pick_neutral_color(samples, value)
+
+    best = min(samples, key=lambda sample: _color_distance(rgb, sample, hue, saturation, value))
+    if _is_neutral_sample(best):
+        return None
+    if _dist2(rgb, best.rgb) > other_max_d2 and saturation < 0.28:
+        return None
+    return best.id
+
+
 def extract_top_colors(
     image_path: Path,
     palette: list[PaletteColor],
     settings: ColorExtractSettings,
 ) -> list[dict[str, Any]]:
     pal = palette[:] if palette else _default_palette()
-    pal_rgb = [c.rgb for c in pal]
-    pal_id = [c.id for c in pal]
+    samples = _palette_samples(pal)
 
     other_max_d2 = settings.other_max_dist * settings.other_max_dist
 
@@ -147,17 +235,10 @@ def extract_top_colors(
                 continue
             total += 1
             rgb = (int(r), int(g), int(b))
-            best_i = 0
-            best_d2 = _dist2(rgb, pal_rgb[0])
-            for i in range(1, len(pal_rgb)):
-                d2 = _dist2(rgb, pal_rgb[i])
-                if d2 < best_d2:
-                    best_d2 = d2
-                    best_i = i
-            if best_d2 > other_max_d2:
+            cid = _classify_pixel(rgb, samples, other_max_d2)
+            if cid is None:
                 other_count += 1
                 continue
-            cid = pal_id[best_i]
             counts[cid] = counts.get(cid, 0) + 1
     else:
         img = img.convert("RGB")
@@ -165,17 +246,10 @@ def extract_top_colors(
         for r, g, b in px:
             total += 1
             rgb = (int(r), int(g), int(b))
-            best_i = 0
-            best_d2 = _dist2(rgb, pal_rgb[0])
-            for i in range(1, len(pal_rgb)):
-                d2 = _dist2(rgb, pal_rgb[i])
-                if d2 < best_d2:
-                    best_d2 = d2
-                    best_i = i
-            if best_d2 > other_max_d2:
+            cid = _classify_pixel(rgb, samples, other_max_d2)
+            if cid is None:
                 other_count += 1
                 continue
-            cid = pal_id[best_i]
             counts[cid] = counts.get(cid, 0) + 1
 
     if total <= 0:
