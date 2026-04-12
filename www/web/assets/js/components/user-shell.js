@@ -543,8 +543,8 @@ export function initUserShell(app) {
   }
 
   function renderSettings() {
-    refs.settingLanguage.value = app.settings.getLanguage();
-    refs.settingTheme.value = app.settings.getTheme();
+    if (refs.settingLanguage) refs.settingLanguage.value = app.settings.getLanguage();
+    if (refs.settingTheme) refs.settingTheme.value = app.settings.getTheme();
     if (refs.settingImageOpenBehavior) {
       refs.settingImageOpenBehavior.value = app.settings.getImageOpenBehavior();
     }
@@ -1608,20 +1608,24 @@ export function initUserShell(app) {
     refs.emailSaveButton.addEventListener("click", handleEmailSave);
     if (refs.emailResendButton) refs.emailResendButton.addEventListener("click", handleEmailResend);
 
-    refs.settingLanguage.addEventListener("change", async () => {
-      const nextLanguage = app.settings.setLanguage(refs.settingLanguage.value);
-      refs.settingLanguage.value = nextLanguage;
-      await ensureLanguageCatalog(nextLanguage);
-      app.i18n?.setLanguage?.(nextLanguage);
-      dispatchLanguageChange(nextLanguage);
-      toast.success(t("shell.toast.save_language", "Language saved."));
-    });
+    if (refs.settingLanguage) {
+      refs.settingLanguage.addEventListener("change", async () => {
+        const nextLanguage = app.settings.setLanguage(refs.settingLanguage.value);
+        refs.settingLanguage.value = nextLanguage;
+        await ensureLanguageCatalog(nextLanguage);
+        app.i18n?.setLanguage?.(nextLanguage);
+        dispatchLanguageChange(nextLanguage);
+        toast.success(t("shell.toast.save_language", "Language saved."));
+      });
+    }
 
-    refs.settingTheme.addEventListener("change", () => {
-      app.settings.setTheme(refs.settingTheme.value);
-      app.theme.apply(refs.settingTheme.value);
-      toast.success(t("shell.toast.save_theme", "Theme saved."));
-    });
+    if (refs.settingTheme) {
+      refs.settingTheme.addEventListener("change", () => {
+        app.settings.setTheme(refs.settingTheme.value);
+        app.theme.apply(refs.settingTheme.value);
+        toast.success(t("shell.toast.save_theme", "Theme saved."));
+      });
+    }
 
     if (refs.settingImageOpenBehavior) {
       refs.settingImageOpenBehavior.addEventListener("change", () => {
