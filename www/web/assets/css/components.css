@@ -772,12 +772,12 @@ body {
 
 /* Public user profile modal */
 .shell-user-profile-dialog {
-  max-width: 920px;
+  max-width: 760px;
   width: 100%;
 }
 
 .shell-user-profile-dialog .app-modal-body {
-  height: 400px;
+  height: 380px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -890,7 +890,7 @@ body {
 
 .shell-user-profile__link-badge-row > .shell-user-profile__section:first-child {
   flex: 0 0 auto;
-  min-width: 432px;
+  min-width: 302px;
 }
 
 .shell-user-profile__link-badge-row > .shell-user-profile__section:last-child {
@@ -936,13 +936,13 @@ body {
 
 .shell-user-profile .shell-user-link,
 .shell-user-profile .user-profile-badge {
-  width: 80px;
-  height: 80px;
+  width: 54px;
+  height: 54px;
 }
 
 .shell-user-profile .shell-user-link__icon {
-  width: 40px;
-  height: 40px;
+  width: 27px;
+  height: 27px;
 }
 
 .shell-user-profile .user-profile-badge .badge-icon {
@@ -951,7 +951,7 @@ body {
 }
 
 .admin-shell .shell-user-profile-dialog {
-  max-width: 920px;
+  max-width: 760px;
 }
 
 @media (max-width: 860px) {
@@ -1025,13 +1025,13 @@ body {
 
   .shell-user-profile .shell-user-link,
   .shell-user-profile .user-profile-badge {
-    width: 60px;
-    height: 60px;
+    width: 54px;
+    height: 54px;
   }
 
   .shell-user-profile .shell-user-link__icon {
-    width: 30px;
-    height: 30px;
+    width: 27px;
+    height: 27px;
   }
 
   .shell-user-profile__right {
