@@ -198,7 +198,7 @@ def _classify_pixel(
     other_max_d2: int,
 ) -> int | None:
     hue, saturation, value = _rgb_to_hsv(rgb)
-    if saturation < 0.18:
+    if saturation < 0.12:
         return _pick_neutral_color(samples, value)
 
     best = min(samples, key=lambda sample: _color_distance(rgb, sample, hue, saturation, value))
