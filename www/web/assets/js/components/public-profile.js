@@ -55,6 +55,10 @@ function getBadgeIconHtml(badge, appBase) {
   return `<img class="badge-icon" src="${src}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src=window._BADGE_DEFAULT_ICON">`;
 }
 
+function isActiveBadge(badge) {
+  return badge?.key && String(badge.key) !== "star";
+}
+
 export function initPublicProfileModal(app) {
   const refs = {
     loading: byId("userProfileLoading"),
@@ -161,7 +165,7 @@ export function initPublicProfileModal(app) {
       }
 
       // Badges
-      const badges = Array.isArray(user.badges) ? user.badges : [];
+      const badges = Array.isArray(user.badges) ? user.badges.filter(isActiveBadge) : [];
       const hasBadges = badges.length > 0;
       currentUser = user;
       if (refs.badgesSection) refs.badgesSection.hidden = !hasBadges;
@@ -206,7 +210,7 @@ export function initPublicProfileModal(app) {
   window.addEventListener("gallery:language-changed", () => {
     applyStaticTranslations();
     if (!currentUser || refs.content.hidden) return;
-    const badges = Array.isArray(currentUser.badges) ? currentUser.badges : [];
+    const badges = Array.isArray(currentUser.badges) ? currentUser.badges.filter(isActiveBadge) : [];
     if (refs.badges) {
       refs.badges.innerHTML = "";
       refs.badges.hidden = badges.length === 0;

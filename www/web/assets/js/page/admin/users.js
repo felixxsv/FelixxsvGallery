@@ -77,6 +77,11 @@ const BADGE_COLOR_CLASS = {
   gold: "admin-badge--gold",
   gray: "admin-badge--gray",
 };
+const REMOVED_BADGE_KEYS = new Set(["star"]);
+
+function isActiveBadge(badge) {
+  return badge?.key && !REMOVED_BADGE_KEYS.has(String(badge.key));
+}
 
 const state = {
   page: 1,
@@ -168,10 +173,11 @@ function renderBadgePool() {
   const sel = byId("adminUsersEditBadgeSelect");
   if (!pool) return;
   pool.innerHTML = "";
-  if (!state.editBadges.length) {
+  const activeBadges = state.editBadges.filter(isActiveBadge);
+  if (!activeBadges.length) {
     pool.innerHTML = `<span class="admin-users-modal__badge-empty">${escapeHtml(t("no_badges", "No badges"))}</span>`;
   }
-  for (const badge of state.editBadges) {
+  for (const badge of activeBadges) {
     const colorClass = BADGE_COLOR_CLASS[badge.color] || "admin-badge--gray";
     const span = document.createElement("span");
     span.className = `admin-badge ${colorClass}`;
@@ -183,9 +189,9 @@ function renderBadgePool() {
   });
   // Update select options: exclude already-owned keys
   if (sel) {
-    const ownedKeys = new Set(state.editBadges.map((b) => b.key));
+    const ownedKeys = new Set(activeBadges.map((b) => b.key));
     sel.innerHTML = `<option value="">${escapeHtml(t("select_badge", "Select a badge..."))}</option>`;
-    for (const item of state.badgeCatalog) {
+    for (const item of state.badgeCatalog.filter(isActiveBadge)) {
       if (ownedKeys.has(item.key)) continue;
       const opt = document.createElement("option");
       opt.value = item.key;
@@ -208,7 +214,7 @@ async function grantBadge() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data?.error?.message || t("badge_grant_error", "Failed to grant badge."));
-    state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges : state.editBadges;
+    state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges.filter(isActiveBadge) : state.editBadges;
     renderBadgePool();
     window.AdminApp?.toast?.success?.(t("badge_granted", "Badge granted."));
   } catch (err) {
@@ -225,7 +231,7 @@ async function revokeBadge(badgeKey) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data?.error?.message || t("badge_revoke_error", "Failed to revoke badge."));
-    state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges : state.editBadges;
+    state.editBadges = Array.isArray(data.data?.badges) ? data.data.badges.filter(isActiveBadge) : state.editBadges;
     renderBadgePool();
     window.AdminApp?.toast?.success?.(t("badge_revoked", "Badge revoked."));
   } catch (err) {
@@ -391,8 +397,8 @@ async function openEditModal(userId) {
       bio: user.bio || "",
     };
     state.editLinks = Array.isArray(user.links) ? user.links.map((l) => ({ url: l.url || "" })) : [];
-    state.editBadges = Array.isArray(badgePayload?.data?.badges) ? badgePayload.data.badges : (Array.isArray(user.badges) ? user.badges : []);
-    state.badgeCatalog = Array.isArray(badgePayload?.data?.catalog) ? badgePayload.data.catalog : [];
+    state.editBadges = (Array.isArray(badgePayload?.data?.badges) ? badgePayload.data.badges : (Array.isArray(user.badges) ? user.badges : [])).filter(isActiveBadge);
+    state.badgeCatalog = (Array.isArray(badgePayload?.data?.catalog) ? badgePayload.data.catalog : []).filter(isActiveBadge);
 
     byId("adminUsersEditDisplayName").value = state.editOriginal.display_name;
     byId("adminUsersEditUserKey").value = state.editOriginal.user_key;
