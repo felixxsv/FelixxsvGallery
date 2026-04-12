@@ -559,6 +559,8 @@ export function initUserShell(app) {
   function renderUserCard() {
     renderHeaderIcon();
 
+    if (!refs.userCard) return;
+
     const contactBtn = byId("shellContactButton");
     if (!isAuthenticated()) {
       refs.userCard.classList.add("is-guest");
