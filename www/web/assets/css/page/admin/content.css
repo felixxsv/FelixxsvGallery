@@ -420,35 +420,12 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
   gap: 14px;
 }
 
-.admin-content-edit__chip-list,
-.admin-content-edit__suggestions,
 .admin-content-edit__color-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.admin-content-edit__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.92);
-  font-size: 12px;
-}
-
-.admin-content-edit__chip button {
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-.admin-content-edit__tag-option,
 .admin-content-edit__color-option {
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.02);
@@ -460,7 +437,6 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
   transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
 
-.admin-content-edit__tag-option.is-active,
 .admin-content-edit__color-option.is-active {
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.52);
