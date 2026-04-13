@@ -18,20 +18,20 @@ function formatDateTime(value) {
 
 function categoryLabel(cat) {
   const map = {
-    bug: t("category_bug", "バグ報告"),
-    feature: t("category_feature", "機能要望"),
-    account: t("category_account", "アカウントについて"),
-    other: t("category_other", "その他"),
+    bug: t("category_bug", "Bug report"),
+    feature: t("category_feature", "Feature request"),
+    account: t("category_account", "About my account"),
+    other: t("category_other", "Other"),
   };
   return map[cat] || cat || "-";
 }
 
 function roleLabel(role) {
-  return role === "admin" ? t("role_admin", "管理者") : t("role_user", "ユーザー");
+  return role === "admin" ? t("role_admin", "Admin") : t("role_user", "User");
 }
 
 function statusLabel(status) {
-  return status === "done" ? t("status_done", "完了") : t("status_open", "未対応");
+  return status === "done" ? t("status_done", "Done") : t("status_open", "Open");
 }
 
 function truncate(str, maxLen) {
@@ -99,7 +99,7 @@ function renderTable() {
   if (!tbody) return;
 
   if (!state.items.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="admin-contacts-empty" data-i18n="admin_contacts.empty">お問い合わせはありません</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="admin-contacts-empty" data-i18n="admin_contacts.empty">No contacts</td></tr>`;
     updatePagination();
     return;
   }
@@ -119,7 +119,7 @@ function renderTable() {
         <td class="admin-contacts-mono">${escapeHtml(formatDateTime(item.created_at))}</td>
         <td><span class="admin-contacts-status ${statusCls}">${escapeHtml(statusLabel(item.status))}</span></td>
         <td>
-          <button class="app-button app-button--small" data-action="detail" data-contact-id="${item.id}" data-i18n="admin_contacts.detail_button">詳細</button>
+          <button class="app-button app-button--small" data-action="detail" data-contact-id="${item.id}" data-i18n="admin_contacts.detail_button">Detail</button>
         </td>
       </tr>
     `;
@@ -147,7 +147,7 @@ function openDetail(contactId) {
     body.innerHTML = `
       <dl class="app-definition-list">
         <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("detail_user", "ユーザー"))}</dt>
+          <dt>${escapeHtml(t("detail_user", "User"))}</dt>
           <dd class="admin-contacts-detail-user">
             ${avatarHtml(item)}
             <span>${escapeHtml(item.user_display_name || "-")}</span>
@@ -155,23 +155,23 @@ function openDetail(contactId) {
           </dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("detail_role", "ロール"))}</dt>
+          <dt>${escapeHtml(t("detail_role", "Role"))}</dt>
           <dd>${escapeHtml(roleLabel(item.user_role))}</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("detail_created_at", "お問い合わせ日"))}</dt>
+          <dt>${escapeHtml(t("detail_created_at", "Contacted At"))}</dt>
           <dd>${escapeHtml(formatDateTime(item.created_at))}</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("detail_category", "カテゴリ"))}</dt>
+          <dt>${escapeHtml(t("detail_category", "Category"))}</dt>
           <dd>${escapeHtml(categoryLabel(item.category))}</dd>
         </div>
         <div class="app-definition-list__row">
-          <dt>${escapeHtml(t("detail_status", "状態"))}</dt>
+          <dt>${escapeHtml(t("detail_status", "Status"))}</dt>
           <dd>${escapeHtml(statusLabel(item.status))}</dd>
         </div>
         <div class="app-definition-list__row admin-contacts-detail-message-row">
-          <dt>${escapeHtml(t("detail_message", "内容"))}</dt>
+          <dt>${escapeHtml(t("detail_message", "Message"))}</dt>
           <dd class="admin-contacts-detail-message">${escapeHtml(item.message)}</dd>
         </div>
       </dl>
@@ -190,7 +190,7 @@ async function markDone(contactId) {
   const api = getApi();
   if (!api) return;
   const doneBtn = byId("adminContactDetailDoneButton");
-  if (doneBtn) { doneBtn.disabled = true; doneBtn.textContent = t("marking", "処理中..."); }
+  if (doneBtn) { doneBtn.disabled = true; doneBtn.textContent = t("marking", "Marking..."); }
 
   try {
     await api.patch(`/api/admin/contacts/${contactId}/done`, {});
@@ -200,10 +200,10 @@ async function markDone(contactId) {
     if (state.currentItem?.id === contactId) state.currentItem.status = "done";
     window.AdminApp?.modal?.close?.("admin-contacts-detail");
     renderTable();
-    window.AdminApp?.toast?.success?.(t("done_success", "完了にしました。"));
+    window.AdminApp?.toast?.success?.(t("done_success", "Marked as done."));
   } catch {
-    window.AdminApp?.toast?.error?.(t("done_error", "更新に失敗しました。"));
-    if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = t("mark_done", "完了"); }
+    window.AdminApp?.toast?.error?.(t("done_error", "Update failed."));
+    if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = t("mark_done", "Done"); }
   }
 }
 
@@ -241,35 +241,35 @@ function bindEvents() {
 
 function applyStaticTranslations() {
   const statusFilter = byId("adminContactsStatusFilter");
-  if (statusFilter?.options[0]) statusFilter.options[0].text = t("status_all", "すべて");
-  if (statusFilter?.options[1]) statusFilter.options[1].text = t("status_open", "未対応");
-  if (statusFilter?.options[2]) statusFilter.options[2].text = t("status_done", "完了");
+  if (statusFilter?.options[0]) statusFilter.options[0].text = t("status_all", "All");
+  if (statusFilter?.options[1]) statusFilter.options[1].text = t("status_open", "Open");
+  if (statusFilter?.options[2]) statusFilter.options[2].text = t("status_done", "Done");
 
   const reload = byId("adminContactsReloadButton");
-  if (reload) reload.textContent = t("reload", "再読み込み");
+  if (reload) reload.textContent = t("reload", "Reload");
 
   const prev = byId("adminContactsPrevPage");
-  if (prev) prev.textContent = t("prev", "前へ");
+  if (prev) prev.textContent = t("prev", "Prev");
   const next = byId("adminContactsNextPage");
-  if (next) next.textContent = t("next", "次へ");
+  if (next) next.textContent = t("next", "Next");
 
   const panelTitle = document.querySelector(".admin-contacts-panel--list .admin-panel__title");
-  if (panelTitle) panelTitle.textContent = t("list_title", "お問い合わせ一覧");
+  if (panelTitle) panelTitle.textContent = t("list_title", "Contacts");
 
   const head = document.querySelectorAll(".admin-contacts-table thead th");
-  if (head[0]) head[0].textContent = t("col_user", "ユーザー");
-  if (head[1]) head[1].textContent = t("col_user_id", "ユーザーID");
-  if (head[2]) head[2].textContent = t("col_role", "ロール");
-  if (head[3]) head[3].textContent = t("col_category", "カテゴリ");
-  if (head[4]) head[4].textContent = t("col_message", "内容");
-  if (head[5]) head[5].textContent = t("col_created_at", "お問い合わせ日");
-  if (head[6]) head[6].textContent = t("col_status", "状態");
-  if (head[7]) head[7].textContent = t("col_action", "操作");
+  if (head[0]) head[0].textContent = t("col_user", "User");
+  if (head[1]) head[1].textContent = t("col_user_id", "User ID");
+  if (head[2]) head[2].textContent = t("col_role", "Role");
+  if (head[3]) head[3].textContent = t("col_category", "Category");
+  if (head[4]) head[4].textContent = t("col_message", "Message");
+  if (head[5]) head[5].textContent = t("col_created_at", "Contacted At");
+  if (head[6]) head[6].textContent = t("col_status", "Status");
+  if (head[7]) head[7].textContent = t("col_action", "Action");
 
   const closeBtn = byId("adminContactDetailClose");
-  if (closeBtn) closeBtn.textContent = t("close", "閉じる");
+  if (closeBtn) closeBtn.textContent = t("close", "Close");
   const doneBtn = byId("adminContactDetailDoneButton");
-  if (doneBtn) doneBtn.textContent = t("mark_done", "完了");
+  if (doneBtn) doneBtn.textContent = t("mark_done", "Done");
 
   renderTable();
 }

@@ -410,6 +410,7 @@
   "admin_content.reload": "Recharger",
   "admin_content.search": "Rechercher",
   "admin_content.search_placeholder": "Rechercher titre / ALT / tags",
+  "admin_content.tag_search_placeholder": "Rechercher des tags",
   "admin_content.visibility": "Visibilité",
   "admin_content.status": "Statut",
   "admin_content.visibility_public": "Public",

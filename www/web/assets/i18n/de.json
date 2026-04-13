@@ -412,6 +412,7 @@
   "admin_content.reload": "Neu laden",
   "admin_content.search": "Suchen",
   "admin_content.search_placeholder": "Titel / ALT / Tags suchen",
+  "admin_content.tag_search_placeholder": "Tags suchen",
   "admin_content.visibility": "Sichtbarkeit",
   "admin_content.status": "Status",
   "admin_content.visibility_public": "Öffentlich",

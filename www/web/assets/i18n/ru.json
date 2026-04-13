@@ -410,6 +410,7 @@
   "admin_content.reload": "Обновить",
   "admin_content.search": "Поиск",
   "admin_content.search_placeholder": "Поиск по названию / ALT / тегам",
+  "admin_content.tag_search_placeholder": "Поиск тегов",
   "admin_content.visibility": "Видимость",
   "admin_content.status": "Статус",
   "admin_content.visibility_public": "Публичное",
