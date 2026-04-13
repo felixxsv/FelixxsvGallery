@@ -452,6 +452,17 @@
   align-items: start;
 }
 
+.upload-modal__shot-at-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 8px;
+  align-items: center;
+}
+
+.upload-modal__shot-at-time {
+  min-width: 0;
+}
+
 /* ── Shot_at auto badge ────────────────────────────────────────────────── */
 
 .upload-modal__auto-badge {
