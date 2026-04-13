@@ -50,6 +50,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
   const stack = [];
   const previousFocus = new Map();
   const mobileModalMedia = window.matchMedia("(max-width: 720px)");
+  let bodyScrollLocked = false;
 
   function ensureHeaderCloseButton(layer, id) {
     const header = layer.querySelector(".app-modal-header");
@@ -80,10 +81,12 @@ export function createModalManager({ root, closeButton, body = document.body } =
 
     closeButton.hidden = stack.length === 0;
     body.classList.toggle("is-modal-open", stack.length > 0);
-    if (stack.length > 0) {
+    if (stack.length > 0 && !bodyScrollLocked) {
       lockBodyScroll(body);
-    } else {
+      bodyScrollLocked = true;
+    } else if (stack.length === 0 && bodyScrollLocked) {
       unlockBodyScroll(body);
+      bodyScrollLocked = false;
     }
   }
 
