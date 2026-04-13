@@ -432,7 +432,7 @@ export function initUserShell(app) {
           <dl class="shell-help-faq">
             <div>
               <dt>${escapeHtml(t("shell.help.faq_q1", "ログインしないと使えない機能はありますか？"))}</dt>
-              <dd>${escapeHtml(t("shell.help.faq_a1", "プロフィール編集やお問い合わせなど、一部の機能はログインが必要です。"))}</dd>
+              <dd>${escapeHtml(t("shell.help.faq_a1", "プロフィール編集、お問い合わせ、アップロードなど、一部の機能はログインが必要です。"))}</dd>
             </div>
             <div>
               <dt>${escapeHtml(t("shell.help.faq_q2", "バッジはどうやって増えますか？"))}</dt>
