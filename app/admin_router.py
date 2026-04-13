@@ -2032,6 +2032,7 @@ def _content_preview_url(row: dict) -> str | None:
 def _build_content_list_item(row: dict) -> dict:
     moderation_status = str(row.get("moderation_status") or "normal")
     visibility = bool(row.get("is_public")) if row.get("is_public") is not None else True
+    nested_uploader = row.get("uploader") if isinstance(row.get("uploader"), dict) else {}
     return {
         "image_id": int(row.get("image_id")),
         "id": int(row.get("image_id")),
@@ -2047,10 +2048,10 @@ def _build_content_list_item(row: dict) -> dict:
         "like_count_text": _format_count_short(row.get("like_count")),
         "view_count_text": _format_count_short(row.get("view_count")),
         "uploader": {
-            "user_id": row.get("uploader_user_id"),
-            "display_name": row.get("uploader_display_name"),
-            "user_key": row.get("uploader_user_key"),
-            "avatar_url": _build_preview_url(row.get("uploader_avatar_path")),
+            "user_id": row.get("uploader_user_id") if row.get("uploader_user_id") is not None else nested_uploader.get("user_id"),
+            "display_name": row.get("uploader_display_name") or nested_uploader.get("display_name"),
+            "user_key": row.get("uploader_user_key") or nested_uploader.get("user_key"),
+            "avatar_url": _build_preview_url(row.get("uploader_avatar_path")) or nested_uploader.get("avatar_url"),
         },
     }
 
