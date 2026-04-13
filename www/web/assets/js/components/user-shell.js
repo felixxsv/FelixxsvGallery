@@ -1,6 +1,7 @@
 import { byId } from "../core/dom.js";
 import { resolveBadgeText } from "../core/badge-i18n.js";
 import { resolveLocalizedMessage } from "../core/i18n.js";
+import { ensureProfileMediaModals, refreshProfileMediaModalTexts, showAvatarDetail, showBadgeDetail } from "../core/profile-media-viewer.js";
 import { languageToLocaleTag } from "../core/settings.js";
 
 const LINK_ICON_MAP = {
@@ -828,8 +829,14 @@ export function initUserShell(app) {
     }
     container.hidden = false;
     container.innerHTML = toShow.map((badge) =>
-      `<span class="user-profile-badge user-profile-badge--${badge.color || "gray"}" title="${escapeHtml(resolveBadgeText(app.i18n, badge, "name"))}">${getBadgeIconHtml(badge, app.appBase)}</span>`
+      `<button type="button" class="user-profile-badge user-profile-badge--${badge.color || "gray"} profile-media-badge" data-badge-key="${escapeHtml(badge.key)}" title="${escapeHtml(resolveBadgeText(app.i18n, badge, "name"))}">${getBadgeIconHtml(badge, app.appBase)}</button>`
     ).join("");
+    container.querySelectorAll("[data-badge-key]").forEach((node) => {
+      node.addEventListener("click", () => {
+        const badge = toShow.find((item) => item.key === node.dataset.badgeKey);
+        if (badge) showBadgeDetail(badge, app);
+      });
+    });
   }
 
   /** Render badge pool in the profile edit modal (shellProfileBadgePool) */
@@ -1682,6 +1689,8 @@ export function initUserShell(app) {
   }
 
   function bindEvents() {
+    ensureProfileMediaModals(app);
+
     refs.userTrigger.addEventListener("click", () => {
       app.modal.open("user-info");
     });
@@ -1704,6 +1713,29 @@ export function initUserShell(app) {
         }
       });
     }
+    const openCurrentUserAvatar = () => {
+      const user = getUser();
+      if (!user) return;
+      showAvatarDetail({
+        avatarUrl: user.avatar_url ? `${app.appBase}${user.avatar_url}?t=${Date.now()}` : "",
+        initial: (user.display_name || user.user_key || "?")[0].toUpperCase(),
+        displayName: user.display_name || "-",
+        userKey: user.user_key || "-",
+      }, app);
+    };
+    [refs.userCardAvatar, refs.accountAvatar].forEach((node) => {
+      if (!node) return;
+      node.classList.add("profile-media-trigger");
+      node.removeAttribute("aria-hidden");
+      node.setAttribute("role", "button");
+      node.tabIndex = 0;
+      node.addEventListener("click", openCurrentUserAvatar);
+      node.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openCurrentUserAvatar();
+      });
+    });
     // Badge pool click delegation (in profile edit modal)
     const profileBadgePoolEl = byId("shellProfileBadgePool");
     if (profileBadgePoolEl) {
@@ -1909,6 +1941,7 @@ export function initUserShell(app) {
     renderCreditsContent();
     renderCredits();
     applyStaticTranslations();
+    refreshProfileMediaModalTexts(app);
     app.i18n?.apply?.(document.querySelector("[data-settings-support-links]") || document);
     refreshResendButtons();
     renderUserCard();

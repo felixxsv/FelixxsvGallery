@@ -14,7 +14,7 @@ from PIL import Image, UnidentifiedImageError
 
 from db import db_conn
 from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
-from badge_defs import POST_COUNT_BADGES
+from badge_defs import get_post_count_badges
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ def _try_grant_post_count_badges(conn, user_id: int | None) -> None:
             cur.execute(f"SELECT COUNT(*) AS cnt FROM images WHERE {img_col}=%s", (user_id,))
             row = cur.fetchone()
         post_count = int((row or {}).get("cnt") or 0)
-        to_grant = [key for threshold, key in POST_COUNT_BADGES if post_count >= threshold]
+        to_grant = [key for threshold, key in get_post_count_badges(conn) if post_count >= threshold]
         if not to_grant:
             return
         for badge_key in to_grant:
