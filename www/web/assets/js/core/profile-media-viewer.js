@@ -38,6 +38,7 @@ function ensureLayer(app, id, titleId, titleText, bodyHtml) {
     </div>
   `;
   root.appendChild(section);
+  app.modal?.refresh?.();
 }
 
 export function ensureProfileMediaModals(app) {
