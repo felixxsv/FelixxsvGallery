@@ -2,6 +2,7 @@ import { createImageDetailModal } from "./image-detail-modal.js";
 import { escapeHtml } from "./dom.js";
 
 const STYLE_ID = "felixxsv-image-modal-style";
+const BODY_SCROLL_LOCK_KEY = "__felixxsvBodyScrollLock";
 
 function t(app, key, fallback) {
   return app?.i18n?.t?.(`image_modal.${key}`, fallback) || fallback;
@@ -14,6 +15,42 @@ function ensureStylesheet(appBase) {
   link.rel = "stylesheet";
   link.href = `${appBase}/assets/css/components/image-modal.css`;
   document.head.appendChild(link);
+}
+
+function getBodyScrollLockState() {
+  if (!window[BODY_SCROLL_LOCK_KEY]) {
+    window[BODY_SCROLL_LOCK_KEY] = { count: 0, scrollY: 0 };
+  }
+  return window[BODY_SCROLL_LOCK_KEY];
+}
+
+function lockBodyScroll(body) {
+  const state = getBodyScrollLockState();
+  if (state.count === 0) {
+    state.scrollY = window.scrollY || window.pageYOffset || 0;
+    body.style.position = "fixed";
+    body.style.top = `-${state.scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+  }
+  state.count += 1;
+}
+
+function unlockBodyScroll(body) {
+  const state = getBodyScrollLockState();
+  if (state.count === 0) return;
+  state.count -= 1;
+  if (state.count > 0) return;
+  const scrollY = state.scrollY || 0;
+  body.style.position = "";
+  body.style.top = "";
+  body.style.left = "";
+  body.style.right = "";
+  body.style.width = "";
+  body.style.overflow = "";
+  window.scrollTo(0, scrollY);
 }
 
 
@@ -331,6 +368,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   function bodyLock(lock) {
     body.classList.toggle("is-image-modal-open", lock);
+    if (lock) {
+      lockBodyScroll(body);
+      return;
+    }
+    unlockBodyScroll(body);
   }
 
   function applyLikeState(nextState = {}) {
