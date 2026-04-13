@@ -490,30 +490,6 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
   line-height: 1.2;
 }
 
-.admin-content-edit__color-check {
-  width: 14px;
-  height: 14px;
-  margin-left: 2px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: transparent;
-  flex: 0 0 14px;
-  position: relative;
-}
-
-.admin-content-edit__color-option.is-active .admin-content-edit__color-check {
-  border-color: rgba(255,255,255,0.68);
-  background: rgba(255,255,255,0.14);
-}
-
-.admin-content-edit__color-option.is-active .admin-content-edit__color-check::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.92);
-}
-
 .admin-content-edit__actions {
   display: flex;
   flex-wrap: wrap;
