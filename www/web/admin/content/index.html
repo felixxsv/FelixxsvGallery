@@ -8,7 +8,7 @@
 <link href="/assets/css/common.css" rel="stylesheet"/>
 <link href="/assets/css/components.css?v=20260413-badge-contain" rel="stylesheet"/>
 <link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
-<link href="/assets/css/page/admin/content.css?v=20260413-content-badge-inline" rel="stylesheet"/>
+<link href="/assets/css/page/admin/content.css?v=20260413-content-edit-modal" rel="stylesheet"/>
 <link href="/assets/css/components/upload-modal.css" rel="stylesheet"/>
 <link href="/assets/css/components/toast.css" rel="stylesheet"/>
 </head>
@@ -855,11 +855,46 @@
 </div>
 </div>
 <div class="app-modal-footer admin-content-detail__footer">
+<button class="app-button app-button--ghost" id="adminContentEditButton" type="button" data-i18n="admin_content.edit">編集</button>
 <button class="app-button app-button--ghost" id="adminContentVisibilityButton" type="button" data-i18n="admin_content.visibility_toggle">公開状態切替</button>
 <button class="app-button app-button--ghost" id="adminContentQuarantineButton" type="button" data-i18n="admin_content.action_quarantine_label">隔離</button>
 <button class="app-button app-button--ghost" id="adminContentRestoreButton" type="button" data-i18n="admin_content.action_restore_label">復元</button>
 <button class="app-button app-button--danger" id="adminContentDeleteButton" type="button" data-i18n="admin_content.action_delete_label">削除状態にする</button>
 <button class="app-button app-button--primary" id="adminContentDetailCloseButton" type="button" data-i18n="shell.static.close">閉じる</button>
+</div>
+</div>
+</section>
+<section class="app-modal-layer" data-modal-id="admin-content-edit" data-modal-layer="" hidden="">
+<div class="app-modal-backdrop" data-modal-backdrop="admin-content-edit"></div>
+<div aria-labelledby="adminContentEditTitle" aria-modal="true" class="app-modal-dialog" role="dialog" tabindex="-1">
+<div class="app-modal-header">
+<h2 class="app-modal-title" id="adminContentEditTitle" data-i18n="admin_content.edit_modal_title">コンテンツ編集</h2>
+</div>
+<div class="app-modal-body">
+<form class="admin-content-edit" id="adminContentEditForm">
+<label class="app-field">
+<span class="app-field__label" data-i18n="admin_content.detail_field_title">タイトル</span>
+<input class="app-input" id="adminContentEditTitleInput" name="title" required maxlength="255" type="text"/>
+</label>
+<label class="app-field">
+<span class="app-field__label" data-i18n="admin_content.detail_field_alt">ALT</span>
+<textarea class="app-textarea admin-content-upload__textarea" id="adminContentEditAltInput" name="alt" rows="4"></textarea>
+</label>
+<label class="app-field">
+<span class="app-field__label" data-i18n="admin_content.detail_field_shot_at">撮影日</span>
+<input class="app-input" id="adminContentEditShotAtInput" name="shot_at" type="datetime-local"/>
+</label>
+<label class="app-field">
+<span class="app-field__label" data-i18n="admin_content.detail_field_tags">タグ</span>
+<input class="app-input" id="adminContentEditTagsInput" name="tags" placeholder="例: VRChat, 夜景, フレンド" type="text" data-i18n-placeholder="admin_content.upload_tags_placeholder"/>
+<span class="app-field__hint" data-i18n="admin_content.upload_tags_hint">カンマ区切りで入力します。</span>
+</label>
+<div class="admin-content-upload__result" hidden id="adminContentEditResult"></div>
+</form>
+</div>
+<div class="app-modal-footer app-modal-footer--end">
+<button class="app-button app-button--ghost" id="adminContentEditCancelButton" type="button" data-i18n="shell.static.cancel">キャンセル</button>
+<button class="app-button app-button--primary" id="adminContentEditSaveButton" type="button" data-i18n="admin_content.save">保存</button>
 </div>
 </div>
 </section>
@@ -881,6 +916,6 @@
 </div>
 <div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
 <script src="/assets/js/components/admin-layout.js?v=20260413-crop" type="module"></script>
-<script src="/assets/js/page/admin/content.js?v=20260413-content-badge-inline" type="module"></script>
+<script src="/assets/js/page/admin/content.js?v=20260413-content-edit-modal" type="module"></script>
 </body>
 </html>
