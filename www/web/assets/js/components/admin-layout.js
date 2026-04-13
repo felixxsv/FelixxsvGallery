@@ -595,8 +595,10 @@ export async function initAdminLayout() {
     applyStaticTranslations();
     window.addEventListener("gallery:language-changed", () => {
       const nextPageTitle = pageT("page_title", page.title || refs.pageTitle?.textContent || t("page_title", "Admin"));
+      const nextPageDescription = pageT("page_description", document.body.dataset.adminDescription || "");
       document.title = `${nextPageTitle} - Felixxsv Gallery`;
       if (refs.pageTitle) refs.pageTitle.textContent = nextPageTitle;
+      if (refs.pageDescription) refs.pageDescription.textContent = nextPageDescription;
       syncSidebarDisplay(nextPageTitle);
       applyStaticTranslations();
     });
