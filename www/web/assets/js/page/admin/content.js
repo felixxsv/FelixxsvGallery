@@ -756,6 +756,19 @@ function applyStaticTranslations() {
   if (tableHead[8]) tableHead[8].textContent = t("action", "Action");
   setText("adminContentPrevPage", "prev", "Prev");
   setText("adminContentNextPage", "next", "Next");
+  renderTable();
+  if (state.currentContent) {
+    setDetail(state.currentContent);
+  }
+  if (window.AdminApp?.modal?.isOpen?.("admin-content-edit")) {
+    renderEditColors();
+    renderEditTagChips();
+    if ((byId("adminContentEditTagSearchInput")?.value || "").trim()) {
+      openEditTagSuggestions();
+    } else {
+      closeEditTagSuggestions();
+    }
+  }
 }
 
 function bindFilters() {
