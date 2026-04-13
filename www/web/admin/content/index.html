@@ -8,7 +8,7 @@
 <link href="/assets/css/common.css" rel="stylesheet"/>
 <link href="/assets/css/components.css?v=20260413-badge-contain" rel="stylesheet"/>
 <link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
-<link href="/assets/css/page/admin/content.css?v=20260413-content-edit-modal" rel="stylesheet"/>
+<link href="/assets/css/page/admin/content.css?v=20260413-content-edit-actions" rel="stylesheet"/>
 <link href="/assets/css/components/upload-modal.css" rel="stylesheet"/>
 <link href="/assets/css/components/toast.css" rel="stylesheet"/>
 </head>
@@ -856,9 +856,6 @@
 </div>
 <div class="app-modal-footer admin-content-detail__footer">
 <button class="app-button app-button--ghost" id="adminContentEditButton" type="button" data-i18n="admin_content.edit">編集</button>
-<button class="app-button app-button--ghost" id="adminContentVisibilityButton" type="button" data-i18n="admin_content.visibility_toggle">公開状態切替</button>
-<button class="app-button app-button--ghost" id="adminContentQuarantineButton" type="button" data-i18n="admin_content.action_quarantine_label">隔離</button>
-<button class="app-button app-button--ghost" id="adminContentRestoreButton" type="button" data-i18n="admin_content.action_restore_label">復元</button>
 <button class="app-button app-button--danger" id="adminContentDeleteButton" type="button" data-i18n="admin_content.action_delete_label">削除状態にする</button>
 <button class="app-button app-button--primary" id="adminContentDetailCloseButton" type="button" data-i18n="shell.static.close">閉じる</button>
 </div>
@@ -889,6 +886,10 @@
 <input class="app-input" id="adminContentEditTagsInput" name="tags" placeholder="例: VRChat, 夜景, フレンド" type="text" data-i18n-placeholder="admin_content.upload_tags_placeholder"/>
 <span class="app-field__hint" data-i18n="admin_content.upload_tags_hint">カンマ区切りで入力します。</span>
 </label>
+<div class="admin-content-edit__actions">
+<button class="app-button app-button--ghost" id="adminContentVisibilityButton" type="button" data-i18n="admin_content.visibility_toggle">公開状態切替</button>
+<button class="app-button app-button--ghost" id="adminContentModerationToggleButton" type="button">隔離</button>
+</div>
 <div class="admin-content-upload__result" hidden id="adminContentEditResult"></div>
 </form>
 </div>
@@ -916,6 +917,6 @@
 </div>
 <div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
 <script src="/assets/js/components/admin-layout.js?v=20260413-crop" type="module"></script>
-<script src="/assets/js/page/admin/content.js?v=20260413-content-edit-modal" type="module"></script>
+<script src="/assets/js/page/admin/content.js?v=20260413-content-edit-actions" type="module"></script>
 </body>
 </html>
