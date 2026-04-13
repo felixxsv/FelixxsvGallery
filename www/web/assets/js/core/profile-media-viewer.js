@@ -32,9 +32,6 @@ function ensureLayer(app, id, titleId, titleText, bodyHtml) {
       <div class="app-modal-body">
         ${bodyHtml}
       </div>
-      <div class="app-modal-footer">
-        <button type="button" class="app-button app-button--primary" data-modal-close="${id}">${escapeHtml(app.i18n?.t?.("shell.static.close", "Close") || "Close")}</button>
-      </div>
     </div>
   `;
   root.appendChild(section);
@@ -71,9 +68,6 @@ export function refreshProfileMediaModalTexts(app) {
   if (avatarTitle) avatarTitle.textContent = app.i18n?.t?.("shell.static.avatar_preview", "Avatar") || "Avatar";
   const badgeTitle = byId("badgeDetailTitle");
   if (badgeTitle) badgeTitle.textContent = app.i18n?.t?.("shell.static.badge_preview", "Badge") || "Badge";
-  document.querySelectorAll("[data-modal-id='avatar-detail'] [data-modal-close='avatar-detail'], [data-modal-id='badge-detail'] [data-modal-close='badge-detail']").forEach((node) => {
-    node.textContent = app.i18n?.t?.("shell.static.close", "Close") || "Close";
-  });
   if (currentAvatarPayload && !document.querySelector("[data-modal-id='avatar-detail']")?.hidden) {
     showAvatarDetail(currentAvatarPayload, app);
   }
