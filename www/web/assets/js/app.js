@@ -368,6 +368,10 @@ function initPublicSidebar() {
     }
   }
 
+  function syncMobileScrollLock(collapsed) {
+    document.body.classList.toggle("is-home-sidebar-open", isMobile() && !collapsed);
+  }
+
   function updateToggleUi(collapsed) {
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
     toggleButton.setAttribute("aria-label", collapsed ? "サイドバーを展開" : "サイドバーを折りたたむ");
@@ -402,6 +406,7 @@ function initPublicSidebar() {
     }
 
     syncBackdrop(collapsed);
+    syncMobileScrollLock(collapsed);
     updateToggleUi(collapsed);
 
     if (collapsed) {
@@ -500,6 +505,7 @@ function initPublicSidebar() {
   mobileMedia.addEventListener("change", () => {
     if (!isMobile()) {
       backdrop.hidden = true;
+      document.body.classList.remove("is-home-sidebar-open");
       applyState(readStoredState());
     } else {
       applyState(true);
