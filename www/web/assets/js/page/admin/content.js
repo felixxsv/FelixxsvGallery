@@ -425,6 +425,10 @@ function closeEditTagSuggestions() {
   if (panel) panel.hidden = true;
 }
 
+function openEditTagSuggestions() {
+  renderEditTagSuggestions();
+}
+
 function addEditTag(value) {
   const tag = String(value || "").trim();
   if (!tag || state.editTags.includes(tag)) return;
@@ -432,14 +436,23 @@ function addEditTag(value) {
   const input = byId("adminContentEditTagSearchInput");
   if (input) input.value = "";
   renderEditTagChips();
-  renderEditTagSuggestions();
+  if (document.activeElement === input) {
+    openEditTagSuggestions();
+  } else {
+    closeEditTagSuggestions();
+  }
 }
 
 function removeEditTag(index) {
   if (!Number.isInteger(index) || index < 0 || index >= state.editTags.length) return;
   state.editTags.splice(index, 1);
   renderEditTagChips();
-  renderEditTagSuggestions();
+  const input = byId("adminContentEditTagSearchInput");
+  if (document.activeElement === input) {
+    openEditTagSuggestions();
+  } else {
+    closeEditTagSuggestions();
+  }
 }
 
 function renderEditColors() {
@@ -481,7 +494,7 @@ function openEditModal() {
   if (searchInput) searchInput.value = "";
   void ensureEditTagPool().then(() => {
     renderEditTagChips();
-    renderEditTagSuggestions();
+    closeEditTagSuggestions();
   });
   renderEditColors();
   setEditResult("");
@@ -859,21 +872,20 @@ function bindModals() {
   byId("adminContentEditButton")?.addEventListener("click", () => openEditModal());
   byId("adminContentEditCancelButton")?.addEventListener("click", () => {
     if (state.editSubmitting) return;
+    closeEditTagSuggestions();
     window.AdminApp.modal.close("admin-content-edit");
   });
   byId("adminContentEditTagBox")?.addEventListener("click", (event) => {
-    const box = byId("adminContentEditTagBox");
-    const chips = byId("adminContentEditTagChips");
-    if (event.target === box || event.target === chips) {
-      byId("adminContentEditTagSearchInput")?.focus();
-      renderEditTagSuggestions();
+    if (event.target.closest("[data-tag-index]") || event.target.closest("#adminContentEditTagAddButton") || event.target.closest("#adminContentEditTagSuggestions")) {
+      return;
     }
+    byId("adminContentEditTagSearchInput")?.focus();
   });
-  byId("adminContentEditTagSearchInput")?.addEventListener("focus", () => renderEditTagSuggestions());
+  byId("adminContentEditTagSearchInput")?.addEventListener("focus", () => openEditTagSuggestions());
   byId("adminContentEditTagSearchInput")?.addEventListener("blur", () => {
     setTimeout(() => closeEditTagSuggestions(), 160);
   });
-  byId("adminContentEditTagSearchInput")?.addEventListener("input", () => renderEditTagSuggestions());
+  byId("adminContentEditTagSearchInput")?.addEventListener("input", () => openEditTagSuggestions());
   byId("adminContentEditTagSearchInput")?.addEventListener("keydown", (event) => {
     const input = byId("adminContentEditTagSearchInput");
     if (!input) return;
@@ -892,15 +904,14 @@ function bindModals() {
     if (input.value.trim()) {
       addEditTag(input.value);
     } else {
-      renderEditTagSuggestions();
       input.focus();
+      openEditTagSuggestions();
     }
   });
   byId("adminContentEditTagSuggestionsList")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-tag-add]");
     if (!button) return;
     addEditTag(button.dataset.tagAdd || "");
-    renderEditTagSuggestions();
     byId("adminContentEditTagSearchInput")?.focus();
   });
   byId("adminContentEditTagChips")?.addEventListener("click", (event) => {
