@@ -119,9 +119,9 @@ function renderTable() {
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
       const groupToggle = isGroup
         ? `<button type="button" class="admin-content-group-toggle" data-action="toggle-group" data-content-key="${escapeHtml(contentKey)}" aria-expanded="${isExpanded ? "true" : "false"}" aria-label="${escapeHtml(isExpanded ? t("collapse", "閉じる") : t("expand", "展開"))}"><span aria-hidden="true"></span></button>`
-        : "";
+        : `<span class="admin-content-group-spacer" aria-hidden="true"></span>`;
       const countBadge = isGroup ? `<span class="admin-content-count-badge">${escapeHtml(t("image_count", "{count}枚", { count: Number(item.image_count || children.length || 1) }))}</span>` : "";
-      const thumbCellClass = isGroup ? "admin-content-thumb-cell admin-content-thumb-cell--group" : "admin-content-thumb-cell admin-content-thumb-cell--single";
+      const thumbCellClass = "admin-content-thumb-cell admin-content-thumb-cell--parent";
       tr.className = isGroup ? "admin-content-row admin-content-row--group" : "admin-content-row";
       tr.innerHTML = `
         <td><div class="${thumbCellClass}">${groupToggle}${preview}${countBadge}</div></td>
