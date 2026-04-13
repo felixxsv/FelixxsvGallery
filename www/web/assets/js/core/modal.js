@@ -1,5 +1,43 @@
 import { qsa } from "./dom.js";
 
+const BODY_SCROLL_LOCK_KEY = "__felixxsvBodyScrollLock";
+
+function getBodyScrollLockState() {
+  if (!window[BODY_SCROLL_LOCK_KEY]) {
+    window[BODY_SCROLL_LOCK_KEY] = { count: 0, scrollY: 0 };
+  }
+  return window[BODY_SCROLL_LOCK_KEY];
+}
+
+function lockBodyScroll(body) {
+  const state = getBodyScrollLockState();
+  if (state.count === 0) {
+    state.scrollY = window.scrollY || window.pageYOffset || 0;
+    body.style.position = "fixed";
+    body.style.top = `-${state.scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+  }
+  state.count += 1;
+}
+
+function unlockBodyScroll(body) {
+  const state = getBodyScrollLockState();
+  if (state.count === 0) return;
+  state.count -= 1;
+  if (state.count > 0) return;
+  const scrollY = state.scrollY || 0;
+  body.style.position = "";
+  body.style.top = "";
+  body.style.left = "";
+  body.style.right = "";
+  body.style.width = "";
+  body.style.overflow = "";
+  window.scrollTo(0, scrollY);
+}
+
 function getFocusableElements(layer) {
   return qsa(
     'button:not([disabled]):not([hidden]), [href], input:not([disabled]):not([hidden]), select:not([disabled]):not([hidden]), textarea:not([disabled]):not([hidden]), [tabindex]:not([tabindex="-1"])',
@@ -42,6 +80,11 @@ export function createModalManager({ root, closeButton, body = document.body } =
 
     closeButton.hidden = stack.length === 0;
     body.classList.toggle("is-modal-open", stack.length > 0);
+    if (stack.length > 0) {
+      lockBodyScroll(body);
+    } else {
+      unlockBodyScroll(body);
+    }
   }
 
   function dispatch(name, detail) {
