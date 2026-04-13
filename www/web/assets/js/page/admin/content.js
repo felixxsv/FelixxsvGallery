@@ -378,7 +378,14 @@ function openEditModal() {
   byId("adminContentEditTitleInput").value = item.title || "";
   byId("adminContentEditAltInput").value = item.alt || "";
   byId("adminContentEditShotAtInput").value = toDateTimeLocalValue(item.shot_at);
+  byId("adminContentEditPostedAtInput").value = toDateTimeLocalValue(item.posted_at);
   byId("adminContentEditTagsInput").value = Array.isArray(item.tags) ? item.tags.join(", ") : "";
+  byId("adminContentEditColorTagsInput").value = Array.isArray(item.color_tags) ? item.color_tags.map((color) => color.label || color.name || color.color_id).join(", ") : "";
+  const colorHint = byId("adminContentEditColorTagsHint");
+  if (colorHint) {
+    const palette = Array.isArray(item.color_palette) ? item.color_palette : [];
+    colorHint.textContent = palette.length ? palette.map((color) => color.name).join(", ") : "Red, Orange, Yellow, Green, Cyan, Blue, Purple, Pink, White, Black";
+  }
   setEditResult("");
   setEditSubmitting(false);
   window.AdminApp.modal.open("admin-content-edit");
@@ -391,7 +398,9 @@ async function submitEdit() {
   const title = byId("adminContentEditTitleInput")?.value?.trim() || "";
   const alt = byId("adminContentEditAltInput")?.value || "";
   const shotAt = byId("adminContentEditShotAtInput")?.value || "";
+  const postedAt = byId("adminContentEditPostedAtInput")?.value || "";
   const tags = byId("adminContentEditTagsInput")?.value || "";
+  const colorTags = byId("adminContentEditColorTagsInput")?.value || "";
 
   if (!title) {
     setEditResult(t("title_required", "タイトルを入力してください。"), "error");
@@ -399,6 +408,10 @@ async function submitEdit() {
   }
   if (!shotAt) {
     setEditResult(t("shot_at_required", "撮影日を入力してください。"), "error");
+    return;
+  }
+  if (!postedAt) {
+    setEditResult("投稿日を入力してください。", "error");
     return;
   }
 
@@ -409,7 +422,9 @@ async function submitEdit() {
       title,
       alt,
       shot_at: shotAt,
-      tags
+      posted_at: postedAt,
+      tags,
+      color_tags: colorTags
     });
     const content = payload.data?.content;
     if (content) {
