@@ -279,6 +279,8 @@
   "shell.static.apply": "적용",
   "shell.static.add": "추가",
   "shell.static.close": "닫기",
+  "shell.static.avatar_preview": "아바타",
+  "shell.static.badge_preview": "배지",
   "shell.static.enable": "활성화",
   "shell.static.link": "연결",
   "shell.static.unlink": "연결 해제",

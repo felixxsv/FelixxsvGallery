@@ -279,6 +279,8 @@
   "shell.static.apply": "Appliquer",
   "shell.static.add": "Ajouter",
   "shell.static.close": "Fermer",
+  "shell.static.avatar_preview": "Avatar",
+  "shell.static.badge_preview": "Badge",
   "shell.static.enable": "Activer",
   "shell.static.link": "Associer",
   "shell.static.unlink": "Dissocier",

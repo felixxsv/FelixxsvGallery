@@ -279,6 +279,8 @@
   "shell.static.apply": "適用",
   "shell.static.add": "追加",
   "shell.static.close": "閉じる",
+  "shell.static.avatar_preview": "アイコン",
+  "shell.static.badge_preview": "バッジ",
   "shell.static.enable": "有効化",
   "shell.static.link": "連携する",
   "shell.static.unlink": "解除する",
