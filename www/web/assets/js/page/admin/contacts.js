@@ -119,7 +119,7 @@ function renderTable() {
         <td class="admin-contacts-mono">${escapeHtml(formatDateTime(item.created_at))}</td>
         <td><span class="admin-contacts-status ${statusCls}">${escapeHtml(statusLabel(item.status))}</span></td>
         <td>
-          <button class="app-button app-button--small" data-action="detail" data-contact-id="${item.id}" data-i18n="admin_contacts.detail_button">Detail</button>
+          <button class="app-button app-button--small" data-action="detail" data-contact-id="${item.id}" data-i18n="admin_contacts.detail_button">${escapeHtml(t("detail_button", "Details"))}</button>
         </td>
       </tr>
     `;
