@@ -51,8 +51,8 @@ const DEFAULT_CREDIT_META = Object.freeze({
   service: "Felixxsv Gallery",
   author: "Felix",
   license: "© gallery.felixxsv.net All Rights Reserved.",
-  updatedAt: "2026-04-12",
-  version: "2026.04.12-build-v0456",
+  updatedAt: "2026-04-13",
+  version: "2026.04.13-build-v0457",
 });
 
 function escapeHtml(value) {
