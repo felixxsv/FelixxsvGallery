@@ -1,14 +1,18 @@
 /* ── Body lock: auth page fits viewport exactly ─────────────────────────── */
 
 body.auth-page {
-  height: 100dvh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* ── Auth page layout ───────────────────────────────────────────────────── */
 
 .auth-main {
-  height: calc(100dvh - var(--header-height));
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
