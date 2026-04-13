@@ -882,9 +882,18 @@
 <input class="app-input" id="adminContentEditShotAtInput" name="shot_at" type="datetime-local"/>
 </label>
 <label class="app-field">
+<span class="app-field__label" data-i18n="admin_content.posted_at">投稿日</span>
+<input class="app-input" id="adminContentEditPostedAtInput" name="posted_at" type="datetime-local"/>
+</label>
+<label class="app-field">
 <span class="app-field__label" data-i18n="admin_content.detail_field_tags">タグ</span>
 <input class="app-input" id="adminContentEditTagsInput" name="tags" placeholder="例: VRChat, 夜景, フレンド" type="text" data-i18n-placeholder="admin_content.upload_tags_placeholder"/>
 <span class="app-field__hint" data-i18n="admin_content.upload_tags_hint">カンマ区切りで入力します。</span>
+</label>
+<label class="app-field">
+<span class="app-field__label" data-i18n="admin_content.detail_field_colors">カラータグ</span>
+<input class="app-input" id="adminContentEditColorTagsInput" name="color_tags" placeholder="例: Red, Blue, White" type="text"/>
+<span class="app-field__hint" id="adminContentEditColorTagsHint">Red, Orange, Yellow, Green, Cyan, Blue, Purple, Pink, White, Black</span>
 </label>
 <div class="admin-content-edit__actions">
 <button class="app-button app-button--ghost" id="adminContentVisibilityButton" type="button" data-i18n="admin_content.visibility_toggle">公開状態切替</button>

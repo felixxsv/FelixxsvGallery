@@ -25,6 +25,7 @@ from auth_service import get_current_user_profile
 from auth_mail import AuthMailError, build_text_message, send_message
 from db import db_conn, load_conf
 from badge_defs import BADGE_CATALOG, AUTO_BADGE_KEYS, POST_COUNT_BADGES, serialize_badge, list_catalog as list_badge_catalog
+from galleryctl.colors import load_palette_from_conf
 
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -1982,6 +1983,21 @@ def _image_colors_table(conn) -> str | None:
     return _detect_table(conn, "image_colors")
 
 
+def _content_palette_items() -> list[dict]:
+    items = []
+    for color in load_palette_from_conf(_get_conf()):
+        items.append({
+            "id": int(color.id),
+            "name": str(color.name),
+        })
+    items.sort(key=lambda item: int(item["id"]))
+    return items
+
+
+def _content_palette_map() -> dict[int, dict]:
+    return {int(item["id"]): item for item in _content_palette_items()}
+
+
 def _images_visibility_column(conn) -> str | None:
     cols = _images_columns(conn)
     if "is_public" in cols:
@@ -2334,13 +2350,16 @@ ORDER BY rank_no ASC
             (image_id,),
         )
         rows = cur.fetchall()
+    palette_map = _content_palette_map()
     colors = []
     for row in rows:
+        color_id = row.get("color_id")
+        palette_item = palette_map.get(int(color_id)) if color_id is not None else None
         colors.append({
-            "color_id": row.get("color_id"),
+            "color_id": color_id,
             "ratio": float(row.get("ratio") or 0),
             "rank_no": int(row.get("rank_no") or 0),
-            "label": f"Color {row.get('color_id')}" if row.get("color_id") is not None else "Color",
+            "label": (palette_item or {}).get("name") or (f"Color {color_id}" if color_id is not None else "Color"),
         })
     return colors
 
@@ -2381,6 +2400,37 @@ def _parse_admin_content_shot_at(value) -> datetime | None:
         except ValueError:
             continue
     return None
+
+
+def _parse_admin_content_posted_at(value) -> datetime | None:
+    return _parse_admin_content_shot_at(value)
+
+
+def _parse_admin_content_color_ids(value) -> list[int]:
+    raw_items = value if isinstance(value, list) else str(value or "").split(",")
+    if not raw_items:
+        return []
+    palette_items = _content_palette_items()
+    by_id = {int(item["id"]): item for item in palette_items}
+    by_name = {str(item["name"]).casefold(): int(item["id"]) for item in palette_items}
+    out: list[int] = []
+    seen: set[int] = set()
+    for raw_item in raw_items:
+        text = str(raw_item or "").strip()
+        if not text:
+            continue
+        color_id = None
+        if text.isdigit():
+            maybe = int(text)
+            if maybe in by_id:
+                color_id = maybe
+        if color_id is None:
+            color_id = by_name.get(text.casefold())
+        if color_id is None or color_id in seen:
+            continue
+        seen.add(color_id)
+        out.append(color_id)
+    return out[:5]
 
 
 def _load_content_file_meta(conn, image_id: int) -> dict:
@@ -2511,6 +2561,7 @@ LIMIT 1
             "is_public": bool(row.get("is_public")),
             "file_name": file_meta.get("file_name"),
         },
+        "color_palette": _content_palette_items(),
     }
 
 
@@ -2558,6 +2609,8 @@ def _update_content_metadata(conn, image_id: int, actor_user_id: int | None, pay
     alt = str(data.get("alt") or "").strip()
     tags = _parse_admin_content_tags(data.get("tags"))
     shot_at = _parse_admin_content_shot_at(data.get("shot_at"))
+    posted_at = _parse_admin_content_posted_at(data.get("posted_at"))
+    color_ids = _parse_admin_content_color_ids(data.get("color_tags"))
 
     if not title:
         raise ValueError("title_required")
@@ -2565,10 +2618,12 @@ def _update_content_metadata(conn, image_id: int, actor_user_id: int | None, pay
         raise ValueError("title_too_long")
     if shot_at is None:
         raise ValueError("shot_at_invalid")
+    if posted_at is None:
+        raise ValueError("posted_at_invalid")
 
     image_cols = _images_columns(conn)
-    update_cols = ["title=%s", "alt=%s", "shot_at=%s"]
-    params: list = [title, alt, shot_at]
+    update_cols = ["title=%s", "alt=%s", "shot_at=%s", "created_at=%s"]
+    params: list = [title, alt, shot_at, posted_at]
     if "updated_at" in image_cols:
         update_cols.append("updated_at=CURRENT_TIMESTAMP(6)")
     params.append(image_id)
@@ -2592,6 +2647,14 @@ def _update_content_metadata(conn, image_id: int, actor_user_id: int | None, pay
                     if tag_id:
                         cur.execute("INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (%s,%s)", (image_id, tag_id))
 
+        if _image_colors_table(conn) is not None:
+            cur.execute("DELETE FROM image_colors WHERE image_id=%s", (image_id,))
+            for rank_no, color_id in enumerate(color_ids, start=1):
+                cur.execute(
+                    "INSERT INTO image_colors (image_id, rank_no, color_id, ratio) VALUES (%s,%s,%s,%s)",
+                    (image_id, rank_no, color_id, 1.0 / float(len(color_ids) or 1)),
+                )
+
         if _detect_table(conn, "gallery_contents") is not None and _detect_table(conn, "gallery_content_images") is not None:
             cur.execute(
                 """
@@ -2600,11 +2663,12 @@ JOIN gallery_content_images gci ON gci.content_id=gc.id
 SET gc.title=%s,
     gc.alt=%s,
     gc.shot_at=%s,
+    gc.created_at=%s,
     gc.updated_at=CURRENT_TIMESTAMP(6)
 WHERE gci.image_id=%s
   AND (gc.thumbnail_image_id=%s OR COALESCE(gci.is_thumbnail, 0)=1 OR gc.image_count <= 1)
 """,
-                (title, alt, shot_at, image_id, image_id),
+                (title, alt, shot_at, posted_at, image_id, image_id),
             )
 
         _ensure_admin_content_row(conn, image_id)
@@ -2625,7 +2689,7 @@ WHERE image_id=%s
         target_id=str(image_id),
         result="success",
         summary="コンテンツ情報を更新しました。",
-        meta_json={"title": title, "tags": tags, "shot_at": shot_at.isoformat()},
+        meta_json={"title": title, "tags": tags, "shot_at": shot_at.isoformat(), "posted_at": posted_at.isoformat(), "color_ids": color_ids},
     )
     return _load_content_detail(conn, image_id)
 
@@ -2808,6 +2872,7 @@ def admin_content_update(
             "title_required": "タイトルを入力してください。",
             "title_too_long": "タイトルは255文字以内で入力してください。",
             "shot_at_invalid": "撮影日を正しい形式で入力してください。",
+            "posted_at_invalid": "投稿日を正しい形式で入力してください。",
         }
         return _json_error(400, request_id, "validation_error", messages.get(code, "入力内容を確認してください。"))
     except Exception:
