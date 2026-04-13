@@ -860,7 +860,7 @@ function bindModals() {
     if (!colorId) return;
     if (state.editColorIds.includes(colorId)) {
       state.editColorIds = state.editColorIds.filter((id) => id !== colorId);
-    } else if (state.editColorIds.length < 5) {
+    } else if (state.editColorIds.length < 3) {
       state.editColorIds = [...state.editColorIds, colorId];
     }
     renderEditColors();

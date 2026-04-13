@@ -2432,7 +2432,7 @@ def _parse_admin_content_color_ids(value) -> list[int]:
             continue
         seen.add(color_id)
         out.append(color_id)
-    return out[:5]
+    return out[:3]
 
 
 def _load_content_file_meta(conn, image_id: int) -> dict:
