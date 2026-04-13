@@ -1451,6 +1451,13 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     gap: 12px;
   }
 
+  .home-gallery-grid[data-grid-cols="1"],
+  .home-gallery-grid[data-grid-cols="2"],
+  .home-gallery-grid[data-grid-cols="3"],
+  .home-gallery-grid[data-grid-cols="4"] {
+    --home-card-media-ratio: 5 / 6;
+  }
+
   .home-gallery-card {
     border-radius: 16px;
     box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
