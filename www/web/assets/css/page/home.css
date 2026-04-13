@@ -1260,21 +1260,6 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     line-height: 1;
   }
 
-  .home-status__actions {
-    width: 100%;
-    justify-content: stretch;
-    margin-left: 0;
-    order: -1;
-  }
-
-  .home-status__summary {
-    flex-basis: 100%;
-  }
-
-  .home-status__sort-field {
-    flex: 1 1 180px;
-  }
-
   .home-shell-layout {
     min-height: 0;
   }
@@ -1310,13 +1295,39 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
   .home-status {
     display: grid;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+    grid-template-areas:
+      "query sort"
+      "meta  meta";
+    align-items: start;
+    gap: 8px 12px;
     padding-inline: 4px;
+  }
+
+  .home-status__summary {
+    grid-area: query;
+    min-width: 0;
+    flex-basis: auto;
+  }
+
+  .home-status__actions {
+    grid-area: sort;
+    width: 100%;
+    justify-content: flex-end;
+    align-self: center;
+    margin-left: 0;
+    order: 0;
+  }
+
+  .home-status__sort-field {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .home-status__meta {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-area: meta;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     width: 100%;
   }
@@ -1328,9 +1339,8 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     padding-inline: 10px;
   }
 
-  .home-status__sort-field {
-    flex: 1 1 auto;
-    min-width: 0;
+  .home-status-chip:first-child {
+    grid-column: 1 / -1;
   }
 
   .home-pagination {
@@ -1466,24 +1476,30 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
 @media (max-width: 640px) {
   .home-status {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "query"
+      "sort"
+      "meta";
     gap: 6px;
     margin-bottom: 4px;
     padding-inline: 0;
   }
 
   .home-status__summary {
-    order: 1;
+    order: 0;
     flex-basis: auto;
   }
 
   .home-status__actions {
-    order: 2;
+    order: 0;
     width: 100%;
     gap: 6px;
+    justify-content: stretch;
   }
 
   .home-status__meta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
   }
 
@@ -1554,6 +1570,16 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   body[data-page="home"] .app-site-logo__label {
     max-width: 112px;
     font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-status__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .home-status-chip:first-child {
+    grid-column: auto;
   }
 }
 
