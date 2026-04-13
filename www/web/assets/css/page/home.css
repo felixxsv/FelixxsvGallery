@@ -1510,11 +1510,10 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   }
 
   .home-status-chip {
-    display: grid;
-    grid-template-columns: 1fr;
-    align-items: start;
-    justify-content: start;
-    gap: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
     min-height: 0;
     padding: 6px 10px;
     border-radius: 12px;
@@ -1527,15 +1526,19 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   .home-status-chip__label {
     font-size: 0.64rem;
     line-height: 1.1;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .home-status-chip__value {
     font-size: 0.76rem;
     line-height: 1.15;
+    flex: 1 1 auto;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    text-align: left;
   }
 
   .home-mobile-toolbar {
