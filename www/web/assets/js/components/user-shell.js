@@ -184,7 +184,6 @@ export function initUserShell(app) {
     avatarCropStage: byId("shellAvatarCropStage"),
     avatarCropCanvas: byId("shellAvatarCropCanvas"),
     avatarZoomSlider: byId("shellAvatarZoomSlider"),
-    avatarCropCancelButton: byId("shellAvatarCropCancelButton"),
     avatarCropConfirmButton: byId("shellAvatarCropConfirmButton"),
 
     emailTitle: byId("emailTitle"),
@@ -215,17 +214,13 @@ export function initUserShell(app) {
     twoFactorCodeInput: byId("shellTwoFactorCodeInput"),
     twoFactorSetupConfirmButton: byId("shellTwoFactorSetupConfirmButton"),
     twoFactorSetupResendButton: byId("shellTwoFactorSetupResendButton"),
-    twoFactorSetupCancelButton: byId("shellTwoFactorSetupCancelButton"),
-
     twoFactorDisableMessage: byId("shellTwoFactorDisableMessage"),
     twoFactorDisableCodeInput: byId("shellTwoFactorDisableCodeInput"),
     twoFactorDisableConfirmButton: byId("shellTwoFactorDisableConfirmButton"),
     twoFactorDisableResendButton: byId("shellTwoFactorDisableResendButton"),
-    twoFactorDisableCancelButton: byId("shellTwoFactorDisableCancelButton"),
 
     actionConfirmMessage: byId("shellTwoFactorActionConfirmMessage"),
-    actionConfirmApproveButton: byId("shellTwoFactorActionConfirmApproveButton"),
-    actionConfirmCancelButton: byId("shellTwoFactorActionConfirmCancelButton")
+    actionConfirmApproveButton: byId("shellTwoFactorActionConfirmApproveButton")
   };
 
   const shellState = {
@@ -334,7 +329,7 @@ export function initUserShell(app) {
   }
 
   function openActionConfirm(message, approveText = t("shell.confirm.default", "Confirm"), danger = false) {
-    if (!refs.actionConfirmApproveButton || !refs.actionConfirmCancelButton || !refs.actionConfirmMessage) {
+    if (!refs.actionConfirmApproveButton || !refs.actionConfirmMessage) {
       return Promise.resolve(window.confirm(message));
     }
 
@@ -526,7 +521,6 @@ export function initUserShell(app) {
           <div id="contactError" class="app-field-error" hidden style="margin-top:8px;color:var(--color-danger);font-size:.88rem"></div>
         </div>
         <div class="app-modal-footer">
-          <button type="button" class="app-button" data-modal-close="contact" id="contactCancelButton" data-i18n="shell.static.cancel">Cancel</button>
           <button type="button" class="app-button app-button--primary" id="contactSubmitButton" data-i18n="shell.contact.submit">Send</button>
         </div>
       </div>
@@ -651,21 +645,11 @@ export function initUserShell(app) {
       ["#shellSetPasswordSaveButton", 0, "shell.static.set", "Set"],
       ["#shellTwoFactorSetupConfirmButton", 0, "shell.static.verify", "Verify"],
       ["#shellTwoFactorDisableConfirmButton", 0, "shell.static.disable", "Disable"],
-      ["#shellTwoFactorSetupCancelButton", 0, "shell.static.cancel", "Cancel"],
-      ["#shellTwoFactorDisableCancelButton", 0, "shell.static.cancel", "Cancel"],
-      ["#shellTwoFactorActionConfirmCancelButton", 0, "shell.static.cancel", "Cancel"],
-      ["#shellAvatarCropCancelButton", 0, "shell.static.cancel", "Cancel"],
       ["#shellAvatarCropConfirmButton", 0, "shell.static.apply", "Apply"],
       ["#shellAddLinkSubmitButton", 0, "shell.static.add", "Add"],
       ["#shellLoginButton", 0, "shell.static.login", "Log In"],
       ["#shellUploadOpenButton", 0, "shell.static.upload", "Upload"],
       ["#shellAdminLink", 0, "shell.static.admin", "Open Admin"],
-      ["[data-modal-id='settings'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
-      ["[data-modal-id='help'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
-      ["[data-modal-id='credits'] .app-modal-footer .app-button--primary", 0, "shell.static.close", "Close"],
-      ["[data-modal-id='account'] .app-modal-footer .app-button--ghost", 0, "shell.static.cancel", "Cancel"],
-      ["[data-modal-id='email'] .app-modal-footer .app-button--ghost[data-modal-close='email']", 0, "shell.static.cancel", "Cancel"],
-      ["[data-modal-id='add-link'] .app-modal-footer .app-button--ghost", 0, "shell.static.cancel", "Cancel"],
     ];
     for (const [selector, index, key, fallback] of mappings) {
       const node = Array.from(document.querySelectorAll(selector))[index];
@@ -1815,12 +1799,6 @@ export function initUserShell(app) {
     if (refs.avatarCropConfirmButton) {
       refs.avatarCropConfirmButton.addEventListener("click", handleCropConfirm);
     }
-    if (refs.avatarCropCancelButton) {
-      refs.avatarCropCancelButton.addEventListener("click", () => {
-        cropState.img = null;
-        app.modal.close("crop-avatar");
-      });
-    }
     bindCropDrag();
     refs.addLinkSubmitButton?.addEventListener("click", handleLinkAdd);
     refs.addLinkInput?.addEventListener("keydown", (e) => {
@@ -1830,13 +1808,10 @@ export function initUserShell(app) {
     refs.twoFactorEnableButton?.addEventListener("click", handleTwoFactorEnable);
     refs.twoFactorSetupConfirmButton?.addEventListener("click", handleTwoFactorSetupConfirm);
     refs.twoFactorSetupResendButton?.addEventListener("click", handleTwoFactorSetupResend);
-    refs.twoFactorSetupCancelButton?.addEventListener("click", () => requestDiscardVerificationFlow("setup"));
     refs.twoFactorDisableOpenButton?.addEventListener("click", handleTwoFactorDisableStart);
     refs.twoFactorDisableConfirmButton?.addEventListener("click", handleTwoFactorDisableConfirm);
     refs.twoFactorDisableResendButton?.addEventListener("click", handleTwoFactorDisableResend);
-    refs.twoFactorDisableCancelButton?.addEventListener("click", () => requestDiscardVerificationFlow("disable"));
     refs.actionConfirmApproveButton?.addEventListener("click", () => closeActionConfirm(true));
-    refs.actionConfirmCancelButton?.addEventListener("click", () => closeActionConfirm(false));
     refs.emailSaveButton?.addEventListener("click", handleEmailSave);
     if (refs.emailResendButton) refs.emailResendButton.addEventListener("click", handleEmailResend);
 
@@ -1907,6 +1882,12 @@ export function initUserShell(app) {
         if (cat) cat.selectedIndex = 0;
         const submit = byId("contactSubmitButton");
         if (submit) { submit.disabled = false; submit.textContent = t("shell.contact.submit", "Send"); }
+      }
+      if (id === "twofactor-action-confirm" && shellState.actionConfirmResolver) {
+        closeActionConfirm(false);
+      }
+      if (id === "crop-avatar") {
+        cropState.img = null;
       }
     });
 
