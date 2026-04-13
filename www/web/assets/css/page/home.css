@@ -1401,6 +1401,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     background: var(--color-bg) !important;
     backdrop-filter: none !important;
     z-index: 200 !important;
+    overflow: hidden !important;
     transform: translateX(-110%);
     transition: transform 200ms ease !important;
   }
@@ -1419,6 +1420,10 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
   .home-sidebar__body {
     padding: 16px 12px 18px;
+  }
+
+  .home-sidebar.is-collapsed .home-sidebar__body {
+    overflow-y: hidden;
   }
 
   .app-shell-toggle {
