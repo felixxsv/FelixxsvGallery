@@ -1206,7 +1206,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   }
 
   body[data-page="home"] .app-site-header__center--search,
-  body[data-page="home"] #shellHeaderUploadButton {
+  body[data-page="home"] #homeMobileUploadBtn {
     display: none !important;
   }
 
@@ -1215,13 +1215,10 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     padding-inline: 10px;
   }
 
-  body[data-page="home"] .app-site-logo__label {
-    display: none;
-  }
-
   body[data-page="home"] .app-site-logo {
     min-height: 36px;
-    gap: 0;
+    gap: 8px;
+    min-width: 0;
   }
 
   body[data-page="home"] .app-site-logo__mark {
@@ -1229,8 +1226,38 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     height: 30px;
   }
 
+  body[data-page="home"] .app-site-logo__label {
+    display: block;
+    min-width: 0;
+    max-width: 140px;
+    font-size: 0.92rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   body[data-page="home"] .app-site-header__right {
     gap: 8px;
+  }
+
+  body[data-page="home"] #shellHeaderUploadButton {
+    display: inline-flex !important;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    font-size: 0;
+    border-radius: 999px;
+    position: relative;
+  }
+
+  body[data-page="home"] #shellHeaderUploadButton::before {
+    content: "↑";
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
   }
 
   .home-status__actions {
@@ -1315,7 +1342,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     top: var(--header-height);
     z-index: 60;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     padding: 10px 4px 8px;
     background: color-mix(in srgb, var(--color-bg) 92%, transparent);
@@ -1517,6 +1544,16 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
   .home-search-owner-badge__label {
     max-width: 84px;
+  }
+
+  body[data-page="home"] .app-site-header__inner {
+    padding-inline: 8px;
+    gap: 8px;
+  }
+
+  body[data-page="home"] .app-site-logo__label {
+    max-width: 112px;
+    font-size: 0.84rem;
   }
 }
 
