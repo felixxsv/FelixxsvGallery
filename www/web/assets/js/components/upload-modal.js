@@ -92,7 +92,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     stripDragOffsetX: 0,
     stripDragOffsetY: 0,
     stripDragGhost: null,
-    languageBound: false
+    languageBound: false,
+    mobileMedia: window.matchMedia("(max-width: 720px)")
   };
 
   const refs = {};
@@ -227,7 +228,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
             <div class="app-modal-footer upload-modal__footer">
               <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "save_draft", "Save Draft"))}</button>
               <div class="upload-modal__footer-actions">
-                <button id="uploadModalCancelButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "cancel", "Cancel"))}</button>
                 <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">${escapeHtml(t(app, "submit", "Upload"))}</button>
               </div>
             </div>
@@ -272,7 +272,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.visInput = document.getElementById("uploadModalVisInput");
     refs.visLabel = document.getElementById("uploadModalVisLabel");
     refs.inlineMessage = document.getElementById("uploadModalInlineMessage");
-    refs.cancelButton = document.getElementById("uploadModalCancelButton");
     refs.submitButton = document.getElementById("uploadModalSubmitButton");
     refs.draftButton = document.getElementById("uploadModalDraftButton");
 
@@ -779,7 +778,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         ? t(app, "submitting", "Uploading...")
         : t(app, "submit", "Upload");
     }
-    if (refs.cancelButton) refs.cancelButton.disabled = state.uploading;
     if (refs.fileSelectButton) refs.fileSelectButton.disabled = state.uploading;
     if (refs.fileInput) refs.fileInput.disabled = state.uploading;
     if (refs.draftButton) refs.draftButton.disabled = state.uploading;
@@ -1110,7 +1108,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     if (refs.visInput) refs.visInput.parentElement?.setAttribute("aria-label", t(app, "visibility_aria", "Visibility"));
     if (refs.draftButton) refs.draftButton.textContent = t(app, "save_draft", "Save Draft");
-    if (refs.cancelButton) refs.cancelButton.textContent = t(app, "cancel", "Cancel");
     setSubmitting(state.uploading);
     updateVisLabel();
 
@@ -1289,6 +1286,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     // Strip: pointer drag reorder
     refs.strip?.addEventListener("pointerdown", (event) => {
+      if (state.mobileMedia.matches || event.pointerType === "touch") return;
       if (event.button !== 0) return;
       if (event.target.closest("[data-action='remove']")) return;
       const card = event.target.closest(".upload-modal__strip-item");
@@ -1477,7 +1475,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     // Footer
     refs.draftButton?.addEventListener("click", () => saveDraft());
-    refs.cancelButton?.addEventListener("click", () => close());
     refs.submitButton?.addEventListener("click", () => submit());
   }
 
