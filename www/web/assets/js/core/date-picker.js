@@ -112,6 +112,10 @@ function attachLabelHandlers(input, trigger) {
   labels.forEach((label) => {
     label.addEventListener("click", (event) => {
       if (event.target === trigger || trigger.contains(event.target)) return;
+      const interactive = event.target instanceof Element
+        ? event.target.closest("input, button, select, textarea, a, [role='button']")
+        : null;
+      if (interactive && interactive !== input) return;
       event.preventDefault();
       trigger.focus();
       trigger.click();
