@@ -1017,3 +1017,24 @@
     margin-left: auto;
   }
 }
+
+@media (max-width: 430px) {
+  .upload-modal__row > .app-field {
+    min-width: 0;
+  }
+
+  .upload-modal__shot-at-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .upload-modal__shot-at-fields > .app-input,
+  .upload-modal__shot-at-time {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+  }
+}
