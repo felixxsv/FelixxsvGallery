@@ -866,6 +866,7 @@ function bindModals() {
       state.editColorIds = [...state.editColorIds, colorId];
     }
     renderEditColors();
+    button.blur();
   });
   byId("adminContentEditSaveButton")?.addEventListener("click", () => submitEdit());
   byId("adminContentEditForm")?.addEventListener("submit", (event) => {
