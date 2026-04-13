@@ -390,32 +390,56 @@ function renderEditTagChips() {
   const root = byId("adminContentEditTagChips");
   if (!root) return;
   root.innerHTML = "";
-  for (const tag of state.editTags) {
+  state.editTags.forEach((tag, index) => {
     const chip = document.createElement("span");
-    chip.className = "admin-content-edit__chip";
-    chip.innerHTML = `${escapeHtml(tag)}<button type="button" data-tag-remove="${escapeHtml(tag)}" aria-label="${escapeHtml(`remove ${tag}`)}">×</button>`;
+    chip.className = "upload-modal__tag-chip";
+    chip.innerHTML = `${escapeHtml(tag)}<button type="button" data-tag-index="${index}" aria-label="${escapeHtml(`remove ${tag}`)}">×</button>`;
     root.appendChild(chip);
-  }
+  });
 }
 
 function renderEditTagSuggestions() {
-  const root = byId("adminContentEditTagSuggestions");
+  const panel = byId("adminContentEditTagSuggestions");
+  const root = byId("adminContentEditTagSuggestionsList");
   const input = byId("adminContentEditTagSearchInput");
-  if (!root || !input) return;
+  if (!panel || !root || !input) return;
   const query = String(input.value || "").trim().toLowerCase();
   const items = state.editTagPool
     .filter((tag) => !state.editTags.includes(tag))
     .filter((tag) => !query || tag.toLowerCase().includes(query))
-    .slice(0, 24);
+    .slice(0, query ? 24 : 12);
   root.innerHTML = "";
   for (const tag of items) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "admin-content-edit__tag-option";
+    button.className = "upload-modal__tag-sug-item";
     button.dataset.tagAdd = tag;
     button.textContent = tag;
     root.appendChild(button);
   }
+  panel.hidden = items.length === 0;
+}
+
+function closeEditTagSuggestions() {
+  const panel = byId("adminContentEditTagSuggestions");
+  if (panel) panel.hidden = true;
+}
+
+function addEditTag(value) {
+  const tag = String(value || "").trim();
+  if (!tag || state.editTags.includes(tag)) return;
+  state.editTags.push(tag);
+  const input = byId("adminContentEditTagSearchInput");
+  if (input) input.value = "";
+  renderEditTagChips();
+  renderEditTagSuggestions();
+}
+
+function removeEditTag(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= state.editTags.length) return;
+  state.editTags.splice(index, 1);
+  renderEditTagChips();
+  renderEditTagSuggestions();
 }
 
 function renderEditColors() {
@@ -837,23 +861,52 @@ function bindModals() {
     if (state.editSubmitting) return;
     window.AdminApp.modal.close("admin-content-edit");
   });
+  byId("adminContentEditTagBox")?.addEventListener("click", (event) => {
+    const box = byId("adminContentEditTagBox");
+    const chips = byId("adminContentEditTagChips");
+    if (event.target === box || event.target === chips) {
+      byId("adminContentEditTagSearchInput")?.focus();
+      renderEditTagSuggestions();
+    }
+  });
+  byId("adminContentEditTagSearchInput")?.addEventListener("focus", () => renderEditTagSuggestions());
+  byId("adminContentEditTagSearchInput")?.addEventListener("blur", () => {
+    setTimeout(() => closeEditTagSuggestions(), 160);
+  });
   byId("adminContentEditTagSearchInput")?.addEventListener("input", () => renderEditTagSuggestions());
-  byId("adminContentEditTagSuggestions")?.addEventListener("click", (event) => {
+  byId("adminContentEditTagSearchInput")?.addEventListener("keydown", (event) => {
+    const input = byId("adminContentEditTagSearchInput");
+    if (!input) return;
+    if (event.key === "Enter" || event.key === "," || event.key === "、") {
+      event.preventDefault();
+      if (input.value.trim()) addEditTag(input.value);
+    } else if (event.key === "Escape") {
+      closeEditTagSuggestions();
+    } else if (event.key === "Backspace" && !input.value && state.editTags.length > 0) {
+      removeEditTag(state.editTags.length - 1);
+    }
+  });
+  byId("adminContentEditTagAddButton")?.addEventListener("click", () => {
+    const input = byId("adminContentEditTagSearchInput");
+    if (!input) return;
+    if (input.value.trim()) {
+      addEditTag(input.value);
+    } else {
+      renderEditTagSuggestions();
+      input.focus();
+    }
+  });
+  byId("adminContentEditTagSuggestionsList")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-tag-add]");
     if (!button) return;
-    const tag = String(button.dataset.tagAdd || "").trim();
-    if (!tag || state.editTags.includes(tag)) return;
-    state.editTags.push(tag);
-    renderEditTagChips();
+    addEditTag(button.dataset.tagAdd || "");
     renderEditTagSuggestions();
+    byId("adminContentEditTagSearchInput")?.focus();
   });
   byId("adminContentEditTagChips")?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-tag-remove]");
+    const button = event.target.closest("[data-tag-index]");
     if (!button) return;
-    const tag = String(button.dataset.tagRemove || "");
-    state.editTags = state.editTags.filter((item) => item !== tag);
-    renderEditTagChips();
-    renderEditTagSuggestions();
+    removeEditTag(Number(button.dataset.tagIndex || -1));
   });
   byId("adminContentEditColorList")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-color-id]");
