@@ -447,14 +447,14 @@
 
 .upload-modal__row {
   display: grid;
-  grid-template-columns: 208px minmax(0, 1fr);
+  grid-template-columns: 252px minmax(0, 1fr);
   gap: var(--space-4);
   align-items: start;
 }
 
 .upload-modal__shot-at-fields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px;
+  grid-template-columns: minmax(0, 1fr) 104px;
   gap: 6px;
   align-items: center;
 }
@@ -539,7 +539,7 @@
 
 .upload-modal__tag-input {
   flex: 1 1 0;
-  min-width: 96px;
+  min-width: 48px;
   border: none;
   outline: none;
   background: transparent;
