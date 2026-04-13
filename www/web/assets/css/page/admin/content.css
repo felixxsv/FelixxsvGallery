@@ -83,10 +83,24 @@
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+.admin-content-thumb-cell {
+  display: grid;
+  grid-template-columns: 28px 96px;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-content-thumb-cell--single {
+  grid-template-columns: 96px;
+}
+
+.admin-content-thumb-cell--child {
+  grid-template-columns: 28px 76px;
+}
+
 .admin-content-thumb--child {
   width: 76px;
   height: 48px;
-  margin-left: 20px;
 }
 
 .admin-content-thumb img {
@@ -129,19 +143,33 @@
   color: rgba(255,255,255,0.72);
 }
 
+.admin-content-main__count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.68);
+  font-size: 12px;
+}
+
 .admin-content-group-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 0 10px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.06);
   color: rgba(255,255,255,0.9);
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease;
 }
 
 .admin-content-group-toggle:hover,
@@ -149,8 +177,8 @@
   background: rgba(255,255,255,0.12);
 }
 
-.admin-content-group-toggle span {
-  color: rgba(255,255,255,0.66);
+.admin-content-group-toggle[aria-expanded="true"] {
+  transform: rotate(90deg);
 }
 
 .admin-content-row--group > td {
@@ -161,16 +189,25 @@
   background: rgba(255,255,255,0.04);
 }
 
-.admin-content-child-main {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
+.admin-content-child-line {
+  display: block;
+  justify-self: center;
+  width: 1px;
+  height: 48px;
+  background: rgba(255,255,255,0.18);
 }
 
-.admin-content-child-main__marker {
-  min-width: 44px;
+.admin-content-child-shot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.82);
+  font-size: 13px;
+}
+
+.admin-content-child-shot__index {
   min-height: 24px;
+  min-width: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
