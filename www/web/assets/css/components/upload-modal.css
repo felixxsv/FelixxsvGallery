@@ -462,6 +462,13 @@
   align-items: center;
 }
 
+.upload-modal__shot-at-fields > .app-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .upload-modal__shot-at-time {
   min-width: 0;
   max-width: 100%;
@@ -968,6 +975,11 @@
     grid-template-columns: 1fr;
   }
   .upload-modal__shot-at-time {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .upload-modal__shot-at-fields > .app-input {
     width: 100%;
     min-width: 0;
     max-width: 100%;
