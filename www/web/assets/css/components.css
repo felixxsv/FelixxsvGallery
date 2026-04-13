@@ -1355,6 +1355,10 @@ body {
   line-height: 1.65;
 }
 
+.shell-help-dialog {
+  max-width: 780px;
+}
+
 .shell-help-content h3 {
   font-size: 0.95rem;
   color: var(--color-text);
@@ -1365,6 +1369,26 @@ body {
   padding-left: 1.25rem;
   display: grid;
   gap: 0.5rem;
+}
+
+.shell-help-faq {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.shell-help-faq div {
+  display: grid;
+  gap: 4px;
+}
+
+.shell-help-faq dt {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.shell-help-faq dd {
+  margin: 0;
 }
 
 .shell-pen-button {

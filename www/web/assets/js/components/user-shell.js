@@ -384,30 +384,77 @@ export function initUserShell(app) {
   function renderHelpContent() {
     const helpBody = document.querySelector("[data-modal-id='help'] .app-modal-body");
     if (!helpBody) return;
+    const helpDialog = document.querySelector("[data-modal-id='help'] .app-modal-dialog");
+    if (helpDialog) helpDialog.classList.add("shell-help-dialog");
     helpBody.innerHTML = `
       <div class="shell-help-content">
         <section>
-          <h3>${escapeHtml(t("shell.help.search_title", "Search and Filters"))}</h3>
+          <h3>${escapeHtml(t("shell.help.view_title", "画像を見る"))}</h3>
           <ul>
-            <li>${escapeHtml(t("shell.help.search_item1", "Use the header search to filter across titles, ALT text, tags, and users."))}</li>
-            <li>${escapeHtml(t("shell.help.search_item2", "Use the sidebar to combine tags, color tags, shot date, posted date, and archive filters."))}</li>
-            <li>${escapeHtml(t("shell.help.search_item3", "Archive counts are recalculated against the current filters and stay in sync when conditions change."))}</li>
+            <li>${escapeHtml(t("shell.help.view_item1", "画像を押すと大きく表示できます。"))}</li>
+            <li>${escapeHtml(t("shell.help.view_item2", "詳細を開くと、撮影日や投稿日、タグなどを確認できます。"))}</li>
+            <li>${escapeHtml(t("shell.help.view_item3", "投稿者のアイコンを押すと、そのユーザーのプロフィールを開けます。"))}</li>
           </ul>
         </section>
         <section>
-          <h3>${escapeHtml(t("shell.help.view_title", "Viewing Images"))}</h3>
+          <h3>${escapeHtml(t("shell.help.search_title", "絞り込む"))}</h3>
           <ul>
-            <li>${escapeHtml(t("shell.help.view_item1", "Open a card to view the image in the image modal."))}</li>
-            <li>${escapeHtml(t("shell.help.view_item2", "Use the details button to check shot date, posted date, tags, and color tags."))}</li>
-            <li>${escapeHtml(t("shell.help.view_item3", "Select the uploader icon to open the profile modal."))}</li>
+            <li>${escapeHtml(t("shell.help.search_item1", "上部の検索から、タイトルやタグ、投稿者で探せます。"))}</li>
+            <li>${escapeHtml(t("shell.help.search_item2", "サイドバーでは、タグ、カラータグ、日付などで絞り込めます。"))}</li>
+            <li>${escapeHtml(t("shell.help.search_item3", "条件を組み合わせると、見たい画像だけを探しやすくなります。"))}</li>
           </ul>
         </section>
         <section>
-          <h3>${escapeHtml(t("shell.help.account_title", "Account and Settings"))}</h3>
+          <h3>${escapeHtml(t("shell.help.account_title", "アカウント"))}</h3>
           <ul>
-            <li>${escapeHtml(t("shell.help.account_item1", "Use the user menu in the top-right corner to open profile editing, display settings, and account settings."))}</li>
-            <li>${escapeHtml(t("shell.help.account_item2", "Email changes, Discord linking, two-factor authentication, and logout actions are grouped under account settings."))}</li>
+            <li>${escapeHtml(t("shell.help.account_item1", "右上のアイコンから、アカウント情報を開けます。"))}</li>
+            <li>${escapeHtml(t("shell.help.account_item2", "プロフィールでは、表示名、自己紹介、リンクなどを編集できます。"))}</li>
+            <li>${escapeHtml(t("shell.help.account_item3", "バッジやアイコンを押すと、大きく表示して確認できます。"))}</li>
           </ul>
+        </section>
+        <section>
+          <h3>${escapeHtml(t("shell.help.settings_title", "設定"))}</h3>
+          <ul>
+            <li>${escapeHtml(t("shell.help.settings_item1", "表示設定から、言語やテーマを変更できます。"))}</li>
+            <li>${escapeHtml(t("shell.help.settings_item2", "画像の開き方や、表示まわりの設定も変更できます。"))}</li>
+            <li>${escapeHtml(t("shell.help.settings_item3", "変更内容はその場で反映されます。"))}</li>
+          </ul>
+        </section>
+        <section>
+          <h3>${escapeHtml(t("shell.help.contact_title", "お問い合わせ"))}</h3>
+          <ul>
+            <li>${escapeHtml(t("shell.help.contact_item1", "困ったことや不具合、要望がある場合は、お問い合わせから送信できます。"))}</li>
+            <li>${escapeHtml(t("shell.help.contact_item2", "内容に合う項目を選んでから送ると、確認しやすくなります。"))}</li>
+          </ul>
+        </section>
+        <section>
+          <h3>${escapeHtml(t("shell.help.faq_title", "FAQ"))}</h3>
+          <dl class="shell-help-faq">
+            <div>
+              <dt>${escapeHtml(t("shell.help.faq_q1", "ログインしないと使えない機能はありますか？"))}</dt>
+              <dd>${escapeHtml(t("shell.help.faq_a1", "プロフィール編集やお問い合わせなど、一部の機能はログインが必要です。"))}</dd>
+            </div>
+            <div>
+              <dt>${escapeHtml(t("shell.help.faq_q2", "バッジはどうやって増えますか？"))}</dt>
+              <dd>${escapeHtml(t("shell.help.faq_a2", "条件を満たすと自動で付与されるものと、管理者が付与するものがあります。"))}</dd>
+            </div>
+            <div>
+              <dt>${escapeHtml(t("shell.help.faq_q3", "投稿者ごとに画像を見たいです。"))}</dt>
+              <dd>${escapeHtml(t("shell.help.faq_a3", "投稿者のプロフィールを開くと、そのユーザーの投稿を見やすくできます。"))}</dd>
+            </div>
+            <div>
+              <dt>${escapeHtml(t("shell.help.faq_q4", "画像の情報はどこで見られますか？"))}</dt>
+              <dd>${escapeHtml(t("shell.help.faq_a4", "画像の詳細から確認できます。"))}</dd>
+            </div>
+            <div>
+              <dt>${escapeHtml(t("shell.help.faq_q5", "表示が見づらい時はどうしたらいいですか？"))}</dt>
+              <dd>${escapeHtml(t("shell.help.faq_a5", "設定から言語や表示方法を変更できます。"))}</dd>
+            </div>
+            <div>
+              <dt>${escapeHtml(t("shell.help.faq_q6", "不具合や要望はどこから送れますか？"))}</dt>
+              <dd>${escapeHtml(t("shell.help.faq_a6", "アカウントメニュー内のお問い合わせから送れます。"))}</dd>
+            </div>
+          </dl>
         </section>
       </div>
     `;
