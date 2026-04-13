@@ -102,7 +102,7 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="admin-content-table__empty">${escapeHtml(t("empty", "No content found."))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="admin-content-table__empty">${escapeHtml(t("empty", "No content found."))}</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
@@ -130,9 +130,10 @@ function renderTable() {
             <div class="admin-content-main__title-row">
               <div class="admin-content-main__title">${escapeHtml(item.title || t("no_title", "(Untitled)"))}</div>
             </div>
-            <div class="admin-content-main__sub">${escapeHtml(uploaderLabel)} ・ ${escapeHtml(formatDateTime(item.posted_at))}</div>
+            <div class="admin-content-main__sub">${escapeHtml(uploaderLabel)}</div>
           </div>
         </td>
+        <td>${escapeHtml(formatDateTime(item.shot_at))}</td>
         <td>${buildPill(item.visibility || "-", item.visibility === "public" ? "admin-content-pill--public" : "admin-content-pill--private")}</td>
         <td>${buildPill(item.status || "-", `admin-content-pill--${escapeHtml(item.status || "normal")}`)}</td>
         <td>${escapeHtml(item.like_count_text || "0")}</td>
@@ -156,11 +157,8 @@ function renderTable() {
           const positionText = `${index + 1}/${children.length}`;
           childTr.innerHTML = `
             <td><div class="admin-content-thumb-cell admin-content-thumb-cell--child"><span class="admin-content-child-line" aria-hidden="true"></span>${childPreview}<span class="admin-content-count-badge admin-content-count-badge--child">${escapeHtml(positionText)}</span></div></td>
-            <td>
-              <div class="admin-content-child-shot">
-                <span>${escapeHtml(t("shot_at_label", "撮影日"))}: ${escapeHtml(formatDateTime(child.shot_at))}</span>
-              </div>
-            </td>
+            <td></td>
+            <td><div class="admin-content-child-shot">${escapeHtml(formatDateTime(child.shot_at))}</div></td>
             <td></td>
             <td>${buildPill(child.status || "-", `admin-content-pill--${escapeHtml(child.status || "normal")}`)}</td>
             <td></td>
@@ -186,7 +184,7 @@ function renderTable() {
 
 async function loadContents() {
   const tbody = byId("adminContentTableBody");
-  if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="admin-content-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="admin-content-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
   try {
     const payload = await window.AdminApp.api.get(`/api/admin/content?${qs()}`);
     state.total = Number(payload.data?.total || 0);
@@ -201,7 +199,7 @@ async function loadContents() {
     state.total = 0;
     state.pages = 1;
     renderTable();
-    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="admin-content-table__empty">${escapeHtml(message)}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="admin-content-table__empty">${escapeHtml(message)}</td></tr>`;
   }
 }
 
@@ -534,12 +532,13 @@ function applyStaticTranslations() {
   const tableHead = document.querySelectorAll(".admin-content-table thead th");
   if (tableHead[0]) tableHead[0].textContent = t("image", "Image");
   if (tableHead[1]) tableHead[1].textContent = t("title_uploader", "Title / Uploader");
-  if (tableHead[2]) tableHead[2].textContent = t("public_short", "Public");
-  if (tableHead[3]) tableHead[3].textContent = t("status", "Status");
-  if (tableHead[4]) tableHead[4].textContent = t("likes", "Likes");
-  if (tableHead[5]) tableHead[5].textContent = t("views", "Views");
-  if (tableHead[6]) tableHead[6].textContent = t("posted_at", "Posted At");
-  if (tableHead[7]) tableHead[7].textContent = t("action", "Action");
+  if (tableHead[2]) tableHead[2].textContent = t("detail_field_shot_at", "Shot At");
+  if (tableHead[3]) tableHead[3].textContent = t("public_short", "Public");
+  if (tableHead[4]) tableHead[4].textContent = t("status", "Status");
+  if (tableHead[5]) tableHead[5].textContent = t("likes", "Likes");
+  if (tableHead[6]) tableHead[6].textContent = t("views", "Views");
+  if (tableHead[7]) tableHead[7].textContent = t("posted_at", "Posted At");
+  if (tableHead[8]) tableHead[8].textContent = t("action", "Action");
   setText("adminContentPrevPage", "prev", "Prev");
   setText("adminContentNextPage", "next", "Next");
 }
