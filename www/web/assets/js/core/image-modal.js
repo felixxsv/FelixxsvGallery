@@ -211,19 +211,16 @@ export function createImageModalController({ app, body = document.body } = {}) {
     onOpen() {
       state.detailOpen = true;
       syncDetailStateClass();
-      clearHideTimer();
       updateControlsVisibility(true);
     },
     onClose() {
       state.detailOpen = false;
       syncDetailStateClass();
       updateControlsVisibility(true);
-      scheduleAutoHide();
     },
     onPreviewOpen() {
       detailModal.close();
       updateControlsVisibility(true);
-      scheduleAutoHide();
       viewport.focus?.();
     },
   });
@@ -260,67 +257,41 @@ export function createImageModalController({ app, body = document.body } = {}) {
     applyTransform();
   }
 
-  function updateControlsVisibility(forceVisible = false, pointer = null) {
+  function setControlsVisible(visible) {
+    root.classList.toggle("is-controls-visible", visible);
+    root.classList.toggle("is-cursor-visible", visible);
+    state.controlsVisible = visible;
+    state.cursorVisible = visible;
+  }
+
+  function updateControlsVisibility(forceVisible = false) {
     if (state.detailOpen) {
-      root.classList.add("is-controls-visible");
-      root.classList.add("is-cursor-visible");
-      state.controlsVisible = true;
-      state.cursorVisible = true;
+      setControlsVisible(true);
       return;
     }
 
     const metaPinned = app.settings.getImageMetaPinned();
     if (forceVisible) {
-      root.classList.add("is-controls-visible");
-      root.classList.add("is-cursor-visible");
-      state.controlsVisible = true;
-      state.cursorVisible = true;
+      setControlsVisible(true);
       return;
     }
 
     if (metaPinned && state.zoom <= 100) {
-      root.classList.add("is-controls-visible");
-      root.classList.add("is-cursor-visible");
-      state.controlsVisible = true;
-      state.cursorVisible = true;
+      setControlsVisible(true);
       return;
     }
 
-    if (state.zoom > 100 && pointer) {
-      const rect = viewport.getBoundingClientRect();
-      const nearRight = pointer.clientX >= rect.right - 96;
-      const nearBottom = pointer.clientY >= rect.bottom - 132;
-      const nearClose = pointer.clientX >= rect.right - 108 && pointer.clientY <= rect.top + 96;
-      const showControls = nearRight || nearBottom || nearClose;
-      root.classList.toggle("is-controls-visible", showControls);
-      root.classList.add("is-cursor-visible");
-      state.controlsVisible = showControls;
-      state.cursorVisible = true;
-      return;
-    }
-
-    root.classList.remove("is-controls-visible");
-    root.classList.remove("is-cursor-visible");
-    state.controlsVisible = false;
-    state.cursorVisible = false;
+    setControlsVisible(false);
   }
 
-  function clearHideTimer() {
-    if (state.hideTimer) {
-      window.clearTimeout(state.hideTimer);
-      state.hideTimer = null;
-    }
-  }
-
-  function scheduleAutoHide() {
-    clearHideTimer();
+  function toggleControlsVisibility() {
     if (state.detailOpen) return;
     const metaPinned = app.settings.getImageMetaPinned();
-    if (metaPinned && state.zoom <= 100) return;
-    state.hideTimer = window.setTimeout(() => {
-      if (state.detailOpen) return;
-      updateControlsVisibility(false, null);
-    }, 2200);
+    if (metaPinned && state.zoom <= 100) {
+      setControlsVisible(true);
+      return;
+    }
+    setControlsVisible(!state.controlsVisible);
   }
 
   function syncLikeUi() {
@@ -487,7 +458,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
     }
     renderCurrentItem();
     updateControlsVisibility(true);
-    scheduleAutoHide();
   }
 
   function open(payload, options = {}) {
@@ -507,11 +477,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
     bodyLock(true);
     viewport.focus?.();
     updateControlsVisibility(true);
-    scheduleAutoHide();
   }
 
   function close() {
-    clearHideTimer();
     detailModal.close();
     state.detailOpen = false;
     syncDetailStateClass();
@@ -544,7 +512,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
     }
     applyTransform();
     updateControlsVisibility(true);
-    scheduleAutoHide();
   }
 
   function shouldCloseByBackdropClick(event) {
@@ -565,6 +532,15 @@ export function createImageModalController({ app, body = document.body } = {}) {
   viewport.addEventListener("click", (event) => {
     if (shouldCloseByBackdropClick(event)) {
       close();
+      return;
+    }
+    const interactive = event.target.closest("button, input, select, textarea, a, [data-detail-preview-open]");
+    if (interactive) {
+      return;
+    }
+    const clickedStage = event.target === stage || event.target === image;
+    if (clickedStage) {
+      toggleControlsVisibility();
     }
   });
 
@@ -611,30 +587,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
     }
   });
 
-  viewport.addEventListener("mousemove", (event) => {
-    if (root.hidden) return;
-    if (state.detailOpen) {
-      updateControlsVisibility(true);
-      return;
-    }
-    if (state.zoom > 100) {
-      updateControlsVisibility(false, event);
-    } else {
-      updateControlsVisibility(true);
-    }
-    scheduleAutoHide();
-  });
-
-  viewport.addEventListener("mouseleave", () => {
-    if (state.detailOpen) return;
-    if (state.zoom > 100) {
-      clearHideTimer();
-      updateControlsVisibility(false, null);
-      return;
-    }
-    scheduleAutoHide();
-  });
-
   stage.addEventListener("wheel", (event) => {
     event.preventDefault();
     if (state.detailOpen) return;
@@ -656,7 +608,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.dragOriginX = state.offsetX;
     state.dragOriginY = state.offsetY;
     stage.classList.add("is-dragging");
-    clearHideTimer();
   });
 
   window.addEventListener("mousemove", (event) => {
@@ -670,7 +621,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
     if (!state.dragging) return;
     state.dragging = false;
     stage.classList.remove("is-dragging");
-    scheduleAutoHide();
   });
 
   viewport.addEventListener("touchstart", (event) => {
