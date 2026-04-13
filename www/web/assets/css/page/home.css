@@ -1392,12 +1392,14 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
   .home-sidebar {
     position: fixed !important;
-    top: var(--header-height) !important;
+    top: 0 !important;
     left: 0 !important;
     width: min(352px, 92vw) !important;
-    height: calc(100dvh - var(--header-height)) !important;
+    height: 100dvh !important;
     border-right: 1px solid var(--color-border) !important;
     border-bottom: none !important;
+    background: var(--color-bg) !important;
+    backdrop-filter: none !important;
     z-index: 200 !important;
     transform: translateX(-110%);
     transition: transform 200ms ease !important;
@@ -1412,7 +1414,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     top: 0;
     z-index: 2;
     background: inherit;
-    backdrop-filter: blur(12px);
+    backdrop-filter: none;
   }
 
   .home-sidebar__body {
@@ -1421,6 +1423,11 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
   .app-shell-toggle {
     display: none !important;
+  }
+
+  body.is-home-sidebar-open {
+    overflow: hidden;
+    touch-action: none;
   }
 }
 
