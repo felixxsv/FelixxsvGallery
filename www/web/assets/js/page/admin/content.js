@@ -432,7 +432,7 @@ function renderEditColors() {
     button.dataset.colorId = String(id);
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", active ? "true" : "false");
-    button.innerHTML = `<span class="admin-content-edit__color-swatch" style="--admin-color:${escapeHtml(item.hex || "#94a3b8")}"></span><span class="admin-content-edit__color-name">${escapeHtml(item.name || String(id))}</span><span class="admin-content-edit__color-check" aria-hidden="true"></span>`;
+    button.innerHTML = `<span class="admin-content-edit__color-swatch" style="--admin-color:${escapeHtml(item.hex || "#94a3b8")}"></span><span class="admin-content-edit__color-name">${escapeHtml(item.name || String(id))}</span>`;
     root.appendChild(button);
   }
 }
