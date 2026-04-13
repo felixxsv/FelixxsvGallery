@@ -410,6 +410,7 @@
   "admin_content.reload": "重新加载",
   "admin_content.search": "搜索",
   "admin_content.search_placeholder": "搜索标题 / ALT / 标签",
+  "admin_content.tag_search_placeholder": "搜索标签",
   "admin_content.visibility": "可见性",
   "admin_content.status": "状态",
   "admin_content.visibility_public": "公开",

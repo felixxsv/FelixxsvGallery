@@ -412,6 +412,7 @@
   "admin_content.reload": "Recargar",
   "admin_content.search": "Buscar",
   "admin_content.search_placeholder": "Buscar titulo / ALT / etiquetas",
+  "admin_content.tag_search_placeholder": "Buscar etiquetas",
   "admin_content.visibility": "Visibilidad",
   "admin_content.status": "Estado",
   "admin_content.visibility_public": "Publico",

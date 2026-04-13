@@ -410,6 +410,7 @@
   "admin_content.reload": "새로고침",
   "admin_content.search": "검색",
   "admin_content.search_placeholder": "제목 / ALT / 태그 검색",
+  "admin_content.tag_search_placeholder": "태그 검색",
   "admin_content.visibility": "공개 상태",
   "admin_content.status": "상태",
   "admin_content.visibility_public": "공개",

@@ -723,6 +723,8 @@ function applyStaticTranslations() {
   setText("adminContentReloadButton", "reload", "Reload");
   setText("adminContentEditButton", "edit", "Edit");
   setText("adminContentEditSaveButton", "save", "Save");
+  const editTagSearchInput = byId("adminContentEditTagSearchInput");
+  if (editTagSearchInput) editTagSearchInput.placeholder = t("tag_search_placeholder", "Search tags");
   const labels = document.querySelectorAll(".admin-content-filters .admin-field__label");
   if (labels[0]) labels[0].textContent = t("search", "Search");
   if (labels[1]) labels[1].textContent = t("visibility", "Visibility");

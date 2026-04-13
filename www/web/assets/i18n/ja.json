@@ -410,6 +410,7 @@
   "admin_content.reload": "再読込",
   "admin_content.search": "検索",
   "admin_content.search_placeholder": "タイトル / ALT / タグで検索",
+  "admin_content.tag_search_placeholder": "タグを検索",
   "admin_content.visibility": "公開状態",
   "admin_content.status": "状態",
   "admin_content.visibility_public": "公開",
