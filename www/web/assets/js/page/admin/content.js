@@ -860,13 +860,19 @@ function bindModals() {
     if (!button) return;
     const colorId = Number(button.dataset.colorId || 0);
     if (!colorId) return;
+    let active = false;
     if (state.editColorIds.includes(colorId)) {
       state.editColorIds = state.editColorIds.filter((id) => id !== colorId);
+      active = false;
     } else if (state.editColorIds.length < 3) {
       state.editColorIds = [...state.editColorIds, colorId];
+      active = true;
+    } else {
+      return;
     }
-    renderEditColors();
-    button.blur();
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+    document.activeElement?.blur?.();
   });
   byId("adminContentEditSaveButton")?.addEventListener("click", () => submitEdit());
   byId("adminContentEditForm")?.addEventListener("submit", (event) => {
