@@ -1024,17 +1024,21 @@
   }
 
   .upload-modal__shot-at-fields {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 88px;
     gap: 8px;
     width: 100%;
   }
 
   .upload-modal__shot-at-fields > .app-input,
   .upload-modal__shot-at-time {
-    width: 100%;
+    width: auto;
     min-width: 0;
     max-width: 100%;
     min-height: 44px;
+  }
+
+  .upload-modal__shot-at-time {
+    padding-inline: 6px;
   }
 }
