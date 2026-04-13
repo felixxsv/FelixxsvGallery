@@ -414,6 +414,12 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
   gap: 16px;
 }
 
+.admin-content-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .admin-content-upload__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);

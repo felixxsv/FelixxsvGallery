@@ -2345,6 +2345,44 @@ ORDER BY rank_no ASC
     return colors
 
 
+def _parse_admin_content_tags(value) -> list[str]:
+    raw_items = value if isinstance(value, list) else str(value or "").split(",")
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in raw_items:
+        name = str(item or "").strip()
+        if not name:
+            continue
+        name = name[:80]
+        key = name.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(name)
+    return out[:50]
+
+
+def _parse_admin_content_shot_at(value) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%Y/%m/%d-%H:%M",
+        "%Y/%m/%d %H:%M",
+        "%Y/%m/%d-%H:%M:%S",
+        "%Y/%m/%d %H:%M:%S",
+    ):
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
+    return None
+
+
 def _load_content_file_meta(conn, image_id: int) -> dict:
     source_table = _image_sources_table(conn)
     if source_table is None:
@@ -2510,6 +2548,88 @@ WHERE image_id=%s
     return _load_content_detail(conn, image_id)
 
 
+def _update_content_metadata(conn, image_id: int, actor_user_id: int | None, payload: dict) -> dict | None:
+    current = _load_content_detail(conn, image_id)
+    if current is None:
+        return None
+
+    data = payload or {}
+    title = str(data.get("title") or "").strip()
+    alt = str(data.get("alt") or "").strip()
+    tags = _parse_admin_content_tags(data.get("tags"))
+    shot_at = _parse_admin_content_shot_at(data.get("shot_at"))
+
+    if not title:
+        raise ValueError("title_required")
+    if len(title) > 255:
+        raise ValueError("title_too_long")
+    if shot_at is None:
+        raise ValueError("shot_at_invalid")
+
+    image_cols = _images_columns(conn)
+    update_cols = ["title=%s", "alt=%s", "shot_at=%s"]
+    params: list = [title, alt, shot_at]
+    if "updated_at" in image_cols:
+        update_cols.append("updated_at=CURRENT_TIMESTAMP(6)")
+    params.append(image_id)
+
+    with conn.cursor() as cur:
+        cur.execute(f"UPDATE images SET {', '.join(update_cols)} WHERE id=%s", params)
+
+        if _image_tags_table(conn) is not None and _tags_table(conn) is not None:
+            cur.execute("DELETE FROM image_tags WHERE image_id=%s", (image_id,))
+            if tags:
+                cur.execute("SELECT gallery FROM images WHERE id=%s LIMIT 1", (image_id,))
+                image_row = cur.fetchone() or {}
+                gallery = image_row.get("gallery") or _get_conf().get("gallery") or "default"
+                for tag_name in tags:
+                    cur.execute(
+                        "INSERT INTO tags (gallery, name) VALUES (%s,%s) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)",
+                        (gallery, tag_name),
+                    )
+                    cur.execute("SELECT LAST_INSERT_ID() AS id")
+                    tag_id = int((cur.fetchone() or {}).get("id") or 0)
+                    if tag_id:
+                        cur.execute("INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (%s,%s)", (image_id, tag_id))
+
+        if _detect_table(conn, "gallery_contents") is not None and _detect_table(conn, "gallery_content_images") is not None:
+            cur.execute(
+                """
+UPDATE gallery_contents gc
+JOIN gallery_content_images gci ON gci.content_id=gc.id
+SET gc.title=%s,
+    gc.alt=%s,
+    gc.shot_at=%s,
+    gc.updated_at=CURRENT_TIMESTAMP(6)
+WHERE gci.image_id=%s
+  AND (gc.thumbnail_image_id=%s OR COALESCE(gci.is_thumbnail, 0)=1 OR gc.image_count <= 1)
+""",
+                (title, alt, shot_at, image_id, image_id),
+            )
+
+        _ensure_admin_content_row(conn, image_id)
+        cur.execute(
+            """
+UPDATE admin_content_states
+SET updated_by_user_id=%s, updated_at=CURRENT_TIMESTAMP(6)
+WHERE image_id=%s
+""",
+            (actor_user_id, image_id),
+        )
+
+    _log_audit_event(
+        conn,
+        actor_user_id=actor_user_id,
+        action_type="admin.content.update",
+        target_type="image",
+        target_id=str(image_id),
+        result="success",
+        summary="コンテンツ情報を更新しました。",
+        meta_json={"title": title, "tags": tags, "shot_at": shot_at.isoformat()},
+    )
+    return _load_content_detail(conn, image_id)
+
+
 def _set_content_moderation_status(conn, image_id: int, actor_user_id: int | None, moderation_status: str) -> dict | None:
     current = _load_content_detail(conn, image_id)
     if current is None:
@@ -2652,6 +2772,52 @@ def admin_content_detail(
     except Exception:
         logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "コンテンツ詳細の取得に失敗しました。")
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@router.patch("/content/{image_id}")
+def admin_content_update(
+    image_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        updated = _update_content_metadata(conn, image_id, int(actor.get("id") or 0) or None, payload or {})
+        if updated is None:
+            return _json_error(404, request_id, "not_found", "対象コンテンツが見つかりません。")
+        conn.commit()
+        return _json_success(request_id=request_id, data={"content": updated}, message="コンテンツ情報を更新しました。")
+    except ValueError as exc:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        code = str(exc)
+        messages = {
+            "title_required": "タイトルを入力してください。",
+            "title_too_long": "タイトルは255文字以内で入力してください。",
+            "shot_at_invalid": "撮影日を正しい形式で入力してください。",
+        }
+        return _json_error(400, request_id, "validation_error", messages.get(code, "入力内容を確認してください。"))
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return _json_error(500, request_id, "server_error", "コンテンツ情報の更新に失敗しました。")
     finally:
         if conn is not None:
             conn.close()

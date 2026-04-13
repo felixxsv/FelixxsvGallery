@@ -17,6 +17,13 @@ function formatDateTime(value) {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+function toDateTimeLocalValue(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 function formatBytes(value) {
   const n = Number(value || 0);
   if (!Number.isFinite(n) || n <= 0) return "-";
@@ -78,6 +85,7 @@ const state = {
   pendingConfirm: null,
   filterTimer: null,
   uploadSubmitting: false,
+  editSubmitting: false,
   uploadModalController: null
 };
 
@@ -290,6 +298,15 @@ function setUploadResult(message, kind = "") {
   box.classList.toggle("is-success", kind === "success");
 }
 
+function setEditResult(message, kind = "") {
+  const box = byId("adminContentEditResult");
+  if (!box) return;
+  box.textContent = message || "";
+  box.hidden = !message;
+  box.classList.toggle("is-error", kind === "error");
+  box.classList.toggle("is-success", kind === "success");
+}
+
 function renderUploadSelection() {
   const input = byId("adminContentUploadFilesInput");
   const summary = byId("adminContentUploadSummary");
@@ -336,6 +353,72 @@ function setUploadSubmitting(submitting) {
   }
   if (cancel) cancel.disabled = state.uploadSubmitting;
   if (openButton) openButton.disabled = state.uploadSubmitting;
+}
+
+function setEditSubmitting(submitting) {
+  state.editSubmitting = Boolean(submitting);
+  const save = byId("adminContentEditSaveButton");
+  const cancel = byId("adminContentEditCancelButton");
+  if (save) {
+    save.disabled = state.editSubmitting;
+    save.textContent = state.editSubmitting ? t("saving", "Saving...") : t("save", "Save");
+  }
+  if (cancel) cancel.disabled = state.editSubmitting;
+}
+
+function openEditModal() {
+  const item = state.currentContent;
+  if (!item) return;
+  byId("adminContentEditTitleInput").value = item.title || "";
+  byId("adminContentEditAltInput").value = item.alt || "";
+  byId("adminContentEditShotAtInput").value = toDateTimeLocalValue(item.shot_at);
+  byId("adminContentEditTagsInput").value = Array.isArray(item.tags) ? item.tags.join(", ") : "";
+  setEditResult("");
+  setEditSubmitting(false);
+  window.AdminApp.modal.open("admin-content-edit");
+}
+
+async function submitEdit() {
+  const item = state.currentContent;
+  if (!item || state.editSubmitting) return;
+
+  const title = byId("adminContentEditTitleInput")?.value?.trim() || "";
+  const alt = byId("adminContentEditAltInput")?.value || "";
+  const shotAt = byId("adminContentEditShotAtInput")?.value || "";
+  const tags = byId("adminContentEditTagsInput")?.value || "";
+
+  if (!title) {
+    setEditResult(t("title_required", "Enter a title."), "error");
+    return;
+  }
+  if (!shotAt) {
+    setEditResult(t("shot_at_required", "Enter a shot date."), "error");
+    return;
+  }
+
+  setEditResult("");
+  setEditSubmitting(true);
+  try {
+    const payload = await window.AdminApp.api.patch(`/api/admin/content/${item.image_id}`, {
+      title,
+      alt,
+      shot_at: shotAt,
+      tags
+    });
+    const content = payload.data?.content;
+    if (content) {
+      setDetail(content);
+    }
+    window.AdminApp?.toast?.success?.(resolveLocalizedMessage(payload.message, t("updated", "Updated.")));
+    await loadContents();
+    window.AdminApp.modal.close("admin-content-edit");
+  } catch (error) {
+    const message = resolveLocalizedMessage(error, t("update_error", "Update failed."));
+    setEditResult(message, "error");
+    window.AdminApp?.toast?.error?.(message);
+  } finally {
+    setEditSubmitting(false);
+  }
 }
 
 async function uploadWithFormData(formData) {
@@ -510,6 +593,8 @@ function applyStaticTranslations() {
   };
   setText("adminContentUploadOpenButton", "new_post", "New Post");
   setText("adminContentReloadButton", "reload", "Reload");
+  setText("adminContentEditButton", "edit", "Edit");
+  setText("adminContentEditSaveButton", "save", "Save");
   const labels = document.querySelectorAll(".admin-content-filters .admin-field__label");
   if (labels[0]) labels[0].textContent = t("search", "Search");
   if (labels[1]) labels[1].textContent = t("visibility", "Visibility");
@@ -648,6 +733,16 @@ function bindModals() {
   byId("adminContentDetailCloseButton")?.addEventListener("click", () => {
     window.AdminApp.modal.close("admin-content-detail");
     state.currentContent = null;
+  });
+  byId("adminContentEditButton")?.addEventListener("click", () => openEditModal());
+  byId("adminContentEditCancelButton")?.addEventListener("click", () => {
+    if (state.editSubmitting) return;
+    window.AdminApp.modal.close("admin-content-edit");
+  });
+  byId("adminContentEditSaveButton")?.addEventListener("click", () => submitEdit());
+  byId("adminContentEditForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitEdit();
   });
   byId("adminContentActionConfirmApprove")?.addEventListener("click", () => closeActionConfirm(true));
   byId("adminContentActionConfirmCancel")?.addEventListener("click", () => closeActionConfirm(false));
