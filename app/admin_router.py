@@ -1986,9 +1986,11 @@ def _image_colors_table(conn) -> str | None:
 def _content_palette_items() -> list[dict]:
     items = []
     for color in load_palette_from_conf(_get_conf()):
+        hex_value = "#{:02x}{:02x}{:02x}".format(*tuple(int(v) for v in color.rgb))
         items.append({
             "id": int(color.id),
             "name": str(color.name),
+            "hex": hex_value,
         })
     items.sort(key=lambda item: int(item["id"]))
     return items

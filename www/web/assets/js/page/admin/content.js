@@ -86,6 +86,9 @@ const state = {
   filterTimer: null,
   uploadSubmitting: false,
   editSubmitting: false,
+  editTagPool: [],
+  editTags: [],
+  editColorIds: [],
   uploadModalController: null
 };
 
@@ -372,6 +375,66 @@ function setEditSubmitting(submitting) {
   if (cancel) cancel.disabled = state.editSubmitting;
 }
 
+async function ensureEditTagPool() {
+  if (state.editTagPool.length) return;
+  try {
+    const payload = await window.AdminApp.api.get("/api/tags?limit=500");
+    const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data?.items) ? payload.data.items : [];
+    state.editTagPool = items.map((item) => String(item?.name || item || "").trim()).filter(Boolean);
+  } catch {
+    state.editTagPool = [];
+  }
+}
+
+function renderEditTagChips() {
+  const root = byId("adminContentEditTagChips");
+  if (!root) return;
+  root.innerHTML = "";
+  for (const tag of state.editTags) {
+    const chip = document.createElement("span");
+    chip.className = "admin-content-edit__chip";
+    chip.innerHTML = `${escapeHtml(tag)}<button type="button" data-tag-remove="${escapeHtml(tag)}" aria-label="${escapeHtml(`remove ${tag}`)}">×</button>`;
+    root.appendChild(chip);
+  }
+}
+
+function renderEditTagSuggestions() {
+  const root = byId("adminContentEditTagSuggestions");
+  const input = byId("adminContentEditTagSearchInput");
+  if (!root || !input) return;
+  const query = String(input.value || "").trim().toLowerCase();
+  const items = state.editTagPool
+    .filter((tag) => !state.editTags.includes(tag))
+    .filter((tag) => !query || tag.toLowerCase().includes(query))
+    .slice(0, 24);
+  root.innerHTML = "";
+  for (const tag of items) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "admin-content-edit__tag-option";
+    button.dataset.tagAdd = tag;
+    button.textContent = tag;
+    root.appendChild(button);
+  }
+}
+
+function renderEditColors() {
+  const root = byId("adminContentEditColorList");
+  if (!root) return;
+  const palette = Array.isArray(state.currentContent?.color_palette) ? state.currentContent.color_palette : [];
+  root.innerHTML = "";
+  for (const item of palette) {
+    const id = Number(item.id || 0);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "admin-content-edit__color-option";
+    button.dataset.colorId = String(id);
+    button.classList.toggle("is-active", state.editColorIds.includes(id));
+    button.innerHTML = `<span class="admin-content-edit__color-swatch" style="--admin-color:${escapeHtml(item.hex || "#94a3b8")}"></span><span>${escapeHtml(item.name || String(id))}</span>`;
+    root.appendChild(button);
+  }
+}
+
 function openEditModal() {
   const item = state.currentContent;
   if (!item) return;
@@ -379,13 +442,22 @@ function openEditModal() {
   byId("adminContentEditAltInput").value = item.alt || "";
   byId("adminContentEditShotAtInput").value = toDateTimeLocalValue(item.shot_at);
   byId("adminContentEditPostedAtInput").value = toDateTimeLocalValue(item.posted_at);
-  byId("adminContentEditTagsInput").value = Array.isArray(item.tags) ? item.tags.join(", ") : "";
-  byId("adminContentEditColorTagsInput").value = Array.isArray(item.color_tags) ? item.color_tags.map((color) => color.label || color.name || color.color_id).join(", ") : "";
+  state.editTags = Array.isArray(item.tags) ? [...item.tags] : [];
+  state.editColorIds = Array.isArray(item.color_tags)
+    ? item.color_tags.map((color) => Number(color.id || color.color_id || 0)).filter((id) => id > 0)
+    : [];
   const colorHint = byId("adminContentEditColorTagsHint");
   if (colorHint) {
     const palette = Array.isArray(item.color_palette) ? item.color_palette : [];
     colorHint.textContent = palette.length ? palette.map((color) => color.name).join(", ") : "Red, Orange, Yellow, Green, Cyan, Blue, Purple, Pink, White, Black";
   }
+  const searchInput = byId("adminContentEditTagSearchInput");
+  if (searchInput) searchInput.value = "";
+  void ensureEditTagPool().then(() => {
+    renderEditTagChips();
+    renderEditTagSuggestions();
+  });
+  renderEditColors();
   setEditResult("");
   setEditSubmitting(false);
   window.AdminApp.modal.open("admin-content-edit");
@@ -399,8 +471,6 @@ async function submitEdit() {
   const alt = byId("adminContentEditAltInput")?.value || "";
   const shotAt = byId("adminContentEditShotAtInput")?.value || "";
   const postedAt = byId("adminContentEditPostedAtInput")?.value || "";
-  const tags = byId("adminContentEditTagsInput")?.value || "";
-  const colorTags = byId("adminContentEditColorTagsInput")?.value || "";
 
   if (!title) {
     setEditResult(t("title_required", "タイトルを入力してください。"), "error");
@@ -423,8 +493,8 @@ async function submitEdit() {
       alt,
       shot_at: shotAt,
       posted_at: postedAt,
-      tags,
-      color_tags: colorTags
+      tags: state.editTags,
+      color_tags: state.editColorIds
     });
     const content = payload.data?.content;
     if (content) {
@@ -764,6 +834,36 @@ function bindModals() {
   byId("adminContentEditCancelButton")?.addEventListener("click", () => {
     if (state.editSubmitting) return;
     window.AdminApp.modal.close("admin-content-edit");
+  });
+  byId("adminContentEditTagSearchInput")?.addEventListener("input", () => renderEditTagSuggestions());
+  byId("adminContentEditTagSuggestions")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-tag-add]");
+    if (!button) return;
+    const tag = String(button.dataset.tagAdd || "").trim();
+    if (!tag || state.editTags.includes(tag)) return;
+    state.editTags.push(tag);
+    renderEditTagChips();
+    renderEditTagSuggestions();
+  });
+  byId("adminContentEditTagChips")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-tag-remove]");
+    if (!button) return;
+    const tag = String(button.dataset.tagRemove || "");
+    state.editTags = state.editTags.filter((item) => item !== tag);
+    renderEditTagChips();
+    renderEditTagSuggestions();
+  });
+  byId("adminContentEditColorList")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-color-id]");
+    if (!button) return;
+    const colorId = Number(button.dataset.colorId || 0);
+    if (!colorId) return;
+    if (state.editColorIds.includes(colorId)) {
+      state.editColorIds = state.editColorIds.filter((id) => id !== colorId);
+    } else if (state.editColorIds.length < 5) {
+      state.editColorIds = [...state.editColorIds, colorId];
+    }
+    renderEditColors();
   });
   byId("adminContentEditSaveButton")?.addEventListener("click", () => submitEdit());
   byId("adminContentEditForm")?.addEventListener("submit", (event) => {
