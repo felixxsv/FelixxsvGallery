@@ -197,7 +197,7 @@ export function initPublicProfileModal(app) {
           const el = document.createElement("button");
           el.type = "button";
           el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;
-          el.title = resolveBadgeText(app.i18n, badge, "description") || resolveBadgeText(app.i18n, badge, "name") || "";
+          el.title = resolveBadgeText(app.i18n, badge, "name") || "";
           el.innerHTML = getBadgeIconHtml(badge, app.appBase);
           el.addEventListener("click", () => showBadgeDetail(badge, app));
           refs.badges.appendChild(el);
@@ -243,7 +243,7 @@ export function initPublicProfileModal(app) {
         const el = document.createElement("button");
         el.type = "button";
         el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;
-        el.title = resolveBadgeText(app.i18n, badge, "description") || resolveBadgeText(app.i18n, badge, "name") || "";
+        el.title = resolveBadgeText(app.i18n, badge, "name") || "";
         el.innerHTML = getBadgeIconHtml(badge, app.appBase);
         el.addEventListener("click", () => showBadgeDetail(badge, app));
         refs.badges.appendChild(el);
