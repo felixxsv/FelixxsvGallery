@@ -974,8 +974,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const first = state.items[0];
     const nextAuto = first ? parseVRChatShotAt(first.file.name) : "";
     if (!refs.shotAtDateInput) return;
-    const current = getShotAtValue();
-    if (!state.shotAtDirty || current === state.shotAtAutoValue) {
+    if (nextAuto) {
       setShotAtValue(nextAuto);
       state.shotAtDirty = false;
     }
