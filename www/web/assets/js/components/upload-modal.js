@@ -188,7 +188,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
                         ${escapeHtml(t(app, "shot_at_label", "Shot At"))}
                         <span id="uploadModalShotAtBadge" class="upload-modal__auto-badge" hidden>${escapeHtml(t(app, "auto", "AUTO"))}</span>
                       </span>
-                      <input id="uploadModalShotAtInput" class="app-input" type="datetime-local" step="60" lang="${escapeHtml(languageToLocaleTag(app.settings.getLanguage()))}">
+                      <div class="upload-modal__shot-at-fields">
+                        <input id="uploadModalShotAtDateInput" class="app-input" type="date" lang="${escapeHtml(languageToLocaleTag(app.settings.getLanguage()))}">
+                        <input id="uploadModalShotAtTimeInput" class="app-input upload-modal__shot-at-time" type="time" step="60" lang="${escapeHtml(languageToLocaleTag(app.settings.getLanguage()))}">
+                      </div>
                     </label>
                     <div class="app-field">
                       <span class="app-field__label">${escapeHtml(t(app, "tags_label", "Tags"))}</span>
@@ -255,7 +258,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.titleInput = document.getElementById("uploadModalTitleInput");
     refs.titleCounter = document.getElementById("uploadModalTitleCounter");
     refs.altInput = document.getElementById("uploadModalAltInput");
-    refs.shotAtInput = document.getElementById("uploadModalShotAtInput");
+    refs.shotAtDateInput = document.getElementById("uploadModalShotAtDateInput");
+    refs.shotAtTimeInput = document.getElementById("uploadModalShotAtTimeInput");
     refs.shotAtBadge = document.getElementById("uploadModalShotAtBadge");
     refs.tagBox = document.getElementById("uploadModalTagBox");
     refs.tagChips = document.getElementById("uploadModalTagChips");
@@ -272,6 +276,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.submitButton = document.getElementById("uploadModalSubmitButton");
     refs.draftButton = document.getElementById("uploadModalDraftButton");
 
+    attachDatePicker(refs.shotAtDateInput, { getLocale: () => document.documentElement.lang || "en-US" });
+
     bindEvents();
     if (!state.languageBound) {
       window.addEventListener("gallery:language-changed", applyTranslations);
@@ -287,7 +293,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function updateThumbOverlay() {
     if (!refs.thumbOverlay) return;
     const title = refs.titleInput?.value?.trim() || "";
-    const time = refs.shotAtInput?.value || "";
+    const time = getShotAtValue();
     const hasImage = state.items.length > 0;
     const hasInfo = hasImage && title;
     refs.thumbOverlay.hidden = !hasInfo;
@@ -673,7 +679,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const draft = {
       title: refs.titleInput?.value || "",
       alt: refs.altInput?.value || "",
-      shotAt: refs.shotAtInput?.value || "",
+      shotAt: getShotAtValue(),
       tags: [...state.tagState],
       isPublic: refs.visInput?.checked ?? true,
       focalX: state.focalX,
@@ -691,8 +697,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const draft = JSON.parse(raw);
       if (refs.titleInput) refs.titleInput.value = draft.title || "";
       if (refs.altInput) refs.altInput.value = draft.alt || "";
-      if (refs.shotAtInput && draft.shotAt) {
-        refs.shotAtInput.value = draft.shotAt;
+      if ((refs.shotAtDateInput || refs.shotAtTimeInput) && draft.shotAt) {
+        setShotAtValue(draft.shotAt);
         state.shotAtDirty = true;
       }
       if (typeof draft.focalX === "number") state.focalX = draft.focalX;
@@ -731,6 +737,29 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function updateShotAtBadge() {
     if (!refs.shotAtBadge) return;
     refs.shotAtBadge.hidden = !state.shotAtAutoValue;
+  }
+
+  function splitShotAtValue(value) {
+    const text = String(value || "").trim();
+    if (!text) return { date: "", time: "" };
+    const [datePart = "", timePart = ""] = text.split("T");
+    return {
+      date: /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : "",
+      time: /^\d{2}:\d{2}(:\d{2})?$/.test(timePart) ? timePart.slice(0, 5) : "",
+    };
+  }
+
+  function getShotAtValue() {
+    const date = refs.shotAtDateInput?.value || "";
+    const time = refs.shotAtTimeInput?.value || "";
+    if (!date) return "";
+    return `${date}T${time || "00:00"}`;
+  }
+
+  function setShotAtValue(value) {
+    const { date, time } = splitShotAtValue(value);
+    if (refs.shotAtDateInput) refs.shotAtDateInput.value = date;
+    if (refs.shotAtTimeInput) refs.shotAtTimeInput.value = time;
   }
 
   function setInlineMessage(message = "", kind = "") {
@@ -801,7 +830,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (refs.fileInput) refs.fileInput.value = "";
     if (refs.titleInput) refs.titleInput.value = "";
     if (refs.altInput) refs.altInput.value = "";
-    if (refs.shotAtInput) refs.shotAtInput.value = "";
+    if (refs.shotAtDateInput) refs.shotAtDateInput.value = "";
+    if (refs.shotAtTimeInput) refs.shotAtTimeInput.value = "";
     if (refs.tagInput) refs.tagInput.value = "";
     if (refs.visInput) refs.visInput.checked = true;
     renderTagChips();
@@ -943,10 +973,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function syncShotAtFromThumbnail() {
     const first = state.items[0];
     const nextAuto = first ? parseVRChatShotAt(first.file.name) : "";
-    if (!refs.shotAtInput) return;
-    const current = refs.shotAtInput.value || "";
+    if (!refs.shotAtDateInput) return;
+    const current = getShotAtValue();
     if (!state.shotAtDirty || current === state.shotAtAutoValue) {
-      refs.shotAtInput.value = nextAuto;
+      setShotAtValue(nextAuto);
       state.shotAtDirty = false;
     }
     state.shotAtAutoValue = nextAuto;
@@ -1065,12 +1095,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (altLabel) altLabel.textContent = t(app, "alt_label", "Description (ALT)");
     if (refs.altInput) refs.altInput.placeholder = t(app, "alt_placeholder", "Enter a description");
 
-    const shotLabel = refs.shotAtInput?.closest(".app-field")?.querySelector(".app-field__label");
+    const shotLabel = refs.shotAtDateInput?.closest(".app-field")?.querySelector(".app-field__label");
     if (shotLabel) {
       shotLabel.childNodes[0].textContent = `${t(app, "shot_at_label", "Shot At")} `;
     }
     if (refs.shotAtBadge) refs.shotAtBadge.textContent = t(app, "auto", "AUTO");
-    if (refs.shotAtInput) refs.shotAtInput.lang = languageToLocaleTag(app.settings.getLanguage());
+    if (refs.shotAtDateInput) refs.shotAtDateInput.lang = languageToLocaleTag(app.settings.getLanguage());
+    if (refs.shotAtTimeInput) refs.shotAtTimeInput.lang = languageToLocaleTag(app.settings.getLanguage());
 
     const fieldLabels = refs.layer.querySelectorAll(".upload-modal__row .app-field__label");
     if (fieldLabels[1]) fieldLabels[1].textContent = t(app, "tags_label", "Tags");
@@ -1129,7 +1160,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const alt = refs.altInput?.value || "";
     const tags = state.tagState.join(",");
     const isPublic = refs.visInput?.checked ? "true" : "false";
-    const shotAt = refs.shotAtInput?.value || "";
+    const shotAt = getShotAtValue();
 
     if (!title) {
       const message = t(app, "title_required", "Enter a title.");
@@ -1367,11 +1398,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     });
 
     // Shot_at manual edit
-    refs.shotAtInput?.addEventListener("input", () => {
+    const handleShotAtInput = () => {
       state.shotAtDirty = true;
       updateShotAtBadge();
       updateThumbOverlay();
-    });
+    };
+    refs.shotAtDateInput?.addEventListener("input", handleShotAtInput);
+    refs.shotAtTimeInput?.addEventListener("input", handleShotAtInput);
 
     // Visibility toggle
     refs.visInput?.addEventListener("change", () => updateVisLabel());
@@ -1473,3 +1506,4 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 }
 import { languageToLocaleTag } from "../core/settings.js";
 import { resolveLocalizedMessage } from "../core/i18n.js";
+import { attachDatePicker } from "../core/date-picker.js";
