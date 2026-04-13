@@ -939,7 +939,9 @@
 @media (max-width: 640px) {
   .app-modal-dialog--upload {
     width: calc(100vw - 16px);
-    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+    top: 8px;
+    transform: translateX(-50%);
   }
   .upload-modal__layout {
     padding: var(--space-3);
@@ -951,5 +953,14 @@
   .upload-modal__row {
     grid-template-columns: 1fr;
     gap: var(--space-3);
+  }
+
+  .upload-modal__footer {
+    gap: var(--space-2);
+    align-items: center;
+  }
+
+  .upload-modal__footer-actions {
+    margin-left: auto;
   }
 }
