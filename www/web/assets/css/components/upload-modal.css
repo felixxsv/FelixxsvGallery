@@ -480,6 +480,19 @@
 .upload-modal__shot-at-time {
   min-width: 0;
   max-width: 100%;
+  padding-inline: 10px;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.upload-modal__shot-at-time::-webkit-date-and-time-value,
+.upload-modal__shot-at-time::-webkit-datetime-edit {
+  text-align: left;
+}
+
+.upload-modal__shot-at-time::-webkit-calendar-picker-indicator {
+  margin: 0;
+  padding: 0;
 }
 
 /* ── Shot_at auto badge ────────────────────────────────────────────────── */
@@ -986,6 +999,8 @@
     width: 100%;
     min-width: 0;
     max-width: 100%;
+    padding-inline: 8px;
+    font-size: 16px;
   }
   .upload-modal__shot-at-fields > .app-input {
     width: 100%;
