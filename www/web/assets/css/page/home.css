@@ -1420,10 +1420,18 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
   .home-sidebar__body {
     padding: 16px 12px 18px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .home-sidebar.is-collapsed .home-sidebar__body {
     overflow-y: hidden;
+  }
+
+  .home-sidebar__body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   .app-shell-toggle {
