@@ -11,6 +11,27 @@ export function createModalManager({ root, closeButton, body = document.body } =
   const layers = new Map();
   const stack = [];
   const previousFocus = new Map();
+  const mobileModalMedia = window.matchMedia("(max-width: 720px)");
+
+  function ensureHeaderCloseButton(layer, id) {
+    const header = layer.querySelector(".app-modal-header");
+    if (!header || header.querySelector("[data-modal-header-close]")) return;
+    let actions = header.querySelector(".app-modal-header-actions");
+    if (!actions) {
+      actions = document.createElement("div");
+      actions.className = "app-modal-header-actions";
+      header.appendChild(actions);
+    }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "app-modal-header-close";
+    button.dataset.modalClose = id;
+    button.dataset.modalHeaderClose = "true";
+    button.setAttribute("aria-label", "Close");
+    button.setAttribute("data-i18n-aria-label", "shell.static.close");
+    button.textContent = "×";
+    actions.appendChild(button);
+  }
 
   function refreshLayerOrder() {
     stack.forEach((id, index) => {
@@ -32,6 +53,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
       const id = layer.dataset.modalId;
       if (!id) return;
       layers.set(id, layer);
+      ensureHeaderCloseButton(layer, id);
       layer.hidden = layer.hidden ?? true;
       layer.setAttribute("aria-hidden", layer.hidden ? "true" : "false");
     });
@@ -133,6 +155,9 @@ export function createModalManager({ root, closeButton, body = document.body } =
       const backdrop = event.target.closest("[data-modal-backdrop]");
       if (backdrop) {
         const id = backdrop.dataset.modalBackdrop;
+        if (mobileModalMedia.matches) {
+          return;
+        }
         if (id && top() === id) {
           closeTop();
         }

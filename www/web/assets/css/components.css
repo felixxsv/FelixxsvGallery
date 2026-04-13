@@ -388,6 +388,24 @@ body {
   background: color-mix(in srgb, var(--color-bg-elevated) 84%, transparent);
 }
 
+.app-modal-header-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 84%, transparent);
+  color: var(--color-text);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.app-modal-header-close:hover {
+  background: var(--color-surface-strong);
+}
+
 .app-modal-root {
   position: relative;
   /* z-index: 500; */
@@ -1948,8 +1966,7 @@ body {
   }
 
   .app-global-close {
-    top: 12px;
-    right: 12px;
+    display: none;
   }
 
   .app-modal-dialog,

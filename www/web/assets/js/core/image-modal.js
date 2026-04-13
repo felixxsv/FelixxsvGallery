@@ -110,6 +110,7 @@ function normalizeItems(payload, options = {}) {
 
 export function createImageModalController({ app, body = document.body } = {}) {
   ensureStylesheet(app.appBase);
+  const mobileImageMedia = window.matchMedia("(max-width: 720px)");
 
   const root = document.createElement("section");
   root.className = "image-modal";
@@ -190,6 +191,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
     hideTimer: null,
     controlsVisible: true,
     cursorVisible: true,
+    touchStartX: 0,
+    touchStartY: 0,
+    touchDeltaX: 0,
+    touchDeltaY: 0,
+    touchTracking: false,
   };
 
   function syncDetailStateClass() {
@@ -543,6 +549,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   function shouldCloseByBackdropClick(event) {
     if (state.detailOpen) return false;
+    if (mobileImageMedia.matches) return false;
     if (!app.settings.getImageBackdropClose()) return false;
     const target = event.target;
     return target === viewport || target === stage;
@@ -550,6 +557,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   root.querySelector(".image-modal__backdrop").addEventListener("click", () => {
     if (state.detailOpen) return;
+    if (mobileImageMedia.matches) return;
     if (!app.settings.getImageBackdropClose()) return;
     close();
   });
@@ -663,6 +671,39 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.dragging = false;
     stage.classList.remove("is-dragging");
     scheduleAutoHide();
+  });
+
+  viewport.addEventListener("touchstart", (event) => {
+    if (!mobileImageMedia.matches) return;
+    if (state.detailOpen) return;
+    if (state.zoom > 100) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    state.touchTracking = true;
+    state.touchStartX = touch.clientX;
+    state.touchStartY = touch.clientY;
+    state.touchDeltaX = 0;
+    state.touchDeltaY = 0;
+  }, { passive: true });
+
+  viewport.addEventListener("touchmove", (event) => {
+    if (!state.touchTracking) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    state.touchDeltaX = touch.clientX - state.touchStartX;
+    state.touchDeltaY = touch.clientY - state.touchStartY;
+  }, { passive: true });
+
+  viewport.addEventListener("touchend", () => {
+    if (!state.touchTracking) return;
+    const deltaX = state.touchDeltaX;
+    const deltaY = state.touchDeltaY;
+    state.touchTracking = false;
+    state.touchDeltaX = 0;
+    state.touchDeltaY = 0;
+    if (deltaY < 96) return;
+    if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
+    close();
   });
 
   viewport.querySelector("[data-action='new-tab']").addEventListener("click", () => {
