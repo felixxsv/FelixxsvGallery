@@ -465,6 +465,7 @@ function initPublicSidebar() {
     ensureHomeSidebarDefaultExpanded();
     applyState(readStoredState());
   }
+  document.documentElement.classList.remove("is-home-mobile-preload");
 
   toggleButton.addEventListener("click", () => {
     applyState(!isCollapsed(), { animate: true });

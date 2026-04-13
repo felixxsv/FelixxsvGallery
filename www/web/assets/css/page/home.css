@@ -1238,6 +1238,14 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     text-overflow: ellipsis;
   }
 
+  html.is-home-mobile-preload .home-sidebar {
+    transform: translateX(-110%) !important;
+  }
+
+  html.is-home-mobile-preload .home-sidebar-backdrop {
+    display: none !important;
+  }
+
   body[data-page="home"] .app-site-header__right {
     gap: 8px;
   }
