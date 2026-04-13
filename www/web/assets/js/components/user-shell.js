@@ -407,7 +407,6 @@ export function initUserShell(app) {
           <ul>
             <li>${escapeHtml(t("shell.help.account_item1", "Use the user menu in the top-right corner to open profile editing, display settings, and account settings."))}</li>
             <li>${escapeHtml(t("shell.help.account_item2", "Email changes, Discord linking, two-factor authentication, and logout actions are grouped under account settings."))}</li>
-            <li>${t("shell.help.account_item3", "The canonical authentication flow is provided at <code>/auth/</code>.")}</li>
           </ul>
         </section>
       </div>
