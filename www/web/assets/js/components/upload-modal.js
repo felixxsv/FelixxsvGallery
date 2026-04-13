@@ -91,7 +91,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     stripPointerId: -1,
     stripDragOffsetX: 0,
     stripDragOffsetY: 0,
-    stripDragGhost: null
+    stripDragGhost: null,
+    languageBound: false
   };
 
   const refs = {};
@@ -272,6 +273,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.draftButton = document.getElementById("uploadModalDraftButton");
 
     bindEvents();
+    if (!state.languageBound) {
+      window.addEventListener("gallery:language-changed", applyTranslations);
+      state.languageBound = true;
+    }
     loadTagPool();
     state.mounted = true;
     render();
@@ -1021,6 +1026,82 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     updateFocalDisplay();
   }
 
+  function applyTranslations() {
+    if (!state.mounted || !refs.layer) return;
+    const q = (selector) => refs.layer.querySelector(selector);
+
+    const title = q("#uploadModalTitle");
+    if (title) title.textContent = t(app, "title", "Upload Images");
+
+    const thumbLabel = q(".upload-modal__thumb-col .upload-modal__field-label");
+    if (thumbLabel) thumbLabel.textContent = t(app, "thumbnail_label", "Thumbnail / Focus");
+
+    if (refs.thumbnailImage) refs.thumbnailImage.alt = t(app, "thumbnail_alt", "Thumbnail");
+    if (refs.thumbnailEmpty) refs.thumbnailEmpty.textContent = t(app, "no_image", "No Image");
+
+    const dropLabel = q(".upload-modal__drop-col .upload-modal__field-label");
+    if (dropLabel) dropLabel.textContent = t(app, "drop_label", "Add Images");
+    if (refs.dropzone) refs.dropzone.setAttribute("aria-label", t(app, "drop_aria", "Select images or drag and drop"));
+    const dropText = q(".upload-modal__dropzone-text");
+    if (dropText) dropText.textContent = t(app, "drop_text", "Drag and drop / click to select");
+    const dropSub = q(".upload-modal__dropzone-sub");
+    if (dropSub) dropSub.textContent = t(app, "drop_sub", ".png .jpg .jpeg .webp / up to 50MB each / max 20 files");
+    if (refs.fileSelectButton) refs.fileSelectButton.textContent = t(app, "select_files", "Select Files");
+
+    const stripLabels = refs.layer.querySelectorAll(".upload-modal__strip-header .upload-modal__field-label");
+    if (stripLabels[0]) stripLabels[0].textContent = t(app, "strip_label", "Images");
+    const stripHint = q(".upload-modal__strip-hint");
+    if (stripHint) stripHint.textContent = t(app, "strip_hint", "Drag to reorder");
+    if (refs.stripPrev) refs.stripPrev.setAttribute("aria-label", t(app, "prev", "Prev"));
+    if (refs.stripNext) refs.stripNext.setAttribute("aria-label", t(app, "next", "Next"));
+
+    const titleLabel = refs.titleInput?.closest(".app-field")?.querySelector(".app-field__label");
+    if (titleLabel) {
+      titleLabel.innerHTML = `${escapeHtml(t(app, "title_label", "Title"))} <span class="upload-modal__required">${escapeHtml(t(app, "required", "*"))}</span>`;
+    }
+    if (refs.titleInput) refs.titleInput.placeholder = t(app, "title_placeholder", "Enter a title");
+
+    const altLabel = refs.altInput?.closest(".app-field")?.querySelector(".app-field__label");
+    if (altLabel) altLabel.textContent = t(app, "alt_label", "Description (ALT)");
+    if (refs.altInput) refs.altInput.placeholder = t(app, "alt_placeholder", "Enter a description");
+
+    const shotLabel = refs.shotAtInput?.closest(".app-field")?.querySelector(".app-field__label");
+    if (shotLabel) {
+      shotLabel.childNodes[0].textContent = `${t(app, "shot_at_label", "Shot At")} `;
+    }
+    if (refs.shotAtBadge) refs.shotAtBadge.textContent = t(app, "auto", "AUTO");
+    if (refs.shotAtInput) refs.shotAtInput.lang = languageToLocaleTag(app.settings.getLanguage());
+
+    const fieldLabels = refs.layer.querySelectorAll(".upload-modal__row .app-field__label");
+    if (fieldLabels[1]) fieldLabels[1].textContent = t(app, "tags_label", "Tags");
+    if (refs.tagInput) refs.tagInput.placeholder = t(app, "tags_placeholder", "Add tags...");
+    if (refs.tagAdd) refs.tagAdd.setAttribute("aria-label", t(app, "tags_add", "Add tag"));
+    if (refs.tagMoreBtn) refs.tagMoreBtn.textContent = t(app, "more", "+more");
+
+    if (refs.visInput) refs.visInput.parentElement?.setAttribute("aria-label", t(app, "visibility_aria", "Visibility"));
+    if (refs.draftButton) refs.draftButton.textContent = t(app, "save_draft", "Save Draft");
+    if (refs.cancelButton) refs.cancelButton.textContent = t(app, "cancel", "Cancel");
+    setSubmitting(state.uploading);
+    updateVisLabel();
+
+    if (state.tagBrowseMounted) {
+      const browseTitle = refs.tagBrowseLayer?.querySelector(".app-modal-title");
+      if (browseTitle) browseTitle.textContent = t(app, "tag_select_title", "Select Tags");
+      if (refs.tagBrowseClose) refs.tagBrowseClose.setAttribute("aria-label", t(app, "close", "Close"));
+      if (refs.tagBrowseSearch) refs.tagBrowseSearch.placeholder = t(app, "tag_search_placeholder", "Search tags...");
+      renderTagBrowseSug(state.tagBrowseQuery);
+      renderTagBrowseList(state.tagBrowseQuery);
+    }
+
+    renderTagChips();
+    if (state.tagSugOpen) {
+      renderTagSug();
+    } else {
+      closeTagSug();
+    }
+    render();
+  }
+
   // ── Upload ────────────────────────────────────────────────────────────────
 
   function collectDuplicateMessageFromPayload(payload) {
@@ -1386,7 +1467,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   return {
     open,
     close,
-    reset: resetState
+    reset: resetState,
+    applyTranslations
   };
 }
 import { languageToLocaleTag } from "../core/settings.js";
