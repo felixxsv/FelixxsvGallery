@@ -279,6 +279,8 @@
   "shell.static.apply": "应用",
   "shell.static.add": "添加",
   "shell.static.close": "关闭",
+  "shell.static.avatar_preview": "头像",
+  "shell.static.badge_preview": "徽章",
   "shell.static.enable": "启用",
   "shell.static.link": "关联",
   "shell.static.unlink": "解除关联",

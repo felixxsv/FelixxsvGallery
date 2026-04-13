@@ -280,6 +280,8 @@
   "shell.static.apply": "Aplicar",
   "shell.static.add": "Anadir",
   "shell.static.close": "Cerrar",
+  "shell.static.avatar_preview": "Avatar",
+  "shell.static.badge_preview": "Insignia",
   "shell.static.enable": "Activar",
   "shell.static.link": "Vincular",
   "shell.static.unlink": "Desvincular",

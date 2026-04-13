@@ -279,6 +279,8 @@
   "shell.static.apply": "Применить",
   "shell.static.add": "Добавить",
   "shell.static.close": "Закрыть",
+  "shell.static.avatar_preview": "Аватар",
+  "shell.static.badge_preview": "Значок",
   "shell.static.enable": "Включить",
   "shell.static.link": "Привязать",
   "shell.static.unlink": "Отвязать",

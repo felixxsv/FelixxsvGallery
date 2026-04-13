@@ -280,6 +280,8 @@
   "shell.static.apply": "Anwenden",
   "shell.static.add": "Hinzufügen",
   "shell.static.close": "Schließen",
+  "shell.static.avatar_preview": "Avatar",
+  "shell.static.badge_preview": "Abzeichen",
   "shell.static.enable": "Aktivieren",
   "shell.static.link": "Verknüpfen",
   "shell.static.unlink": "Trennen",
