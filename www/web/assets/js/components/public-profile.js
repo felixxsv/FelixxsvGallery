@@ -94,11 +94,11 @@ export function initPublicProfileModal(app) {
     if (title) title.textContent = t("title", "Profile");
     refs.loading.textContent = t("loading", "Loading...");
     refs.error.textContent = t("not_found", "User not found.");
-    if (refs.filterButton) refs.filterButton.textContent = t("view_posts", "投稿を見る");
-    if (refs.bioEmpty) refs.bioEmpty.textContent = t("no_bio", "まだ書かれていません");
-    document.querySelectorAll("[data-i18n='public_profile.bio_label']").forEach(el => { el.textContent = t("bio_label", "ひとこと"); });
-    document.querySelectorAll("[data-i18n='public_profile.links_label']").forEach(el => { el.textContent = t("links_label", "リンク"); });
-    document.querySelectorAll("[data-i18n='public_profile.badges_label']").forEach(el => { el.textContent = t("badges_label", "バッジ"); });
+    if (refs.filterButton) refs.filterButton.textContent = t("view_posts", "View Posts");
+    if (refs.bioEmpty) refs.bioEmpty.textContent = t("no_bio", "Nothing here yet.");
+    document.querySelectorAll("[data-i18n='public_profile.bio_label']").forEach(el => { el.textContent = t("bio_label", "Bio"); });
+    document.querySelectorAll("[data-i18n='public_profile.links_label']").forEach(el => { el.textContent = t("links_label", "Links"); });
+    document.querySelectorAll("[data-i18n='public_profile.badges_label']").forEach(el => { el.textContent = t("badges_label", "Badges"); });
   }
 
   applyStaticTranslations();
