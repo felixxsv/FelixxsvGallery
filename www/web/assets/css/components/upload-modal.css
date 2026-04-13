@@ -25,6 +25,14 @@
   overflow-x: hidden;
 }
 
+.upload-modal .app-input,
+.upload-modal .app-select,
+.upload-modal .app-textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .upload-modal__field-label {
   font-size: 0.82rem;
   font-weight: 700;
