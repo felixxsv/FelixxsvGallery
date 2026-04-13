@@ -1048,6 +1048,7 @@ export function initHomePage(app) {
   function openMobileSearchModal() {
     if (!refs.mobileSearchModal) return;
     refs.mobileSearchModal.hidden = false;
+    document.body.classList.add("is-home-mobile-search-open");
     syncOwnerBadge();
     setTimeout(() => refs.mobileSearchInput?.focus(), 40);
   }
@@ -1055,6 +1056,7 @@ export function initHomePage(app) {
   function closeMobileSearchModal(executeSearch) {
     if (!refs.mobileSearchModal) return;
     refs.mobileSearchModal.hidden = true;
+    document.body.classList.remove("is-home-mobile-search-open");
     closeSearchSug(refs.mobileSearchSugPanel);
     if (executeSearch && refs.mobileSearchInput && refs.searchInput) {
       refs.searchInput.value = refs.mobileSearchInput.value;

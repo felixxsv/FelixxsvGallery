@@ -1868,6 +1868,11 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   flex-direction: column;
 }
 
+body.is-home-mobile-search-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
 .home-mobile-search-modal__inner {
   display: flex;
   flex-direction: column;
