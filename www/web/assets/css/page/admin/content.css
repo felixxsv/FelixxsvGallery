@@ -90,11 +90,11 @@
 }
 
 .admin-content-thumb-cell--parent {
-  grid-template-columns: 28px 96px;
+  grid-template-columns: 28px 96px 34px;
 }
 
 .admin-content-thumb-cell--child {
-  grid-template-columns: 28px 76px;
+  grid-template-columns: 28px 76px 34px;
 }
 
 .admin-content-thumb--child {
@@ -142,14 +142,10 @@
   color: rgba(255,255,255,0.72);
 }
 
-.admin-content-count-heading,
-.admin-content-count-cell {
-  width: 38px;
-  min-width: 38px;
-  max-width: 38px;
-  padding-left: 2px;
-  padding-right: 2px;
-  text-align: center;
+.admin-content-badge-slot {
+  display: flex;
+  justify-content: center;
+  width: 34px;
 }
 
 .admin-content-count-badge {
