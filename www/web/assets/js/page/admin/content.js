@@ -129,9 +129,9 @@ function renderTable() {
         : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
       const groupToggle = isGroup
-        ? `<button type="button" class="admin-content-group-toggle" data-action="toggle-group" data-content-key="${escapeHtml(contentKey)}" aria-expanded="${isExpanded ? "true" : "false"}" aria-label="${escapeHtml(isExpanded ? t("collapse", "閉じる") : t("expand", "展開"))}"><span aria-hidden="true"></span></button>`
+        ? `<button type="button" class="admin-content-group-toggle" data-action="toggle-group" data-content-key="${escapeHtml(contentKey)}" aria-expanded="${isExpanded ? "true" : "false"}" aria-label="${escapeHtml(isExpanded ? t("collapse", "Collapse") : t("expand", "Expand"))}"><span aria-hidden="true"></span></button>`
         : `<span class="admin-content-group-spacer" aria-hidden="true"></span>`;
-      const countBadge = isGroup ? `<span class="admin-content-count-badge">${escapeHtml(t("image_count", "{count}枚", { count: Number(item.image_count || children.length || 1) }))}</span>` : "";
+      const countBadge = isGroup ? `<span class="admin-content-count-badge">${escapeHtml(t("image_count", "{count} images", { count: Number(item.image_count || children.length || 1) }))}</span>` : "";
       const thumbCellClass = "admin-content-thumb-cell admin-content-thumb-cell--parent";
       tr.className = isGroup ? "admin-content-row admin-content-row--group" : "admin-content-row";
       tr.innerHTML = `
@@ -255,13 +255,13 @@ function setDetail(content) {
 
   const visibilityButton = byId("adminContentVisibilityButton");
   if (visibilityButton) {
-    visibilityButton.textContent = content.visibility === "public" ? "非公開にする" : "公開する";
+    visibilityButton.textContent = content.visibility === "public" ? t("make_private", "Make Private") : t("make_public", "Make Public");
   }
   const moderationButton = byId("adminContentModerationToggleButton");
   if (moderationButton) {
     const isQuarantined = content.status === "quarantined";
     moderationButton.dataset.action = isQuarantined ? "restore" : "quarantine";
-    moderationButton.textContent = isQuarantined ? "復元" : "隔離";
+    moderationButton.textContent = isQuarantined ? t("action_restore_label", "Restore") : t("action_quarantine_label", "Quarantine");
   }
 }
 
@@ -370,7 +370,7 @@ function setEditSubmitting(submitting) {
   const cancel = byId("adminContentEditCancelButton");
   if (save) {
     save.disabled = state.editSubmitting;
-    save.textContent = state.editSubmitting ? "保存中..." : "保存";
+    save.textContent = state.editSubmitting ? t("saving", "Saving...") : t("save", "Save");
   }
   if (cancel) cancel.disabled = state.editSubmitting;
 }
@@ -507,15 +507,15 @@ async function submitEdit() {
   const postedAt = byId("adminContentEditPostedAtInput")?.value || "";
 
   if (!title) {
-    setEditResult(t("title_required", "タイトルを入力してください。"), "error");
+    setEditResult(t("title_required", "Enter a title."), "error");
     return;
   }
   if (!shotAt) {
-    setEditResult(t("shot_at_required", "撮影日を入力してください。"), "error");
+    setEditResult(t("shot_at_required", "Enter a shot date."), "error");
     return;
   }
   if (!postedAt) {
-    setEditResult("投稿日を入力してください。", "error");
+    setEditResult(t("posted_at_required", "Enter a posted date."), "error");
     return;
   }
 
@@ -674,20 +674,20 @@ async function applyAction(kind) {
     path = `/api/admin/content/${item.image_id}/visibility`;
     body = { is_public: item.visibility !== "public" };
     method = "PATCH";
-    confirmText = item.visibility === "public" ? t("action_visibility_private", "このコンテンツを非公開にしますか？") : t("action_visibility_public", "このコンテンツを公開しますか？");
-    approveLabel = t("action_change", "変更");
+    confirmText = item.visibility === "public" ? t("action_visibility_private", "Make this content private?") : t("action_visibility_public", "Make this content public?");
+    approveLabel = t("action_change", "Change");
   } else if (kind === "quarantine") {
     path = `/api/admin/content/${item.image_id}/quarantine`;
-    confirmText = t("action_quarantine", "このコンテンツを隔離しますか？");
-    approveLabel = t("action_quarantine_label", "隔離");
+    confirmText = t("action_quarantine", "Quarantine this content?");
+    approveLabel = t("action_quarantine_label", "Quarantine");
   } else if (kind === "restore") {
     path = `/api/admin/content/${item.image_id}/restore`;
-    confirmText = t("action_restore", "このコンテンツを復元しますか？");
-    approveLabel = t("action_restore_label", "復元");
+    confirmText = t("action_restore", "Restore this content?");
+    approveLabel = t("action_restore_label", "Restore");
   } else if (kind === "delete") {
     path = `/api/admin/content/${item.image_id}/delete`;
-    confirmText = t("action_delete", "このコンテンツを削除状態にしますか？");
-    approveLabel = t("action_delete_label", "削除状態にする");
+    confirmText = t("action_delete", "Mark this content as deleted?");
+    approveLabel = t("action_delete_label", "Delete");
   }
 
   const ok = await openActionConfirm(confirmText, approveLabel);
@@ -721,10 +721,8 @@ function applyStaticTranslations() {
   };
   setText("adminContentUploadOpenButton", "new_post", "New Post");
   setText("adminContentReloadButton", "reload", "Reload");
-  const editButton = byId("adminContentEditButton");
-  if (editButton) editButton.textContent = "編集";
-  const editSaveButton = byId("adminContentEditSaveButton");
-  if (editSaveButton) editSaveButton.textContent = "保存";
+  setText("adminContentEditButton", "edit", "Edit");
+  setText("adminContentEditSaveButton", "save", "Save");
   const labels = document.querySelectorAll(".admin-content-filters .admin-field__label");
   if (labels[0]) labels[0].textContent = t("search", "Search");
   if (labels[1]) labels[1].textContent = t("visibility", "Visibility");
