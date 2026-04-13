@@ -474,6 +474,16 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
   gap: 8px;
 }
 
+.admin-content-edit__color-option:focus,
+.admin-content-edit__color-option:focus-visible,
+.admin-content-edit__color-option:active {
+  outline: none;
+}
+
+.admin-content-edit__color-option:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.16);
+}
+
 .admin-content-edit__color-option[aria-pressed="false"] .admin-content-edit__color-swatch {
   opacity: 0.52;
 }
