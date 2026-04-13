@@ -451,18 +451,21 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
 .admin-content-edit__tag-option,
 .admin-content-edit__color-option {
   border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.72);
   border-radius: 8px;
   padding: 6px 10px;
   font: inherit;
   cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .admin-content-edit__tag-option.is-active,
 .admin-content-edit__color-option.is-active {
   background: rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.28);
+  border-color: rgba(255,255,255,0.34);
+  color: rgba(255,255,255,0.96);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
 }
 
 .admin-content-edit__color-option {
@@ -471,12 +474,27 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
   gap: 8px;
 }
 
+.admin-content-edit__color-option[aria-pressed="false"] .admin-content-edit__color-swatch {
+  opacity: 0.68;
+}
+
 .admin-content-edit__color-swatch {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.22);
   background: var(--admin-color, #94a3b8);
+}
+
+.admin-content-edit__color-name {
+  line-height: 1.2;
+}
+
+.admin-content-edit__color-check {
+  margin-left: 2px;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255,255,255,0.74);
 }
 
 .admin-content-edit__actions {
