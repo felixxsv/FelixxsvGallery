@@ -420,6 +420,12 @@ body[data-admin-role="admin"] .admin-content-detail__admin-only {
   gap: 14px;
 }
 
+.admin-content-edit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .admin-content-upload__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
