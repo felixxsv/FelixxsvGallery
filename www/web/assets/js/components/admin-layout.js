@@ -322,6 +322,7 @@ export async function initAdminLayout() {
       dashboard: "nav_dashboard",
       content: "nav_content",
       users: "nav_users",
+      contacts: "nav_contacts",
       mail: "nav_mail",
       settings: "nav_settings",
       "audit-logs": "nav_audit_logs",
