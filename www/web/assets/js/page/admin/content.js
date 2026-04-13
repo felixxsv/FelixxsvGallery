@@ -485,11 +485,6 @@ function openEditModal() {
   state.editColorIds = Array.isArray(item.color_tags)
     ? item.color_tags.map((color) => Number(color.id || color.color_id || 0)).filter((id) => id > 0)
     : [];
-  const colorHint = byId("adminContentEditColorTagsHint");
-  if (colorHint) {
-    const palette = Array.isArray(item.color_palette) ? item.color_palette : [];
-    colorHint.textContent = palette.length ? palette.map((color) => color.name).join(", ") : "Red, Orange, Yellow, Green, Cyan, Blue, Purple, Pink, White, Black";
-  }
   const searchInput = byId("adminContentEditTagSearchInput");
   if (searchInput) searchInput.value = "";
   void ensureEditTagPool().then(() => {
@@ -876,16 +871,25 @@ function bindModals() {
     window.AdminApp.modal.close("admin-content-edit");
   });
   byId("adminContentEditTagBox")?.addEventListener("click", (event) => {
-    if (event.target.closest("[data-tag-index]") || event.target.closest("#adminContentEditTagAddButton") || event.target.closest("#adminContentEditTagSuggestions")) {
+    const box = byId("adminContentEditTagBox");
+    if (event.target !== box) {
       return;
     }
     byId("adminContentEditTagSearchInput")?.focus();
   });
-  byId("adminContentEditTagSearchInput")?.addEventListener("focus", () => openEditTagSuggestions());
+  byId("adminContentEditTagSearchInput")?.addEventListener("focus", () => closeEditTagSuggestions());
   byId("adminContentEditTagSearchInput")?.addEventListener("blur", () => {
     setTimeout(() => closeEditTagSuggestions(), 160);
   });
-  byId("adminContentEditTagSearchInput")?.addEventListener("input", () => openEditTagSuggestions());
+  byId("adminContentEditTagSearchInput")?.addEventListener("input", () => {
+    const input = byId("adminContentEditTagSearchInput");
+    if (!input) return;
+    if (input.value.trim()) {
+      openEditTagSuggestions();
+    } else {
+      closeEditTagSuggestions();
+    }
+  });
   byId("adminContentEditTagSearchInput")?.addEventListener("keydown", (event) => {
     const input = byId("adminContentEditTagSearchInput");
     if (!input) return;

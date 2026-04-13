@@ -885,7 +885,7 @@
 <span class="app-field__label" data-i18n="admin_content.posted_at">投稿日</span>
 <input class="app-input" id="adminContentEditPostedAtInput" name="posted_at" type="datetime-local"/>
 </label>
-<label class="app-field">
+<div class="app-field">
 <span class="app-field__label" data-i18n="admin_content.detail_field_tags">タグ</span>
 <span class="app-field__hint" data-i18n="admin_content.upload_tags_hint">候補をクリックして追加します。</span>
 <div class="upload-modal__tag-box" id="adminContentEditTagBox">
@@ -896,12 +896,11 @@
 <div class="upload-modal__tag-sug-list" id="adminContentEditTagSuggestionsList"></div>
 </div>
 </div>
-</label>
-<label class="app-field">
+</div>
+<div class="app-field">
 <span class="app-field__label" data-i18n="admin_content.detail_field_colors">カラータグ</span>
-<span class="app-field__hint" id="adminContentEditColorTagsHint">選択して切り替えます。</span>
 <div class="admin-content-edit__color-list" id="adminContentEditColorList"></div>
-</label>
+</div>
 <div class="admin-content-edit__actions">
 <button class="app-button app-button--ghost" id="adminContentVisibilityButton" type="button" data-i18n="admin_content.visibility_toggle">公開状態切替</button>
 <button class="app-button app-button--ghost" id="adminContentModerationToggleButton" type="button">隔離</button>
