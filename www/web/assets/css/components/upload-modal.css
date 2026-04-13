@@ -950,9 +950,21 @@
   .upload-modal__top {
     grid-template-columns: 1fr;
   }
+  .upload-modal__drop-col {
+    order: 0;
+  }
+  .upload-modal__thumb-col {
+    order: 1;
+  }
   .upload-modal__row {
     grid-template-columns: 1fr;
     gap: var(--space-3);
+  }
+  .upload-modal__shot-at-fields {
+    grid-template-columns: 1fr;
+  }
+  .upload-modal__shot-at-time {
+    width: 100%;
   }
 
   .upload-modal__footer {
