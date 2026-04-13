@@ -272,6 +272,9 @@ function applyStaticTranslations() {
   if (doneBtn) doneBtn.textContent = t("mark_done", "Done");
 
   renderTable();
+  if (state.currentItem && window.AdminApp?.modal?.isOpen?.("admin-contacts-detail")) {
+    openDetail(state.currentItem.id);
+  }
 }
 
 document.addEventListener("admin:ready", () => {
