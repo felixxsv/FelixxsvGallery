@@ -3893,13 +3893,13 @@ def get_current_user_profile(
                         (user["id"],),
                     )
                     badge_pool = [
-                        serialize_badge(r["badge_key"], granted_at=None, granted_by=r.get("granted_by"))
+                        serialize_badge(r["badge_key"], granted_at=None, granted_by=r.get("granted_by"), conn=conn)
                         for r in (_cur.fetchall() or [])
                     ]
                 with conn.cursor() as _cur:
                     _cur.execute("SELECT display_badges FROM users WHERE id=%s LIMIT 1", (user["id"],))
                     _row = _cur.fetchone()
-                display_badge_keys = _parse_display_badges_py((_row or {}).get("display_badges"))
+                display_badge_keys = _parse_display_badges_py((_row or {}).get("display_badges"), conn=conn)
         except Exception:
             pass
 

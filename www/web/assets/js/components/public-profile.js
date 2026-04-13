@@ -1,5 +1,6 @@
 import { byId } from "../core/dom.js";
 import { resolveBadgeText } from "../core/badge-i18n.js";
+import { ensureProfileMediaModals, refreshProfileMediaModalTexts, showAvatarDetail, showBadgeDetail } from "../core/profile-media-viewer.js";
 
 const LINK_ICON_MAP = {
   "x.com": "x",
@@ -101,7 +102,28 @@ export function initPublicProfileModal(app) {
   }
 
   applyStaticTranslations();
+  ensureProfileMediaModals(app);
   window.addEventListener("gallery:language-changed", applyStaticTranslations);
+
+  refs.avatar?.classList.add("profile-media-trigger");
+  refs.avatar?.removeAttribute("aria-hidden");
+  refs.avatar?.setAttribute("role", "button");
+  if (refs.avatar) refs.avatar.tabIndex = 0;
+  const openAvatar = () => {
+    if (!currentUser) return;
+    showAvatarDetail({
+      avatarUrl: currentUser.avatar_url ? `${app.appBase}${currentUser.avatar_url}?t=${Date.now()}` : "",
+      initial: (currentUser.display_name || currentUser.user_key || "?")[0].toUpperCase(),
+      displayName: currentUser.display_name || "-",
+      userKey: currentUser.user_key || "-",
+    }, app);
+  };
+  refs.avatar?.addEventListener("click", openAvatar);
+  refs.avatar?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openAvatar();
+  });
 
   async function openProfile(userKey) {
     const normalizedUserKey = normalizeUserKey(userKey);
@@ -172,10 +194,12 @@ export function initPublicProfileModal(app) {
       if (refs.badges) {
         refs.badges.innerHTML = "";
         for (const badge of badges.slice(0, 3)) {
-          const el = document.createElement("span");
+          const el = document.createElement("button");
+          el.type = "button";
           el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;
           el.title = resolveBadgeText(app.i18n, badge, "description") || resolveBadgeText(app.i18n, badge, "name") || "";
           el.innerHTML = getBadgeIconHtml(badge, app.appBase);
+          el.addEventListener("click", () => showBadgeDetail(badge, app));
           refs.badges.appendChild(el);
         }
       }
@@ -209,16 +233,19 @@ export function initPublicProfileModal(app) {
 
   window.addEventListener("gallery:language-changed", () => {
     applyStaticTranslations();
+    refreshProfileMediaModalTexts(app);
     if (!currentUser || refs.content.hidden) return;
     const badges = Array.isArray(currentUser.badges) ? currentUser.badges.filter(isActiveBadge) : [];
     if (refs.badges) {
       refs.badges.innerHTML = "";
       refs.badges.hidden = badges.length === 0;
       for (const badge of badges.slice(0, 3)) {
-        const el = document.createElement("span");
+        const el = document.createElement("button");
+        el.type = "button";
         el.className = `user-profile-badge user-profile-badge--${badge.color || "gray"}`;
         el.title = resolveBadgeText(app.i18n, badge, "description") || resolveBadgeText(app.i18n, badge, "name") || "";
         el.innerHTML = getBadgeIconHtml(badge, app.appBase);
+        el.addEventListener("click", () => showBadgeDetail(badge, app));
         refs.badges.appendChild(el);
       }
     }

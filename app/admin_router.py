@@ -24,7 +24,7 @@ from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_option
 from auth_service import get_current_user_profile
 from auth_mail import AuthMailError, build_text_message, send_message
 from db import db_conn, load_conf
-from badge_defs import BADGE_CATALOG, AUTO_BADGE_KEYS, POST_COUNT_BADGES, serialize_badge, list_catalog as list_badge_catalog
+from badge_defs import list_badge_keys, serialize_badge, list_catalog as list_badge_catalog
 from galleryctl.colors import load_palette_from_conf
 
 
@@ -1090,6 +1090,7 @@ def _load_user_badges_for_admin(conn, user_id: int) -> list[dict]:
             row["badge_key"],
             granted_at=_coerce_utc_text(row.get("granted_at")),
             granted_by=row.get("granted_by"),
+            conn=conn,
         )
         result.append(s)
     return result
@@ -1629,7 +1630,7 @@ def admin_user_badges(
     try:
         conn = _get_db_connection(autocommit=True)
         badges = _load_user_badges_for_admin(conn, user_id)
-        return _json_success(request_id=request_id, data={"badges": badges, "catalog": list_badge_catalog()}, message="バッジ一覧を取得しました。")
+        return _json_success(request_id=request_id, data={"badges": badges, "catalog": list_badge_catalog(conn)}, message="バッジ一覧を取得しました。")
     except Exception:
         logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "バッジ情報の取得に失敗しました。")
@@ -1650,12 +1651,12 @@ def admin_user_grant_badge(
     actor = (result.get("data") or {}).get("user") or {}
 
     badge_key = str(payload.get("badge_key") or "").strip()
-    if badge_key not in BADGE_CATALOG:
-        return _json_error(400, request_id, "validation_error", "無効なバッジキーです。")
 
     conn = None
     try:
         conn = _get_db_connection(autocommit=False)
+        if badge_key not in set(list_badge_keys(conn)):
+            return _json_error(400, request_id, "validation_error", "無効なバッジキーです。")
         if not _detect_table(conn, "user_badges"):
             return _json_error(503, request_id, "not_available", "バッジ機能はまだ有効になっていません。")
         with conn.cursor() as cur:

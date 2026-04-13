@@ -27,7 +27,7 @@ from admin_router import router as admin_router
 from auth_security import DEFAULT_COOKIE_NAME
 from auth_service import get_current_user_by_session_token
 from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
-from badge_defs import BADGE_CATALOG, POST_COUNT_BADGES, serialize_badge
+from badge_defs import _parse_display_badges_py, get_post_count_badges, list_badge_keys, list_catalog as list_badge_catalog, serialize_badge
 from gallery_upload_service import (
     GalleryActor,
     GalleryUploadError,
@@ -473,7 +473,7 @@ def _load_user_display_badges(conn, user_id: int, display_badge_keys: list) -> l
     for key in display_badge_keys:
         if key in rows:
             row = rows[key]
-            result.append(serialize_badge(key, granted_at=None, granted_by=row.get("granted_by")))
+            result.append(serialize_badge(key, granted_at=None, granted_by=row.get("granted_by"), conn=conn))
     return result
 
 
@@ -481,20 +481,6 @@ def _detect_table_exists(conn, table_name: str) -> bool:
     with conn.cursor() as cur:
         cur.execute("SHOW TABLES LIKE %s", (table_name,))
         return cur.fetchone() is not None
-
-
-def _parse_display_badges(raw) -> list[str]:
-    import json as _json
-    if isinstance(raw, list):
-        return [str(k) for k in raw if k in BADGE_CATALOG][:3]
-    if isinstance(raw, str):
-        try:
-            parsed = _json.loads(raw)
-            if isinstance(parsed, list):
-                return [str(k) for k in parsed if k in BADGE_CATALOG][:3]
-        except Exception:
-            pass
-    return []
 
 
 @app.get("/api/users/{user_key}")
@@ -522,7 +508,7 @@ def get_public_user_profile(user_key: str):
             links = [{"url": r["url"]} for r in cur.fetchall()]
 
             avatar_url = f"/api/auth/avatar/{user['id']}" if user.get("avatar_path") else None
-            display_badge_keys = _parse_display_badges(user.get("display_badges"))
+            display_badge_keys = _parse_display_badges_py(user.get("display_badges"), conn=conn)
             badges = _load_user_display_badges(conn, user["id"], display_badge_keys)
 
             return {
@@ -576,7 +562,7 @@ async def update_my_badge_display(
             if invalid:
                 raise HTTPException(status_code=400, detail=f"所持していないバッジです: {', '.join(invalid)}")
             # Validate keys exist in catalog
-            unknown = [k for k in badge_keys if k not in BADGE_CATALOG]
+            unknown = [k for k in badge_keys if k not in set(list_badge_keys(conn))]
             if unknown:
                 raise HTTPException(status_code=400, detail=f"無効なバッジキーです: {', '.join(unknown)}")
 
@@ -613,15 +599,13 @@ def get_my_badges(
                 (user["id"],),
             )
             rows = cur.fetchall() or []
-        pool = [serialize_badge(r["badge_key"], granted_at=None, granted_by=r.get("granted_by")) for r in rows]
+        pool = [serialize_badge(r["badge_key"], granted_at=None, granted_by=r.get("granted_by"), conn=conn) for r in rows]
 
         with conn.cursor() as cur:
             cur.execute("SELECT display_badges FROM users WHERE id=%s LIMIT 1", (user["id"],))
             row = cur.fetchone()
-        display_badges = _parse_display_badges(row.get("display_badges") if row else None)
-
-        from badge_defs import list_catalog as _list_catalog
-        return {"pool": pool, "display_badges": display_badges, "catalog": _list_catalog()}
+        display_badges = _parse_display_badges_py(row.get("display_badges") if row else None, conn=conn)
+        return {"pool": pool, "display_badges": display_badges, "catalog": list_badge_catalog(conn)}
     finally:
         conn.close()
 
@@ -1139,7 +1123,7 @@ def _try_grant_post_count_badges(conn, user_id: int) -> None:
             row = cur.fetchone()
         post_count = int((row or {}).get("cnt") or 0)
         # Grant all thresholds reached
-        to_grant = [key for threshold, key in POST_COUNT_BADGES if post_count >= threshold]
+        to_grant = [key for threshold, key in get_post_count_badges(conn) if post_count >= threshold]
         if not to_grant:
             return
         for badge_key in to_grant:
