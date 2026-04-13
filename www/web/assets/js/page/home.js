@@ -2165,6 +2165,41 @@ export function initHomePage(app) {
   const mobileToolbarMedia = window.matchMedia("(max-width: 980px)");
   const originalSortParent = refs.sortField?.parentElement || null;
   const originalSortNextSibling = refs.sortField?.nextElementSibling || null;
+  let mobileChromeLastY = window.scrollY || 0;
+  let mobileChromeHidden = false;
+  let mobileChromeTicking = false;
+  function setMobileChromeHidden(hidden) {
+    if (mobileChromeHidden === hidden) return;
+    mobileChromeHidden = hidden;
+    document.body.classList.toggle("is-home-mobile-chrome-hidden", hidden);
+  }
+  function syncMobileChromeVisibility() {
+    const isMobile = mobileToolbarMedia.matches;
+    if (!isMobile) {
+      setMobileChromeHidden(false);
+      mobileChromeLastY = window.scrollY || 0;
+      return;
+    }
+    const nextY = Math.max(window.scrollY || 0, 0);
+    const delta = nextY - mobileChromeLastY;
+    mobileChromeLastY = nextY;
+    if (nextY <= 16) {
+      setMobileChromeHidden(false);
+      return;
+    }
+    if (Math.abs(delta) < 8) {
+      return;
+    }
+    setMobileChromeHidden(delta > 0);
+  }
+  function handleMobileChromeScroll() {
+    if (mobileChromeTicking) return;
+    mobileChromeTicking = true;
+    window.requestAnimationFrame(() => {
+      mobileChromeTicking = false;
+      syncMobileChromeVisibility();
+    });
+  }
   function syncMobileSortPlacement() {
     if (!refs.sortField || !refs.mobileSortHost || !originalSortParent) return;
     if (mobileToolbarMedia.matches) {
@@ -2183,7 +2218,12 @@ export function initHomePage(app) {
     }
   }
   syncMobileSortPlacement();
-  mobileToolbarMedia.addEventListener?.("change", syncMobileSortPlacement);
+  syncMobileChromeVisibility();
+  mobileToolbarMedia.addEventListener?.("change", () => {
+    syncMobileSortPlacement();
+    syncMobileChromeVisibility();
+  });
+  window.addEventListener("scroll", handleMobileChromeScroll, { passive: true });
 
   resetUiOnlyFilters();
   bindSidebarEvents();
