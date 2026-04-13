@@ -1499,6 +1499,40 @@ body {
   }
 }
 
+@media (max-width: 980px) {
+  .app-modal-dialog {
+    width: min(680px, calc(100vw - 20px));
+    max-height: calc(100dvh - 20px);
+  }
+
+  .app-modal-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .app-modal-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .shell-user-dialog {
+    width: min(720px, calc(100vw - 20px));
+  }
+
+  .shell-user-card__meta-row {
+    grid-template-columns: 120px 1fr;
+  }
+
+  .shell-user-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shell-help-dialog {
+    width: min(760px, calc(100vw - 20px));
+  }
+}
+
 .app-field__hint {
   font-size: 0.8rem;
   color: var(--color-text-faint);
@@ -1920,8 +1954,8 @@ body {
 
   .app-modal-dialog,
   .shell-user-dialog {
-    width: calc(100vw - 20px);
-    max-height: calc(100vh - 20px);
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
   }
 
   .app-definition-list__row {
@@ -1936,5 +1970,59 @@ body {
 
   .app-modal-body {
     padding: var(--space-4);
+  }
+
+  .shell-user-card {
+    padding: var(--space-3);
+  }
+
+  .shell-user-card__profile {
+    align-items: flex-start;
+  }
+
+  .shell-user-card__meta-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .shell-header-link {
+    min-height: 34px;
+  }
+
+  .profile-media-modal .app-modal-body {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .profile-media-modal__avatar,
+  .profile-media-modal__badge {
+    width: min(220px, 72vw);
+    height: min(220px, 72vw);
+  }
+}
+
+@media (max-width: 560px) {
+  .app-modal-dialog,
+  .shell-user-dialog,
+  .shell-help-dialog {
+    width: calc(100vw - 12px);
+    max-height: calc(100dvh - 12px);
+    border-radius: 14px;
+  }
+
+  .app-modal-header,
+  .app-modal-footer,
+  .app-modal-body {
+    padding-inline: var(--space-3);
+  }
+
+  .shell-user-card__display-name {
+    font-size: 1rem;
+  }
+
+  .shell-user-card__links,
+  .shell-user-display-badges,
+  .shell-profile-badge-pool {
+    gap: 6px;
   }
 }

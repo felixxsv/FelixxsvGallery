@@ -480,6 +480,7 @@ export function initHomePage(app) {
     searchOwnerBadgeClear: byId("homeSearchOwnerBadgeClear"),
     // Mobile toolbar + search modal
     mobileSearchBtn: byId("homeMobileSearchBtn"),
+    mobileUploadBtn: byId("homeMobileUploadBtn"),
     mobileSearchModal: byId("homeMobileSearchModal"),
     mobileSearchInput: byId("homeMobileSearchInput"),
     mobileSearchClose: byId("homeMobileSearchClose"),
@@ -550,6 +551,7 @@ export function initHomePage(app) {
       ["[data-archive-kind='posted']", 0, "home.sidebar.archive_posted"],
       [".home-mobile-toolbar__label", 0, "home.mobile.search"],
       [".home-mobile-toolbar__label", 1, "home.mobile.filter"],
+      [".home-mobile-toolbar__label", 2, "home.actions.upload"],
       ["#homeSearchSugImages .home-search-sug-section__heading", 0, "home.search.images"],
       ["#homeSearchSugTags .home-search-sug-section__heading", 0, "home.search.tags"],
       ["#homeSearchSugUsers .home-search-sug-section__heading", 0, "home.search.users"],
@@ -2110,6 +2112,9 @@ export function initHomePage(app) {
   // ── Mobile search modal ─────────────────────────────────────────────
 
   refs.mobileSearchBtn?.addEventListener("click", () => openMobileSearchModal());
+  refs.mobileUploadBtn?.addEventListener("click", () => {
+    byId("shellHeaderUploadButton")?.click();
+  });
 
   refs.mobileSearchClose?.addEventListener("click", () => closeMobileSearchModal(false));
 

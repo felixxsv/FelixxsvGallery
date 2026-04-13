@@ -316,7 +316,7 @@ function initHomeGridColumns() {
   apply(readHomeGridColumns());
 }
 
-const HOME_MOBILE_BREAKPOINT = "(max-width: 768px)";
+const HOME_MOBILE_BREAKPOINT = "(max-width: 980px)";
 
 function initPublicSidebar() {
   const root = byId("homeSidebar");
