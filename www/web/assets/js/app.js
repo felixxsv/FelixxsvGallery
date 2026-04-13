@@ -11,7 +11,7 @@ import { initUserShell } from "./components/user-shell.js?v=20260413-badge-viewe
 import { initPublicProfileModal } from "./components/public-profile.js?v=20260413-badge-viewer";
 import { createUploadModalController } from "./components/upload-modal.js";
 import { initHomePage } from "./page/home.js";
-import { ensureCustomScrollbars } from "./core/custom-scrollbar.js";
+import { ensureCustomScrollbars, updateCustomScrollbars } from "./core/custom-scrollbar.js";
 
 const PRESENCE_INTERVAL_MS = 30000;
 const PRESENCE_HIDDEN_DEBOUNCE_MS = 1000;
@@ -400,6 +400,7 @@ function initPublicSidebar() {
     root.classList.toggle("is-collapsed", collapsed);
     layout.classList.toggle("is-sidebar-collapsed", collapsed);
     document.body.classList.toggle("is-home-sidebar-collapsed", collapsed);
+    updateCustomScrollbars();
 
     if (!collapsed) {
       document.body.classList.remove("is-home-sidebar-edge-peek");

@@ -123,6 +123,18 @@ function createController(target, options = {}) {
       };
     }
 
+    if (target.classList.contains("home-sidebar__body") && target.closest(".home-sidebar")?.classList.contains("is-collapsed")) {
+      return {
+        visible: false,
+        top: 0,
+        left: 0,
+        height: 0,
+        viewportSize: 0,
+        contentSize: 0,
+        scrollTop: 0
+      };
+    }
+
     const rect = target.getBoundingClientRect();
 
     return {
