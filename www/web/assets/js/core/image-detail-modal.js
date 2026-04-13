@@ -52,6 +52,7 @@ function normalizeColorTag(item) {
 }
 
 export function createImageDetailModal({ host, app, onOpen = null, onClose = null, onLikeToggle = null, onPreviewOpen = null }) {
+  const mobileModalMedia = window.matchMedia("(max-width: 720px)");
   const overlay = document.createElement("section");
   overlay.className = "image-detail-modal";
   overlay.hidden = true;
@@ -278,7 +279,10 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       onLikeToggle();
     }
   });
-  overlay.querySelector(".image-detail-modal__backdrop")?.addEventListener("click", close);
+  overlay.querySelector(".image-detail-modal__backdrop")?.addEventListener("click", () => {
+    if (mobileModalMedia.matches) return;
+    close();
+  });
   body.addEventListener("click", (event) => {
     const previewBtn = event.target.closest("[data-detail-preview-open]");
     if (previewBtn) {
