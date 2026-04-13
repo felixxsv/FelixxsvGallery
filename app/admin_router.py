@@ -1998,6 +1998,14 @@ def _images_uploader_column(conn) -> str | None:
     return None
 
 
+def _images_uploader_expr(conn) -> str | None:
+    cols = _images_columns(conn)
+    if "uploader_user_id" in cols and "owner_user_id" in cols:
+        return "COALESCE(i.uploader_user_id, i.owner_user_id)"
+    col = _images_uploader_column(conn)
+    return f"i.{col}" if col else None
+
+
 def _ensure_admin_content_row(conn, image_id: int) -> None:
     _ensure_admin_content_states_table(conn)
     with conn.cursor() as cur:
@@ -2091,7 +2099,7 @@ def _load_content_page(conn, page: int, per_page: int, q: str | None, visibility
 
     image_cols = _images_columns(conn)
     visibility_col = _images_visibility_column(conn)
-    uploader_col = _images_uploader_column(conn)
+    uploader_expr = _images_uploader_expr(conn)
     avatar_col = _users_avatar_column(conn)
     has_stats = _image_stats_table(conn) is not None
     has_tags = _image_tags_table(conn) is not None and _tags_table(conn) is not None
@@ -2124,8 +2132,8 @@ def _load_content_page(conn, page: int, per_page: int, q: str | None, visibility
         params.append(status_value)
 
     if uploader_user_id:
-        if uploader_col:
-            where.append(f"i.{uploader_col}=%s")
+        if uploader_expr:
+            where.append(f"{uploader_expr}=%s")
             params.append(int(uploader_user_id))
         else:
             where.append("1=0")
@@ -2155,9 +2163,9 @@ LEFT JOIN (SELECT NULL AS id, NULL AS gallery, NULL AS title, NULL AS alt, NULL 
 
     uploader_join = ""
     uploader_select = "NULL AS uploader_user_id, NULL AS uploader_display_name, NULL AS uploader_user_key, NULL AS uploader_avatar_path"
-    if uploader_col:
-        uploader_join = f"LEFT JOIN users u ON u.id=i.{uploader_col}"
-        parts = [f"i.{uploader_col} AS uploader_user_id", "u.display_name AS uploader_display_name", "u.user_key AS uploader_user_key"]
+    if uploader_expr:
+        uploader_join = f"LEFT JOIN users u ON u.id={uploader_expr}"
+        parts = [f"{uploader_expr} AS uploader_user_id", "u.display_name AS uploader_display_name", "u.user_key AS uploader_user_key"]
         if avatar_col:
             parts.append(f"u.{avatar_col} AS uploader_avatar_path")
         else:
@@ -2382,7 +2390,7 @@ def _load_content_detail(conn, image_id: int) -> dict | None:
 
     image_cols = _images_columns(conn)
     visibility_col = _images_visibility_column(conn)
-    uploader_col = _images_uploader_column(conn)
+    uploader_expr = _images_uploader_expr(conn)
     avatar_col = _users_avatar_column(conn)
     has_stats = _image_stats_table(conn) is not None
 
@@ -2390,9 +2398,9 @@ def _load_content_detail(conn, image_id: int) -> dict | None:
 
     uploader_join = ""
     uploader_select = "NULL AS uploader_user_id, NULL AS uploader_display_name, NULL AS uploader_user_key, NULL AS uploader_avatar_path"
-    if uploader_col:
-        uploader_join = f"LEFT JOIN users u ON u.id=i.{uploader_col}"
-        parts = [f"i.{uploader_col} AS uploader_user_id", "u.display_name AS uploader_display_name", "u.user_key AS uploader_user_key"]
+    if uploader_expr:
+        uploader_join = f"LEFT JOIN users u ON u.id={uploader_expr}"
+        parts = [f"{uploader_expr} AS uploader_user_id", "u.display_name AS uploader_display_name", "u.user_key AS uploader_user_key"]
         if avatar_col:
             parts.append(f"u.{avatar_col} AS uploader_avatar_path")
         else:

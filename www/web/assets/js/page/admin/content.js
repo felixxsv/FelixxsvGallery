@@ -118,17 +118,17 @@ function renderTable() {
         : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
       const groupToggle = isGroup
-        ? `<button type="button" class="admin-content-group-toggle" data-action="toggle-group" data-content-key="${escapeHtml(contentKey)}" aria-expanded="${isExpanded ? "true" : "false"}" aria-label="${escapeHtml(isExpanded ? t("collapse", "閉じる") : t("expand", "展開"))}">&gt;</button>`
+        ? `<button type="button" class="admin-content-group-toggle" data-action="toggle-group" data-content-key="${escapeHtml(contentKey)}" aria-expanded="${isExpanded ? "true" : "false"}" aria-label="${escapeHtml(isExpanded ? t("collapse", "閉じる") : t("expand", "展開"))}"><span aria-hidden="true"></span></button>`
         : "";
-      const thumbCellClass = isGroup ? "admin-content-thumb-cell" : "admin-content-thumb-cell admin-content-thumb-cell--single";
+      const countBadge = isGroup ? `<span class="admin-content-count-badge">${escapeHtml(t("image_count", "{count}枚", { count: Number(item.image_count || children.length || 1) }))}</span>` : "";
+      const thumbCellClass = isGroup ? "admin-content-thumb-cell admin-content-thumb-cell--group" : "admin-content-thumb-cell admin-content-thumb-cell--single";
       tr.className = isGroup ? "admin-content-row admin-content-row--group" : "admin-content-row";
       tr.innerHTML = `
-        <td><div class="${thumbCellClass}">${groupToggle}${preview}</div></td>
+        <td><div class="${thumbCellClass}">${groupToggle}${preview}${countBadge}</div></td>
         <td>
           <div class="admin-content-main">
             <div class="admin-content-main__title-row">
               <div class="admin-content-main__title">${escapeHtml(item.title || t("no_title", "(Untitled)"))}</div>
-              ${isGroup ? `<span class="admin-content-main__count">${escapeHtml(t("image_count", "{count}枚", { count: Number(item.image_count || children.length || 1) }))}</span>` : ""}
             </div>
             <div class="admin-content-main__sub">${escapeHtml(uploaderLabel)} ・ ${escapeHtml(formatDateTime(item.posted_at))}</div>
           </div>
@@ -155,10 +155,9 @@ function renderTable() {
             : `<div class="admin-content-thumb admin-content-thumb--child"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
           const positionText = `${index + 1}/${children.length}`;
           childTr.innerHTML = `
-            <td><div class="admin-content-thumb-cell admin-content-thumb-cell--child"><span class="admin-content-child-line" aria-hidden="true"></span>${childPreview}</div></td>
+            <td><div class="admin-content-thumb-cell admin-content-thumb-cell--child"><span class="admin-content-child-line" aria-hidden="true"></span>${childPreview}<span class="admin-content-count-badge admin-content-count-badge--child">${escapeHtml(positionText)}</span></div></td>
             <td>
               <div class="admin-content-child-shot">
-                <span class="admin-content-child-shot__index">${escapeHtml(positionText)}</span>
                 <span>${escapeHtml(t("shot_at_label", "撮影日"))}: ${escapeHtml(formatDateTime(child.shot_at))}</span>
               </div>
             </td>
@@ -169,7 +168,7 @@ function renderTable() {
             <td></td>
             <td>
               <div class="admin-content-actions">
-                <button type="button" class="app-button app-button--ghost admin-content-mini-button" data-action="detail" data-image-id="${child.image_id}">${escapeHtml(t("detail_with_index", "詳細 {index}", { index: positionText }))}</button>
+                <button type="button" class="app-button app-button--ghost admin-content-mini-button" data-action="detail" data-image-id="${child.image_id}">${escapeHtml(t("detail", "Details"))}</button>
               </div>
             </td>
           `;

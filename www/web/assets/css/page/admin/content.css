@@ -85,7 +85,6 @@
 
 .admin-content-thumb-cell {
   display: grid;
-  grid-template-columns: 28px 96px;
   gap: 8px;
   align-items: center;
 }
@@ -94,8 +93,12 @@
   grid-template-columns: 96px;
 }
 
+.admin-content-thumb-cell--group {
+  grid-template-columns: 28px 96px auto;
+}
+
 .admin-content-thumb-cell--child {
-  grid-template-columns: 28px 76px;
+  grid-template-columns: 28px 76px auto;
 }
 
 .admin-content-thumb--child {
@@ -143,15 +146,22 @@
   color: rgba(255,255,255,0.72);
 }
 
-.admin-content-main__count {
+.admin-content-count-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 24px;
+  min-width: 40px;
   padding: 0 8px;
   border-radius: 8px;
   background: rgba(255,255,255,0.08);
   color: rgba(255,255,255,0.68);
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-content-count-badge--child {
+  color: rgba(255,255,255,0.76);
 }
 
 .admin-content-group-toggle {
@@ -161,24 +171,33 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
   color: rgba(255,255,255,0.9);
   font: inherit;
-  font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  transition: transform 140ms ease, background-color 140ms ease;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.admin-content-group-toggle span {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 140ms ease;
 }
 
 .admin-content-group-toggle:hover,
 .admin-content-group-toggle:focus-visible {
-  background: rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+  border-color: rgba(255,255,255,0.28);
 }
 
-.admin-content-group-toggle[aria-expanded="true"] {
-  transform: rotate(90deg);
+.admin-content-group-toggle[aria-expanded="true"] span {
+  transform: rotate(45deg);
 }
 
 .admin-content-row--group > td {
@@ -203,18 +222,6 @@
   gap: 10px;
   color: rgba(255,255,255,0.82);
   font-size: 13px;
-}
-
-.admin-content-child-shot__index {
-  min-height: 24px;
-  min-width: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.66);
-  font-size: 12px;
 }
 
 .admin-content-badges {
