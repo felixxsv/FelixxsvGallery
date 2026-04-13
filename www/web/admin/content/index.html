@@ -8,7 +8,7 @@
 <link href="/assets/css/common.css" rel="stylesheet"/>
 <link href="/assets/css/components.css?v=20260413-badge-contain" rel="stylesheet"/>
 <link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
-<link href="/assets/css/page/admin/content.css?v=20260413-content-badge-slot" rel="stylesheet"/>
+<link href="/assets/css/page/admin/content.css?v=20260413-content-badge-inline" rel="stylesheet"/>
 <link href="/assets/css/components/upload-modal.css" rel="stylesheet"/>
 <link href="/assets/css/components/toast.css" rel="stylesheet"/>
 </head>
@@ -133,7 +133,6 @@
 <thead>
 <tr>
 <th data-i18n="admin_content.image">画像</th>
-<th class="admin-content-count-heading" aria-label="枚数"></th>
 <th data-i18n="admin_content.title_uploader">タイトル / 投稿者</th>
 <th data-i18n="admin_content.detail_field_shot_at">撮影日</th>
 <th data-i18n="admin_content.public_short">公開</th>
@@ -146,7 +145,7 @@
 </thead>
 <tbody id="adminContentTableBody">
 <tr>
-<td class="admin-content-table__empty" colspan="10" data-i18n="admin_content.loading">読み込み中です。</td>
+<td class="admin-content-table__empty" colspan="9" data-i18n="admin_content.loading">読み込み中です。</td>
 </tr>
 </tbody>
 </table>
@@ -882,6 +881,6 @@
 </div>
 <div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
 <script src="/assets/js/components/admin-layout.js?v=20260413-crop" type="module"></script>
-<script src="/assets/js/page/admin/content.js?v=20260413-content-badge-slot" type="module"></script>
+<script src="/assets/js/page/admin/content.js?v=20260413-content-badge-inline" type="module"></script>
 </body>
 </html>

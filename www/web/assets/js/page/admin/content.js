@@ -102,7 +102,7 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="admin-content-table__empty">${escapeHtml(t("empty", "No content found."))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="admin-content-table__empty">${escapeHtml(t("empty", "No content found."))}</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
@@ -124,8 +124,7 @@ function renderTable() {
       const thumbCellClass = "admin-content-thumb-cell admin-content-thumb-cell--parent";
       tr.className = isGroup ? "admin-content-row admin-content-row--group" : "admin-content-row";
       tr.innerHTML = `
-        <td><div class="${thumbCellClass}">${groupToggle}${preview}</div></td>
-        <td class="admin-content-count-cell">${countBadge}</td>
+        <td><div class="${thumbCellClass}">${groupToggle}${preview}<span class="admin-content-badge-slot">${countBadge}</span></div></td>
         <td>
           <div class="admin-content-main">
             <div class="admin-content-main__title-row">
@@ -157,8 +156,7 @@ function renderTable() {
             : `<div class="admin-content-thumb admin-content-thumb--child"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
           const positionText = `${index + 1}/${children.length}`;
           childTr.innerHTML = `
-            <td><div class="admin-content-thumb-cell admin-content-thumb-cell--child"><span class="admin-content-child-line" aria-hidden="true"></span>${childPreview}</div></td>
-            <td class="admin-content-count-cell"><span class="admin-content-count-badge admin-content-count-badge--child">${escapeHtml(positionText)}</span></td>
+            <td><div class="admin-content-thumb-cell admin-content-thumb-cell--child"><span class="admin-content-child-line" aria-hidden="true"></span>${childPreview}<span class="admin-content-badge-slot"><span class="admin-content-count-badge admin-content-count-badge--child">${escapeHtml(positionText)}</span></span></div></td>
             <td></td>
             <td><div class="admin-content-child-shot">${escapeHtml(formatDateTime(child.shot_at))}</div></td>
             <td></td>
@@ -186,7 +184,7 @@ function renderTable() {
 
 async function loadContents() {
   const tbody = byId("adminContentTableBody");
-  if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="admin-content-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="admin-content-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
   try {
     const payload = await window.AdminApp.api.get(`/api/admin/content?${qs()}`);
     state.total = Number(payload.data?.total || 0);
@@ -201,7 +199,7 @@ async function loadContents() {
     state.total = 0;
     state.pages = 1;
     renderTable();
-    if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="admin-content-table__empty">${escapeHtml(message)}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="admin-content-table__empty">${escapeHtml(message)}</td></tr>`;
   }
 }
 
@@ -533,15 +531,14 @@ function applyStaticTranslations() {
   if (panelTitle) panelTitle.textContent = t("list_title", "Content List");
   const tableHead = document.querySelectorAll(".admin-content-table thead th");
   if (tableHead[0]) tableHead[0].textContent = t("image", "Image");
-  if (tableHead[1]) tableHead[1].textContent = "";
-  if (tableHead[2]) tableHead[2].textContent = t("title_uploader", "Title / Uploader");
-  if (tableHead[3]) tableHead[3].textContent = t("detail_field_shot_at", "Shot At");
-  if (tableHead[4]) tableHead[4].textContent = t("public_short", "Public");
-  if (tableHead[5]) tableHead[5].textContent = t("status", "Status");
-  if (tableHead[6]) tableHead[6].textContent = t("likes", "Likes");
-  if (tableHead[7]) tableHead[7].textContent = t("views", "Views");
-  if (tableHead[8]) tableHead[8].textContent = t("posted_at", "Posted At");
-  if (tableHead[9]) tableHead[9].textContent = t("action", "Action");
+  if (tableHead[1]) tableHead[1].textContent = t("title_uploader", "Title / Uploader");
+  if (tableHead[2]) tableHead[2].textContent = t("detail_field_shot_at", "Shot At");
+  if (tableHead[3]) tableHead[3].textContent = t("public_short", "Public");
+  if (tableHead[4]) tableHead[4].textContent = t("status", "Status");
+  if (tableHead[5]) tableHead[5].textContent = t("likes", "Likes");
+  if (tableHead[6]) tableHead[6].textContent = t("views", "Views");
+  if (tableHead[7]) tableHead[7].textContent = t("posted_at", "Posted At");
+  if (tableHead[8]) tableHead[8].textContent = t("action", "Action");
   setText("adminContentPrevPage", "prev", "Prev");
   setText("adminContentNextPage", "next", "Next");
 }
