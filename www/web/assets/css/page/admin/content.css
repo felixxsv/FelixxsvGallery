@@ -90,11 +90,11 @@
 }
 
 .admin-content-thumb-cell--parent {
-  grid-template-columns: 28px 96px max-content;
+  grid-template-columns: 28px 96px 34px;
 }
 
 .admin-content-thumb-cell--child {
-  grid-template-columns: 28px 76px max-content;
+  grid-template-columns: 28px 76px 34px;
 }
 
 .admin-content-thumb--child {
@@ -146,7 +146,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  justify-self: start;
+  justify-self: center;
   width: max-content;
   min-height: 24px;
   min-width: 0;
