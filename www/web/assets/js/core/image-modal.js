@@ -12,6 +12,52 @@ function td(app, key, fallback) {
   return app?.i18n?.t?.(`image_detail.${key}`, fallback) || fallback;
 }
 
+function openSharedConfirm(app, { message, approveText, danger = false } = {}) {
+  const modalRoot = document.getElementById("appModalRoot");
+  const messageNode = document.getElementById("shellTwoFactorActionConfirmMessage");
+  const approveButton = document.getElementById("shellTwoFactorActionConfirmApproveButton");
+  if (!modalRoot || !messageNode || !approveButton || !app?.modal?.open || !app?.modal?.close) {
+    return Promise.resolve(window.confirm(String(message || "")));
+  }
+
+  messageNode.textContent = String(message || "");
+  approveButton.textContent = String(approveText || td(app, "confirm_approve", "Confirm"));
+  approveButton.classList.toggle("app-button--danger", Boolean(danger));
+
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const cleanup = () => {
+      approveButton.classList.remove("app-button--danger");
+      approveButton.removeEventListener("click", handleApprove);
+      modalRoot.removeEventListener("app:modal-close", handleClose);
+    };
+
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(Boolean(result));
+    };
+
+    const handleApprove = () => {
+      app.modal.close("twofactor-action-confirm");
+      finish(true);
+    };
+
+    const handleClose = (event) => {
+      if (event.detail?.id !== "twofactor-action-confirm") {
+        return;
+      }
+      finish(false);
+    };
+
+    approveButton.addEventListener("click", handleApprove);
+    modalRoot.addEventListener("app:modal-close", handleClose);
+    app.modal.open("twofactor-action-confirm");
+  });
+}
+
 function ensureStylesheet(appBase) {
   if (document.getElementById(STYLE_ID)) return;
   const link = document.createElement("link");
@@ -490,11 +536,14 @@ export function createImageModalController({ app, body = document.body } = {}) {
     if (!contentId || state.ownerActionPending) {
       return;
     }
-    const confirmed = window.confirm(
-      nextPublic
+    const confirmed = await openSharedConfirm(app, {
+      message: nextPublic
         ? td(app, "confirm_make_public", "Make this content public?")
-        : td(app, "confirm_make_private", "Make this content private?")
-    );
+        : td(app, "confirm_make_private", "Make this content private?"),
+      approveText: nextPublic
+        ? td(app, "make_public", "Make Public")
+        : td(app, "make_private", "Make Private"),
+    });
     if (!confirmed) {
       return;
     }
@@ -527,7 +576,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
     if (!contentId || state.ownerActionPending) {
       return;
     }
-    const confirmed = window.confirm(td(app, "confirm_delete", "Delete this content?"));
+    const confirmed = await openSharedConfirm(app, {
+      message: td(app, "confirm_delete", "Delete this content?"),
+      approveText: td(app, "delete", "Delete"),
+      danger: true,
+    });
     if (!confirmed) {
       return;
     }
