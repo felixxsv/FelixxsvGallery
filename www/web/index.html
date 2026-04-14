@@ -669,60 +669,6 @@
 閲覧や基本操作などの通常機能は、支援の有無にかかわらずご利用いただけます。</p>
           </section>
 
-          <section class="support-modal__panel" id="supportModalVisibilityPanel" hidden>
-            <div class="support-modal__panel-head">
-              <h4 class="support-modal__panel-title" data-i18n="support.visibility.heading">表示設定</h4>
-            </div>
-            <div class="app-form-stack">
-              <div class="app-switch-row">
-                <span class="app-switch-row__label" data-i18n="support.visibility.supporterVisible">支援者情報を表示する</span>
-                <label class="app-switch">
-                  <input id="supportVisibilitySupporter" class="app-switch__input" type="checkbox">
-                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
-                </label>
-              </div>
-              <div class="app-switch-row">
-                <span class="app-switch-row__label" data-i18n="support.visibility.badgeVisible">支援者バッジを表示する</span>
-                <label class="app-switch">
-                  <input id="supportVisibilityBadge" class="app-switch__input" type="checkbox">
-                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
-                </label>
-              </div>
-              <div class="app-switch-row">
-                <span class="app-switch-row__label" data-i18n="support.visibility.durationBadgeVisible">累計支援実績を表示する</span>
-                <label class="app-switch">
-                  <input id="supportVisibilityDuration" class="app-switch__input" type="checkbox">
-                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
-                </label>
-              </div>
-              <div class="app-switch-row">
-                <span class="app-switch-row__label" data-i18n="support.visibility.iconFrameVisible">アイコンフレームを表示する</span>
-                <label class="app-switch">
-                  <input id="supportVisibilityIconFrame" class="app-switch__input" type="checkbox">
-                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
-                </label>
-              </div>
-              <div class="app-switch-row">
-                <span class="app-switch-row__label" data-i18n="support.visibility.profileDecorVisible">プロフィール装飾を表示する</span>
-                <label class="app-switch">
-                  <input id="supportVisibilityProfileDecor" class="app-switch__input" type="checkbox">
-                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
-                </label>
-              </div>
-              <label class="app-field">
-                <span class="app-field__label" data-i18n="support.details.iconFrame">アイコンフレーム</span>
-                <select id="supportIconFrameSelect" class="app-select"></select>
-              </label>
-              <label class="app-field">
-                <span class="app-field__label" data-i18n="support.details.profileDecor">プロフィール装飾</span>
-                <select id="supportProfileDecorSelect" class="app-select"></select>
-              </label>
-            </div>
-            <div class="app-button-row app-button-row--end">
-              <button id="supportVisibilitySaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
-            </div>
-          </section>
-
           <p id="supportModalMessage" class="support-modal__message" hidden></p>
         </div>
         <div class="app-modal-footer support-modal__footer">
@@ -731,7 +677,6 @@
             <button id="supportModalPrimaryAction" type="button" class="app-button app-button--primary" data-i18n="support.actions.startSupport">月額500円で支援する</button>
             <button id="supportModalManageAction" type="button" class="app-button app-button--ghost" data-i18n="support.actions.manageSupport">支援内容を管理する</button>
             <button id="supportModalStatusAction" type="button" class="app-button app-button--ghost" data-i18n="support.actions.viewStatus">支援状況を見る</button>
-            <button id="supportModalDecorAction" type="button" class="app-button app-button--ghost" data-i18n="support.actions.openDecorSettings">装飾設定を開く</button>
             <button id="supportModalCloseAction" type="button" class="app-button app-button--ghost" data-i18n="shell.static.close">閉じる</button>
           </div>
         </div>

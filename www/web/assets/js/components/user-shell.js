@@ -236,21 +236,11 @@ export function initUserShell(app) {
     supportModalNextBillingText: byId("supportModalNextBillingText"),
     supportModalFirstBillingText: byId("supportModalFirstBillingText"),
     supportModalAchievementText: byId("supportModalAchievementText"),
-    supportModalVisibilityPanel: byId("supportModalVisibilityPanel"),
     supportModalMessage: byId("supportModalMessage"),
     supportModalPrimaryAction: byId("supportModalPrimaryAction"),
     supportModalManageAction: byId("supportModalManageAction"),
     supportModalStatusAction: byId("supportModalStatusAction"),
-    supportModalDecorAction: byId("supportModalDecorAction"),
     supportModalCloseAction: byId("supportModalCloseAction"),
-    supportVisibilitySupporter: byId("supportVisibilitySupporter"),
-    supportVisibilityBadge: byId("supportVisibilityBadge"),
-    supportVisibilityDuration: byId("supportVisibilityDuration"),
-    supportVisibilityIconFrame: byId("supportVisibilityIconFrame"),
-    supportVisibilityProfileDecor: byId("supportVisibilityProfileDecor"),
-    supportIconFrameSelect: byId("supportIconFrameSelect"),
-    supportProfileDecorSelect: byId("supportProfileDecorSelect"),
-    supportVisibilitySaveButton: byId("supportVisibilitySaveButton"),
   };
 
   const shellState = {
@@ -707,7 +697,6 @@ export function initUserShell(app) {
       ["#shellOpenSupportButton", 0, "support.entry.openSupport", "支援する"],
       ["#shellSupportOpenFromSettingsButton", 0, "shell.static.open", "Open"],
       ["#shellSupportOpenSettingsButton", 0, "shell.static.open", "Open"],
-      ["#supportVisibilitySaveButton", 0, "shell.static.save", "Save"],
       ["#supportModalCloseAction", 0, "shell.static.close", "Close"],
     ];
     for (const [selector, index, key, fallback] of mappings) {
@@ -832,18 +821,6 @@ export function initUserShell(app) {
     if (decor === "sunrise_wave") cardNode?.classList?.add("supporter-profile-decor--sunrise-wave");
   }
 
-  function fillSupportSelect(select, items, value) {
-    if (!select) return;
-    select.innerHTML = "";
-    for (const item of items || []) {
-      const opt = document.createElement("option");
-      opt.value = item.key || "";
-      opt.textContent = supportText(item.label_key, item.key || "-");
-      opt.selected = item.key === value;
-      select.appendChild(opt);
-    }
-  }
-
   function formatSupportValue(value) {
     if (!value) return "-";
     const date = new Date(value);
@@ -890,7 +867,6 @@ export function initUserShell(app) {
   function renderSupportModal() {
     const support = getSupport();
     const status = support?.status || {};
-    const settings = support?.settings || {};
     const variant = supportVariantCopy(status.code || "default");
     if (refs.supportModalHeading) refs.supportModalHeading.textContent = variant.heading;
     if (refs.supportModalDescription) refs.supportModalDescription.textContent = variant.description;
@@ -906,25 +882,18 @@ export function initUserShell(app) {
         ? `${supportText(`support.achievements.${highest}`, String(highest).toUpperCase())} / ${totalMonths}M`
         : `${totalMonths}M`;
     }
-    if (refs.supportModalVisibilityPanel) refs.supportModalVisibilityPanel.hidden = !support;
-    if (refs.supportVisibilitySupporter) refs.supportVisibilitySupporter.checked = Boolean(settings.supporter_visible);
-    if (refs.supportVisibilityBadge) refs.supportVisibilityBadge.checked = Boolean(settings.supporter_badge_visible);
-    if (refs.supportVisibilityDuration) refs.supportVisibilityDuration.checked = Boolean(settings.supporter_duration_badge_visible);
-    if (refs.supportVisibilityIconFrame) refs.supportVisibilityIconFrame.checked = Boolean(settings.supporter_icon_frame_visible);
-    if (refs.supportVisibilityProfileDecor) refs.supportVisibilityProfileDecor.checked = Boolean(settings.supporter_profile_decor_visible);
-    fillSupportSelect(refs.supportIconFrameSelect, support?.catalog?.icon_frames || [], settings.selected_icon_frame);
-    fillSupportSelect(refs.supportProfileDecorSelect, support?.catalog?.profile_decors || [], settings.selected_profile_decor);
 
     const actions = support?.actions || {};
+    const showManage = Boolean(support && actions.portal_available);
+    const showStatus = Boolean(support && status.is_active && actions.status_available);
     if (refs.supportModalPrimaryAction) {
       refs.supportModalPrimaryAction.textContent = variant.primary;
       refs.supportModalPrimaryAction.disabled = status.code === "active" || status.code === "cancelScheduled"
         ? !actions.portal_available
         : !actions.checkout_available;
     }
-    if (refs.supportModalManageAction) refs.supportModalManageAction.disabled = !actions.portal_available;
-    if (refs.supportModalStatusAction) refs.supportModalStatusAction.disabled = !actions.status_available;
-    if (refs.supportModalDecorAction) refs.supportModalDecorAction.hidden = !support;
+    if (refs.supportModalManageAction) refs.supportModalManageAction.hidden = !showManage;
+    if (refs.supportModalStatusAction) refs.supportModalStatusAction.hidden = !showStatus;
 
     if (refs.supportModalMessage) {
       let message = "";
@@ -939,41 +908,10 @@ export function initUserShell(app) {
     syncSupportEntry();
   }
 
-  async function saveSupportSettings() {
-    if (!isAuthenticated()) return;
-    shellState.supportSavePending = true;
-    try {
-      const payload = {
-        supporter_visible: Boolean(refs.supportVisibilitySupporter?.checked),
-        supporter_badge_visible: Boolean(refs.supportVisibilityBadge?.checked),
-        supporter_duration_badge_visible: Boolean(refs.supportVisibilityDuration?.checked),
-        supporter_icon_frame_visible: Boolean(refs.supportVisibilityIconFrame?.checked),
-        supporter_profile_decor_visible: Boolean(refs.supportVisibilityProfileDecor?.checked),
-        selected_icon_frame: refs.supportIconFrameSelect?.value || "",
-        selected_profile_decor: refs.supportProfileDecorSelect?.value || "",
-      };
-      const result = await app.api.put("/api/support/me/settings", payload);
-      const sessionState = getSessionState();
-      if (sessionState?.data) {
-        sessionState.data.support = result.support || sessionState.data.support;
-      }
-      renderSupportModal();
-      renderUserCard();
-      app.toast?.success?.(t("shell.toast.profile_saved", "Saved."));
-    } catch (error) {
-      app.toast?.error?.(error?.message || supportText("support.messages.decorSettingsUnavailable", "装飾設定は現在利用できません。"));
-    } finally {
-      shellState.supportSavePending = false;
-    }
-  }
-
-  function openSupportModal(openSettings = false) {
+  function openSupportModal() {
     if (!isAuthenticated()) return;
     renderSupportModal();
     app.modal?.open?.("support");
-    if (openSettings) {
-      refs.supportModalVisibilityPanel?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-    }
   }
 
   function openSupportExternal(url, unavailableMessage) {
@@ -2055,9 +1993,12 @@ export function initUserShell(app) {
       if (e.key === "Enter") handleLinkAdd();
     });
     refs.avatarDeleteButton?.addEventListener("click", handleAvatarDelete);
-    refs.openSupportButton?.addEventListener("click", () => openSupportModal(false));
-    refs.supportOpenFromSettingsButton?.addEventListener("click", () => openSupportModal(false));
-    refs.supportOpenSettingsButton?.addEventListener("click", () => openSupportModal(true));
+    refs.openSupportButton?.addEventListener("click", () => openSupportModal());
+    refs.supportOpenFromSettingsButton?.addEventListener("click", () => openSupportModal());
+    refs.supportOpenSettingsButton?.addEventListener("click", () => {
+      app.modal?.close?.("settings");
+      app.modal?.open?.("account");
+    });
     refs.supportModalCloseAction?.addEventListener("click", () => app.modal?.close?.("support"));
     refs.supportModalPrimaryAction?.addEventListener("click", () => {
       const support = getSupport();
@@ -2084,10 +2025,6 @@ export function initUserShell(app) {
         supportText("support.messages.statusUnavailable", "支援状況を現在確認できません。")
       );
     });
-    refs.supportModalDecorAction?.addEventListener("click", () => {
-      refs.supportModalVisibilityPanel?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-    });
-    refs.supportVisibilitySaveButton?.addEventListener("click", saveSupportSettings);
     refs.twoFactorEnableButton?.addEventListener("click", handleTwoFactorEnable);
     refs.twoFactorSetupConfirmButton?.addEventListener("click", handleTwoFactorSetupConfirm);
     refs.twoFactorSetupResendButton?.addEventListener("click", handleTwoFactorSetupResend);
