@@ -1438,7 +1438,7 @@ body {
   gap: 8px;
   min-width: 0;
   overflow: hidden;
-  padding: 4px 0;
+  padding: 12px 0 4px;
 }
 
 .shell-user-profile__right {
