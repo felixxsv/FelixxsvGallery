@@ -1410,6 +1410,7 @@ export function initHomePage(app) {
   function createCard(image, index) {
     const fragment = refs.cardTemplate.content.cloneNode(true);
     const article = fragment.querySelector(".home-gallery-card");
+    const bodyNode = fragment.querySelector(".home-gallery-card__body");
     const link = fragment.querySelector("[data-card-link]");
     const imageNode = fragment.querySelector("[data-card-image]");
     const emptyNode = fragment.querySelector("[data-card-empty]");
@@ -1459,7 +1460,7 @@ export function initHomePage(app) {
 
     const detail = buildPublicDetail(image);
     const user = detail.user || {};
-    applySupportPresentation(article, userButton?.querySelector("[data-card-user-avatar]"), user.supporter_profile || {});
+    applySupportPresentation(bodyNode || article, userButton?.querySelector("[data-card-user-avatar]"), user.supporter_profile || {});
     if (userButton) {
       const userKey = normalizeUserKey(user.user_key);
       if (userKey) {

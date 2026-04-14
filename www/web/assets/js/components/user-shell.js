@@ -733,7 +733,11 @@ export function initUserShell(app) {
     refs.authIcon.hidden = !authed;
     if (authed) {
       const user = getUser();
+      const support = getSupport();
       const avatarUrl = user?.avatar_url || null;
+      refs.authIcon.classList.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
+      if (support?.public_profile?.selected_icon_frame === "aurora_ring") refs.authIcon.classList.add("supporter-icon-frame--aurora-ring");
+      if (support?.public_profile?.selected_icon_frame === "amber_ring") refs.authIcon.classList.add("supporter-icon-frame--amber-ring");
       if (avatarUrl) {
         refs.authIcon.style.backgroundImage = `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`;
         if (refs.authIconInitial) refs.authIconInitial.hidden = true;
@@ -1560,7 +1564,9 @@ export function initUserShell(app) {
     }
 
     const user = getUser();
+    const support = getSupport();
     const supportUiEnabled = isSupportUiEnabled();
+    const accountDialog = document.querySelector("[data-modal-id='account'] .app-modal-dialog");
 
     // Avatar
     const avatarUrl = user.avatar_url || null;
@@ -1578,6 +1584,7 @@ export function initUserShell(app) {
       }
       refs.avatarDeleteButton.hidden = true;
     }
+    applySupportPresentation(accountDialog, refs.accountAvatar, support?.public_profile || {});
 
     // Profile inputs
     refs.profileDisplayNameInput.value = user.display_name || "";
