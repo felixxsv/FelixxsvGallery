@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Felixxsv Gallery</title>
   <link rel="stylesheet" href="/assets/css/common.css">
-  <link rel="stylesheet" href="/assets/css/components.css?v=20260414-support">
+  <link rel="stylesheet" href="/assets/css/components.css?v=20260414-support-modal">
   <link rel="stylesheet" href="/assets/css/components/date-picker.css">
   <link rel="stylesheet" href="/assets/css/page/home.css?v=20260414-home-mobile-search-lock">
   <link rel="stylesheet" href="/assets/css/components/image-modal.css?v=20260414-support">
@@ -617,59 +617,85 @@
           <h2 id="supportModalTitle" class="app-modal-title" data-i18n="support.common.title">Support / 支援</h2>
         </div>
         <div class="app-modal-body support-modal__body">
-          <section class="support-modal__hero">
-            <div class="support-modal__eyebrow" data-i18n="support.common.title">Support / 支援</div>
-            <h3 id="supportModalHeading" class="support-modal__heading" data-i18n="support.modal.default.heading">Felixxsv Gallery を応援する</h3>
-            <p id="supportModalDescription" class="support-modal__description" data-i18n="support.modal.default.description">Felixxsv Gallery を継続して運営・改善していくための支援プランです。
+          <div class="support-modal__layout">
+            <section class="support-modal__visual" aria-hidden="true">
+              <div class="support-modal__visual-surface">
+                <div class="support-modal__visual-copy">
+                  <div class="support-modal__eyebrow" data-i18n="support.common.title">Support / 支援</div>
+                  <div class="support-modal__visual-title">Supporter Plan</div>
+                  <div class="support-modal__visual-price" data-i18n="support.modal.default.priceLabel">月額 500円</div>
+                </div>
+                <div class="support-modal__visual-art">
+                  <div class="support-modal__visual-glow support-modal__visual-glow--a"></div>
+                  <div class="support-modal__visual-glow support-modal__visual-glow--b"></div>
+                  <div class="support-modal__visual-frame">
+                    <img class="support-modal__visual-image" src="/assets/icons/WolfLogoNOBG.png" alt="">
+                  </div>
+                </div>
+                <div class="support-modal__visual-tags">
+                  <span class="support-modal__visual-tag" data-i18n="support.benefits.badge.label">支援者バッジ</span>
+                  <span class="support-modal__visual-tag" data-i18n="support.benefits.iconFrame.label">アイコンフレーム</span>
+                  <span class="support-modal__visual-tag" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</span>
+                </div>
+              </div>
+            </section>
+
+            <div class="support-modal__content">
+              <section class="support-modal__hero">
+                <div class="support-modal__eyebrow" data-i18n="support.common.title">Support / 支援</div>
+                <h3 id="supportModalHeading" class="support-modal__heading" data-i18n="support.modal.default.heading">Felixxsv Gallery を応援する</h3>
+                <p id="supportModalDescription" class="support-modal__description" data-i18n="support.modal.default.description">Felixxsv Gallery を継続して運営・改善していくための支援プランです。
 ご支援いただいた方には、支援者バッジやプロフィール装飾などの特典をご利用いただけます。
 支援は月額500円で、いつでも停止できます。</p>
-          </section>
+              </section>
 
-          <section class="support-modal__plan">
-            <div class="support-modal__plan-name" data-i18n="support.modal.default.planName">Supporter Plan</div>
-            <div class="support-modal__plan-price" data-i18n="support.modal.default.priceLabel">月額 500円</div>
-          </section>
+              <section class="support-modal__plan">
+                <div class="support-modal__plan-name" data-i18n="support.modal.default.planName">Supporter Plan</div>
+                <div class="support-modal__plan-price" data-i18n="support.modal.default.priceLabel">月額 500円</div>
+              </section>
 
-          <section class="support-modal__panel" id="supportModalStatusPanel" hidden>
-            <h4 class="support-modal__panel-title" data-i18n="support.details.statusHeading">支援状況</h4>
-            <dl class="app-definition-list support-modal__detail-list">
-              <div class="app-definition-list__row">
-                <dt data-i18n="support.details.currentStatus">支援状態</dt>
-                <dd id="supportModalStatusText">-</dd>
-              </div>
-              <div class="app-definition-list__row">
-                <dt data-i18n="support.details.plan">現在のプラン</dt>
-                <dd id="supportModalPlanText">-</dd>
-              </div>
-              <div class="app-definition-list__row">
-                <dt data-i18n="support.details.nextBillingAt">次回更新日</dt>
-                <dd id="supportModalNextBillingText">-</dd>
-              </div>
-              <div class="app-definition-list__row">
-                <dt data-i18n="support.details.firstBillingAt">初回お支払い予定日</dt>
-                <dd id="supportModalFirstBillingText">-</dd>
-              </div>
-              <div class="app-definition-list__row">
-                <dt data-i18n="support.details.totalAchievement">累計支援実績</dt>
-                <dd id="supportModalAchievementText">-</dd>
-              </div>
-            </dl>
-          </section>
+              <section class="support-modal__panel" id="supportModalStatusPanel" hidden>
+                <h4 class="support-modal__panel-title" data-i18n="support.details.statusHeading">支援状況</h4>
+                <dl class="app-definition-list support-modal__detail-list">
+                  <div class="app-definition-list__row">
+                    <dt data-i18n="support.details.currentStatus">支援状態</dt>
+                    <dd id="supportModalStatusText">-</dd>
+                  </div>
+                  <div class="app-definition-list__row">
+                    <dt data-i18n="support.details.plan">現在のプラン</dt>
+                    <dd id="supportModalPlanText">-</dd>
+                  </div>
+                  <div class="app-definition-list__row">
+                    <dt data-i18n="support.details.nextBillingAt">次回更新日</dt>
+                    <dd id="supportModalNextBillingText">-</dd>
+                  </div>
+                  <div class="app-definition-list__row">
+                    <dt data-i18n="support.details.firstBillingAt">初回お支払い予定日</dt>
+                    <dd id="supportModalFirstBillingText">-</dd>
+                  </div>
+                  <div class="app-definition-list__row">
+                    <dt data-i18n="support.details.totalAchievement">累計支援実績</dt>
+                    <dd id="supportModalAchievementText">-</dd>
+                  </div>
+                </dl>
+              </section>
 
-          <section class="support-modal__panel">
-            <h4 class="support-modal__panel-title" data-i18n="support.modal.default.benefitsHeading">支援特典</h4>
-            <ul class="support-modal__benefits">
-              <li data-i18n="support.benefits.badge.label">支援者バッジ</li>
-              <li data-i18n="support.benefits.durationBadge.label">累計支援期間バッジ</li>
-              <li data-i18n="support.benefits.iconFrame.label">アイコンフレーム</li>
-              <li data-i18n="support.benefits.profileDecor.label">プロフィール装飾</li>
-              <li data-i18n="support.benefits.decorPreset.label">支援者向け装飾プリセット</li>
-            </ul>
-            <p class="support-modal__note" data-i18n="support.modal.default.benefitsNote">支援特典は、サイトの基本的な利用を妨げない範囲で提供されます。
+              <section class="support-modal__panel">
+                <h4 class="support-modal__panel-title" data-i18n="support.modal.default.benefitsHeading">支援特典</h4>
+                <ul class="support-modal__benefits">
+                  <li data-i18n="support.benefits.badge.label">支援者バッジ</li>
+                  <li data-i18n="support.benefits.durationBadge.label">累計支援期間バッジ</li>
+                  <li data-i18n="support.benefits.iconFrame.label">アイコンフレーム</li>
+                  <li data-i18n="support.benefits.profileDecor.label">プロフィール装飾</li>
+                  <li data-i18n="support.benefits.decorPreset.label">支援者向け装飾プリセット</li>
+                </ul>
+                <p class="support-modal__note" data-i18n="support.modal.default.benefitsNote">支援特典は、サイトの基本的な利用を妨げない範囲で提供されます。
 閲覧や基本操作などの通常機能は、支援の有無にかかわらずご利用いただけます。</p>
-          </section>
+              </section>
 
-          <p id="supportModalMessage" class="support-modal__message" hidden></p>
+              <p id="supportModalMessage" class="support-modal__message" hidden></p>
+            </div>
+          </div>
         </div>
         <div class="app-modal-footer support-modal__footer">
           <div class="support-modal__footer-note" data-i18n="support.messages.externalPageNotice">この操作は別タブで開きます。</div>
