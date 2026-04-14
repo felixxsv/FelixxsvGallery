@@ -28,6 +28,7 @@ from badge_defs import list_badge_keys, serialize_badge, list_catalog as list_ba
 from supporter_service import (
     build_supporter_context,
     grant_supporter_access,
+    record_supporter_provider_event,
     revoke_supporter_grant,
     upsert_supporter_subscription,
 )
@@ -1971,6 +1972,66 @@ def admin_user_upsert_support_subscription(
             try: conn.rollback()
             except Exception: pass
         return _json_error(500, request_id, "server_error", "支援サブスクリプション状態の更新に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.post("/users/{user_id}/support/events")
+def admin_user_record_support_event(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        event_payload = {
+            "provider": str((payload or {}).get("provider") or "stripe").strip() or "stripe",
+            "event_type": str((payload or {}).get("event_type") or "").strip(),
+            "provider_event_id": str((payload or {}).get("provider_event_id") or "").strip() or None,
+            "provider_customer_id": str((payload or {}).get("provider_customer_id") or "").strip() or None,
+            "provider_subscription_id": str((payload or {}).get("provider_subscription_id") or "").strip() or None,
+            "process_status": str((payload or {}).get("process_status") or "received").strip() or "received",
+            "error_summary": str((payload or {}).get("error_summary") or "").strip() or None,
+            "related_user_id": user_id,
+            "mismatch_flag": bool((payload or {}).get("mismatch_type")),
+            "mismatch_type": str((payload or {}).get("mismatch_type") or "").strip() or None,
+            "payload": (payload or {}).get("payload") if isinstance((payload or {}).get("payload"), dict) else {},
+        }
+        event = record_supporter_provider_event(conn, event_payload)
+        support = build_supporter_context(conn, user_id, conf=_get_conf(), include_private=True, include_admin=True)
+        _log_audit_event(
+            conn,
+            int(actor.get("id") or 0) or None,
+            "admin.users.record_support_event",
+            "user",
+            str(user_id),
+            "success",
+            "支援イベントを記録しました。",
+            {
+                "provider": event_payload["provider"],
+                "event_type": event_payload["event_type"],
+                "process_status": event_payload["process_status"],
+                "mismatch_type": event_payload["mismatch_type"] or "",
+            },
+        )
+        conn.commit()
+        return _json_success(request_id=request_id, data={"event": event, "support": support}, message="支援イベントを記録しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "支援イベントの記録に失敗しました。")
     finally:
         if conn: conn.close()
 

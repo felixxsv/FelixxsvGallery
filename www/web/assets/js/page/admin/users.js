@@ -506,6 +506,18 @@ function renderSupportLists(support) {
   if (firstBilling) firstBilling.value = formatDateTimeLocalInput(subscription.first_billing_at);
   if (scheduledStart) scheduledStart.value = formatDateTimeLocalInput(subscription.scheduled_start_at);
   if (creditedMonths) creditedMonths.value = String(Number(subscription.credited_months || 0));
+  const eventProvider = byId("adminUsersSupportEventProvider");
+  const eventType = byId("adminUsersSupportEventType");
+  const eventStatus = byId("adminUsersSupportEventStatus");
+  const eventMismatch = byId("adminUsersSupportEventMismatchType");
+  const eventId = byId("adminUsersSupportEventId");
+  const eventError = byId("adminUsersSupportEventError");
+  if (eventProvider) eventProvider.value = "stripe";
+  if (eventType) eventType.value = "";
+  if (eventStatus) eventStatus.value = "received";
+  if (eventMismatch) eventMismatch.value = "";
+  if (eventId) eventId.value = "";
+  if (eventError) eventError.value = "";
 
   const grantList = byId("adminUsersSupportGrantList");
   if (grantList) {
@@ -576,6 +588,38 @@ async function saveSupportSubscription() {
     await loadUsers();
   } catch (error) {
     window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, window.AdminApp?.i18n?.t?.("support.admin.saveSubscriptionFailed", "課金状態の更新に失敗しました。") || "課金状態の更新に失敗しました。"));
+  }
+}
+
+async function saveSupportEvent() {
+  if (!state.currentUser) return;
+  const payload = {
+    provider: byId("adminUsersSupportEventProvider")?.value || "stripe",
+    event_type: byId("adminUsersSupportEventType")?.value || "",
+    process_status: byId("adminUsersSupportEventStatus")?.value || "received",
+    mismatch_type: byId("adminUsersSupportEventMismatchType")?.value || "",
+    provider_event_id: byId("adminUsersSupportEventId")?.value || "",
+    error_summary: byId("adminUsersSupportEventError")?.value || "",
+  };
+  const ok = await openActionConfirm(
+    window.AdminApp?.i18n?.t?.("support.admin.confirmSaveEvent", "支援イベントを記録しますか？") || "支援イベントを記録しますか？",
+    window.AdminApp?.i18n?.t?.("support.admin.saveEvent", "イベントを記録") || "イベントを記録"
+  );
+  if (!ok) return;
+  try {
+    const response = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/support/events`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data?.error?.message || "event record failed");
+    state.currentUser.support = data.data?.support || state.currentUser.support;
+    renderSupportLists(state.currentUser.support);
+    window.AdminApp?.toast?.success?.(window.AdminApp?.i18n?.t?.("support.admin.savedEvent", "支援イベントを記録しました。") || "支援イベントを記録しました。");
+  } catch (error) {
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, window.AdminApp?.i18n?.t?.("support.admin.saveEventFailed", "支援イベントの記録に失敗しました。") || "支援イベントの記録に失敗しました。"));
   }
 }
 
@@ -895,6 +939,7 @@ function bindModals() {
 
   byId("adminUsersEditBadgeGrantButton")?.addEventListener("click", grantBadge);
   byId("adminUsersSupportSubscriptionSaveButton")?.addEventListener("click", saveSupportSubscription);
+  byId("adminUsersSupportEventSaveButton")?.addEventListener("click", saveSupportEvent);
   byId("adminUsersSupportGrantButton")?.addEventListener("click", grantSupport);
   byId("adminUsersSupportGrantPreset")?.addEventListener("change", (event) => {
     const value = event.target.value;

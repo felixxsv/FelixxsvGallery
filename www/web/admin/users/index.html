@@ -909,6 +909,36 @@
 <div class="admin-users-support-panel__history">
 <h4 class="admin-users-support-panel__title" data-i18n="support.gift.history">手動付与履歴</h4>
 <div id="adminUsersSupportGrantList" class="admin-users-support-log"></div>
+<h4 class="admin-users-support-panel__title" data-i18n="support.admin.eventRecordHeading">決済イベントを手動記録</h4>
+<div class="admin-users-support-subscription">
+<label class="admin-form-label" for="adminUsersSupportEventProvider" data-i18n="support.admin.eventProvider">プロバイダ</label>
+<input class="app-input" id="adminUsersSupportEventProvider" type="text" value="stripe"/>
+<label class="admin-form-label" for="adminUsersSupportEventType" data-i18n="support.admin.eventType">イベント種別</label>
+<input class="app-input" id="adminUsersSupportEventType" type="text" placeholder="invoice.paid"/>
+<label class="admin-form-label" for="adminUsersSupportEventStatus" data-i18n="support.admin.eventProcessStatus">処理状態</label>
+<select class="app-select" id="adminUsersSupportEventStatus">
+<option value="received" data-i18n="support.admin.eventStatusReceived">受信</option>
+<option value="processed" data-i18n="support.admin.eventStatusProcessed">処理済み</option>
+<option value="failed" data-i18n="support.admin.eventStatusFailed">処理失敗</option>
+<option value="ignored" data-i18n="support.admin.eventStatusIgnored">無視</option>
+</select>
+<label class="admin-form-label" for="adminUsersSupportEventMismatchType" data-i18n="support.admin.eventMismatchType">不整合種別</label>
+<select class="app-select" id="adminUsersSupportEventMismatchType">
+<option value="" data-i18n="support.admin.noMismatch">不整合なし</option>
+<option value="reflection_missing" data-i18n="support.admin.mismatchReflectionMissing">決済済み未反映</option>
+<option value="reflection_unexpected" data-i18n="support.admin.mismatchReflectionUnexpected">未決済で反映</option>
+<option value="webhook_signature" data-i18n="support.admin.mismatchWebhookSignature">署名検証失敗</option>
+<option value="provider_state" data-i18n="support.admin.mismatchProviderState">外部状態不一致</option>
+<option value="billing_schedule" data-i18n="support.admin.mismatchBillingSchedule">請求日不整合</option>
+</select>
+<label class="admin-form-label" for="adminUsersSupportEventId" data-i18n="support.admin.eventId">イベントID</label>
+<input class="app-input" id="adminUsersSupportEventId" type="text"/>
+<label class="admin-form-label" for="adminUsersSupportEventError" data-i18n="support.admin.eventError">エラー概要</label>
+<textarea class="app-input admin-users-modal__bio" id="adminUsersSupportEventError" rows="2"></textarea>
+<div class="app-button-row">
+<button class="app-button app-button--primary" id="adminUsersSupportEventSaveButton" type="button" data-i18n="support.admin.saveEvent">イベントを記録</button>
+</div>
+</div>
 <h4 class="admin-users-support-panel__title" data-i18n="support.admin.mismatchHeading">決済イベント / 不整合</h4>
 <div id="adminUsersSupportEventList" class="admin-users-support-log"></div>
 </div>
