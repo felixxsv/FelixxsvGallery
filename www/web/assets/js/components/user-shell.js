@@ -2562,8 +2562,9 @@ export function initUserShell(app) {
       refs.accountProfileDecorVisibleInput,
     ].forEach((input) => {
       input?.addEventListener("change", () => {
-        renderSupporterSettings();
-        renderProfileDecorSection();
+        const draft = currentSupporterSettingsDraft();
+        applyIconFramePreviewDraft(draft);
+        applyProfileDecorPreviewDraft(draft);
       });
     });
     refs.supporterIconFrameOptions?.addEventListener("click", (event) => {
