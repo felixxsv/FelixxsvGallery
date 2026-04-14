@@ -59,6 +59,7 @@ body.is-image-modal-open {
   position: absolute;
   top: 20px;
   right: 24px;
+  display: none;
   z-index: 2;
   width: 52px;
   height: 52px;
@@ -389,6 +390,7 @@ body.is-image-modal-open {
 .image-detail-modal__close {
   width: 40px;
   height: 40px;
+  display: none;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.04);
@@ -716,7 +718,19 @@ body.is-image-modal-open {
   color: rgba(236, 242, 255, 0.68);
 }
 
-@media (max-width: 820px) {
+@media (max-width: 720px) {
+  .image-modal__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .image-detail-modal__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .image-modal__footer {
     flex-direction: column;
     align-items: stretch;

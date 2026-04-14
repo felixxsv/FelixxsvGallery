@@ -201,6 +201,7 @@ function normalizeItems(payload, options = {}) {
 export function createImageModalController({ app, body = document.body } = {}) {
   ensureStylesheet(app.appBase);
   const mobileImageMedia = window.matchMedia("(max-width: 720px)");
+  const globalCloseButton = document.getElementById("appGlobalClose");
 
   const root = document.createElement("section");
   root.className = "image-modal";
@@ -322,6 +323,19 @@ export function createImageModalController({ app, body = document.body } = {}) {
       deleteOwnedContent();
     },
   });
+
+  function syncGlobalCloseVisibility() {
+    if (!globalCloseButton) return;
+    if (!root.hidden && !mobileImageMedia.matches) {
+      globalCloseButton.hidden = false;
+      globalCloseButton.setAttribute("aria-hidden", "false");
+      return;
+    }
+    const modalStack = app?.modal?.getStack?.() || [];
+    const shouldShowForAppModal = Array.isArray(modalStack) && modalStack.length > 0 && !mobileImageMedia.matches;
+    globalCloseButton.hidden = !shouldShowForAppModal;
+    globalCloseButton.setAttribute("aria-hidden", shouldShowForAppModal ? "false" : "true");
+  }
 
   function currentItem() {
     return state.items[state.currentIndex] || state.current || null;
@@ -701,6 +715,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     detailModal.close();
     root.hidden = false;
     bodyLock(true);
+    syncGlobalCloseVisibility();
     viewport.focus?.();
     updateControlsVisibility(true);
   }
@@ -719,6 +734,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.likePending = false;
     resetView();
     root.classList.remove("is-controls-visible", "is-cursor-visible");
+    syncGlobalCloseVisibility();
   }
 
   function zoomTo(nextZoom, clientX = null, clientY = null) {
@@ -776,6 +792,19 @@ export function createImageModalController({ app, body = document.body } = {}) {
       return;
     }
     close();
+  });
+
+  globalCloseButton?.addEventListener("click", () => {
+    if (root.hidden || mobileImageMedia.matches) return;
+    if (state.detailOpen) {
+      detailModal.close();
+      return;
+    }
+    close();
+  });
+
+  mobileImageMedia.addEventListener?.("change", () => {
+    syncGlobalCloseVisibility();
   });
 
   prevButton.addEventListener("click", (event) => {
