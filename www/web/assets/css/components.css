@@ -911,7 +911,7 @@ body {
 
 .shell-supporter-settings__layout {
   display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--space-4);
   align-items: start;
 }
@@ -919,6 +919,7 @@ body {
 .shell-supporter-preview {
   display: grid;
   gap: var(--space-3);
+  align-content: start;
 }
 
 .shell-supporter-preview__eyebrow,
@@ -1068,19 +1069,26 @@ body {
 
 .shell-profile-decor-section__layout {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--space-4);
+  align-items: start;
 }
 
 .shell-profile-decor-preview,
 .shell-profile-decor-controls {
   display: grid;
   gap: var(--space-3);
+  align-content: start;
 }
 
 .shell-supporter-settings__controls {
   display: grid;
   gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface-raised) 68%, transparent);
 }
 
 .shell-supporter-settings__controls.is-locked,
@@ -1108,6 +1116,34 @@ body {
   filter: grayscale(0.22);
 }
 
+.shell-supporter-locked-note {
+  display: grid;
+  gap: var(--space-2);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, transparent), color-mix(in srgb, var(--color-surface-raised) 82%, transparent));
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.shell-supporter-locked-note__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
 .shell-supporter-settings__group {
   display: grid;
   gap: var(--space-3);
@@ -1123,7 +1159,7 @@ body {
   display: grid;
   gap: var(--space-3);
   justify-items: start;
-  min-height: 112px;
+  min-height: 124px;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -1166,7 +1202,7 @@ body {
 
 .shell-supporter-option__preview--panel {
   width: 100%;
-  min-height: 52px;
+  min-height: 72px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, white 4%), color-mix(in srgb, var(--color-surface) 98%, transparent));
