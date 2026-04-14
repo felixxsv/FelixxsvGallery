@@ -1263,7 +1263,27 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
+.shell-user-card__avatar.supporter-icon-frame--aurora-ring {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.96),
+    0 0 0 6px rgba(20, 184, 166, 0.32),
+    0 0 0 10px rgba(56, 189, 248, 0.2),
+    0 0 24px rgba(59, 130, 246, 0.34),
+    0 0 34px rgba(16, 185, 129, 0.24),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
 .supporter-icon-frame--amber-ring {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.96),
+    0 0 0 6px rgba(245, 158, 11, 0.32),
+    0 0 0 10px rgba(249, 115, 22, 0.2),
+    0 0 24px rgba(249, 115, 22, 0.32),
+    0 0 34px rgba(239, 68, 68, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.shell-user-card__avatar.supporter-icon-frame--amber-ring {
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.96),
     0 0 0 6px rgba(245, 158, 11, 0.32),
