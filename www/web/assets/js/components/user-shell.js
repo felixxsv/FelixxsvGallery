@@ -2116,6 +2116,7 @@ export function initUserShell(app) {
       resetAccountDraftState();
       renderAccountModal();
       renderUserCard();
+      notifySupportPresentationUpdated();
       toast.success(t("shell.toast.profile_updated", "Profile updated."));
       app.modal.close("account");
     } catch (error) {
@@ -2124,6 +2125,7 @@ export function initUserShell(app) {
         resetAccountDraftState();
         renderAccountModal();
         renderUserCard();
+        notifySupportPresentationUpdated();
       }
       const fieldErrors = error?.payload?.error?.field_errors || [];
       if (fieldErrors.length > 0) {
