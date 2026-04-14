@@ -384,6 +384,10 @@ body {
     linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
     rgba(14, 18, 28, 0.58);
   color: transparent;
+  font-size: 0;
+  line-height: 0;
+  text-indent: -9999px;
+  overflow: hidden;
   backdrop-filter: blur(16px);
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0.22),
@@ -417,6 +421,10 @@ body {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white 6%), color-mix(in srgb, var(--color-surface) 88%, transparent));
   color: transparent;
+  font-size: 0;
+  line-height: 0;
+  text-indent: -9999px;
+  overflow: hidden;
   cursor: pointer;
   flex: 0 0 auto;
   box-shadow:

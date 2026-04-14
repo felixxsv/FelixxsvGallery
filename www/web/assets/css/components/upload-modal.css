@@ -689,6 +689,9 @@
     linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white 6%), color-mix(in srgb, var(--color-surface) 88%, transparent));
   color: transparent;
   font-size: 0;
+  line-height: 0;
+  text-indent: -9999px;
+  overflow: hidden;
   cursor: pointer;
   border-radius: 12px;
   flex-shrink: 0;

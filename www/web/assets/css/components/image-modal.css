@@ -70,6 +70,9 @@ body.is-image-modal-open {
     rgba(10, 16, 26, 0.62);
   color: transparent;
   font-size: 0;
+  line-height: 0;
+  text-indent: -9999px;
+  overflow: hidden;
   cursor: pointer;
   opacity: 0;
   transform: translateY(-8px);
@@ -431,6 +434,10 @@ body.is-image-modal-open {
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
     rgba(18, 26, 38, 0.32);
   color: transparent;
+  font-size: 0;
+  line-height: 0;
+  text-indent: -9999px;
+  overflow: hidden;
   cursor: pointer;
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.14),
