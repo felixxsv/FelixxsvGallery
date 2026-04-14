@@ -43,7 +43,6 @@ function openSharedConfirm(app, { message, approveText, danger = false } = {}) {
 
     const handleApprove = () => {
       approving = true;
-      app.modal.close("twofactor-action-confirm");
       finish(true);
     };
 
@@ -57,7 +56,7 @@ function openSharedConfirm(app, { message, approveText, danger = false } = {}) {
       finish(false);
     };
 
-    approveButton.addEventListener("click", handleApprove);
+    approveButton.addEventListener("click", handleApprove, { capture: true });
     modalRoot.addEventListener("app:modal-close", handleClose);
     app.modal.open("twofactor-action-confirm");
   });
