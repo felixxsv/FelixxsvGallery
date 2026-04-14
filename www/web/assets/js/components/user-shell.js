@@ -579,9 +579,18 @@ export function initUserShell(app) {
     const status = support.status || {};
     const hasDecorFeature = Boolean(entitlements.profile_decor);
 
-    if (refs.profileDecorPreviewDisplayName) refs.profileDecorPreviewDisplayName.textContent = user.display_name || "Felix";
-    if (refs.profileDecorPreviewUserKey) refs.profileDecorPreviewUserKey.textContent = `@${user.user_key || "felix"}`;
-    if (refs.profileDecorPreviewBio) refs.profileDecorPreviewBio.textContent = (user.bio || "Felixxsv Gallery").slice(0, 120);
+    if (refs.profileDecorPreviewDisplayName) {
+      refs.profileDecorPreviewDisplayName.textContent = user.display_name || supportText("support.settings.previewDefaultName", "Felix");
+    }
+    if (refs.profileDecorPreviewUserKey) {
+      const previewUserKey = user.user_key
+        ? `@${user.user_key}`
+        : supportText("support.settings.previewDefaultUserKey", "@felix");
+      refs.profileDecorPreviewUserKey.textContent = previewUserKey;
+    }
+    if (refs.profileDecorPreviewBio) {
+      refs.profileDecorPreviewBio.textContent = (user.bio || supportText("support.settings.previewDefaultBio", "Felixxsv Gallery")).slice(0, 120);
+    }
 
     const avatarUrl = user.avatar_url || "";
     if (avatarUrl) {
