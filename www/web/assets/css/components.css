@@ -2161,11 +2161,9 @@ body {
 }
 
 .shell-profile-avatar-stage {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
 }
 
 .shell-profile-avatar {
@@ -2218,63 +2216,9 @@ body {
   cursor: pointer;
 }
 
-.shell-avatar-decor-trigger {
-  position: absolute;
-  right: -58px;
-  top: 50%;
-  bottom: auto;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 11px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
-  background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
-  color: var(--color-text);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, opacity 0.18s ease;
-}
-
-.shell-avatar-decor-trigger:hover {
-  transform: translateY(calc(-50% - 1px));
-  border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
-  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
-}
-
-.shell-avatar-decor-trigger:disabled {
-  opacity: 0.62;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.shell-avatar-decor-trigger__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  color: var(--color-primary);
-  font-size: 0.8rem;
-  line-height: 1;
-}
-
 @media (max-width: 640px) {
   .shell-profile-avatar-stage {
     padding: 0;
-  }
-
-  .shell-avatar-decor-trigger {
-    position: static;
-    transform: none;
-    margin-top: 10px;
   }
 
   .shell-badge-picker__grid {
