@@ -440,7 +440,11 @@ export function initUserShell(app) {
     }
     container.dataset.selectedValue = selectedKey || "";
     container.querySelectorAll(".shell-supporter-option").forEach((button) => {
-      const optionKey = button.dataset.supportIconFrameOption || button.dataset.supportProfileDecorOption || "";
+      const optionKey =
+        button.dataset.supportIconFrameOption ||
+        button.dataset.supportProfileDecorOption ||
+        button.dataset.accountProfileDecorOption ||
+        "";
       const selected = optionKey === selectedKey;
       button.classList.toggle("is-selected", selected);
       button.setAttribute("aria-pressed", String(selected));
