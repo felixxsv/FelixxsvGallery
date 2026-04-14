@@ -1056,7 +1056,7 @@ export function initUserShell(app) {
     setText("[data-modal-id='account'] .app-field:nth-of-type(2) .app-field__label", t("shell.static.user_id", "User ID"));
     setText("[data-modal-id='account'] .app-field:nth-of-type(2) .app-field__hint", t("shell.static.user_id_hint", "4-20 chars, start with a letter, letters/numbers/_/- only"));
     setText("[data-modal-id='account'] .app-field:nth-of-type(3) .app-field__label", t("shell.static.bio", "Bio"));
-    setText("[data-modal-id='account'] .shell-profile-links__title", t("shell.static.links", "Links"));
+    setText("#shellProfileLinksTitle", t("shell.static.links", "Links"));
     setText("[data-modal-id='email'] .app-field .app-field__label", t("shell.static.new_email", "New email address"));
     setText("[data-modal-id='email'] #shellEmailStep2 .app-field .app-field__label", t("shell.static.code_6digit", "Verification code (6 digits)"));
     setText("[data-modal-id='add-link'] .app-field__label", t("shell.static.url", "URL"));
