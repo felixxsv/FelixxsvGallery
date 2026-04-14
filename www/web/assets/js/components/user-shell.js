@@ -240,8 +240,6 @@ export function initUserShell(app) {
     supporterSettingsSaveButton: byId("shellSupporterSettingsSaveButton"),
     supporterIconFrameVisibleInput: byId("shellSupporterIconFrameVisibleInput"),
     supporterIconFrameOptions: byId("shellSupporterIconFrameOptions"),
-    profileDecorDescription: byId("shellProfileDecorDescription"),
-    profileDecorModalDescription: byId("shellProfileDecorModalDescription"),
     profileDecorOpenButton: byId("shellProfileDecorOpenButton"),
     profileDecorActionButton: byId("shellProfileDecorActionButton"),
     profileDecorPreviewCard: byId("shellProfileDecorPreviewCard"),
@@ -604,16 +602,6 @@ export function initUserShell(app) {
       refs.profileDecorPreviewNote.textContent = hasDecorFeature
         ? supportText("support.settings.previewAvailable", "公開プロフィールと投稿者表示に反映されます。")
         : supportText("support.settings.previewLocked", "支援するとこの装飾を利用できます。");
-    }
-    if (refs.profileDecorDescription) {
-      refs.profileDecorDescription.textContent = hasDecorFeature
-        ? supportText("support.settings.profileDecorDescription", "プロフィール装飾をここで設定できます。公開プロフィールの見た目に反映されます。")
-        : supportText("support.settings.profileDecorDescriptionLocked", "プロフィール装飾は支援後に利用できます。");
-    }
-    if (refs.profileDecorModalDescription) {
-      refs.profileDecorModalDescription.textContent = hasDecorFeature
-        ? supportText("support.settings.profileDecorDescription", "プロフィール装飾をここで設定できます。公開プロフィールの見た目に反映されます。")
-        : supportText("support.settings.profileDecorDescriptionLocked", "プロフィール装飾は支援後に利用できます。");
     }
     if (refs.profileDecorActionButton) {
       refs.profileDecorActionButton.textContent = supportStatusActionLabel(status.code || "inactive");
