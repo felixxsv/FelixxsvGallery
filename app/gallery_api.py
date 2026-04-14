@@ -997,6 +997,7 @@ def list_images(
     visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
     if _HAS_IMAGES_OWNER_USER_ID:
         user_select = """,
+  i.owner_user_id AS owner_user_id,
   u.user_key AS uploader_user_key,
   u.display_name AS uploader_display_name,
   CASE WHEN u.avatar_path IS NOT NULL THEN CONCAT('/api/auth/avatar/', u.id) ELSE NULL END AS uploader_avatar_url"""
@@ -1670,6 +1671,7 @@ def list_contents(
         content_key_expr = _content_key_expr("i", "gci")
         if _HAS_IMAGES_OWNER_USER_ID:
             content_user_select = """,
+    i.owner_user_id AS owner_user_id,
     u.user_key AS uploader_user_key,
     u.display_name AS uploader_display_name,
     CASE WHEN u.avatar_path IS NOT NULL THEN CONCAT('/api/auth/avatar/', u.id) ELSE NULL END AS uploader_avatar_url"""
@@ -1787,12 +1789,24 @@ WHERE picked.rn=1
                 for row in cur.fetchall():
                     thumbs_by_key[str(row["content_key"])] = row
 
+        supporter_profiles_by_user_id: dict[int, dict] = {}
+        if _HAS_IMAGES_OWNER_USER_ID:
+            owner_user_ids = sorted({
+                int(thumb["owner_user_id"])
+                for thumb in thumbs_by_key.values()
+                if thumb.get("owner_user_id") is not None
+            })
+            for owner_user_id in owner_user_ids:
+                supporter_profiles_by_user_id[owner_user_id] = get_public_supporter_profile(conn, owner_user_id, conf=CONF)
+
         items: list[dict] = []
         for row in rows:
             content_key = str(row["content_key"])
             thumb = thumbs_by_key.get(content_key)
             if not thumb:
                 continue
+            owner_user_id = int(thumb["owner_user_id"]) if thumb.get("owner_user_id") is not None else None
+            supporter_profile = supporter_profiles_by_user_id.get(owner_user_id, {}) if owner_user_id is not None else {}
             items.append({
                 "content_id": content_key,
                 "thumbnail_image_id": int(thumb["image_id"]),
@@ -1814,9 +1828,17 @@ WHERE picked.rn=1
                 "visibility": "public" if bool(thumb.get("is_public")) else "private",
                 "focal_x": float(thumb.get("focal_x") or 50),
                 "focal_y": float(thumb.get("focal_y") or 50),
+                "owner_user_id": owner_user_id,
                 "uploader_user_key": thumb.get("uploader_user_key"),
                 "uploader_display_name": thumb.get("uploader_display_name"),
                 "uploader_avatar_url": thumb.get("uploader_avatar_url"),
+                "supporter_profile": supporter_profile,
+                "user": {
+                    "user_key": thumb.get("uploader_user_key"),
+                    "display_name": thumb.get("uploader_display_name"),
+                    "avatar_url": thumb.get("uploader_avatar_url"),
+                    "supporter_profile": supporter_profile,
+                },
             })
 
         pages = (total + per_page - 1) // per_page if total else 0

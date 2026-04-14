@@ -272,6 +272,7 @@ function buildPublicDetail(image) {
       }))
       : [];
 
+  const supporterProfile = image?.user?.supporter_profile || image?.supporter_profile || {};
   return {
     image_id: image.id ?? null,
     content_id: image.content_id || null,
@@ -291,11 +292,21 @@ function buildPublicDetail(image) {
       display_name: image.uploader_display_name || image.display_name || homeT("home.image.unknown_user", "Unknown uploader"),
       user_key: normalizeUserKey(image.uploader_user_key || image.user_key),
       avatar_url: withAppBase(image.uploader_avatar_url || image.uploader_avatar_path || image.avatar_url || ""),
+      supporter_profile: supporterProfile,
     },
     viewer_permissions: image.viewer_permissions || null,
     owner_meta: image.owner_meta || null,
     admin_meta: image.admin_meta || null,
   };
+}
+
+function applySupportPresentation(container, avatar, supporterProfile) {
+  container?.classList?.remove("supporter-profile-decor--aurora-glow", "supporter-profile-decor--sunrise-wave");
+  avatar?.classList?.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
+  if (supporterProfile?.selected_icon_frame === "aurora_ring") avatar?.classList?.add("supporter-icon-frame--aurora-ring");
+  if (supporterProfile?.selected_icon_frame === "amber_ring") avatar?.classList?.add("supporter-icon-frame--amber-ring");
+  if (supporterProfile?.selected_profile_decor === "aurora_glow") container?.classList?.add("supporter-profile-decor--aurora-glow");
+  if (supporterProfile?.selected_profile_decor === "sunrise_wave") container?.classList?.add("supporter-profile-decor--sunrise-wave");
 }
 
 function readStoredGridCols() {
@@ -1448,6 +1459,7 @@ export function initHomePage(app) {
 
     const detail = buildPublicDetail(image);
     const user = detail.user || {};
+    applySupportPresentation(article, userButton?.querySelector("[data-card-user-avatar]"), user.supporter_profile || {});
     if (userButton) {
       const userKey = normalizeUserKey(user.user_key);
       if (userKey) {

@@ -173,11 +173,16 @@ function normalizePayload(item, options = {}) {
   normalized.like_count = normalizeLikeCount(item?.like_count || 0);
   normalized.viewer_liked = Boolean(item?.viewer_liked);
   normalized.view_count = Number(item?.view_count || 0);
+  const supporterProfile = item?.user?.supporter_profile || item?.supporter_profile || {};
   normalized.user = item?.user || {
     display_name: item?.uploader_display_name || item?.display_name || t(app, "unknown_user", "Unknown uploader"),
     user_key: normalizeUserKey(item?.uploader_user_key || item?.user_key),
     avatar_url: withAppBase(item?.uploader_avatar_url || item?.uploader_avatar_path || item?.avatar_url || ""),
+    supporter_profile: supporterProfile,
   };
+  if (normalized.user && !normalized.user.supporter_profile) {
+    normalized.user.supporter_profile = supporterProfile;
+  }
   normalized.tags = Array.isArray(item?.tags) ? item.tags : [];
   normalized.color_tags = Array.isArray(item?.color_tags) ? item.color_tags : [];
   normalized.file_size_bytes = item?.file_size_bytes ?? null;
@@ -477,6 +482,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
     postedAtNode.textContent = formatDateTime(item.posted_at);
     const user = item.user || {};
     const avatarUrl = user.avatar_url ? withAppBase(user.avatar_url) : "";
+    userAvatarNode.classList.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
+    if (user?.supporter_profile?.selected_icon_frame === "aurora_ring") userAvatarNode.classList.add("supporter-icon-frame--aurora-ring");
+    if (user?.supporter_profile?.selected_icon_frame === "amber_ring") userAvatarNode.classList.add("supporter-icon-frame--amber-ring");
     if (avatarUrl) {
       userAvatarNode.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="">`;
     } else {
