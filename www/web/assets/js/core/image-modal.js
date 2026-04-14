@@ -26,6 +26,7 @@ function openSharedConfirm(app, { message, approveText, danger = false } = {}) {
 
   return new Promise((resolve) => {
     let settled = false;
+    let approving = false;
 
     const cleanup = () => {
       approveButton.classList.remove("app-button--danger");
@@ -41,12 +42,16 @@ function openSharedConfirm(app, { message, approveText, danger = false } = {}) {
     };
 
     const handleApprove = () => {
+      approving = true;
       app.modal.close("twofactor-action-confirm");
       finish(true);
     };
 
     const handleClose = (event) => {
       if (event.detail?.id !== "twofactor-action-confirm") {
+        return;
+      }
+      if (approving) {
         return;
       }
       finish(false);
