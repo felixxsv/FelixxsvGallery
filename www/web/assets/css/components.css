@@ -893,7 +893,7 @@ body {
 .shell-supporter-settings__header {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-4);
 }
 
@@ -913,6 +913,7 @@ body {
   display: grid;
   grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   gap: var(--space-4);
+  align-items: start;
 }
 
 .shell-supporter-preview {
@@ -1079,7 +1080,7 @@ body {
 
 .shell-supporter-settings__controls {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .shell-supporter-settings__group {

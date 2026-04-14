@@ -545,11 +545,6 @@ export function initUserShell(app) {
         ? supportText("support.settings.previewAvailable", "公開プロフィールと投稿者表示に反映されます。")
         : supportText("support.settings.previewLocked", "支援するとこの装飾を利用できます。");
     }
-    if (refs.supporterSettingsDescription) {
-      refs.supporterSettingsDescription.textContent = hasFrameFeature
-        ? supportText("support.settings.iconFrameDescription", "アイコンフレームをここで設定できます。支援中は公開プロフィールのアバターに反映されます。")
-        : supportText("support.settings.iconFrameDescriptionLocked", "アイコンフレームは支援後に利用できます。");
-    }
     if (refs.supporterSettingsActionButton) {
       refs.supporterSettingsActionButton.textContent = supportStatusActionLabel(status.code || "inactive");
     }

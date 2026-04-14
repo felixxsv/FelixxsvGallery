@@ -905,14 +905,12 @@
       <div class="app-modal-backdrop" data-modal-backdrop="supporter-decor"></div>
       <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="supporterDecorTitle" tabindex="-1">
         <div class="app-modal-header">
-          <h2 id="supporterDecorTitle" class="app-modal-title" data-i18n="support.entry.openSupportSettings">Supporter設定</h2>
+          <h2 id="supporterDecorTitle" class="app-modal-title" data-i18n="support.benefits.iconFrame.label">アイコンフレーム</h2>
         </div>
         <div class="app-modal-body">
           <div id="shellSupporterDecorSection" class="shell-supporter-settings">
             <div class="shell-supporter-settings__header">
-              <div class="shell-supporter-settings__heading-wrap">
-                <p id="shellSupporterSettingsDescription" class="shell-supporter-settings__description" data-i18n="support.settings.description">支援者向けの装飾や公開表示をここで設定できます。未支援の状態でも内容は確認できます。</p>
-              </div>
+              <div class="shell-supporter-settings__heading-wrap"></div>
               <button id="shellSupporterSettingsActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
             </div>
 
@@ -929,19 +927,15 @@
               </section>
 
               <section class="shell-supporter-settings__controls">
-                <div class="shell-supporter-settings__group">
-                  <div class="shell-supporter-settings__group-title" data-i18n="support.visibility.iconFrameVisible">アイコンフレームを表示する</div>
-                  <div class="app-switch-row">
-                    <span class="app-switch-row__label" data-i18n="support.visibility.iconFrameVisible">アイコンフレームを表示する</span>
-                    <label class="app-switch">
-                      <input id="shellSupporterIconFrameVisibleInput" class="app-switch__input" type="checkbox">
-                      <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
-                    </label>
-                  </div>
+                <div class="app-switch-row">
+                  <span class="app-switch-row__label" data-i18n="support.visibility.iconFrameVisible">アイコンフレームを表示する</span>
+                  <label class="app-switch">
+                    <input id="shellSupporterIconFrameVisibleInput" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                  </label>
                 </div>
 
                 <div class="shell-supporter-settings__group">
-                  <div class="shell-supporter-settings__group-title" data-i18n="support.benefits.iconFrame.label">アイコンフレーム</div>
                   <div id="shellSupporterIconFrameOptions" class="shell-supporter-option-grid" role="group" aria-label="Icon Frame">
                     <button type="button" class="shell-supporter-option" data-support-icon-frame-option="aurora_ring">
                       <span class="shell-supporter-option__preview shell-supporter-option__preview--avatar supporter-icon-frame--aurora-ring"></span>
