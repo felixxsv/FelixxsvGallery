@@ -1371,15 +1371,27 @@ body {
 
 /* Public user profile modal */
 .shell-user-profile-dialog {
-  max-width: 760px;
+  max-width: 860px;
   width: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-elevated) 94%, white 6%), color-mix(in srgb, var(--color-surface) 98%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, var(--color-border));
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.34);
+}
+
+.shell-user-profile-dialog .app-modal-header {
+  border-bottom: 0;
+  padding-bottom: 10px;
 }
 
 .shell-user-profile-dialog .app-modal-body {
-  height: 380px;
+  min-height: 420px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-top: 6px;
 }
 
 .shell-user-profile__loading,
@@ -1393,11 +1405,10 @@ body {
   font-size: 0.9rem;
 }
 
-/* PC: horizontal two-column layout */
 .shell-user-profile {
-  display: flex;
-  flex-direction: row;
-  gap: var(--space-5);
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 18px;
   height: 100%;
   overflow: hidden;
 }
@@ -1407,25 +1418,30 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-  width: 140px;
+  justify-content: flex-start;
+  gap: 12px;
+  min-width: 0;
   overflow: hidden;
+  padding: 24px 20px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 20% 18%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 36%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 90%, white 10%), color-mix(in srgb, var(--color-surface) 98%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .shell-user-profile__right {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding-right: var(--space-1);
+  display: grid;
+  align-content: start;
+  gap: 14px;
 }
 
 .shell-user-profile__avatar {
-  width: 80px;
-  height: 80px;
+  width: 112px;
+  height: 112px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 32% 32%, color-mix(in srgb, var(--color-primary) 72%, #ffffff 28%), transparent 40%),
@@ -1435,9 +1451,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   font-weight: 700;
   color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.36),
+    0 20px 40px rgba(15, 23, 42, 0.22);
 }
 
 .shell-user-profile__avatar.has-avatar {
@@ -1446,7 +1465,7 @@ body {
 }
 
 .shell-user-profile__avatar-initial {
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   font-weight: 700;
   color: #fff;
   text-transform: uppercase;
@@ -1462,64 +1481,71 @@ body {
 
 .shell-user-profile__name {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.35rem;
+  line-height: 1.2;
   word-break: break-word;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   width: 100%;
 }
 
 .shell-user-profile__key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
   font-size: 0.82rem;
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
+  max-width: 100%;
 }
 
 .shell-user-profile__link-badge-row {
-  display: flex;
-  flex-direction: row;
-  gap: var(--space-4);
-  align-items: flex-start;
-}
-
-.shell-user-profile__link-badge-row > .shell-user-profile__section:first-child {
-  flex: 0 0 auto;
-  min-width: 302px;
-}
-
-.shell-user-profile__link-badge-row > .shell-user-profile__section:last-child {
-  flex: 1;
-  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
 }
 
 .shell-user-profile__section {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, var(--color-border));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .shell-user-profile__section-label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.14em;
 }
 
 .shell-user-profile__bio-area {
-  height: calc(9 * 0.88rem * 1.65);
+  min-height: 154px;
+  max-height: 212px;
   overflow-y: auto;
+  padding-right: 6px;
 }
 
 .shell-user-profile__bio {
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   color: var(--color-text);
-  line-height: 1.65;
+  line-height: 1.75;
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
@@ -1527,7 +1553,7 @@ body {
 }
 
 .shell-user-profile__bio-empty {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--color-text-muted);
   font-style: italic;
   margin: 0;
@@ -1535,13 +1561,13 @@ body {
 
 .shell-user-profile .shell-user-link,
 .shell-user-profile .user-profile-badge {
-  width: 54px;
-  height: 54px;
+  width: 50px;
+  height: 50px;
 }
 
 .shell-user-profile .shell-user-link__icon {
-  width: 27px;
-  height: 27px;
+  width: 24px;
+  height: 24px;
 }
 
 .shell-user-profile .user-profile-badge .badge-icon {
@@ -1550,38 +1576,30 @@ body {
 }
 
 .admin-shell .shell-user-profile-dialog {
-  max-width: 760px;
+  max-width: 860px;
 }
 
 @media (max-width: 860px) {
   .shell-user-profile__link-badge-row {
-    flex-direction: column;
-  }
-
-  .shell-user-profile__link-badge-row > .shell-user-profile__section:first-child {
-    min-width: 0;
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 700px) {
   .shell-user-profile-dialog .app-modal-body {
-    height: auto;
-    max-height: 70vh;
+    min-height: 0;
+    max-height: 76vh;
     overflow-y: auto;
   }
 
   .shell-user-profile {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     height: auto;
     overflow: visible;
   }
 
   .shell-user-profile__left {
-    flex-direction: row;
-    width: auto;
-    text-align: left;
-    align-items: center;
-    gap: var(--space-3);
+    padding: 18px;
   }
 
   .shell-user-profile__right {
@@ -1593,52 +1611,48 @@ body {
   }
 }
 
-/* Mobile: vertical scrollable layout */
 @media (max-width: 500px) {
   .shell-user-profile-dialog .app-modal-body {
-    height: auto;
-    max-height: 62vh;
+    min-height: 0;
+    max-height: 72vh;
     overflow-y: auto;
   }
 
-  .shell-user-profile {
-    flex-direction: column;
-    height: auto;
-    overflow: visible;
-  }
-
   .shell-user-profile__left {
-    flex-direction: row;
-    width: auto;
-    text-align: left;
-    align-items: center;
-    gap: var(--space-3);
+    padding: 16px;
   }
 
   .shell-user-profile__left .shell-user-profile__avatar {
-    width: 60px;
-    height: 60px;
-    font-size: 1.4rem;
+    width: 88px;
+    height: 88px;
+    font-size: 1.9rem;
     flex-shrink: 0;
   }
 
   .shell-user-profile .shell-user-link,
   .shell-user-profile .user-profile-badge {
-    width: 54px;
-    height: 54px;
+    width: 46px;
+    height: 46px;
   }
 
   .shell-user-profile .shell-user-link__icon {
-    width: 27px;
-    height: 27px;
+    width: 22px;
+    height: 22px;
   }
 
   .shell-user-profile__right {
     overflow-y: visible;
+    gap: 12px;
   }
 
   .shell-user-profile__name {
     -webkit-line-clamp: unset;
+    font-size: 1.16rem;
+  }
+
+  .shell-user-profile__section {
+    padding: 14px;
+    border-radius: 16px;
   }
 }
 
