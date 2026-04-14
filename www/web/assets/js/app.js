@@ -8,7 +8,7 @@ import { createSessionStore } from "./core/session.js";
 import { buildLocaleLoadOrder, createI18n, resolveLocalizedMessage } from "./core/i18n.js";
 import { createImageModalController } from "./core/image-modal.js";
 import { initUserShell } from "./components/user-shell.js?v=20260415-admin-support-filter-v1";
-import { initPublicProfileModal } from "./components/public-profile.js?v=20260414-support";
+import { initPublicProfileModal } from "./components/public-profile.js?v=20260415-profile-support-hide-v1";
 import { createUploadModalController } from "./components/upload-modal.js?v=20260415-unsaved-guards-v1";
 import { initHomePage } from "./page/home.js";
 import { ensureCustomScrollbars, updateCustomScrollbars } from "./core/custom-scrollbar.js";

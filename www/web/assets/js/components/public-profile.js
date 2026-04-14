@@ -115,24 +115,8 @@ export function initPublicProfileModal(app) {
   function renderSupportBadges(supporterProfile) {
     if (!refs.supportBadges || !refs.supportSection) return false;
     refs.supportBadges.innerHTML = "";
-    const items = [];
-    if (supporterProfile?.badge_visible) {
-      items.push({ className: "user-profile-badge user-profile-badge--gold", text: app.i18n?.t?.("support.common.supporter_badge", "Supporter") || "Supporter" });
-    }
-    if (supporterProfile?.duration_badge_visible && supporterProfile?.duration_badge_code) {
-      items.push({
-        className: "user-profile-badge user-profile-badge--blue",
-        text: app.i18n?.t?.(`support.achievements.${supporterProfile.duration_badge_code}`, String(supporterProfile.duration_badge_code).toUpperCase()) || String(supporterProfile.duration_badge_code).toUpperCase(),
-      });
-    }
-    for (const item of items) {
-      const chip = document.createElement("span");
-      chip.className = item.className;
-      chip.textContent = item.text;
-      refs.supportBadges.appendChild(chip);
-    }
-    refs.supportSection.hidden = items.length === 0;
-    return items.length > 0;
+    refs.supportSection.hidden = true;
+    return false;
   }
 
   applyStaticTranslations();
