@@ -125,6 +125,38 @@ function supportSourceLabel(value) {
   }
 }
 
+function supportEventStatusLabel(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "received":
+      return window.AdminApp?.i18n?.t?.("support.admin.eventStatusReceived", "受信") || "受信";
+    case "processed":
+      return window.AdminApp?.i18n?.t?.("support.admin.eventStatusProcessed", "処理済み") || "処理済み";
+    case "failed":
+      return window.AdminApp?.i18n?.t?.("support.admin.eventStatusFailed", "処理失敗") || "処理失敗";
+    case "ignored":
+      return window.AdminApp?.i18n?.t?.("support.admin.eventStatusIgnored", "無視") || "無視";
+    default:
+      return String(value || "-");
+  }
+}
+
+function supportMismatchLabel(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "reflection_missing":
+      return window.AdminApp?.i18n?.t?.("support.admin.mismatchReflectionMissing", "決済済み未反映") || "決済済み未反映";
+    case "reflection_unexpected":
+      return window.AdminApp?.i18n?.t?.("support.admin.mismatchReflectionUnexpected", "未決済で反映") || "未決済で反映";
+    case "webhook_signature":
+      return window.AdminApp?.i18n?.t?.("support.admin.mismatchWebhookSignature", "署名検証失敗") || "署名検証失敗";
+    case "provider_state":
+      return window.AdminApp?.i18n?.t?.("support.admin.mismatchProviderState", "外部状態不一致") || "外部状態不一致";
+    case "billing_schedule":
+      return window.AdminApp?.i18n?.t?.("support.admin.mismatchBillingSchedule", "請求日不整合") || "請求日不整合";
+    default:
+      return value ? String(value) : "-";
+  }
+}
+
 const BADGE_COLOR_CLASS = {
   blue: "admin-badge--blue",
   red: "admin-badge--red",
@@ -499,8 +531,9 @@ function renderSupportLists(support) {
       eventList.innerHTML = events.map((item) => `
         <div class="admin-users-support-log__item">
           <div class="admin-users-support-log__meta">${escapeHtml(item.provider || "-")} / ${escapeHtml(item.event_type || "-")}</div>
-          <div class="admin-users-support-log__sub">${escapeHtml(formatDateTime(item.received_at))} / ${escapeHtml(item.process_status || "-")}</div>
-          <div class="admin-users-support-log__sub">${escapeHtml(item.mismatch_flag ? (item.mismatch_type || "mismatch") : (item.error_summary || "-"))}</div>
+          <div class="admin-users-support-log__sub">${escapeHtml(formatDateTime(item.received_at))} / ${escapeHtml(supportEventStatusLabel(item.process_status))}</div>
+          <div class="admin-users-support-log__sub">${escapeHtml(item.mismatch_flag ? supportMismatchLabel(item.mismatch_type) : (window.AdminApp?.i18n?.t?.("support.admin.noMismatch", "不整合なし") || "不整合なし"))}</div>
+          <div class="admin-users-support-log__sub">${escapeHtml(item.error_summary || "-")}</div>
         </div>
       `).join("");
     }
