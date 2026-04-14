@@ -1371,11 +1371,9 @@ body {
 
 /* Public user profile modal */
 .shell-user-profile-dialog {
-  max-width: 780px;
+  max-width: 760px;
   width: 100%;
   overflow: hidden;
-  background-color: var(--color-bg-elevated);
-  background-image: none;
 }
 
 .shell-user-profile-dialog .app-modal-header {
@@ -1383,7 +1381,7 @@ body {
 }
 
 .shell-user-profile-dialog .app-modal-body {
-  min-height: 388px;
+  min-height: 380px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1402,8 +1400,8 @@ body {
 
 .shell-user-profile {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 144px minmax(0, 1fr);
+  gap: 18px;
   height: 100%;
   overflow: hidden;
 }
@@ -1414,14 +1412,10 @@ body {
   align-items: center;
   text-align: center;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   overflow: hidden;
-  padding: 18px 16px;
-  border-radius: 18px;
-  background-color: var(--color-surface);
-  background-image: none;
-  border: 1px solid var(--color-border);
+  padding: 4px 0;
 }
 
 .shell-user-profile__right {
@@ -1429,12 +1423,12 @@ body {
   overflow: hidden;
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .shell-user-profile__avatar {
-  width: 88px;
-  height: 88px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 32% 32%, color-mix(in srgb, var(--color-primary) 72%, #ffffff 28%), transparent 40%),
@@ -1444,12 +1438,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.95rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #fff;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.36),
-    0 12px 28px rgba(15, 23, 42, 0.18);
+    0 8px 18px rgba(15, 23, 42, 0.14);
 }
 
 .shell-user-profile__avatar.has-avatar {
@@ -1458,7 +1452,7 @@ body {
 }
 
 .shell-user-profile__avatar-initial {
-  font-size: 1.95rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #fff;
   text-transform: uppercase;
@@ -1474,8 +1468,8 @@ body {
 
 .shell-user-profile__name {
   font-weight: 700;
-  font-size: 1.1rem;
-  line-height: 1.2;
+  font-size: 1rem;
+  line-height: 1.25;
   word-break: break-word;
   overflow: hidden;
   display: -webkit-box;
@@ -1485,63 +1479,57 @@ body {
 }
 
 .shell-user-profile__key {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
+  display: block;
   font-size: 0.82rem;
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+  width: 100%;
 }
 
 .shell-user-profile__link-badge-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(168px, 1fr) minmax(168px, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(154px, 1fr) minmax(154px, 1fr);
+  gap: 10px;
   align-items: stretch;
 }
 
 .shell-user-profile__section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
   background-color: var(--color-surface);
-  background-image: none;
   border: 1px solid var(--color-border);
+  box-shadow: none;
 }
 
 .shell-user-profile__section-label {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
 }
 
 .shell-user-profile__bio-area {
-  min-height: 138px;
-  max-height: 190px;
+  height: calc(9 * 0.88rem * 1.65);
+  min-height: calc(9 * 0.88rem * 1.65);
+  max-height: calc(9 * 0.88rem * 1.65);
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 4px;
 }
 
 #userProfileLinksSection {
-  min-height: 124px;
+  min-height: 116px;
 }
 
 #userProfileBadgesSection,
 #userProfileSupportSection {
-  min-height: 124px;
+  min-height: 116px;
 }
 
 #userProfileLinks.shell-user-card__links {
@@ -1551,7 +1539,7 @@ body {
   gap: 8px;
   min-height: 96px;
   align-content: start;
-  justify-content: start;
+  justify-content: flex-start;
 }
 
 #userProfileBadges.user-profile-badges,
@@ -1562,13 +1550,13 @@ body {
   gap: 8px;
   min-height: 96px;
   align-content: start;
-  justify-content: start;
+  justify-content: flex-start;
 }
 
 .shell-user-profile__bio {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--color-text);
-  line-height: 1.68;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
@@ -1576,7 +1564,7 @@ body {
 }
 
 .shell-user-profile__bio-empty {
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
   font-style: italic;
   margin: 0;
@@ -1599,7 +1587,7 @@ body {
 }
 
 .admin-shell .shell-user-profile-dialog {
-  max-width: 780px;
+  max-width: 760px;
 }
 
 @media (max-width: 860px) {
@@ -1628,7 +1616,8 @@ body {
   }
 
   .shell-user-profile__left {
-    padding: 16px;
+    width: auto;
+    padding: 0;
   }
 
   .shell-user-profile__right {
@@ -1648,13 +1637,14 @@ body {
   }
 
   .shell-user-profile__left {
-    padding: 16px;
+    width: auto;
+    padding: 0;
   }
 
   .shell-user-profile__left .shell-user-profile__avatar {
-    width: 72px;
-    height: 72px;
-    font-size: 1.55rem;
+    width: 60px;
+    height: 60px;
+    font-size: 1.4rem;
     flex-shrink: 0;
   }
 
@@ -1671,17 +1661,17 @@ body {
 
   .shell-user-profile__right {
     overflow-y: visible;
-    gap: 12px;
+    gap: 10px;
   }
 
   .shell-user-profile__name {
     -webkit-line-clamp: unset;
-    font-size: 1.02rem;
+    font-size: 1rem;
   }
 
   .shell-user-profile__section {
-    padding: 12px 14px;
-    border-radius: 14px;
+    padding: 12px;
+    border-radius: 12px;
   }
 
   #userProfileLinks.shell-user-card__links {
