@@ -146,19 +146,6 @@ function renderColorTags(items) {
     }).join("")}</div>`;
   }
 
-  function renderSupporterBadges(user) {
-    const supporter = user?.supporter_profile || {};
-    const chips = [];
-    if (supporter.badge_visible) {
-      chips.push(`<span class="image-detail-modal__support-chip image-detail-modal__support-chip--gold">${escapeHtml(app?.i18n?.t?.("support.common.supporter_badge", "Supporter") || "Supporter")}</span>`);
-    }
-    if (supporter.duration_badge_visible && supporter.duration_badge_code) {
-      chips.push(`<span class="image-detail-modal__support-chip image-detail-modal__support-chip--blue">${escapeHtml(app?.i18n?.t?.(`support.achievements.${supporter.duration_badge_code}`, String(supporter.duration_badge_code).toUpperCase()) || String(supporter.duration_badge_code).toUpperCase())}</span>`);
-    }
-    if (!chips.length) return "";
-    return `<div class="image-detail-modal__support-row">${chips.join("")}</div>`;
-  }
-
   function supporterAvatarClass(user) {
     const frame = user?.supporter_profile?.selected_icon_frame;
     if (frame === "aurora_ring") return " supporter-icon-frame--aurora-ring";
@@ -221,7 +208,6 @@ function renderColorTags(items) {
             <div class="image-detail-modal__user-meta">
               <div class="image-detail-modal__user-name">${escapeHtml(textOrDash(user.display_name))}</div>
               <div class="image-detail-modal__user-id">@${escapeHtml(textOrDash(user.user_key))}</div>
-              ${renderSupporterBadges(user)}
             </div>
           </button>
         </div>

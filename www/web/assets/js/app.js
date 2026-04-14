@@ -6,7 +6,7 @@ import { createSettingsStore, languageToLocaleTag } from "./core/settings.js";
 import { createThemeController } from "./core/theme.js";
 import { createSessionStore } from "./core/session.js";
 import { buildLocaleLoadOrder, createI18n, resolveLocalizedMessage } from "./core/i18n.js";
-import { createImageModalController } from "./core/image-modal.js";
+import { createImageModalController } from "./core/image-modal.js?v=20260415-public-support-hide-v1";
 import { initUserShell } from "./components/user-shell.js?v=20260415-admin-support-filter-v1";
 import { initPublicProfileModal } from "./components/public-profile.js?v=20260415-profile-support-hide-v1";
 import { createUploadModalController } from "./components/upload-modal.js?v=20260415-unsaved-guards-v1";
