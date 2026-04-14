@@ -1212,7 +1212,6 @@ export function initUserShell(app) {
 
     const actions = support?.actions || {};
     const showManage = Boolean(support && actions.portal_available);
-    const showStatus = Boolean(support && status.is_active && actions.status_available);
     if (refs.supportModalPrimaryAction) {
       refs.supportModalPrimaryAction.textContent = variant.primary;
       refs.supportModalPrimaryAction.disabled = status.code === "active" || status.code === "cancelScheduled"
@@ -1220,7 +1219,6 @@ export function initUserShell(app) {
         : !actions.checkout_available;
     }
     if (refs.supportModalManageAction) refs.supportModalManageAction.hidden = !showManage;
-    if (refs.supportModalStatusAction) refs.supportModalStatusAction.hidden = !showStatus;
 
     if (refs.supportModalMessage) {
       let message = "";
@@ -2594,13 +2592,6 @@ export function initUserShell(app) {
       openSupportExternal(
         support?.actions?.portal_url,
         supportText("support.messages.portalUnavailable", "支援管理機能は現在利用できません。")
-      );
-    });
-    refs.supportModalStatusAction?.addEventListener("click", () => {
-      const support = getSupport();
-      openSupportExternal(
-        support?.actions?.status_url,
-        supportText("support.messages.statusUnavailable", "支援状況を現在確認できません。")
       );
     });
     refs.twoFactorEnableButton?.addEventListener("click", handleTwoFactorEnable);
