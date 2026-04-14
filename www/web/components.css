@@ -504,6 +504,11 @@ body {
   align-items: flex-start;
 }
 
+.shell-user-dialog .app-modal-header-actions {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
 .shell-header-link {
   background: none;
   border: none;
