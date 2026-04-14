@@ -434,7 +434,7 @@ export function initUserShell(app) {
       : supportText("support.actions.viewStatus", "支援状況を見る");
   }
 
-  function ownAvatarFramePresentation() {
+  function ownAccountModalSupportPresentation() {
     const support = getSupport();
     const settings = support?.settings || {};
     const entitlements = support?.entitlements || {};
@@ -442,7 +442,9 @@ export function initUserShell(app) {
       selected_icon_frame: entitlements.icon_frame
         ? settings.selected_icon_frame || null
         : null,
-      selected_profile_decor: null,
+      selected_profile_decor: entitlements.profile_decor
+        ? settings.selected_profile_decor || null
+        : null,
     };
   }
 
@@ -1352,7 +1354,7 @@ export function initUserShell(app) {
     }
     applySupportPresentation(refs.userCard, refs.userCardAvatar, {
       ...support?.public_profile,
-      ...ownAvatarFramePresentation(),
+      ...ownAccountModalSupportPresentation(),
     });
     applySupportPresentation(null, refs.accountAvatar, support?.public_profile || {});
 
