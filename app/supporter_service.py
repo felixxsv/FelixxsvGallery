@@ -54,6 +54,78 @@ SUPPORTER_ENTITLEMENTS = (
 )
 
 
+def _default_supporter_catalog() -> dict[str, list[dict]]:
+    return {
+        "icon_frames": [
+            {"key": key, **value}
+            for key, value in SUPPORTER_ICON_FRAMES.items()
+        ],
+        "profile_decors": [
+            {"key": key, **value}
+            for key, value in SUPPORTER_PROFILE_DECORS.items()
+        ],
+    }
+
+
+def get_supporter_catalog(conn) -> dict[str, list[dict]]:
+    fallback = _default_supporter_catalog()
+    if not _table_exists(conn, "supporter_decoration_catalog"):
+        return fallback
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT decoration_kind, decoration_key, label_key, preview_class, sort_order
+FROM supporter_decoration_catalog
+WHERE is_active=1
+ORDER BY decoration_kind ASC, sort_order ASC, id ASC
+"""
+        )
+        rows = list(cur.fetchall() or [])
+    if not rows:
+        return fallback
+    catalog = {
+        "icon_frames": [],
+        "profile_decors": [],
+    }
+    kind_map = {
+        "icon_frame": "icon_frames",
+        "profile_decor": "profile_decors",
+    }
+    for row in rows:
+        bucket = kind_map.get(str(row.get("decoration_kind") or "").strip())
+        if not bucket:
+            continue
+        key = str(row.get("decoration_key") or "").strip()
+        if not key:
+            continue
+        catalog[bucket].append(
+            {
+                "key": key,
+                "label_key": str(row.get("label_key") or "").strip(),
+                "preview_class": str(row.get("preview_class") or "").strip(),
+                "sort_order": int(row.get("sort_order") or 0),
+            }
+        )
+    for bucket, defaults in fallback.items():
+        if not catalog[bucket]:
+            catalog[bucket] = defaults
+    return catalog
+
+
+def _catalog_keys(catalog: dict[str, list[dict]], kind: str) -> set[str]:
+    return {
+        str(item.get("key") or "").strip()
+        for item in (catalog.get(kind) or [])
+        if str(item.get("key") or "").strip()
+    }
+
+
+def _catalog_default_key(catalog: dict[str, list[dict]], kind: str, fallback_key: str) -> str:
+    items = catalog.get(kind) or []
+    first_key = str(items[0].get("key") or "").strip() if items else ""
+    return first_key or fallback_key
+
+
 def is_support_ui_enabled(conn, default: bool = True) -> bool:
     if not _table_exists(conn, "admin_site_settings"):
         return bool(default)
@@ -121,14 +193,15 @@ def get_support_urls(conf: dict | None) -> dict:
 
 
 def get_supporter_settings(conn, user_id: int, create: bool = False) -> dict:
+    catalog = get_supporter_catalog(conn)
     defaults = {
         "supporter_visible": True,
         "supporter_badge_visible": True,
         "supporter_duration_badge_visible": True,
         "supporter_icon_frame_visible": True,
         "supporter_profile_decor_visible": True,
-        "selected_icon_frame": "aurora_ring",
-        "selected_profile_decor": "aurora_glow",
+        "selected_icon_frame": _catalog_default_key(catalog, "icon_frames", "aurora_ring"),
+        "selected_profile_decor": _catalog_default_key(catalog, "profile_decors", "aurora_glow"),
     }
     if not _table_exists(conn, "supporter_profile_settings"):
         return defaults.copy()
@@ -197,14 +270,17 @@ LIMIT 1
             "selected_profile_decor": row.get("selected_profile_decor") or defaults["selected_profile_decor"],
         }
     )
-    if settings["selected_icon_frame"] not in SUPPORTER_ICON_FRAMES:
+    icon_frame_keys = _catalog_keys(catalog, "icon_frames")
+    profile_decor_keys = _catalog_keys(catalog, "profile_decors")
+    if settings["selected_icon_frame"] not in icon_frame_keys:
         settings["selected_icon_frame"] = defaults["selected_icon_frame"]
-    if settings["selected_profile_decor"] not in SUPPORTER_PROFILE_DECORS:
+    if settings["selected_profile_decor"] not in profile_decor_keys:
         settings["selected_profile_decor"] = defaults["selected_profile_decor"]
     return settings
 
 
 def update_supporter_settings(conn, user_id: int, payload: dict) -> dict:
+    catalog = get_supporter_catalog(conn)
     settings = get_supporter_settings(conn, user_id, create=True)
     updates = {
         "supporter_visible": bool(payload.get("supporter_visible", settings["supporter_visible"])),
@@ -215,9 +291,11 @@ def update_supporter_settings(conn, user_id: int, payload: dict) -> dict:
         "selected_icon_frame": str(payload.get("selected_icon_frame") or settings["selected_icon_frame"]).strip() or settings["selected_icon_frame"],
         "selected_profile_decor": str(payload.get("selected_profile_decor") or settings["selected_profile_decor"]).strip() or settings["selected_profile_decor"],
     }
-    if updates["selected_icon_frame"] not in SUPPORTER_ICON_FRAMES:
+    icon_frame_keys = _catalog_keys(catalog, "icon_frames")
+    profile_decor_keys = _catalog_keys(catalog, "profile_decors")
+    if updates["selected_icon_frame"] not in icon_frame_keys:
         updates["selected_icon_frame"] = settings["selected_icon_frame"]
-    if updates["selected_profile_decor"] not in SUPPORTER_PROFILE_DECORS:
+    if updates["selected_profile_decor"] not in profile_decor_keys:
         updates["selected_profile_decor"] = settings["selected_profile_decor"]
     with conn.cursor() as cur:
         cur.execute(
@@ -665,16 +743,7 @@ def build_supporter_context(conn, user_id: int, conf: dict | None = None, includ
         "entitlements": entitlements,
         "public_profile": public_profile,
         "actions": actions,
-        "catalog": {
-            "icon_frames": [
-                {"key": key, **value}
-                for key, value in SUPPORTER_ICON_FRAMES.items()
-            ],
-            "profile_decors": [
-                {"key": key, **value}
-                for key, value in SUPPORTER_PROFILE_DECORS.items()
-            ],
-        },
+        "catalog": get_supporter_catalog(conn),
     }
     if include_admin:
         result["grants"] = [_serialize_grant(row) for row in grant_rows]
