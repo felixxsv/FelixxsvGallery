@@ -49,6 +49,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
   const layers = new Map();
   const stack = [];
   const previousFocus = new Map();
+  const beforeCloseHandlers = new Map();
   const mobileModalMedia = window.matchMedia("(max-width: 720px)");
   let bodyScrollLocked = false;
   let closeButtonHideTimer = null;
@@ -204,6 +205,34 @@ export function createModalManager({ root, closeButton, body = document.body } =
     close(id);
   }
 
+  async function canClose(id, detail = {}) {
+    const handler = beforeCloseHandlers.get(id);
+    if (typeof handler !== "function") {
+      return true;
+    }
+    try {
+      return await handler({ id, stack: [...stack], ...detail }) !== false;
+    } catch {
+      return false;
+    }
+  }
+
+  async function requestClose(id, detail = {}) {
+    if (!id) return false;
+    const approved = await canClose(id, detail);
+    if (!approved) {
+      return false;
+    }
+    close(id);
+    return true;
+  }
+
+  async function requestCloseTop(detail = {}) {
+    const id = top();
+    if (!id) return false;
+    return requestClose(id, detail);
+  }
+
   function bindEvents() {
     root.addEventListener("click", (event) => {
       const openTrigger = event.target.closest("[data-modal-open]");
@@ -219,7 +248,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
       if (closeTrigger) {
         const id = closeTrigger.dataset.modalClose;
         if (id) {
-          close(id);
+          void requestClose(id, { source: "button" });
         }
         return;
       }
@@ -231,19 +260,19 @@ export function createModalManager({ root, closeButton, body = document.body } =
           return;
         }
         if (id && top() === id) {
-          closeTop();
+          void requestCloseTop({ source: "backdrop" });
         }
       }
     });
 
     closeButton.addEventListener("click", () => {
-      closeTop();
+      void requestCloseTop({ source: "global-close" });
     });
 
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       if (stack.length === 0) return;
-      closeTop();
+      void requestCloseTop({ source: "escape" });
     });
   }
 
@@ -255,8 +284,21 @@ export function createModalManager({ root, closeButton, body = document.body } =
     open,
     close,
     closeTop,
+    requestClose,
+    requestCloseTop,
     top,
     isOpen,
+    setBeforeClose(id, handler) {
+      if (!id) return;
+      if (typeof handler === "function") {
+        beforeCloseHandlers.set(id, handler);
+        return;
+      }
+      beforeCloseHandlers.delete(id);
+    },
+    clearBeforeClose(id) {
+      beforeCloseHandlers.delete(id);
+    },
     refresh() {
       registerLayers();
       refreshLayerOrder();

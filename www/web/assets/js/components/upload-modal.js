@@ -278,6 +278,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     attachDatePicker(refs.shotAtDateInput, { getLocale: () => document.documentElement.lang || "en-US" });
 
     bindEvents();
+    app.modal?.setBeforeClose?.(MODAL_ID, async () => {
+      const approved = await confirmDiscardClose();
+      if (approved) {
+        resetState();
+      }
+      return approved;
+    });
     if (!state.languageBound) {
       window.addEventListener("gallery:language-changed", applyTranslations);
       state.languageBound = true;
@@ -715,6 +722,35 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function clearDraft() {
     try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  }
+
+  function hasUnsavedChanges() {
+    return (
+      state.items.length > 0 ||
+      Boolean(refs.titleInput?.value?.trim()) ||
+      Boolean(refs.altInput?.value?.trim()) ||
+      Boolean(getShotAtValue()) ||
+      state.tagState.length > 0 ||
+      (refs.visInput?.checked ?? true) === false ||
+      state.focalX !== 50 ||
+      state.focalY !== 50
+    );
+  }
+
+  async function confirmDiscardClose() {
+    if (state.uploading) {
+      app.toast?.info?.(t(app, "submitting", "Uploading..."));
+      return false;
+    }
+    if (!hasUnsavedChanges()) {
+      return true;
+    }
+    const message = t(app, "discard_confirm", "未保存のアップロード内容があります。閉じますか？");
+    const approveText = t(app, "discard_approve", "破棄して閉じる");
+    if (typeof app.confirmAction === "function") {
+      return app.confirmAction(message, approveText, true);
+    }
+    return window.confirm(message);
   }
 
   // ── UI helpers ────────────────────────────────────────────────────────────

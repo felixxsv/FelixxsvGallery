@@ -274,6 +274,8 @@ export function initUserShell(app) {
     allowBrowserLeave: false,
     actionConfirmResolver: null,
     supportSavePending: false,
+    accountDraftLinks: null,
+    accountDraftBadges: null,
   };
 
   const CROP_DISPLAY = 240;
@@ -317,6 +319,52 @@ export function initUserShell(app) {
 
   function getSupport() {
     return getSessionState().data?.support || null;
+  }
+
+  function cloneDraftLinks(links) {
+    return (Array.isArray(links) ? links : []).map((link) => ({
+      id: link?.id ?? null,
+      url: String(link?.url || "").trim(),
+    })).filter((link) => link.url);
+  }
+
+  function normalizeDisplayBadges(displayBadges) {
+    return (Array.isArray(displayBadges) ? displayBadges : [])
+      .map((badgeKey) => String(badgeKey || ""))
+      .filter((badgeKey) => badgeKey && badgeKey !== "star");
+  }
+
+  function resetAccountDraftState(user = getUser()) {
+    shellState.accountDraftLinks = cloneDraftLinks(user?.links || []);
+    shellState.accountDraftBadges = normalizeDisplayBadges(user?.display_badges || []);
+  }
+
+  function getAccountDraftLinks(user = getUser()) {
+    if (!Array.isArray(shellState.accountDraftLinks)) {
+      resetAccountDraftState(user);
+    }
+    return shellState.accountDraftLinks;
+  }
+
+  function getAccountDraftBadges(user = getUser()) {
+    if (!Array.isArray(shellState.accountDraftBadges)) {
+      resetAccountDraftState(user);
+    }
+    return shellState.accountDraftBadges;
+  }
+
+  function linkDraftsEqual(left, right) {
+    const a = cloneDraftLinks(left);
+    const b = cloneDraftLinks(right);
+    if (a.length !== b.length) return false;
+    return a.every((link, index) => String(link.id || "") === String(b[index]?.id || "") && link.url === b[index]?.url);
+  }
+
+  function badgeDraftsEqual(left, right) {
+    const a = normalizeDisplayBadges(left);
+    const b = normalizeDisplayBadges(right);
+    if (a.length !== b.length) return false;
+    return a.every((badgeKey, index) => badgeKey === b[index]);
   }
 
   function isSupportUiEnabled() {
@@ -1300,7 +1348,7 @@ export function initUserShell(app) {
       return;
     }
 
-    const displayBadges = Array.isArray(user.display_badges) ? user.display_badges : [];
+    const displayBadges = getAccountDraftBadges(user);
     list.innerHTML = "";
     for (const badge of pool) {
       const isSelected = displayBadges.includes(badge.key);
@@ -1330,7 +1378,7 @@ export function initUserShell(app) {
       return;
     }
 
-    const displayBadges = Array.isArray(user.display_badges) ? user.display_badges : [];
+    const displayBadges = getAccountDraftBadges(user);
     const poolMap = new Map(pool.map((badge) => [badge.key, badge]));
     list.innerHTML = "";
     displayBadges.forEach((badgeKey) => {
@@ -1361,8 +1409,8 @@ export function initUserShell(app) {
     renderBadgeSelectionPool(user);
   }
 
-  async function handleBadgeToggle(badgeKey, user) {
-    const currentDisplay = Array.isArray(user.display_badges) ? user.display_badges.filter((key) => String(key) !== "star") : [];
+  function handleBadgeToggle(badgeKey, user) {
+    const currentDisplay = [...getAccountDraftBadges(user)];
     const isSelected = currentDisplay.includes(badgeKey);
     let newDisplay;
     if (isSelected) {
@@ -1374,20 +1422,15 @@ export function initUserShell(app) {
       }
       newDisplay = [...currentDisplay, badgeKey];
     }
-    try {
-      await app.api.put("/api/users/me/badge-display", { badge_keys: newDisplay });
-      user.display_badges = newDisplay;
-      renderProfileBadgePool(user);
-      renderDisplayBadges(user);
-    } catch (err) {
-      app.toast?.error?.(err?.message || t("shell.toast.badge_update_error", "Failed to update badges."));
-    }
+    shellState.accountDraftBadges = newDisplay;
+    renderProfileBadgePool(user);
   }
 
   const MAX_LINKS = 5;
 
   function renderLinksGrid() {
-    const links = getUser()?.links || [];
+    const user = getUser();
+    const links = getAccountDraftLinks(user);
     const grid = refs.profileLinksGrid;
     grid.innerHTML = "";
 
@@ -1417,7 +1460,7 @@ export function initUserShell(app) {
     }
 
     grid.querySelectorAll(".shell-link-box__remove").forEach((btn) => {
-      btn.addEventListener("click", () => handleLinkDelete(Number(btn.dataset.linkId)));
+      btn.addEventListener("click", () => handleLinkDelete(btn.dataset.linkId));
     });
   }
 
@@ -1430,32 +1473,26 @@ export function initUserShell(app) {
     }
     refs.addLinkSubmitButton.disabled = true;
     try {
-      const result = await app.api.post("/api/auth/links", { url });
-      const links = result?.data?.links ?? [];
-      const user = getUser();
-      if (user) user.links = links;
+      const draftLinks = getAccountDraftLinks();
+      if (draftLinks.length >= MAX_LINKS) {
+        toast.error(t("shell.toast.link_limit", "You can add up to 5 links."));
+        return;
+      }
+      draftLinks.push({
+        id: `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        url,
+      });
       renderLinksGrid();
+      refs.addLinkInput.value = "";
       app.modal.close("add-link");
-      toast.success(result?.message || t("shell.toast.link_added", "Link added."));
-    } catch (error) {
-      const fieldErrors = error?.payload?.error?.field_errors || [];
-      toast.error(resolveLocalizedMessage(fieldErrors[0]?.message || error, t("shell.toast.link_add_error", "Failed to add link.")));
     } finally {
       refs.addLinkSubmitButton.disabled = false;
     }
   }
 
-  async function handleLinkDelete(linkId) {
-    try {
-      const result = await app.api.delete(`/api/auth/links/${linkId}`);
-      const links = result?.data?.links ?? [];
-      const user = getUser();
-      if (user) user.links = links;
-      renderLinksGrid();
-      toast.success(t("shell.toast.link_removed", "Link removed."));
-    } catch (error) {
-      toast.error(resolveLocalizedMessage(error, t("shell.toast.link_remove_error", "Failed to remove link.")));
-    }
+  function handleLinkDelete(linkId) {
+    shellState.accountDraftLinks = getAccountDraftLinks().filter((link) => String(link.id) !== String(linkId));
+    renderLinksGrid();
   }
 
   function renderAccountModal() {
@@ -1909,10 +1946,23 @@ export function initUserShell(app) {
     refreshResendButtons();
   }
 
+  function accountModalChanged() {
+    const user = getUser();
+    if (!user) return false;
+    return (
+      refs.profileDisplayNameInput.value.trim() !== String(user.display_name || "") ||
+      refs.profileUserKeyInput.value.trim() !== String(user.user_key || "") ||
+      refs.profileBioInput.value !== String(user.bio || "") ||
+      !linkDraftsEqual(getAccountDraftLinks(user), user.links || []) ||
+      !badgeDraftsEqual(getAccountDraftBadges(user), user.display_badges || [])
+    );
+  }
+
   async function handleProfileSave() {
     const displayName = refs.profileDisplayNameInput.value.trim();
     const userKey = refs.profileUserKeyInput.value.trim();
     const bio = refs.profileBioInput.value;
+    const user = getUser();
 
     if (!displayName) {
       toast.error(t("shell.toast.display_name_required", "Enter a display name."));
@@ -1926,18 +1976,59 @@ export function initUserShell(app) {
     }
 
     refs.profileSaveButton.disabled = true;
+    let mutationAttempted = false;
     try {
-      await app.api.patch("/api/auth/profile", {
-        display_name: displayName,
-        user_key: userKey,
-        bio: bio,
-      });
+      if (!user) {
+        throw new Error(t("shell.toast.session_error", "Failed to load session."));
+      }
+
+      if (
+        displayName !== String(user.display_name || "") ||
+        userKey !== String(user.user_key || "") ||
+        bio !== String(user.bio || "")
+      ) {
+        mutationAttempted = true;
+        await app.api.patch("/api/auth/profile", {
+          display_name: displayName,
+          user_key: userKey,
+          bio: bio,
+        });
+      }
+
+      const persistedLinks = cloneDraftLinks(user.links || []);
+      const draftLinks = cloneDraftLinks(getAccountDraftLinks(user));
+      const draftById = new Map(draftLinks.filter((link) => Number.isFinite(Number(link.id))).map((link) => [String(link.id), link]));
+      const removedLinks = persistedLinks.filter((link) => Number.isFinite(Number(link.id)) && !draftById.has(String(link.id)));
+      const newLinks = draftLinks.filter((link) => !Number.isFinite(Number(link.id)));
+
+      for (const link of removedLinks) {
+        mutationAttempted = true;
+        await app.api.delete(`/api/auth/links/${link.id}`);
+      }
+      for (const link of newLinks) {
+        mutationAttempted = true;
+        await app.api.post("/api/auth/links", { url: link.url });
+      }
+
+      const draftBadges = getAccountDraftBadges(user);
+      if (!badgeDraftsEqual(draftBadges, user.display_badges || [])) {
+        mutationAttempted = true;
+        await app.api.put("/api/users/me/badge-display", { badge_keys: draftBadges });
+      }
+
       await refreshSession();
+      resetAccountDraftState();
       renderAccountModal();
       renderUserCard();
       toast.success(t("shell.toast.profile_updated", "Profile updated."));
       app.modal.close("account");
     } catch (error) {
+      if (mutationAttempted) {
+        await refreshSession();
+        resetAccountDraftState();
+        renderAccountModal();
+        renderUserCard();
+      }
       const fieldErrors = error?.payload?.error?.field_errors || [];
       if (fieldErrors.length > 0) {
         toast.error(resolveLocalizedMessage(fieldErrors[0]?.message || error, t("shell.toast.check_input", "Check the input values.")));
@@ -2217,6 +2308,51 @@ export function initUserShell(app) {
   }
 
   function bindEvents() {
+    app.confirmAction = openActionConfirm;
+    app.modal?.setBeforeClose?.("account", async () => {
+      if (!accountModalChanged()) {
+        resetAccountDraftState();
+        return true;
+      }
+      const approved = await openActionConfirm(
+        t("shell.confirm.unsaved_close", "未保存の変更があります。閉じますか？"),
+        t("shell.confirm.discard_close", "破棄して閉じる"),
+        true
+      );
+      if (approved) {
+        resetAccountDraftState();
+      }
+      return approved;
+    });
+    app.modal?.setBeforeClose?.("supporter-decor", async () => {
+      if (!supporterSettingsChanged()) {
+        return true;
+      }
+      const approved = await openActionConfirm(
+        t("shell.confirm.unsaved_close", "未保存の変更があります。閉じますか？"),
+        t("shell.confirm.discard_close", "破棄して閉じる"),
+        true
+      );
+      if (approved) {
+        renderSupporterSettings();
+      }
+      return approved;
+    });
+    app.modal?.setBeforeClose?.("add-link", async () => {
+      if (!(refs.addLinkInput?.value || "").trim()) {
+        return true;
+      }
+      const approved = await openActionConfirm(
+        t("shell.confirm.unsaved_close", "未保存の変更があります。閉じますか？"),
+        t("shell.confirm.discard_close", "破棄して閉じる"),
+        true
+      );
+      if (approved && refs.addLinkInput) {
+        refs.addLinkInput.value = "";
+      }
+      return approved;
+    });
+
     ensureProfileMediaModals(app);
 
     refs.userTrigger.addEventListener("click", () => {
@@ -2452,6 +2588,7 @@ export function initUserShell(app) {
         renderCredits();
       }
       if (id === "account") {
+        resetAccountDraftState(getUser());
         renderAccountModal();
       }
       if (id === "account-security") {
