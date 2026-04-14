@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Felixxsv Gallery</title>
   <link rel="stylesheet" href="/assets/css/common.css">
-  <link rel="stylesheet" href="/assets/css/components.css?v=20260414-modal-close-v3">
+  <link rel="stylesheet" href="/assets/css/components.css?v=20260414-support-settings-v1">
   <link rel="stylesheet" href="/assets/css/components/date-picker.css">
   <link rel="stylesheet" href="/assets/css/page/home.css?v=20260414-home-mobile-search-lock">
   <link rel="stylesheet" href="/assets/css/components/image-modal.css?v=20260414-modal-close-v2">
@@ -882,6 +882,108 @@
             </div>
           </div>
 
+          <div id="shellSupporterDecorSection" class="shell-supporter-settings" hidden>
+            <div class="shell-supporter-settings__header">
+              <div class="shell-supporter-settings__heading-wrap">
+                <h3 class="shell-profile-links__title" data-i18n="support.entry.openSupportSettings">Supporter設定</h3>
+                <p id="shellSupporterSettingsDescription" class="shell-supporter-settings__description" data-i18n="support.settings.description">支援者向けの装飾や公開表示をここで設定できます。未支援の状態でも内容は確認できます。</p>
+              </div>
+              <button id="shellSupporterSettingsActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
+            </div>
+
+            <div class="shell-supporter-settings__layout">
+              <section class="shell-supporter-preview">
+                <div class="shell-supporter-preview__eyebrow" data-i18n="support.settings.previewTitle">プレビュー</div>
+                <div id="shellSupporterPreviewCard" class="shell-supporter-preview__card">
+                  <div id="shellSupporterPreviewAvatar" class="shell-supporter-preview__avatar" aria-hidden="true">
+                    <span id="shellSupporterPreviewAvatarInitial" class="shell-supporter-preview__avatar-initial">F</span>
+                    <img id="shellSupporterPreviewAvatarImg" class="shell-supporter-preview__avatar-img" src="" alt="" hidden>
+                  </div>
+                  <div class="shell-supporter-preview__meta">
+                    <div id="shellSupporterPreviewDisplayName" class="shell-supporter-preview__name">Felix</div>
+                    <div id="shellSupporterPreviewUserKey" class="shell-supporter-preview__key">@felix</div>
+                    <div class="shell-supporter-preview__chips">
+                      <span id="shellSupporterPreviewBadge" class="shell-supporter-preview__chip shell-supporter-preview__chip--gold" data-i18n="support.common.supporter_badge" hidden>Supporter</span>
+                      <span id="shellSupporterPreviewDurationBadge" class="shell-supporter-preview__chip shell-supporter-preview__chip--blue" hidden>1M</span>
+                    </div>
+                  </div>
+                </div>
+                <p id="shellSupporterPreviewNote" class="shell-supporter-preview__note" data-i18n="support.settings.previewLocked">支援するとこの装飾を利用できます。</p>
+              </section>
+
+              <section class="shell-supporter-settings__controls">
+                <div class="shell-supporter-settings__group">
+                  <div class="shell-supporter-settings__group-title" data-i18n="support.visibility.heading">表示設定</div>
+                  <div class="app-form-stack">
+                    <div class="app-switch-row">
+                      <span class="app-switch-row__label" data-i18n="support.visibility.supporterVisible">支援者情報を表示する</span>
+                      <label class="app-switch">
+                        <input id="shellSupporterVisibleInput" class="app-switch__input" type="checkbox">
+                        <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="app-switch-row">
+                      <span class="app-switch-row__label" data-i18n="support.visibility.badgeVisible">支援者バッジを表示する</span>
+                      <label class="app-switch">
+                        <input id="shellSupporterBadgeVisibleInput" class="app-switch__input" type="checkbox">
+                        <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="app-switch-row">
+                      <span class="app-switch-row__label" data-i18n="support.visibility.durationBadgeVisible">累計支援実績を表示する</span>
+                      <label class="app-switch">
+                        <input id="shellSupporterDurationVisibleInput" class="app-switch__input" type="checkbox">
+                        <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="app-switch-row">
+                      <span class="app-switch-row__label" data-i18n="support.visibility.iconFrameVisible">アイコンフレームを表示する</span>
+                      <label class="app-switch">
+                        <input id="shellSupporterIconFrameVisibleInput" class="app-switch__input" type="checkbox">
+                        <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="app-switch-row">
+                      <span class="app-switch-row__label" data-i18n="support.visibility.profileDecorVisible">プロフィール装飾を表示する</span>
+                      <label class="app-switch">
+                        <input id="shellSupporterProfileDecorVisibleInput" class="app-switch__input" type="checkbox">
+                        <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="shell-supporter-settings__group">
+                  <div class="shell-supporter-settings__group-title" data-i18n="support.benefits.iconFrame.label">アイコンフレーム</div>
+                  <div id="shellSupporterIconFrameOptions" class="shell-supporter-option-grid" role="group" aria-label="Icon Frame">
+                    <button type="button" class="shell-supporter-option" data-support-icon-frame-option="aurora_ring">
+                      <span class="shell-supporter-option__preview shell-supporter-option__preview--avatar supporter-icon-frame--aurora-ring"></span>
+                      <span class="shell-supporter-option__label" data-i18n="support.icon_frame.aurora_ring">Aurora Ring</span>
+                    </button>
+                    <button type="button" class="shell-supporter-option" data-support-icon-frame-option="amber_ring">
+                      <span class="shell-supporter-option__preview shell-supporter-option__preview--avatar supporter-icon-frame--amber-ring"></span>
+                      <span class="shell-supporter-option__label" data-i18n="support.icon_frame.amber_ring">Amber Ring</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="shell-supporter-settings__group">
+                  <div class="shell-supporter-settings__group-title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</div>
+                  <div id="shellSupporterProfileDecorOptions" class="shell-supporter-option-grid" role="group" aria-label="Profile Decoration">
+                    <button type="button" class="shell-supporter-option" data-support-profile-decor-option="aurora_glow">
+                      <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--aurora-glow"></span>
+                      <span class="shell-supporter-option__label" data-i18n="support.profile_decor.aurora_glow">Aurora Glow</span>
+                    </button>
+                    <button type="button" class="shell-supporter-option" data-support-profile-decor-option="sunrise_wave">
+                      <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--sunrise-wave"></span>
+                      <span class="shell-supporter-option__label" data-i18n="support.profile_decor.sunrise_wave">Sunrise Wave</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
         </div>
         <div class="app-modal-footer app-modal-footer--end">
           <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
@@ -1168,6 +1270,6 @@
     </article>
   </template>
 
-  <script type="module" src="/assets/js/app.js?v=20260414-support"></script>
+  <script type="module" src="/assets/js/app.js?v=20260414-support-settings-v1"></script>
 </body>
 </html>
