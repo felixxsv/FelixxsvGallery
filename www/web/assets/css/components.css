@@ -1144,13 +1144,14 @@ body {
 
 .shell-supporter-option-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-3);
 }
 
 .shell-supporter-option {
   display: grid;
   gap: var(--space-3);
+  align-content: start;
   justify-items: start;
   min-height: 124px;
   padding: var(--space-3);
@@ -1185,8 +1186,8 @@ body {
 }
 
 .shell-supporter-option__preview--avatar {
-  width: 52px;
-  height: 52px;
+  width: 58px;
+  height: 58px;
   border-radius: 999px;
   background:
     radial-gradient(circle at 32% 32%, color-mix(in srgb, var(--color-primary) 72%, #ffffff 28%), transparent 40%),
@@ -1195,7 +1196,7 @@ body {
 
 .shell-supporter-option__preview--panel {
   width: 100%;
-  min-height: 72px;
+  min-height: 84px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, white 4%), color-mix(in srgb, var(--color-surface) 98%, transparent));
@@ -1205,6 +1206,13 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.4;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .shell-supporter-option-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .supporter-icon-frame--aurora-ring,
