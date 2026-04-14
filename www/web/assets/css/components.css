@@ -1039,10 +1039,15 @@ body {
 
 .shell-profile-decor-entry {
   display: grid;
+  justify-items: start;
   gap: var(--space-3);
   margin-bottom: var(--space-5);
   padding-bottom: var(--space-5);
   border-bottom: 1px solid var(--color-border);
+}
+
+.shell-profile-decor-entry .shell-profile-links__title {
+  margin-bottom: 0;
 }
 
 .shell-profile-decor-section__header {
