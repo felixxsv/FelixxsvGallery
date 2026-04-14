@@ -230,25 +230,28 @@ export function initUserShell(app) {
     supportOpenSettingsButton: byId("shellSupportOpenSettingsButton"),
     supportSettingsShortcut: byId("shellSupportSettingsShortcut"),
     supporterDecorSection: byId("shellSupporterDecorSection"),
+    profileDecorSection: byId("shellProfileDecorSection"),
     supporterSettingsDescription: byId("shellSupporterSettingsDescription"),
     supporterSettingsActionButton: byId("shellSupporterSettingsActionButton"),
-    supporterPreviewCard: byId("shellSupporterPreviewCard"),
     supporterPreviewAvatar: byId("shellSupporterPreviewAvatar"),
     supporterPreviewAvatarInitial: byId("shellSupporterPreviewAvatarInitial"),
     supporterPreviewAvatarImg: byId("shellSupporterPreviewAvatarImg"),
-    supporterPreviewDisplayName: byId("shellSupporterPreviewDisplayName"),
-    supporterPreviewUserKey: byId("shellSupporterPreviewUserKey"),
-    supporterPreviewBadge: byId("shellSupporterPreviewBadge"),
-    supporterPreviewDurationBadge: byId("shellSupporterPreviewDurationBadge"),
     supporterPreviewNote: byId("shellSupporterPreviewNote"),
     supporterSettingsSaveButton: byId("shellSupporterSettingsSaveButton"),
-    supporterVisibleInput: byId("shellSupporterVisibleInput"),
-    supporterBadgeVisibleInput: byId("shellSupporterBadgeVisibleInput"),
-    supporterDurationVisibleInput: byId("shellSupporterDurationVisibleInput"),
     supporterIconFrameVisibleInput: byId("shellSupporterIconFrameVisibleInput"),
-    supporterProfileDecorVisibleInput: byId("shellSupporterProfileDecorVisibleInput"),
     supporterIconFrameOptions: byId("shellSupporterIconFrameOptions"),
-    supporterProfileDecorOptions: byId("shellSupporterProfileDecorOptions"),
+    profileDecorDescription: byId("shellProfileDecorDescription"),
+    profileDecorActionButton: byId("shellProfileDecorActionButton"),
+    profileDecorPreviewCard: byId("shellProfileDecorPreviewCard"),
+    profileDecorPreviewAvatar: byId("shellProfileDecorPreviewAvatar"),
+    profileDecorPreviewAvatarInitial: byId("shellProfileDecorPreviewAvatarInitial"),
+    profileDecorPreviewAvatarImg: byId("shellProfileDecorPreviewAvatarImg"),
+    profileDecorPreviewDisplayName: byId("shellProfileDecorPreviewDisplayName"),
+    profileDecorPreviewUserKey: byId("shellProfileDecorPreviewUserKey"),
+    profileDecorPreviewBio: byId("shellProfileDecorPreviewBio"),
+    profileDecorPreviewNote: byId("shellProfileDecorPreviewNote"),
+    accountProfileDecorVisibleInput: byId("shellAccountProfileDecorVisibleInput"),
+    accountProfileDecorOptions: byId("shellAccountProfileDecorOptions"),
     badgeSelectPool: byId("shellBadgeSelectPool"),
 
     supportModalHeading: byId("supportModalHeading"),
@@ -448,47 +451,48 @@ export function initUserShell(app) {
   }
 
   function currentSupporterSettingsDraft() {
+    const settings = getSupport()?.settings || {};
     return {
-      supporter_visible: Boolean(refs.supporterVisibleInput?.checked),
-      supporter_badge_visible: Boolean(refs.supporterBadgeVisibleInput?.checked),
-      supporter_duration_badge_visible: Boolean(refs.supporterDurationVisibleInput?.checked),
-      supporter_icon_frame_visible: Boolean(refs.supporterIconFrameVisibleInput?.checked),
-      supporter_profile_decor_visible: Boolean(refs.supporterProfileDecorVisibleInput?.checked),
+      supporter_visible: Boolean(settings.supporter_visible),
+      supporter_badge_visible: Boolean(settings.supporter_badge_visible),
+      supporter_duration_badge_visible: Boolean(settings.supporter_duration_badge_visible),
+      supporter_icon_frame_visible: refs.supporterIconFrameVisibleInput
+        ? Boolean(refs.supporterIconFrameVisibleInput.checked)
+        : Boolean(settings.supporter_icon_frame_visible),
+      supporter_profile_decor_visible: refs.accountProfileDecorVisibleInput
+        ? Boolean(refs.accountProfileDecorVisibleInput.checked)
+        : Boolean(settings.supporter_profile_decor_visible),
       selected_icon_frame: selectedSupportOption(refs.supporterIconFrameOptions) || "aurora_ring",
-      selected_profile_decor: selectedSupportOption(refs.supporterProfileDecorOptions) || "aurora_glow",
+      selected_profile_decor: selectedSupportOption(refs.accountProfileDecorOptions) || "aurora_glow",
     };
   }
 
-  function applySupportPreviewDraft(draft, support = getSupport()) {
+  function applyIconFramePreviewDraft(draft, support = getSupport()) {
     const frameClasses = supportCatalogItems("icon_frames").map((item) => item.preview_class).filter(Boolean);
-    const decorClasses = supportCatalogItems("profile_decors").map((item) => item.preview_class).filter(Boolean);
     refs.supporterPreviewAvatar?.classList?.remove(...frameClasses);
-    refs.supporterPreviewCard?.classList?.remove(...decorClasses);
-
-    const showSupporter = Boolean(draft?.supporter_visible);
-    const showBadge = Boolean(showSupporter && draft?.supporter_badge_visible && support?.entitlements?.badge);
-    const showDuration = Boolean(showSupporter && draft?.supporter_duration_badge_visible && support?.entitlements?.duration_badge && support?.achievement_summary?.highest_code);
-    const showFrame = Boolean(showSupporter && draft?.supporter_icon_frame_visible && draft?.selected_icon_frame);
-    const showDecor = Boolean(showSupporter && draft?.supporter_profile_decor_visible && draft?.selected_profile_decor);
+    const showFrame = Boolean(draft?.supporter_icon_frame_visible && draft?.selected_icon_frame && support?.entitlements?.icon_frame);
 
     const frameOption = supportCatalogItems("icon_frames").find((item) => item.key === draft?.selected_icon_frame);
-    const decorOption = supportCatalogItems("profile_decors").find((item) => item.key === draft?.selected_profile_decor);
     if (showFrame && frameOption?.preview_class) {
       refs.supporterPreviewAvatar?.classList?.add(frameOption.preview_class);
     }
-    if (showDecor && decorOption?.preview_class) {
-      refs.supporterPreviewCard?.classList?.add(decorOption.preview_class);
-    }
+  }
 
-    if (refs.supporterPreviewBadge) {
-      refs.supporterPreviewBadge.hidden = !showBadge;
+  function applyProfileDecorPreviewDraft(draft, support = getSupport()) {
+    const frameClasses = supportCatalogItems("icon_frames").map((item) => item.preview_class).filter(Boolean);
+    const decorClasses = supportCatalogItems("profile_decors").map((item) => item.preview_class).filter(Boolean);
+    refs.profileDecorPreviewAvatar?.classList?.remove(...frameClasses);
+    refs.profileDecorPreviewCard?.classList?.remove(...decorClasses);
+
+    const showFrame = Boolean(draft?.supporter_icon_frame_visible && draft?.selected_icon_frame && support?.entitlements?.icon_frame);
+    const showDecor = Boolean(draft?.supporter_profile_decor_visible && draft?.selected_profile_decor && support?.entitlements?.profile_decor);
+    const frameOption = supportCatalogItems("icon_frames").find((item) => item.key === draft?.selected_icon_frame);
+    const decorOption = supportCatalogItems("profile_decors").find((item) => item.key === draft?.selected_profile_decor);
+    if (showFrame && frameOption?.preview_class) {
+      refs.profileDecorPreviewAvatar?.classList?.add(frameOption.preview_class);
     }
-    if (refs.supporterPreviewDurationBadge) {
-      const highestCode = support?.achievement_summary?.highest_code || "";
-      refs.supporterPreviewDurationBadge.hidden = !showDuration;
-      refs.supporterPreviewDurationBadge.textContent = showDuration
-        ? supportText(`support.achievements.${highestCode}`, String(highestCode).toUpperCase())
-        : "";
+    if (showDecor && decorOption?.preview_class) {
+      refs.profileDecorPreviewCard?.classList?.add(decorOption.preview_class);
     }
   }
 
@@ -510,14 +514,7 @@ export function initUserShell(app) {
     const settings = support.settings || {};
     const entitlements = support.entitlements || {};
     const status = support.status || {};
-    const hasAnySupportFeature = Boolean(entitlements.badge || entitlements.duration_badge || entitlements.icon_frame || entitlements.profile_decor);
-
-    if (refs.supporterPreviewDisplayName) {
-      refs.supporterPreviewDisplayName.textContent = user.display_name || "Felix";
-    }
-    if (refs.supporterPreviewUserKey) {
-      refs.supporterPreviewUserKey.textContent = `@${user.user_key || "felix"}`;
-    }
+    const hasFrameFeature = Boolean(entitlements.icon_frame);
 
     const avatarUrl = user.avatar_url || "";
     if (avatarUrl) {
@@ -537,39 +534,87 @@ export function initUserShell(app) {
       }
     }
 
-    if (refs.supporterVisibleInput) refs.supporterVisibleInput.checked = Boolean(settings.supporter_visible);
-    if (refs.supporterBadgeVisibleInput) refs.supporterBadgeVisibleInput.checked = Boolean(settings.supporter_badge_visible);
-    if (refs.supporterDurationVisibleInput) refs.supporterDurationVisibleInput.checked = Boolean(settings.supporter_duration_badge_visible);
     if (refs.supporterIconFrameVisibleInput) refs.supporterIconFrameVisibleInput.checked = Boolean(settings.supporter_icon_frame_visible);
-    if (refs.supporterProfileDecorVisibleInput) refs.supporterProfileDecorVisibleInput.checked = Boolean(settings.supporter_profile_decor_visible);
-
-    if (refs.supporterVisibleInput) refs.supporterVisibleInput.disabled = !hasAnySupportFeature;
-    if (refs.supporterBadgeVisibleInput) refs.supporterBadgeVisibleInput.disabled = !entitlements.badge;
-    if (refs.supporterDurationVisibleInput) refs.supporterDurationVisibleInput.disabled = !entitlements.duration_badge;
     if (refs.supporterIconFrameVisibleInput) refs.supporterIconFrameVisibleInput.disabled = !entitlements.icon_frame;
-    if (refs.supporterProfileDecorVisibleInput) refs.supporterProfileDecorVisibleInput.disabled = !entitlements.profile_decor;
 
     setSupportOptionSelection(refs.supporterIconFrameOptions, settings.selected_icon_frame || "aurora_ring", Boolean(entitlements.icon_frame));
-    setSupportOptionSelection(refs.supporterProfileDecorOptions, settings.selected_profile_decor || "aurora_glow", Boolean(entitlements.profile_decor));
-    applySupportPreviewDraft(currentSupporterSettingsDraft(), support);
+    applyIconFramePreviewDraft(currentSupporterSettingsDraft(), support);
 
     if (refs.supporterPreviewNote) {
-      refs.supporterPreviewNote.textContent = hasAnySupportFeature
+      refs.supporterPreviewNote.textContent = hasFrameFeature
         ? supportText("support.settings.previewAvailable", "公開プロフィールと投稿者表示に反映されます。")
         : supportText("support.settings.previewLocked", "支援するとこの装飾を利用できます。");
     }
     if (refs.supporterSettingsDescription) {
-      refs.supporterSettingsDescription.textContent = hasAnySupportFeature
-        ? supportText("support.settings.description", "支援者向けの装飾や公開表示をここで設定できます。未支援の状態でも内容は確認できます。")
-        : supportText("support.settings.descriptionLocked", "支援者向けの装飾や公開表示をここで確認できます。支援後に利用可能になります。");
+      refs.supporterSettingsDescription.textContent = hasFrameFeature
+        ? supportText("support.settings.iconFrameDescription", "アイコンフレームをここで設定できます。支援中は公開プロフィールのアバターに反映されます。")
+        : supportText("support.settings.iconFrameDescriptionLocked", "アイコンフレームは支援後に利用できます。");
     }
     if (refs.supporterSettingsActionButton) {
       refs.supporterSettingsActionButton.textContent = supportStatusActionLabel(status.code || "inactive");
     }
   }
 
+  function renderProfileDecorSection() {
+    const section = refs.profileDecorSection;
+    if (!section) return;
+
+    const isAuth = isAuthenticated();
+    const supportUiEnabled = isSupportUiEnabled();
+    section.hidden = !isAuth || !supportUiEnabled;
+    if (section.hidden) return;
+
+    const user = getUser() || {};
+    const support = getSupport() || {};
+    const settings = support.settings || {};
+    const entitlements = support.entitlements || {};
+    const status = support.status || {};
+    const hasDecorFeature = Boolean(entitlements.profile_decor);
+
+    if (refs.profileDecorPreviewDisplayName) refs.profileDecorPreviewDisplayName.textContent = user.display_name || "Felix";
+    if (refs.profileDecorPreviewUserKey) refs.profileDecorPreviewUserKey.textContent = `@${user.user_key || "felix"}`;
+    if (refs.profileDecorPreviewBio) refs.profileDecorPreviewBio.textContent = (user.bio || "Felixxsv Gallery").slice(0, 120);
+
+    const avatarUrl = user.avatar_url || "";
+    if (avatarUrl) {
+      refs.profileDecorPreviewAvatarImg.src = `${app.appBase}${avatarUrl}?t=${Date.now()}`;
+      refs.profileDecorPreviewAvatarImg.hidden = false;
+      refs.profileDecorPreviewAvatar?.classList?.add("has-avatar");
+      if (refs.profileDecorPreviewAvatarInitial) refs.profileDecorPreviewAvatarInitial.hidden = true;
+    } else {
+      refs.profileDecorPreviewAvatarImg.hidden = true;
+      refs.profileDecorPreviewAvatarImg.src = "";
+      refs.profileDecorPreviewAvatar?.classList?.remove("has-avatar");
+      if (refs.profileDecorPreviewAvatarInitial) {
+        refs.profileDecorPreviewAvatarInitial.hidden = false;
+        refs.profileDecorPreviewAvatarInitial.textContent = (user.display_name || user.user_key || "?").slice(0, 1).toUpperCase();
+      }
+    }
+
+    if (refs.accountProfileDecorVisibleInput) {
+      refs.accountProfileDecorVisibleInput.checked = Boolean(settings.supporter_profile_decor_visible);
+      refs.accountProfileDecorVisibleInput.disabled = !entitlements.profile_decor;
+    }
+    setSupportOptionSelection(refs.accountProfileDecorOptions, settings.selected_profile_decor || "aurora_glow", Boolean(entitlements.profile_decor));
+    applyProfileDecorPreviewDraft(currentSupporterSettingsDraft(), support);
+
+    if (refs.profileDecorPreviewNote) {
+      refs.profileDecorPreviewNote.textContent = hasDecorFeature
+        ? supportText("support.settings.previewAvailable", "公開プロフィールと投稿者表示に反映されます。")
+        : supportText("support.settings.previewLocked", "支援するとこの装飾を利用できます。");
+    }
+    if (refs.profileDecorDescription) {
+      refs.profileDecorDescription.textContent = hasDecorFeature
+        ? supportText("support.settings.profileDecorDescription", "プロフィール装飾をここで設定できます。公開プロフィールの見た目に反映されます。")
+        : supportText("support.settings.profileDecorDescriptionLocked", "プロフィール装飾は支援後に利用できます。");
+    }
+    if (refs.profileDecorActionButton) {
+      refs.profileDecorActionButton.textContent = supportStatusActionLabel(status.code || "inactive");
+    }
+  }
+
   function supporterSettingsChanged() {
-    if (refs.supporterDecorSection?.hidden) {
+    if (refs.supporterDecorSection?.hidden && refs.profileDecorSection?.hidden) {
       return false;
     }
     const support = getSupport() || {};
@@ -1532,6 +1577,7 @@ export function initUserShell(app) {
     // Badge pool (in profile edit)
     renderProfileBadgePool(user);
     renderSupporterSettings();
+    renderProfileDecorSection();
     if (refs.avatarDecorButton) {
       refs.avatarDecorButton.hidden = !supportUiEnabled;
     }
@@ -1954,7 +2000,8 @@ export function initUserShell(app) {
       refs.profileUserKeyInput.value.trim() !== String(user.user_key || "") ||
       refs.profileBioInput.value !== String(user.bio || "") ||
       !linkDraftsEqual(getAccountDraftLinks(user), user.links || []) ||
-      !badgeDraftsEqual(getAccountDraftBadges(user), user.display_badges || [])
+      !badgeDraftsEqual(getAccountDraftBadges(user), user.display_badges || []) ||
+      supporterSettingsChanged()
     );
   }
 
@@ -2016,6 +2063,14 @@ export function initUserShell(app) {
         await app.api.put("/api/users/me/badge-display", { badge_keys: draftBadges });
       }
 
+      if (supporterSettingsChanged()) {
+        mutationAttempted = true;
+        const saved = await saveSupporterSettings({ closeModal: false, showToast: false, refreshState: false });
+        if (!saved) {
+          throw new Error(t("shell.toast.profile_update_error", "Failed to update profile."));
+        }
+      }
+
       await refreshSession();
       resetAccountDraftState();
       renderAccountModal();
@@ -2055,6 +2110,7 @@ export function initUserShell(app) {
         renderAccountModal();
         renderUserCard();
         renderSupporterSettings();
+        renderProfileDecorSection();
       }
       if (showToast) {
         toast.success(t("shell.toast.profile_updated", "Profile updated."));
@@ -2321,6 +2377,8 @@ export function initUserShell(app) {
       );
       if (approved) {
         resetAccountDraftState();
+        renderSupporterSettings();
+        renderProfileDecorSection();
       }
       return approved;
     });
@@ -2438,6 +2496,7 @@ export function initUserShell(app) {
     if (refs.discordUnlinkButton) refs.discordUnlinkButton.addEventListener("click", handleDiscordUnlink);
     refs.profileSaveButton?.addEventListener("click", handleProfileSave);
     refs.supporterSettingsActionButton?.addEventListener("click", () => openSupportModal());
+    refs.profileDecorActionButton?.addEventListener("click", () => openSupportModal());
     refs.supporterSettingsSaveButton?.addEventListener("click", () => {
       saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true });
     });
@@ -2477,14 +2536,12 @@ export function initUserShell(app) {
       app.modal?.open?.("supporter-decor");
     });
     [
-      refs.supporterVisibleInput,
-      refs.supporterBadgeVisibleInput,
-      refs.supporterDurationVisibleInput,
       refs.supporterIconFrameVisibleInput,
-      refs.supporterProfileDecorVisibleInput,
+      refs.accountProfileDecorVisibleInput,
     ].forEach((input) => {
       input?.addEventListener("change", () => {
         renderSupporterSettings();
+        renderProfileDecorSection();
       });
     });
     refs.supporterIconFrameOptions?.addEventListener("click", (event) => {
@@ -2493,15 +2550,16 @@ export function initUserShell(app) {
         return;
       }
       setSupportOptionSelection(refs.supporterIconFrameOptions, button.dataset.supportIconFrameOption || "", true);
-      applySupportPreviewDraft(currentSupporterSettingsDraft());
+      applyIconFramePreviewDraft(currentSupporterSettingsDraft());
+      applyProfileDecorPreviewDraft(currentSupporterSettingsDraft());
     });
-    refs.supporterProfileDecorOptions?.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-support-profile-decor-option]");
+    refs.accountProfileDecorOptions?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-account-profile-decor-option]");
       if (!button || button.disabled) {
         return;
       }
-      setSupportOptionSelection(refs.supporterProfileDecorOptions, button.dataset.supportProfileDecorOption || "", true);
-      applySupportPreviewDraft(currentSupporterSettingsDraft());
+      setSupportOptionSelection(refs.accountProfileDecorOptions, button.dataset.accountProfileDecorOption || "", true);
+      applyProfileDecorPreviewDraft(currentSupporterSettingsDraft());
     });
     refs.supportModalPrimaryAction?.addEventListener("click", () => {
       const support = getSupport();
