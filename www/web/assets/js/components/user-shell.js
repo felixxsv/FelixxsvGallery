@@ -254,6 +254,7 @@ export function initUserShell(app) {
     profileDecorPreviewNote: byId("shellProfileDecorPreviewNote"),
     profileDecorControls: byId("shellProfileDecorControls"),
     profileDecorLockedNote: byId("shellProfileDecorLockedNote"),
+    profileDecorSaveButton: byId("shellProfileDecorSaveButton"),
     accountProfileDecorVisibleInput: byId("shellAccountProfileDecorVisibleInput"),
     accountProfileDecorOptions: byId("shellAccountProfileDecorOptions"),
     badgeSelectPool: byId("shellBadgeSelectPool"),
@@ -543,6 +544,7 @@ export function initUserShell(app) {
     refs.supporterControls?.classList?.toggle("is-locked", !entitlements.icon_frame);
     if (refs.supporterLockedNote) refs.supporterLockedNote.hidden = Boolean(entitlements.icon_frame);
     if (refs.supporterSettingsSaveButton) refs.supporterSettingsSaveButton.disabled = !entitlements.icon_frame;
+    if (refs.supporterSettingsActionButton) refs.supporterSettingsActionButton.hidden = Boolean(entitlements.icon_frame);
 
     setSupportOptionSelection(refs.supporterIconFrameOptions, settings.selected_icon_frame || "aurora_ring", Boolean(entitlements.icon_frame));
     applyIconFramePreviewDraft(currentSupporterSettingsDraft(), support);
@@ -599,6 +601,7 @@ export function initUserShell(app) {
     }
     refs.profileDecorControls?.classList?.toggle("is-locked", !entitlements.profile_decor);
     if (refs.profileDecorLockedNote) refs.profileDecorLockedNote.hidden = Boolean(entitlements.profile_decor);
+    if (refs.profileDecorSaveButton) refs.profileDecorSaveButton.disabled = !entitlements.profile_decor;
     setSupportOptionSelection(refs.accountProfileDecorOptions, settings.selected_profile_decor || "aurora_glow", Boolean(entitlements.profile_decor));
     applyProfileDecorPreviewDraft(currentSupporterSettingsDraft(), support);
 
@@ -609,6 +612,7 @@ export function initUserShell(app) {
     }
     if (refs.profileDecorActionButton) {
       refs.profileDecorActionButton.textContent = supportStatusActionLabel(status.code || "inactive");
+      refs.profileDecorActionButton.hidden = Boolean(entitlements.profile_decor);
     }
   }
 
@@ -2512,6 +2516,9 @@ export function initUserShell(app) {
       app.modal?.open?.("profile-decor");
     });
     refs.profileDecorActionButton?.addEventListener("click", () => openSupportModal());
+    refs.profileDecorSaveButton?.addEventListener("click", () => {
+      saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true });
+    });
     refs.supporterSettingsSaveButton?.addEventListener("click", () => {
       saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true });
     });

@@ -968,13 +968,13 @@
           <h2 id="profileDecorTitle" class="app-modal-title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</h2>
         </div>
         <div class="app-modal-body">
-          <div class="shell-profile-decor-section">
-            <div class="shell-profile-decor-section__header">
-              <div></div>
+          <div class="shell-supporter-settings shell-supporter-settings--decor">
+            <div class="shell-supporter-settings__header">
+              <div class="shell-supporter-settings__heading-wrap"></div>
               <button id="shellProfileDecorActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
             </div>
-            <div class="shell-profile-decor-section__layout">
-              <section class="shell-profile-decor-preview">
+            <div class="shell-supporter-settings__layout">
+              <section class="shell-supporter-preview shell-profile-decor-preview">
                 <div class="shell-supporter-preview__eyebrow" data-i18n="support.settings.previewTitle">プレビュー</div>
                 <div id="shellProfileDecorPreviewCard" class="shell-supporter-preview__card shell-profile-decor-preview__card">
                   <div id="shellProfileDecorPreviewAvatar" class="shell-supporter-preview__avatar" aria-hidden="true">
@@ -989,7 +989,7 @@
                 </div>
                 <p id="shellProfileDecorPreviewNote" class="shell-supporter-preview__note" data-i18n="support.settings.previewLocked">支援するとこの装飾を利用できます。</p>
               </section>
-              <section id="shellProfileDecorControls" class="shell-profile-decor-controls">
+              <section id="shellProfileDecorControls" class="shell-supporter-settings__controls shell-profile-decor-controls">
                 <div id="shellProfileDecorLockedNote" class="shell-supporter-locked-note" hidden>
                   <span class="shell-supporter-locked-note__badge" data-i18n="support.common.title">Support / 支援</span>
                   <span data-i18n="support.messages.unlockWithSupport">支援するとこの設定を有効化できます。</span>
@@ -1014,6 +1014,9 @@
               </section>
             </div>
           </div>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="shellProfileDecorSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
         </div>
       </div>
     </section>

@@ -1067,13 +1067,6 @@ body {
   line-height: 1.6;
 }
 
-.shell-profile-decor-section__layout {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-4);
-  align-items: start;
-}
-
 .shell-profile-decor-preview,
 .shell-profile-decor-controls {
   display: grid;
