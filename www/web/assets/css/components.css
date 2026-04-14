@@ -1083,6 +1083,31 @@ body {
   gap: var(--space-3);
 }
 
+.shell-supporter-settings__controls.is-locked,
+.shell-profile-decor-controls.is-locked {
+  position: relative;
+  opacity: 0.52;
+}
+
+.shell-supporter-settings__controls.is-locked::after,
+.shell-profile-decor-controls.is-locked::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.16));
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, #94a3b8 18%);
+  pointer-events: none;
+}
+
+.shell-supporter-settings__controls.is-locked .shell-supporter-option,
+.shell-profile-decor-controls.is-locked .shell-supporter-option,
+.shell-supporter-settings__controls.is-locked .app-switch-row,
+.shell-profile-decor-controls.is-locked .app-switch-row {
+  filter: grayscale(0.22);
+}
+
 .shell-supporter-settings__group {
   display: grid;
   gap: var(--space-3);

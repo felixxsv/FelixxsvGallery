@@ -237,6 +237,7 @@ export function initUserShell(app) {
     supporterPreviewAvatarInitial: byId("shellSupporterPreviewAvatarInitial"),
     supporterPreviewAvatarImg: byId("shellSupporterPreviewAvatarImg"),
     supporterPreviewNote: byId("shellSupporterPreviewNote"),
+    supporterControls: byId("shellSupporterControls"),
     supporterSettingsSaveButton: byId("shellSupporterSettingsSaveButton"),
     supporterIconFrameVisibleInput: byId("shellSupporterIconFrameVisibleInput"),
     supporterIconFrameOptions: byId("shellSupporterIconFrameOptions"),
@@ -250,6 +251,7 @@ export function initUserShell(app) {
     profileDecorPreviewUserKey: byId("shellProfileDecorPreviewUserKey"),
     profileDecorPreviewBio: byId("shellProfileDecorPreviewBio"),
     profileDecorPreviewNote: byId("shellProfileDecorPreviewNote"),
+    profileDecorControls: byId("shellProfileDecorControls"),
     accountProfileDecorVisibleInput: byId("shellAccountProfileDecorVisibleInput"),
     accountProfileDecorOptions: byId("shellAccountProfileDecorOptions"),
     badgeSelectPool: byId("shellBadgeSelectPool"),
@@ -536,6 +538,8 @@ export function initUserShell(app) {
 
     if (refs.supporterIconFrameVisibleInput) refs.supporterIconFrameVisibleInput.checked = Boolean(settings.supporter_icon_frame_visible);
     if (refs.supporterIconFrameVisibleInput) refs.supporterIconFrameVisibleInput.disabled = !entitlements.icon_frame;
+    refs.supporterControls?.classList?.toggle("is-locked", !entitlements.icon_frame);
+    if (refs.supporterSettingsSaveButton) refs.supporterSettingsSaveButton.disabled = !entitlements.icon_frame;
 
     setSupportOptionSelection(refs.supporterIconFrameOptions, settings.selected_icon_frame || "aurora_ring", Boolean(entitlements.icon_frame));
     applyIconFramePreviewDraft(currentSupporterSettingsDraft(), support);
@@ -590,6 +594,7 @@ export function initUserShell(app) {
       refs.accountProfileDecorVisibleInput.checked = Boolean(settings.supporter_profile_decor_visible);
       refs.accountProfileDecorVisibleInput.disabled = !entitlements.profile_decor;
     }
+    refs.profileDecorControls?.classList?.toggle("is-locked", !entitlements.profile_decor);
     setSupportOptionSelection(refs.accountProfileDecorOptions, settings.selected_profile_decor || "aurora_glow", Boolean(entitlements.profile_decor));
     applyProfileDecorPreviewDraft(currentSupporterSettingsDraft(), support);
 
