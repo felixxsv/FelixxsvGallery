@@ -2096,10 +2096,10 @@ export function initUserShell(app) {
     }
   }
 
-  async function saveSupporterSettings({ closeModal = false, showToast = true, refreshState = true } = {}) {
+  async function saveSupporterSettings({ closeModal = false, showToast = true, refreshState = true, modalId = null } = {}) {
     if (refs.supporterDecorSection?.hidden || !supporterSettingsChanged()) {
       if (closeModal) {
-        app.modal?.close?.("supporter-decor");
+        app.modal?.close?.(modalId || "supporter-decor");
       }
       return true;
     }
@@ -2117,7 +2117,7 @@ export function initUserShell(app) {
         toast.success(t("shell.toast.profile_updated", "Profile updated."));
       }
       if (closeModal) {
-        app.modal?.close?.("supporter-decor");
+        app.modal?.close?.(modalId || "supporter-decor");
       }
       return true;
     } catch (error) {
@@ -2517,10 +2517,10 @@ export function initUserShell(app) {
     });
     refs.profileDecorActionButton?.addEventListener("click", () => openSupportModal());
     refs.profileDecorSaveButton?.addEventListener("click", () => {
-      saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true });
+      saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true, modalId: "profile-decor" });
     });
     refs.supporterSettingsSaveButton?.addEventListener("click", () => {
-      saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true });
+      saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true, modalId: "supporter-decor" });
     });
     refs.avatarFileInput?.addEventListener("change", () => {
       const file = refs.avatarFileInput.files?.[0] || null;
