@@ -1263,7 +1263,8 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
-.shell-user-card__avatar.supporter-icon-frame--aurora-ring {
+.shell-user-card__avatar.supporter-icon-frame--aurora-ring,
+.shell-user-profile__avatar.supporter-icon-frame--aurora-ring {
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.96),
     0 0 0 6px rgba(20, 184, 166, 0.32),
@@ -1283,7 +1284,8 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
-.shell-user-card__avatar.supporter-icon-frame--amber-ring {
+.shell-user-card__avatar.supporter-icon-frame--amber-ring,
+.shell-user-profile__avatar.supporter-icon-frame--amber-ring {
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.96),
     0 0 0 6px rgba(245, 158, 11, 0.32),
