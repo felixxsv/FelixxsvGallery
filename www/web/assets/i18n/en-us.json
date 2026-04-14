@@ -1238,6 +1238,7 @@
   "support.messages.supportUnavailable": "Support is currently unavailable.",
   "support.messages.portalUnavailable": "Support management is currently unavailable.",
   "support.messages.unlockWithSupport": "Support the site to unlock this setting.",
+  "support.common.none": "None",
   "support.messages.externalPageNotice": "This action opens in a new tab.",
   "support.details.statusHeading": "Support Status",
   "support.details.currentStatus": "Status",

@@ -1238,6 +1238,7 @@
   "support.messages.supportUnavailable": "支援機能は現在準備中です。",
   "support.messages.portalUnavailable": "支援管理機能は現在利用できません。",
   "support.messages.unlockWithSupport": "支援するとこの設定を有効化できます。",
+  "support.common.none": "なし",
   "support.messages.externalPageNotice": "この操作は別タブで開きます。",
   "support.details.statusHeading": "支援状況",
   "support.details.currentStatus": "支援状態",

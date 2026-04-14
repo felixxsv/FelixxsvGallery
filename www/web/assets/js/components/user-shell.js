@@ -475,25 +475,23 @@ export function initUserShell(app) {
 
   function currentSupporterSettingsDraft() {
     const settings = getSupport()?.settings || {};
+    const selectedIconFrame = selectedSupportOption(refs.supporterIconFrameOptions) || settings.selected_icon_frame || "none";
+    const selectedProfileDecor = selectedSupportOption(refs.accountProfileDecorOptions) || settings.selected_profile_decor || "none";
     return {
       supporter_visible: Boolean(settings.supporter_visible),
       supporter_badge_visible: Boolean(settings.supporter_badge_visible),
       supporter_duration_badge_visible: Boolean(settings.supporter_duration_badge_visible),
-      supporter_icon_frame_visible: refs.supporterIconFrameVisibleInput
-        ? Boolean(refs.supporterIconFrameVisibleInput.checked)
-        : Boolean(settings.supporter_icon_frame_visible),
-      supporter_profile_decor_visible: refs.accountProfileDecorVisibleInput
-        ? Boolean(refs.accountProfileDecorVisibleInput.checked)
-        : Boolean(settings.supporter_profile_decor_visible),
-      selected_icon_frame: selectedSupportOption(refs.supporterIconFrameOptions) || "aurora_ring",
-      selected_profile_decor: selectedSupportOption(refs.accountProfileDecorOptions) || "aurora_glow",
+      supporter_icon_frame_visible: selectedIconFrame !== "none",
+      supporter_profile_decor_visible: selectedProfileDecor !== "none",
+      selected_icon_frame: selectedIconFrame,
+      selected_profile_decor: selectedProfileDecor,
     };
   }
 
   function applyIconFramePreviewDraft(draft, support = getSupport()) {
     const frameClasses = supportCatalogItems("icon_frames").map((item) => item.preview_class).filter(Boolean);
     refs.supporterPreviewAvatar?.classList?.remove(...frameClasses);
-    const showFrame = Boolean(draft?.supporter_icon_frame_visible && draft?.selected_icon_frame && support?.entitlements?.icon_frame);
+    const showFrame = Boolean(draft?.selected_icon_frame && draft?.selected_icon_frame !== "none" && support?.entitlements?.icon_frame);
 
     const frameOption = supportCatalogItems("icon_frames").find((item) => item.key === draft?.selected_icon_frame);
     if (showFrame && frameOption?.preview_class) {
@@ -507,8 +505,8 @@ export function initUserShell(app) {
     refs.profileDecorPreviewAvatar?.classList?.remove(...frameClasses);
     refs.profileDecorPreviewCard?.classList?.remove(...decorClasses);
 
-    const showFrame = Boolean(draft?.supporter_icon_frame_visible && draft?.selected_icon_frame && support?.entitlements?.icon_frame);
-    const showDecor = Boolean(draft?.supporter_profile_decor_visible && draft?.selected_profile_decor && support?.entitlements?.profile_decor);
+    const showFrame = Boolean(draft?.selected_icon_frame && draft?.selected_icon_frame !== "none" && support?.entitlements?.icon_frame);
+    const showDecor = Boolean(draft?.selected_profile_decor && draft?.selected_profile_decor !== "none" && support?.entitlements?.profile_decor);
     const frameOption = supportCatalogItems("icon_frames").find((item) => item.key === draft?.selected_icon_frame);
     const decorOption = supportCatalogItems("profile_decors").find((item) => item.key === draft?.selected_profile_decor);
     if (showFrame && frameOption?.preview_class) {
@@ -557,14 +555,12 @@ export function initUserShell(app) {
       }
     }
 
-    if (refs.supporterIconFrameVisibleInput) refs.supporterIconFrameVisibleInput.checked = Boolean(settings.supporter_icon_frame_visible);
-    if (refs.supporterIconFrameVisibleInput) refs.supporterIconFrameVisibleInput.disabled = !entitlements.icon_frame;
     refs.supporterControls?.classList?.toggle("is-locked", !entitlements.icon_frame);
     if (refs.supporterLockedNote) refs.supporterLockedNote.hidden = Boolean(entitlements.icon_frame);
     if (refs.supporterSettingsSaveButton) refs.supporterSettingsSaveButton.disabled = !entitlements.icon_frame;
     if (refs.supporterSettingsActionButton) refs.supporterSettingsActionButton.hidden = Boolean(entitlements.icon_frame);
 
-    setSupportOptionSelection(refs.supporterIconFrameOptions, settings.selected_icon_frame || "aurora_ring", Boolean(entitlements.icon_frame));
+    setSupportOptionSelection(refs.supporterIconFrameOptions, settings.selected_icon_frame || "none", Boolean(entitlements.icon_frame));
     applyIconFramePreviewDraft(currentSupporterSettingsDraft(), support);
 
     if (refs.supporterPreviewNote) {
@@ -622,14 +618,10 @@ export function initUserShell(app) {
       }
     }
 
-    if (refs.accountProfileDecorVisibleInput) {
-      refs.accountProfileDecorVisibleInput.checked = Boolean(settings.supporter_profile_decor_visible);
-      refs.accountProfileDecorVisibleInput.disabled = !entitlements.profile_decor;
-    }
     refs.profileDecorControls?.classList?.toggle("is-locked", !entitlements.profile_decor);
     if (refs.profileDecorLockedNote) refs.profileDecorLockedNote.hidden = Boolean(entitlements.profile_decor);
     if (refs.profileDecorSaveButton) refs.profileDecorSaveButton.disabled = !entitlements.profile_decor;
-    setSupportOptionSelection(refs.accountProfileDecorOptions, settings.selected_profile_decor || "aurora_glow", Boolean(entitlements.profile_decor));
+    setSupportOptionSelection(refs.accountProfileDecorOptions, settings.selected_profile_decor || "none", Boolean(entitlements.profile_decor));
     applyProfileDecorPreviewDraft(currentSupporterSettingsDraft(), support);
 
     if (refs.profileDecorPreviewNote) {
@@ -654,8 +646,6 @@ export function initUserShell(app) {
       Boolean(draft.supporter_visible) !== Boolean(settings.supporter_visible) ||
       Boolean(draft.supporter_badge_visible) !== Boolean(settings.supporter_badge_visible) ||
       Boolean(draft.supporter_duration_badge_visible) !== Boolean(settings.supporter_duration_badge_visible) ||
-      Boolean(draft.supporter_icon_frame_visible) !== Boolean(settings.supporter_icon_frame_visible) ||
-      Boolean(draft.supporter_profile_decor_visible) !== Boolean(settings.supporter_profile_decor_visible) ||
       String(draft.selected_icon_frame || "") !== String(settings.selected_icon_frame || "") ||
       String(draft.selected_profile_decor || "") !== String(settings.selected_profile_decor || "")
     );
@@ -2591,16 +2581,6 @@ export function initUserShell(app) {
     refs.avatarDecorButton?.addEventListener("click", () => {
       renderSupporterSettings();
       app.modal?.open?.("supporter-decor");
-    });
-    [
-      refs.supporterIconFrameVisibleInput,
-      refs.accountProfileDecorVisibleInput,
-    ].forEach((input) => {
-      input?.addEventListener("change", () => {
-        const draft = currentSupporterSettingsDraft();
-        applyIconFramePreviewDraft(draft);
-        applyProfileDecorPreviewDraft(draft);
-      });
     });
     refs.supporterIconFrameOptions?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-support-icon-frame-option]");

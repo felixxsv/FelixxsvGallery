@@ -27,6 +27,10 @@ SUPPORTER_ACHIEVEMENT_THRESHOLDS = [
     ("2y", 24),
 ]
 SUPPORTER_ICON_FRAMES = {
+    "none": {
+        "label_key": "support.common.none",
+        "preview_class": "",
+    },
     "aurora_ring": {
         "label_key": "support.icon_frame.aurora_ring",
         "preview_class": "supporter-icon-frame--aurora-ring",
@@ -37,6 +41,10 @@ SUPPORTER_ICON_FRAMES = {
     },
 }
 SUPPORTER_PROFILE_DECORS = {
+    "none": {
+        "label_key": "support.common.none",
+        "preview_class": "",
+    },
     "aurora_glow": {
         "label_key": "support.profile_decor.aurora_glow",
         "preview_class": "supporter-profile-decor--aurora-glow",
@@ -109,6 +117,12 @@ ORDER BY decoration_kind ASC, sort_order ASC, id ASC
     for bucket, defaults in fallback.items():
         if not catalog[bucket]:
             catalog[bucket] = defaults
+        else:
+            existing_keys = {str(item.get("key") or "").strip() for item in catalog[bucket]}
+            for default_item in defaults:
+                default_key = str(default_item.get("key") or "").strip()
+                if default_key and default_key not in existing_keys:
+                    catalog[bucket].insert(0, default_item)
     return catalog
 
 
@@ -200,8 +214,8 @@ def get_supporter_settings(conn, user_id: int, create: bool = False) -> dict:
         "supporter_duration_badge_visible": True,
         "supporter_icon_frame_visible": True,
         "supporter_profile_decor_visible": True,
-        "selected_icon_frame": _catalog_default_key(catalog, "icon_frames", "aurora_ring"),
-        "selected_profile_decor": _catalog_default_key(catalog, "profile_decors", "aurora_glow"),
+        "selected_icon_frame": _catalog_default_key(catalog, "icon_frames", "none"),
+        "selected_profile_decor": _catalog_default_key(catalog, "profile_decors", "none"),
     }
     if not _table_exists(conn, "supporter_profile_settings"):
         return defaults.copy()
@@ -276,20 +290,24 @@ LIMIT 1
         settings["selected_icon_frame"] = defaults["selected_icon_frame"]
     if settings["selected_profile_decor"] not in profile_decor_keys:
         settings["selected_profile_decor"] = defaults["selected_profile_decor"]
+    settings["supporter_icon_frame_visible"] = settings["selected_icon_frame"] != "none"
+    settings["supporter_profile_decor_visible"] = settings["selected_profile_decor"] != "none"
     return settings
 
 
 def update_supporter_settings(conn, user_id: int, payload: dict) -> dict:
     catalog = get_supporter_catalog(conn)
     settings = get_supporter_settings(conn, user_id, create=True)
+    selected_icon_frame = str(payload.get("selected_icon_frame") or settings["selected_icon_frame"]).strip() or settings["selected_icon_frame"]
+    selected_profile_decor = str(payload.get("selected_profile_decor") or settings["selected_profile_decor"]).strip() or settings["selected_profile_decor"]
     updates = {
         "supporter_visible": bool(payload.get("supporter_visible", settings["supporter_visible"])),
         "supporter_badge_visible": bool(payload.get("supporter_badge_visible", settings["supporter_badge_visible"])),
         "supporter_duration_badge_visible": bool(payload.get("supporter_duration_badge_visible", settings["supporter_duration_badge_visible"])),
-        "supporter_icon_frame_visible": bool(payload.get("supporter_icon_frame_visible", settings["supporter_icon_frame_visible"])),
-        "supporter_profile_decor_visible": bool(payload.get("supporter_profile_decor_visible", settings["supporter_profile_decor_visible"])),
-        "selected_icon_frame": str(payload.get("selected_icon_frame") or settings["selected_icon_frame"]).strip() or settings["selected_icon_frame"],
-        "selected_profile_decor": str(payload.get("selected_profile_decor") or settings["selected_profile_decor"]).strip() or settings["selected_profile_decor"],
+        "supporter_icon_frame_visible": selected_icon_frame != "none",
+        "supporter_profile_decor_visible": selected_profile_decor != "none",
+        "selected_icon_frame": selected_icon_frame,
+        "selected_profile_decor": selected_profile_decor,
     }
     icon_frame_keys = _catalog_keys(catalog, "icon_frames")
     profile_decor_keys = _catalog_keys(catalog, "profile_decors")
