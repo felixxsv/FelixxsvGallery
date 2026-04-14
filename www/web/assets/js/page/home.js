@@ -1535,6 +1535,40 @@ export function initHomePage(app) {
     return item;
   }
 
+  function syncOwnedContentState(nextState = {}) {
+    const contentId = String(nextState.content_id || "").trim();
+    if (!contentId) {
+      return;
+    }
+
+    let changed = false;
+    state.items = state.items.filter((item) => {
+      const itemContentId = String(item.content_id || `i-${item.id ?? ""}`);
+      if (itemContentId !== contentId) {
+        return true;
+      }
+      changed = true;
+      if (nextState.status === "deleted") {
+        return false;
+      }
+      item.visibility = nextState.visibility || item.visibility || "public";
+      item.owner_meta = {
+        ...(item.owner_meta || {}),
+        ...(nextState.owner_meta || {}),
+      };
+      item.viewer_permissions = nextState.viewer_permissions || item.viewer_permissions || null;
+      return true;
+    });
+
+    if (!changed) {
+      return;
+    }
+
+    state.total = nextState.status === "deleted" ? Math.max(0, state.total - 1) : state.total;
+    renderItems(state.items);
+    updateStatus();
+  }
+
   async function fetchImageDetail(item) {
     if (!item?.id) {
       return buildPublicDetail(item || {});
@@ -1731,8 +1765,11 @@ export function initHomePage(app) {
           reloadFromFilters();
         }
       },
-      onOwnerAction() {
-        reloadFromFilters();
+      onOwnerAction(nextState) {
+        syncOwnedContentState(nextState || {});
+        if (nextState?.status === "deleted") {
+          reloadFromFilters();
+        }
       },
     });
   }
