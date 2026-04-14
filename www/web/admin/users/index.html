@@ -8,7 +8,7 @@
 <link href="/assets/css/common.css" rel="stylesheet"/>
 <link href="/assets/css/components.css?v=20260415-admin-support-filter-v1" rel="stylesheet"/>
 <link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
-<link href="/assets/css/page/admin/users.css?v=20260415-admin-support-filter-v1" rel="stylesheet"/>
+<link href="/assets/css/page/admin/users.css?v=20260415-admin-support-subscription-v1" rel="stylesheet"/>
 </head>
 <body class="admin-page" data-admin-description="ユーザー一覧、編集、仮ユーザー作成を行います。" data-admin-page="users" data-app-base="" data-hide-admin-link-in-shell="1">
 <section class="admin-state-screen" id="adminLoadingState">
@@ -861,6 +861,33 @@
 <div><span data-i18n="support.details.visibilitySettings">表示設定</span><strong id="adminUsersSupportVisibility">-</strong></div>
 </div>
 <div class="admin-users-support-panel__grant">
+<h4 class="admin-users-support-panel__title" data-i18n="support.admin.subscriptionHeading">課金状態を手動更新</h4>
+<div class="admin-users-support-subscription">
+<label class="admin-form-label" for="adminUsersSupportSubscriptionStatus" data-i18n="support.details.currentStatus">支援状態</label>
+<select class="app-select" id="adminUsersSupportSubscriptionStatus">
+<option value="inactive" data-i18n="support.status.inactive">未支援</option>
+<option value="active" data-i18n="support.status.active">支援中</option>
+<option value="canceled" data-i18n="support.admin.statusCanceled">キャンセル済み</option>
+<option value="past_due" data-i18n="support.admin.statusPastDue">支払失敗</option>
+<option value="unpaid" data-i18n="support.admin.statusUnpaid">未払い</option>
+<option value="expired" data-i18n="support.status.expired">支援終了</option>
+<option value="scheduled" data-i18n="support.status.scheduled">課金予約あり</option>
+</select>
+<label class="admin-form-label" for="adminUsersSupportSubscriptionPeriodStart" data-i18n="support.admin.periodStart">利用開始日</label>
+<input class="app-input" id="adminUsersSupportSubscriptionPeriodStart" type="datetime-local"/>
+<label class="admin-form-label" for="adminUsersSupportSubscriptionPeriodEnd" data-i18n="support.details.nextBillingAt">次回更新日</label>
+<input class="app-input" id="adminUsersSupportSubscriptionPeriodEnd" type="datetime-local"/>
+<label class="admin-form-label" for="adminUsersSupportSubscriptionFirstBilling" data-i18n="support.details.firstBillingAt">初回お支払い予定日</label>
+<input class="app-input" id="adminUsersSupportSubscriptionFirstBilling" type="datetime-local"/>
+<label class="admin-form-label" for="adminUsersSupportSubscriptionScheduledStart" data-i18n="support.admin.scheduledStart">課金開始予定日</label>
+<input class="app-input" id="adminUsersSupportSubscriptionScheduledStart" type="datetime-local"/>
+<label class="admin-form-label" for="adminUsersSupportSubscriptionCreditedMonths" data-i18n="support.admin.creditedMonths">加算月数</label>
+<input class="app-input" id="adminUsersSupportSubscriptionCreditedMonths" type="number" min="0" step="1" value="0"/>
+<div class="app-button-row">
+<button class="app-button app-button--primary" id="adminUsersSupportSubscriptionSaveButton" type="button" data-i18n="support.admin.saveSubscription">状態を更新</button>
+</div>
+</div>
+<h4 class="admin-users-support-panel__title" data-i18n="support.gift.history">手動付与</h4>
 <label class="admin-form-label" for="adminUsersSupportGrantPreset" data-i18n="support.gift.preset">付与プリセット</label>
 <select class="app-select" id="adminUsersSupportGrantPreset">
 <option value="1">1か月</option>
@@ -961,6 +988,6 @@
 </div>
 <div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
 <script src="/assets/js/components/admin-layout.js?v=20260413-crop" type="module"></script>
-<script src="/assets/js/page/admin/users.js?v=20260415-admin-support-filter-v1" type="module"></script>
+<script src="/assets/js/page/admin/users.js?v=20260415-admin-support-subscription-v1" type="module"></script>
 </body>
 </html>

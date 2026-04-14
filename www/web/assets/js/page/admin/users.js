@@ -22,6 +22,23 @@ function formatDateTime(value) {
   return d.toLocaleString(languageToLocaleTag(document.documentElement.lang || "en-us"));
 }
 
+function formatDateTimeLocalInput(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function normalizeDateTimeLocalValue(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
 function buildPill(text, mod) {
   return `<span class="admin-users-pill ${mod}">${escapeHtml(text)}</span>`;
 }
@@ -444,6 +461,19 @@ function renderSupportLists(support) {
   if (permanentRevoke) {
     permanentRevoke.disabled = !grants.some((item) => item.is_permanent && item.is_active && !item.revoked_at);
   }
+  const subscription = support?.subscription || {};
+  const subscriptionStatus = byId("adminUsersSupportSubscriptionStatus");
+  const periodStart = byId("adminUsersSupportSubscriptionPeriodStart");
+  const periodEnd = byId("adminUsersSupportSubscriptionPeriodEnd");
+  const firstBilling = byId("adminUsersSupportSubscriptionFirstBilling");
+  const scheduledStart = byId("adminUsersSupportSubscriptionScheduledStart");
+  const creditedMonths = byId("adminUsersSupportSubscriptionCreditedMonths");
+  if (subscriptionStatus) subscriptionStatus.value = String(subscription.status || "inactive").toLowerCase();
+  if (periodStart) periodStart.value = formatDateTimeLocalInput(subscription.current_period_start || subscription.started_at);
+  if (periodEnd) periodEnd.value = formatDateTimeLocalInput(subscription.current_period_end);
+  if (firstBilling) firstBilling.value = formatDateTimeLocalInput(subscription.first_billing_at);
+  if (scheduledStart) scheduledStart.value = formatDateTimeLocalInput(subscription.scheduled_start_at);
+  if (creditedMonths) creditedMonths.value = String(Number(subscription.credited_months || 0));
 
   const grantList = byId("adminUsersSupportGrantList");
   if (grantList) {
@@ -474,6 +504,45 @@ function renderSupportLists(support) {
         </div>
       `).join("");
     }
+  }
+}
+
+async function saveSupportSubscription() {
+  if (!state.currentUser) return;
+  const payload = {
+    status: byId("adminUsersSupportSubscriptionStatus")?.value || "inactive",
+    current_period_start: normalizeDateTimeLocalValue(byId("adminUsersSupportSubscriptionPeriodStart")?.value),
+    current_period_end: normalizeDateTimeLocalValue(byId("adminUsersSupportSubscriptionPeriodEnd")?.value),
+    first_billing_at: normalizeDateTimeLocalValue(byId("adminUsersSupportSubscriptionFirstBilling")?.value),
+    scheduled_start_at: normalizeDateTimeLocalValue(byId("adminUsersSupportSubscriptionScheduledStart")?.value),
+    credited_months: Number(byId("adminUsersSupportSubscriptionCreditedMonths")?.value || 0),
+  };
+  if (payload.status === "inactive") {
+    payload.current_period_start = null;
+    payload.current_period_end = null;
+    payload.first_billing_at = null;
+    payload.scheduled_start_at = null;
+  }
+  const ok = await openActionConfirm(
+    window.AdminApp?.i18n?.t?.("support.admin.confirmSaveSubscription", "課金状態を更新しますか？") || "課金状態を更新しますか？",
+    window.AdminApp?.i18n?.t?.("support.admin.saveSubscription", "状態を更新") || "状態を更新"
+  );
+  if (!ok) return;
+  try {
+    const response = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/support/subscription`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data?.error?.message || "subscription update failed");
+    state.currentUser.support = data.data?.support || state.currentUser.support;
+    renderSupportLists(state.currentUser.support);
+    window.AdminApp?.toast?.success?.(window.AdminApp?.i18n?.t?.("support.admin.savedSubscription", "課金状態を更新しました。") || "課金状態を更新しました。");
+    await loadUsers();
+  } catch (error) {
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, window.AdminApp?.i18n?.t?.("support.admin.saveSubscriptionFailed", "課金状態の更新に失敗しました。") || "課金状態の更新に失敗しました。"));
   }
 }
 
@@ -792,6 +861,7 @@ function bindModals() {
   });
 
   byId("adminUsersEditBadgeGrantButton")?.addEventListener("click", grantBadge);
+  byId("adminUsersSupportSubscriptionSaveButton")?.addEventListener("click", saveSupportSubscription);
   byId("adminUsersSupportGrantButton")?.addEventListener("click", grantSupport);
   byId("adminUsersSupportGrantPreset")?.addEventListener("change", (event) => {
     const value = event.target.value;
