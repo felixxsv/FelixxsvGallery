@@ -1460,7 +1460,10 @@ export function initHomePage(app) {
 
     const detail = buildPublicDetail(image);
     const user = detail.user || {};
-    applySupportPresentation(article, userButton, user.supporter_profile || {});
+    applySupportPresentation(article, userButton, {
+      ...user.supporter_profile,
+      selected_profile_decor: null,
+    });
     if (userButton) {
       const userKey = normalizeUserKey(user.user_key);
       if (userKey) {
