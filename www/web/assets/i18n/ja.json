@@ -150,6 +150,7 @@
   "home.image.unknown_user": "投稿者不明",
   "home.like.add": "いいねする",
   "home.like.remove": "いいねを取り消す",
+  "home.image.private_badge": "非公開",
   "home.like.title": "いいね {count}件",
   "home.like.auth_required": "いいね機能はログイン後に利用できます。",
   "home.like.error": "いいねの更新に失敗しました。",

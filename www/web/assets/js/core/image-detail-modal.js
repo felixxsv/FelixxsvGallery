@@ -286,7 +286,7 @@ export function createImageDetailModal({
       `
       : "";
 
-    body.innerHTML = `${heroBlock}${infoBlock}${ownerBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
+    body.innerHTML = `${heroBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}${ownerBlock}`;
     syncLikeUi();
     syncActionUi();
   }

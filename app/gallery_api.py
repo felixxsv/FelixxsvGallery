@@ -386,6 +386,14 @@ def _serialize_content_owner_controls(current_user: dict | None, owner_user_id: 
     return viewer_permissions, owner_meta
 
 
+def _viewer_visible_image_sql(viewer_user_id: int | None, image_alias: str = "i", status_alias: str = "acs") -> tuple[str, list]:
+    owner_expr = _images_owner_expr(image_alias)
+    status_sql = f"COALESCE({status_alias}.moderation_status, 'normal')='normal'"
+    if viewer_user_id is not None and owner_expr:
+        return f"{status_sql} AND ({image_alias}.is_public=1 OR {owner_expr}=%s)", [int(viewer_user_id)]
+    return f"{status_sql} AND {image_alias}.is_public=1", []
+
+
 def _resolve_mutable_content_rows(conn: pymysql.Connection, content_key: str) -> list[dict]:
     key = str(content_key or "").strip().lower()
     if not key:
@@ -914,6 +922,8 @@ def list_images(
 
     sort_key = (sort or "latest").lower()
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
+    status_join = "LEFT JOIN admin_content_states acs ON acs.image_id=i.id"
+    visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
     if _HAS_IMAGES_OWNER_USER_ID:
         user_select = """,
   u.user_key AS uploader_user_key,
@@ -951,7 +961,8 @@ SELECT COUNT(*)
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
-WHERE i.gallery=%s AND i.is_public=1
+{status_join}
+WHERE i.gallery=%s AND {visibility_sql}
 {where_extra_sql}
 """
 
@@ -962,12 +973,14 @@ SELECT
   COALESCE(i.focal_x, 50) AS focal_x, COALESCE(i.focal_y, 50) AS focal_y,
   COALESCE(st.view_count,0) AS view_count,
   i.like_count,
+  COALESCE(i.is_public, 1) AS is_public,
   {viewer_liked_sql}{user_select}
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
+{status_join}
 {user_join}
-WHERE i.gallery=%s AND i.is_public=1
+WHERE i.gallery=%s AND {visibility_sql}
 {where_extra_sql}
 {order_sql}
 LIMIT %s OFFSET %s
@@ -975,12 +988,16 @@ LIMIT %s OFFSET %s
 
     conn = db_conn(CONF)
     try:
+        _ensure_admin_content_states_table(conn)
         with conn.cursor() as cur:
-            cur.execute(sql_count, [GALLERY, GALLERY, *where_extra_params])
+            cur.execute(sql_count, [GALLERY, GALLERY, *visibility_params, *where_extra_params])
             total = int(cur.fetchone()["COUNT(*)"])
 
-            cur.execute(sql_list, [*viewer_liked_params, GALLERY, GALLERY, *where_extra_params, *order_params, per_page, offset])
+            cur.execute(sql_list, [*viewer_liked_params, GALLERY, GALLERY, *visibility_params, *where_extra_params, *order_params, per_page, offset])
             items = cur.fetchall()
+
+        for item in items:
+            item["visibility"] = "public" if bool(item.get("is_public")) else "private"
 
         pages = (total + per_page - 1) // per_page
         return {"page": page, "per_page": per_page, "pages": pages, "total": total, "items": items}
@@ -1016,6 +1033,8 @@ def get_image(image_id: int, req: Request):
 
     conn = db_conn(CONF)
     try:
+        _ensure_admin_content_states_table(conn)
+        visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
         with conn.cursor() as cur:
             owner_expr = _images_owner_expr("i")
             if _HAS_IMAGES_OWNER_USER_ID:
@@ -1037,13 +1056,16 @@ SELECT
   COALESCE(st.view_count,0) AS view_count,
   i.like_count AS like_count,
   COALESCE(st.x_like_count,0) AS x_like_count,
+  COALESCE(i.is_public, 1) AS is_public,
+  COALESCE(acs.moderation_status, 'normal') AS moderation_status,
   {viewer_liked_sql}{detail_user_select}{owner_select}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
 {detail_user_join}
-WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
+WHERE i.gallery=%s AND i.id=%s AND {visibility_sql}
 """,
-                [*viewer_liked_params, GALLERY, image_id],
+                [*viewer_liked_params, GALLERY, image_id, *visibility_params],
             )
             img = cur.fetchone()
             if not img:
@@ -1073,14 +1095,15 @@ ORDER BY rank_no ASC
             img["colors"] = cur.fetchall()
             img["color_tags"] = _serialize_color_tags(img["colors"])
 
-        visibility = "public"
-        status = "normal"
+        visibility = "public" if bool(img.get("is_public", 1)) else "private"
+        status = str(img.get("moderation_status") or "normal")
         viewer_permissions, owner_meta = _serialize_content_owner_controls(
             current_user,
             int(img["owner_user_id"]) if img.get("owner_user_id") is not None else None,
             visibility,
             status,
         )
+        img["visibility"] = visibility
         img["viewer_permissions"] = viewer_permissions
         if owner_meta is not None:
             img["owner_meta"] = owner_meta
@@ -1218,6 +1241,7 @@ def list_image_archives(
     where_extra_params = [*tag_params, *color_params, *date_params, *text_params, *shortcut_params]
 
     target_column = "i.created_at" if archive_kind == "posted" else "i.shot_at"
+    visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
 
     sql = f"""
 SELECT
@@ -1226,7 +1250,8 @@ SELECT
   COUNT(*) AS c
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
-WHERE i.gallery=%s AND i.is_public=1 AND {target_column} IS NOT NULL
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+WHERE i.gallery=%s AND {visibility_sql} AND {target_column} IS NOT NULL
 {where_extra_sql}
 GROUP BY YEAR({target_column}), MONTH({target_column})
 ORDER BY YEAR({target_column}) DESC, MONTH({target_column}) DESC
@@ -1234,8 +1259,9 @@ ORDER BY YEAR({target_column}) DESC, MONTH({target_column}) DESC
 
     conn = db_conn(CONF)
     try:
+        _ensure_admin_content_states_table(conn)
         with conn.cursor() as cur:
-            cur.execute(sql, [GALLERY, GALLERY, *where_extra_params])
+            cur.execute(sql, [GALLERY, GALLERY, *visibility_params, *where_extra_params])
             rows = cur.fetchall()
 
         grouped: list[dict] = []
@@ -1394,19 +1420,24 @@ def upload_images(
 
 
 @app.get("/media/original/{image_id}")
-def get_original(image_id: int):
+def get_original(image_id: int, req: Request):
+    current_user = _get_current_user(req)
+    viewer_user_id = int(current_user["id"]) if current_user else None
     conn = db_conn(CONF)
     try:
+        _ensure_admin_content_states_table(conn)
+        visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
         with conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
 SELECT s.source_path
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1
-WHERE i.gallery=%s AND i.id=%s AND i.is_public=1
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+WHERE i.gallery=%s AND i.id=%s AND {visibility_sql}
 LIMIT 1
 """,
-                (GALLERY, GALLERY, image_id),
+                (GALLERY, GALLERY, image_id, *visibility_params),
             )
             r = cur.fetchone()
             if not r:
@@ -1476,6 +1507,9 @@ def _normalize_content_detail_item(item: dict, content_title: str | None, conten
         "uploader_user_key": item.get("uploader_user_key"),
         "uploader_display_name": item.get("uploader_display_name"),
         "uploader_avatar_url": item.get("uploader_avatar_url"),
+        "owner_user_id": item.get("owner_user_id"),
+        "is_public": item.get("is_public"),
+        "moderation_status": item.get("moderation_status"),
     }
 
 
@@ -1535,6 +1569,8 @@ def list_contents(
 
         current_user = _get_current_user(req)
         viewer_user_id = int(current_user["id"]) if current_user else None
+        _ensure_admin_content_states_table(conn)
+        visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
         tags_any_list = parse_csv_strs(tags_any)
         tags_all_list = parse_csv_strs(tags_all)
         colors_any_list = parse_csv_ints(colors_any)
@@ -1578,9 +1614,10 @@ FROM (
   SELECT {content_key_expr} AS content_key
   FROM images i
   JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+  LEFT JOIN admin_content_states acs ON acs.image_id=i.id
   {join_stats}
   {join_content}
-  WHERE i.gallery=%s AND i.is_public=1
+  WHERE i.gallery=%s AND {visibility_sql}
   {where_extra_sql}
   GROUP BY content_key
 ) counted
@@ -1588,7 +1625,7 @@ FROM (
 
         order_seed = str(random_seed or "").strip() or _now_local_naive(CONF).strftime("%Y%m%d")
         order_clause = _content_sort_clause(sort_key)
-        page_params: list = [GALLERY, GALLERY, *where_extra_params]
+        page_params: list = [GALLERY, GALLERY, *visibility_params, *where_extra_params]
         if sort_key == "random":
             order_clause = "ORDER BY SHA2(CONCAT(%s, ':', content_key), 256)"
             page_params.append(order_seed)
@@ -1604,9 +1641,10 @@ SELECT
   MAX(COALESCE(gc.alt, i.alt, '')) AS content_alt
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
 {join_stats}
 {join_content}
-WHERE i.gallery=%s AND i.is_public=1
+WHERE i.gallery=%s AND {visibility_sql}
 {where_extra_sql}
 GROUP BY content_key
 {order_clause}
@@ -1615,7 +1653,7 @@ LIMIT %s OFFSET %s
         page_params.extend([per_page, offset])
 
         with conn.cursor() as cur:
-            cur.execute(count_sql, [GALLERY, GALLERY, *where_extra_params])
+            cur.execute(count_sql, [GALLERY, GALLERY, *visibility_params, *where_extra_params])
             total = int((cur.fetchone() or {}).get("c") or 0)
             cur.execute(page_sql, page_params)
             rows = cur.fetchall()
@@ -1648,6 +1686,7 @@ FROM (
     i.thumb_path_960,
     i.preview_path,
     i.like_count,
+    COALESCE(i.is_public, 1) AS is_public,
     COALESCE(i.focal_x, 50) AS focal_x,
     COALESCE(i.focal_y, 50) AS focal_y,
     {thumb_viewer_sql}{content_user_select},
@@ -1663,14 +1702,15 @@ FROM (
     ) AS rn
   FROM images i
   JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+  LEFT JOIN admin_content_states acs ON acs.image_id=i.id
   LEFT JOIN gallery_content_images gci ON gci.image_id=i.id
   LEFT JOIN gallery_contents gc ON gc.id=gci.content_id AND gc.gallery=i.gallery
   {content_user_join}
-  WHERE i.gallery=%s AND i.is_public=1 AND {content_key_expr} IN ({key_placeholders})
+  WHERE i.gallery=%s AND {visibility_sql} AND {content_key_expr} IN ({key_placeholders})
 ) picked
 WHERE picked.rn=1
 """
-            thumb_exec = [*thumb_params, GALLERY, GALLERY, *content_keys]
+            thumb_exec = [*thumb_params, GALLERY, GALLERY, *visibility_params, *content_keys]
             with conn.cursor() as cur:
                 cur.execute(thumb_sql, thumb_exec)
                 for row in cur.fetchall():
@@ -1700,6 +1740,7 @@ WHERE picked.rn=1
                 "like_count": int(thumb.get("like_count") or 0),
                 "viewer_liked": bool(thumb.get("viewer_liked")),
                 "view_count": int(row.get("view_count_sum") or 0),
+                "visibility": "public" if bool(thumb.get("is_public")) else "private",
                 "focal_x": float(thumb.get("focal_x") or 50),
                 "focal_y": float(thumb.get("focal_y") or 50),
                 "uploader_user_key": thumb.get("uploader_user_key"),
@@ -1752,6 +1793,8 @@ def list_content_archives(
 
         current_user = _get_current_user(req)
         viewer_user_id = int(current_user["id"]) if current_user else None
+        _ensure_admin_content_states_table(conn)
+        visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
         tags_any_list = parse_csv_strs(tags_any)
         tags_all_list = parse_csv_strs(tags_all)
         colors_any_list = parse_csv_ints(colors_any)
@@ -1783,8 +1826,9 @@ FROM (
     MONTH({target_expr}) AS archive_month
   FROM images i
   JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+  LEFT JOIN admin_content_states acs ON acs.image_id=i.id
   {join_content}
-  WHERE i.gallery=%s AND i.is_public=1
+  WHERE i.gallery=%s AND {visibility_sql}
   {where_extra_sql}
   GROUP BY content_key
 ) content_archives
@@ -1794,7 +1838,7 @@ ORDER BY archive_year DESC, archive_month DESC
 """
 
         with conn.cursor() as cur:
-            cur.execute(sql, [GALLERY, GALLERY, *where_extra_params])
+            cur.execute(sql, [GALLERY, GALLERY, *visibility_params, *where_extra_params])
             rows = cur.fetchall()
 
         grouped: list[dict] = []
@@ -1870,6 +1914,8 @@ def get_content(content_key: str, req: Request):
     try:
         if not (_table_exists(conn, "gallery_contents") and _table_exists(conn, "gallery_content_images")):
             raise HTTPException(status_code=404, detail="not found")
+        _ensure_admin_content_states_table(conn)
+        visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -1887,12 +1933,13 @@ LIMIT 1
 
             if _HAS_IMAGES_OWNER_USER_ID:
                 content_detail_user_select = """,
+  i.owner_user_id AS owner_user_id,
   u.user_key AS uploader_user_key,
   u.display_name AS uploader_display_name,
   CASE WHEN u.avatar_path IS NOT NULL THEN CONCAT('/api/auth/avatar/', u.id) ELSE NULL END AS uploader_avatar_url"""
                 content_detail_user_join = "LEFT JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'"
             else:
-                content_detail_user_select = ""
+                content_detail_user_select = ", NULL AS owner_user_id"
                 content_detail_user_join = ""
 
             cur.execute(
@@ -1910,16 +1957,19 @@ SELECT
   i.thumb_path_960,
   i.preview_path,
   i.like_count,
+  COALESCE(i.is_public, 1) AS is_public,
+  COALESCE(acs.moderation_status, 'normal') AS moderation_status,
   COALESCE(st.view_count,0) AS view_count,
   {viewer_liked_sql}{content_detail_user_select},
   gci.sort_order,
   COALESCE(gci.is_thumbnail, 0) AS is_thumbnail
 FROM gallery_content_images gci
-JOIN images i ON i.id=gci.image_id AND i.gallery=%s AND i.is_public=1
+JOIN images i ON i.id=gci.image_id AND i.gallery=%s
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
 LEFT JOIN image_stats st ON st.image_id=i.id
 {content_detail_user_join}
-WHERE gci.content_id=%s
+WHERE gci.content_id=%s AND {visibility_sql}
 ORDER BY
   CASE WHEN %s IS NOT NULL AND %s = i.id THEN 0 ELSE 1 END,
   CASE WHEN COALESCE(gci.is_thumbnail, 0)=1 THEN 0 ELSE 1 END,
@@ -1927,7 +1977,7 @@ ORDER BY
   COALESCE(gci.sort_order, 2147483647),
   i.id ASC
 """,
-                [*viewer_liked_params, GALLERY, GALLERY, content_id, content_row.get("thumbnail_image_id"), content_row.get("thumbnail_image_id")],
+                [*viewer_liked_params, GALLERY, GALLERY, content_id, *visibility_params, content_row.get("thumbnail_image_id"), content_row.get("thumbnail_image_id")],
             )
             image_rows = cur.fetchall()
 
@@ -1937,6 +1987,10 @@ ORDER BY
         images = [_normalize_content_detail_item(row, content_row.get("title"), content_row.get("alt")) for row in image_rows]
         thumbnail_image_id = int(images[0]["image_id"])
         primary = images[0]
+        visibility = "public" if bool(primary.get("is_public", 1)) else "private"
+        status = str(primary.get("moderation_status") or "normal")
+        owner_user_id = int(primary.get("owner_user_id")) if primary.get("owner_user_id") is not None else None
+        viewer_permissions, owner_meta = _serialize_content_owner_controls(current_user, owner_user_id, visibility, status)
         return {
             "content_id": key,
             "id": content_id,
@@ -1949,6 +2003,9 @@ ORDER BY
             "image_count": len(images),
             "like_count": int(primary.get("like_count") or 0),
             "viewer_liked": bool(primary.get("viewer_liked")),
+            "visibility": visibility,
+            "viewer_permissions": viewer_permissions,
+            "owner_meta": owner_meta,
             "uploader_user_key": primary.get("uploader_user_key"),
             "uploader_display_name": primary.get("uploader_display_name"),
             "uploader_avatar_url": primary.get("uploader_avatar_url"),

@@ -150,6 +150,7 @@
   "home.image.unknown_user": "Unknown uploader",
   "home.like.add": "Like",
   "home.like.remove": "Unlike",
+  "home.image.private_badge": "Private",
   "home.like.title": "{count} likes",
   "home.like.auth_required": "Likes are available after login.",
   "home.like.error": "Failed to update like.",

@@ -1410,6 +1410,7 @@ export function initHomePage(app) {
     const likeCount = fragment.querySelector("[data-card-like-count]");
     const badge = fragment.querySelector("[data-card-badge]");
     const badgeCount = fragment.querySelector("[data-card-image-count]");
+    const visibilityBadge = fragment.querySelector("[data-card-visibility-badge]");
     const imageUrl = normalizeImageUrl(image);
     const imageCount = Math.max(1, Number(image.image_count || 1));
 
@@ -1435,6 +1436,9 @@ export function initHomePage(app) {
       badge.hidden = imageCount <= 1;
       badgeCount.textContent = String(imageCount);
       badge.setAttribute("aria-label", t("home.image.count", `${imageCount} images`, { count: imageCount }));
+    }
+    if (visibilityBadge) {
+      visibilityBadge.hidden = image.visibility !== "private";
     }
 
     titleNode.textContent = textOrDash(image.title || image.alt || `image-${image.id ?? ""}`);
