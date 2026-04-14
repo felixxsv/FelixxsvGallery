@@ -4,6 +4,7 @@ import { resolveBadgeText } from "./badge-i18n.js";
 const BADGE_DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='6'/%3E%3Cpath d='M8 14l-3 7 7-3 7 3-3-7'/%3E%3C/svg%3E";
 let currentAvatarPayload = null;
 let currentBadgePayload = null;
+let supportPresentationListenerBound = false;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -61,6 +62,22 @@ export function ensureProfileMediaModals(app) {
       <div class="profile-media-modal__secondary" id="badgeDetailAcquisition">-</div>
     `,
   );
+  if (!supportPresentationListenerBound) {
+    document.addEventListener("app:support-presentation-updated", (event) => {
+      const userKey = String(event.detail?.userKey || "").trim();
+      if (!currentAvatarPayload || !userKey) return;
+      const currentUserKey = String(currentAvatarPayload.userKey || "").replace(/^@/, "").trim();
+      if (currentUserKey !== userKey) return;
+      currentAvatarPayload = {
+        ...currentAvatarPayload,
+        selectedIconFrame: event.detail?.publicProfile?.selected_icon_frame || null,
+      };
+      if (!document.querySelector("[data-modal-id='avatar-detail']")?.hidden) {
+        showAvatarDetail(currentAvatarPayload, app);
+      }
+    });
+    supportPresentationListenerBound = true;
+  }
 }
 
 export function refreshProfileMediaModalTexts(app) {
@@ -88,8 +105,11 @@ export function showAvatarDetail(payload, app) {
   const userKey = String(payload?.userKey || "-");
   const avatarUrl = String(payload?.avatarUrl || "");
   const initial = String(payload?.initial || name || userKey || "?").trim().slice(0, 1).toUpperCase() || "?";
+  const selectedIconFrame = String(payload?.selectedIconFrame || "").trim();
 
   visual.className = "profile-media-modal__avatar";
+  if (selectedIconFrame === "aurora_ring") visual.classList.add("supporter-icon-frame--aurora-ring");
+  if (selectedIconFrame === "amber_ring") visual.classList.add("supporter-icon-frame--amber-ring");
   if (avatarUrl) {
     visual.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="" aria-hidden="true">`;
   } else {

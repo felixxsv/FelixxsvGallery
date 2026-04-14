@@ -134,6 +134,7 @@ export function initPublicProfileModal(app) {
       initial: (currentUser.display_name || currentUser.user_key || "?")[0].toUpperCase(),
       displayName: currentUser.display_name || "-",
       userKey: currentUser.user_key || "-",
+      selectedIconFrame: currentUser.supporter_profile?.selected_icon_frame || null,
     }, app);
   };
   refs.avatar?.addEventListener("click", openAvatar);

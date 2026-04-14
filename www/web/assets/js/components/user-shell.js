@@ -2495,12 +2495,14 @@ export function initUserShell(app) {
     }
     const openCurrentUserAvatar = () => {
       const user = getUser();
+      const support = getSupport();
       if (!user) return;
       showAvatarDetail({
         avatarUrl: user.avatar_url ? `${app.appBase}${user.avatar_url}?t=${Date.now()}` : "",
         initial: (user.display_name || user.user_key || "?")[0].toUpperCase(),
         displayName: user.display_name || "-",
         userKey: user.user_key || "-",
+        selectedIconFrame: ownAccountModalSupportPresentation()?.selected_icon_frame || support?.public_profile?.selected_icon_frame || null,
       }, app);
     };
     [refs.userCardAvatar, refs.accountAvatar].forEach((node) => {
