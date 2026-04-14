@@ -2155,15 +2155,22 @@ body {
 
 .shell-profile-avatar-wrap {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  justify-content: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
 
 .shell-profile-avatar-stage {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 10px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 62%),
+    color-mix(in srgb, var(--color-surface-raised) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 12%, var(--color-border));
 }
 
 .shell-profile-avatar {
@@ -2201,24 +2208,50 @@ body {
 .shell-profile-avatar-controls {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: stretch;
+  min-width: 248px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius-md) + 2px);
+  background: color-mix(in srgb, var(--color-surface-raised) 80%, transparent);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
 }
 
 .shell-profile-avatar-controls__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
-  align-items: center;
-  justify-content: center;
 }
 
 .shell-avatar-upload-label {
   cursor: pointer;
 }
 
+.shell-profile-avatar-controls .app-button,
+.shell-profile-avatar-controls .shell-avatar-upload-label {
+  width: 100%;
+  justify-content: center;
+  min-height: 38px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.shell-profile-avatar-controls .app-button:hover,
+.shell-profile-avatar-controls .shell-avatar-upload-label:hover {
+  background: color-mix(in srgb, var(--color-surface-strong) 92%, transparent);
+}
+
 @media (max-width: 640px) {
+  .shell-profile-avatar-wrap {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
   .shell-profile-avatar-stage {
     padding: 0;
+    border: none;
+    background: none;
   }
 
   .shell-badge-picker__grid {
@@ -2236,6 +2269,19 @@ body {
   .shell-profile-decor-entry {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .shell-profile-avatar-controls {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background: none;
+  }
+
+  .shell-profile-avatar-controls__row {
+    grid-template-columns: 1fr;
   }
 }
 
