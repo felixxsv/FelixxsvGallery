@@ -876,6 +876,14 @@
             </label>
           </div>
 
+          <div id="shellProfileDecorSection" class="shell-profile-decor-entry" hidden>
+            <div class="shell-profile-decor-entry__copy">
+              <h3 class="shell-profile-links__title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</h3>
+              <p id="shellProfileDecorDescription" class="shell-profile-decor-entry__description" data-i18n="support.settings.descriptionLocked">支援者向けの装飾や公開表示をここで確認できます。支援後に利用可能になります。</p>
+            </div>
+            <button id="shellProfileDecorOpenButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupportSettings">Supporter設定</button>
+          </div>
+
           <!-- Links section -->
           <div class="shell-profile-links">
             <h3 class="shell-profile-links__title" data-i18n="shell.static.links">Links</h3>
@@ -887,52 +895,6 @@
             <h3 class="shell-profile-links__title"><span data-i18n="shell.static.badges">Badges</span> <span class="shell-profile-badge-section__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span></h3>
             <div id="shellProfileBadgeGrid" class="shell-profile-badge-grid">
               <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
-            </div>
-          </div>
-
-          <div id="shellProfileDecorSection" class="shell-profile-decor-section" hidden>
-            <div class="shell-profile-decor-section__header">
-              <div>
-                <h3 class="shell-profile-links__title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</h3>
-                <p id="shellProfileDecorDescription" class="shell-profile-decor-section__description" data-i18n="support.settings.descriptionLocked">支援者向けの装飾や公開表示をここで確認できます。支援後に利用可能になります。</p>
-              </div>
-              <button id="shellProfileDecorActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
-            </div>
-            <div class="shell-profile-decor-section__layout">
-              <section class="shell-profile-decor-preview">
-                <div class="shell-supporter-preview__eyebrow" data-i18n="support.settings.previewTitle">プレビュー</div>
-                <div id="shellProfileDecorPreviewCard" class="shell-supporter-preview__card shell-profile-decor-preview__card">
-                  <div id="shellProfileDecorPreviewAvatar" class="shell-supporter-preview__avatar" aria-hidden="true">
-                    <span id="shellProfileDecorPreviewAvatarInitial" class="shell-supporter-preview__avatar-initial">F</span>
-                    <img id="shellProfileDecorPreviewAvatarImg" class="shell-supporter-preview__avatar-img" src="" alt="" hidden>
-                  </div>
-                  <div class="shell-supporter-preview__meta">
-                    <div id="shellProfileDecorPreviewDisplayName" class="shell-supporter-preview__name">Felix</div>
-                    <div id="shellProfileDecorPreviewUserKey" class="shell-supporter-preview__key">@felix</div>
-                    <div id="shellProfileDecorPreviewBio" class="shell-profile-decor-preview__bio">Felixxsv Gallery</div>
-                  </div>
-                </div>
-                <p id="shellProfileDecorPreviewNote" class="shell-supporter-preview__note" data-i18n="support.settings.previewLocked">支援するとこの装飾を利用できます。</p>
-              </section>
-              <section class="shell-profile-decor-controls">
-                <div class="app-switch-row">
-                  <span class="app-switch-row__label" data-i18n="support.visibility.profileDecorVisible">プロフィール装飾を表示する</span>
-                  <label class="app-switch">
-                    <input id="shellAccountProfileDecorVisibleInput" class="app-switch__input" type="checkbox">
-                    <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
-                  </label>
-                </div>
-                <div id="shellAccountProfileDecorOptions" class="shell-supporter-option-grid" role="group" aria-label="Profile Decoration">
-                  <button type="button" class="shell-supporter-option" data-account-profile-decor-option="aurora_glow">
-                    <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--aurora-glow"></span>
-                    <span class="shell-supporter-option__label" data-i18n="support.profile_decor.aurora_glow">Aurora Glow</span>
-                  </button>
-                  <button type="button" class="shell-supporter-option" data-account-profile-decor-option="sunrise_wave">
-                    <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--sunrise-wave"></span>
-                    <span class="shell-supporter-option__label" data-i18n="support.profile_decor.sunrise_wave">Sunrise Wave</span>
-                  </button>
-                </div>
-              </section>
             </div>
           </div>
 
@@ -996,25 +958,67 @@
                   </div>
                 </div>
 
-                <div class="shell-supporter-settings__group">
-                  <div class="shell-supporter-settings__group-title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</div>
-                  <div id="shellSupporterProfileDecorOptions" class="shell-supporter-option-grid" role="group" aria-label="Profile Decoration">
-                    <button type="button" class="shell-supporter-option" data-support-profile-decor-option="aurora_glow">
-                      <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--aurora-glow"></span>
-                      <span class="shell-supporter-option__label" data-i18n="support.profile_decor.aurora_glow">Aurora Glow</span>
-                    </button>
-                    <button type="button" class="shell-supporter-option" data-support-profile-decor-option="sunrise_wave">
-                      <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--sunrise-wave"></span>
-                      <span class="shell-supporter-option__label" data-i18n="support.profile_decor.sunrise_wave">Sunrise Wave</span>
-                    </button>
-                  </div>
-                </div>
               </section>
             </div>
           </div>
         </div>
         <div class="app-modal-footer app-modal-footer--end">
           <button id="shellSupporterSettingsSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="profile-decor" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="profile-decor"></div>
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="profileDecorTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="profileDecorTitle" class="app-modal-title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</h2>
+        </div>
+        <div class="app-modal-body">
+          <div class="shell-profile-decor-section">
+            <div class="shell-profile-decor-section__header">
+              <div>
+                <p class="shell-profile-decor-section__description" id="shellProfileDecorModalDescription" data-i18n="support.settings.descriptionLocked">支援者向けの装飾や公開表示をここで確認できます。支援後に利用可能になります。</p>
+              </div>
+              <button id="shellProfileDecorActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
+            </div>
+            <div class="shell-profile-decor-section__layout">
+              <section class="shell-profile-decor-preview">
+                <div class="shell-supporter-preview__eyebrow" data-i18n="support.settings.previewTitle">プレビュー</div>
+                <div id="shellProfileDecorPreviewCard" class="shell-supporter-preview__card shell-profile-decor-preview__card">
+                  <div id="shellProfileDecorPreviewAvatar" class="shell-supporter-preview__avatar" aria-hidden="true">
+                    <span id="shellProfileDecorPreviewAvatarInitial" class="shell-supporter-preview__avatar-initial">F</span>
+                    <img id="shellProfileDecorPreviewAvatarImg" class="shell-supporter-preview__avatar-img" src="" alt="" hidden>
+                  </div>
+                  <div class="shell-supporter-preview__meta">
+                    <div id="shellProfileDecorPreviewDisplayName" class="shell-supporter-preview__name">Felix</div>
+                    <div id="shellProfileDecorPreviewUserKey" class="shell-supporter-preview__key">@felix</div>
+                    <div id="shellProfileDecorPreviewBio" class="shell-profile-decor-preview__bio">Felixxsv Gallery</div>
+                  </div>
+                </div>
+                <p id="shellProfileDecorPreviewNote" class="shell-supporter-preview__note" data-i18n="support.settings.previewLocked">支援するとこの装飾を利用できます。</p>
+              </section>
+              <section class="shell-profile-decor-controls">
+                <div class="app-switch-row">
+                  <span class="app-switch-row__label" data-i18n="support.visibility.profileDecorVisible">プロフィール装飾を表示する</span>
+                  <label class="app-switch">
+                    <input id="shellAccountProfileDecorVisibleInput" class="app-switch__input" type="checkbox">
+                    <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                  </label>
+                </div>
+                <div id="shellAccountProfileDecorOptions" class="shell-supporter-option-grid" role="group" aria-label="Profile Decoration">
+                  <button type="button" class="shell-supporter-option" data-account-profile-decor-option="aurora_glow">
+                    <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--aurora-glow"></span>
+                    <span class="shell-supporter-option__label" data-i18n="support.profile_decor.aurora_glow">Aurora Glow</span>
+                  </button>
+                  <button type="button" class="shell-supporter-option" data-account-profile-decor-option="sunrise_wave">
+                    <span class="shell-supporter-option__preview shell-supporter-option__preview--panel supporter-profile-decor--sunrise-wave"></span>
+                    <span class="shell-supporter-option__label" data-i18n="support.profile_decor.sunrise_wave">Sunrise Wave</span>
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
         </div>
       </div>
     </section>

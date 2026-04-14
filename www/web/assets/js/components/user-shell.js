@@ -241,6 +241,8 @@ export function initUserShell(app) {
     supporterIconFrameVisibleInput: byId("shellSupporterIconFrameVisibleInput"),
     supporterIconFrameOptions: byId("shellSupporterIconFrameOptions"),
     profileDecorDescription: byId("shellProfileDecorDescription"),
+    profileDecorModalDescription: byId("shellProfileDecorModalDescription"),
+    profileDecorOpenButton: byId("shellProfileDecorOpenButton"),
     profileDecorActionButton: byId("shellProfileDecorActionButton"),
     profileDecorPreviewCard: byId("shellProfileDecorPreviewCard"),
     profileDecorPreviewAvatar: byId("shellProfileDecorPreviewAvatar"),
@@ -605,6 +607,11 @@ export function initUserShell(app) {
     }
     if (refs.profileDecorDescription) {
       refs.profileDecorDescription.textContent = hasDecorFeature
+        ? supportText("support.settings.profileDecorDescription", "プロフィール装飾をここで設定できます。公開プロフィールの見た目に反映されます。")
+        : supportText("support.settings.profileDecorDescriptionLocked", "プロフィール装飾は支援後に利用できます。");
+    }
+    if (refs.profileDecorModalDescription) {
+      refs.profileDecorModalDescription.textContent = hasDecorFeature
         ? supportText("support.settings.profileDecorDescription", "プロフィール装飾をここで設定できます。公開プロフィールの見た目に反映されます。")
         : supportText("support.settings.profileDecorDescriptionLocked", "プロフィール装飾は支援後に利用できます。");
     }
@@ -2396,6 +2403,20 @@ export function initUserShell(app) {
       }
       return approved;
     });
+    app.modal?.setBeforeClose?.("profile-decor", async () => {
+      if (!supporterSettingsChanged()) {
+        return true;
+      }
+      const approved = await openActionConfirm(
+        t("shell.confirm.unsaved_close", "未保存の変更があります。閉じますか？"),
+        t("shell.confirm.discard_close", "破棄して閉じる"),
+        true
+      );
+      if (approved) {
+        renderProfileDecorSection();
+      }
+      return approved;
+    });
     app.modal?.setBeforeClose?.("add-link", async () => {
       if (!(refs.addLinkInput?.value || "").trim()) {
         return true;
@@ -2496,6 +2517,10 @@ export function initUserShell(app) {
     if (refs.discordUnlinkButton) refs.discordUnlinkButton.addEventListener("click", handleDiscordUnlink);
     refs.profileSaveButton?.addEventListener("click", handleProfileSave);
     refs.supporterSettingsActionButton?.addEventListener("click", () => openSupportModal());
+    refs.profileDecorOpenButton?.addEventListener("click", () => {
+      renderProfileDecorSection();
+      app.modal?.open?.("profile-decor");
+    });
     refs.profileDecorActionButton?.addEventListener("click", () => openSupportModal());
     refs.supporterSettingsSaveButton?.addEventListener("click", () => {
       saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true });
@@ -2670,6 +2695,9 @@ export function initUserShell(app) {
       }
       if (id === "supporter-decor") {
         renderSupporterSettings();
+      }
+      if (id === "profile-decor") {
+        renderProfileDecorSection();
       }
       if (id === "badge-select") {
         const user = getUser();
