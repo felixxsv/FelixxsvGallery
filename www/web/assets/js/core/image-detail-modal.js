@@ -51,7 +51,16 @@ function normalizeColorTag(item) {
   return { label: String(label), swatch: String(swatch) };
 }
 
-export function createImageDetailModal({ host, app, onOpen = null, onClose = null, onLikeToggle = null, onPreviewOpen = null }) {
+export function createImageDetailModal({
+  host,
+  app,
+  onOpen = null,
+  onClose = null,
+  onLikeToggle = null,
+  onPreviewOpen = null,
+  onVisibilityToggle = null,
+  onDeleteContent = null,
+}) {
   const mobileModalMedia = window.matchMedia("(max-width: 720px)");
   const overlay = document.createElement("section");
   overlay.className = "image-detail-modal";
@@ -82,6 +91,7 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
 
   let currentDetail = null;
   let likePending = false;
+  let actionPending = false;
 
   function syncLikeUi() {
     const detail = currentDetail || {};
@@ -95,6 +105,14 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     likeButton.setAttribute("aria-label", liked ? td(app, "unlike", "Unlike") : td(app, "like", "Like"));
     likeIcon.textContent = liked ? "♥" : "♡";
     likeCount.textContent = formatCount(detail.like_count ?? 0);
+  }
+
+  function syncActionUi() {
+    const canManage = Boolean(currentDetail?.viewer_permissions?.can_manage_content);
+    body.querySelectorAll("[data-detail-owner-action]").forEach((button) => {
+      button.hidden = !canManage;
+      button.disabled = actionPending;
+    });
   }
 
   function close() {
@@ -216,6 +234,31 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       </section>
     `;
 
+    const ownerMeta = detail.owner_meta || {};
+    const isOwner = Boolean(ownerMeta.is_owner);
+    const canManage = Boolean(detail.viewer_permissions?.can_manage_content);
+    const visibility = ownerMeta.visibility || (adminMeta.is_public === false ? "private" : "public");
+    const status = ownerMeta.status || "normal";
+    const ownerBlock = isOwner
+      ? `
+        <section class="image-detail-modal__section">
+          <h3 class="image-detail-modal__section-title">${escapeHtml(td(app, "owner_actions", "Your Content"))}</h3>
+          <dl class="image-detail-modal__list">
+            ${renderRow(td(app, "visibility", "Visibility"), visibility === "public" ? td(app, "public", "Public") : td(app, "private", "Private"))}
+            ${renderRow(td(app, "moderation", "Moderation"), status)}
+          </dl>
+          <div class="image-detail-modal__owner-actions">
+            <button type="button" class="image-detail-modal__owner-button" data-detail-owner-action="visibility">
+              ${escapeHtml(visibility === "public" ? td(app, "make_private", "Make Private") : td(app, "make_public", "Make Public"))}
+            </button>
+            <button type="button" class="image-detail-modal__owner-button image-detail-modal__owner-button--danger" data-detail-owner-action="delete">
+              ${escapeHtml(td(app, "delete", "Delete"))}
+            </button>
+          </div>
+        </section>
+      `
+      : "";
+
     const tagsBlock = `
       <section class="image-detail-modal__section">
         <h3 class="image-detail-modal__section-title">${escapeHtml(td(app, "tags", "Tags"))}</h3>
@@ -243,13 +286,15 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
       `
       : "";
 
-    body.innerHTML = `${heroBlock}${infoBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
+    body.innerHTML = `${heroBlock}${infoBlock}${ownerBlock}${tagsBlock}${colorsBlock}${adminBlock}`;
     syncLikeUi();
+    syncActionUi();
   }
 
   function open(detail) {
     currentDetail = detail || {};
     likePending = false;
+    actionPending = false;
     render(currentDetail);
     overlay.hidden = false;
     if (typeof onOpen === "function") {
@@ -273,6 +318,13 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     }
   }
 
+  function setActionPending(pending) {
+    actionPending = Boolean(pending);
+    if (!overlay.hidden) {
+      syncActionUi();
+    }
+  }
+
   closeButton.addEventListener("click", close);
   likeButton.addEventListener("click", () => {
     if (typeof onLikeToggle === "function") {
@@ -284,6 +336,17 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     close();
   });
   body.addEventListener("click", (event) => {
+    const ownerAction = event.target.closest("[data-detail-owner-action]");
+    if (ownerAction) {
+      const kind = ownerAction.dataset.detailOwnerAction;
+      if (kind === "visibility" && typeof onVisibilityToggle === "function") {
+        onVisibilityToggle();
+      }
+      if (kind === "delete" && typeof onDeleteContent === "function") {
+        onDeleteContent();
+      }
+      return;
+    }
     const previewBtn = event.target.closest("[data-detail-preview-open]");
     if (previewBtn) {
       handlePreviewOpen();
@@ -298,5 +361,5 @@ export function createImageDetailModal({ host, app, onOpen = null, onClose = nul
     }
   });
 
-  return { open, update, close, isOpen: () => !overlay.hidden, setLikePending };
+  return { open, update, close, isOpen: () => !overlay.hidden, setLikePending, setActionPending };
 }
