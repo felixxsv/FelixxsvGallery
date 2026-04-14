@@ -434,6 +434,18 @@ export function initUserShell(app) {
       : supportText("support.actions.viewStatus", "支援状況を見る");
   }
 
+  function ownAvatarFramePresentation() {
+    const support = getSupport();
+    const settings = support?.settings || {};
+    const entitlements = support?.entitlements || {};
+    return {
+      selected_icon_frame: entitlements.icon_frame
+        ? settings.selected_icon_frame || null
+        : null,
+      selected_profile_decor: null,
+    };
+  }
+
   function setSupportOptionSelection(container, selectedKey, enabled) {
     if (!container) {
       return;
@@ -1338,7 +1350,10 @@ export function initUserShell(app) {
         refs.userCardAvatarInitial.textContent = (user.display_name || user.user_key || "?")[0].toUpperCase();
       }
     }
-    applySupportPresentation(refs.userCard, refs.userCardAvatar, support?.public_profile || {});
+    applySupportPresentation(refs.userCard, refs.userCardAvatar, {
+      ...support?.public_profile,
+      ...ownAvatarFramePresentation(),
+    });
     applySupportPresentation(null, refs.accountAvatar, support?.public_profile || {});
 
     // Bio
