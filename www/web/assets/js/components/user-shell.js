@@ -146,6 +146,7 @@ export function initUserShell(app) {
     profilePreviewButton: byId("shellProfilePreviewButton"),
     adminLink: byId("shellAdminLink"),
     userFooter: byId("shellUserFooter"),
+    openSupportButton: byId("shellOpenSupportButton"),
     logoutButton: byId("shellLogoutButton"),
     logoutAllButton: byId("shellLogoutAllButton"),
 
@@ -220,7 +221,36 @@ export function initUserShell(app) {
     twoFactorDisableResendButton: byId("shellTwoFactorDisableResendButton"),
 
     actionConfirmMessage: byId("shellTwoFactorActionConfirmMessage"),
-    actionConfirmApproveButton: byId("shellTwoFactorActionConfirmApproveButton")
+    actionConfirmApproveButton: byId("shellTwoFactorActionConfirmApproveButton"),
+
+    supportSummaryText: byId("shellSupportSummaryText"),
+    supportOpenFromSettingsButton: byId("shellSupportOpenFromSettingsButton"),
+    supportOpenSettingsButton: byId("shellSupportOpenSettingsButton"),
+    supportSettingsShortcut: byId("shellSupportSettingsShortcut"),
+
+    supportModalHeading: byId("supportModalHeading"),
+    supportModalDescription: byId("supportModalDescription"),
+    supportModalStatusPanel: byId("supportModalStatusPanel"),
+    supportModalStatusText: byId("supportModalStatusText"),
+    supportModalPlanText: byId("supportModalPlanText"),
+    supportModalNextBillingText: byId("supportModalNextBillingText"),
+    supportModalFirstBillingText: byId("supportModalFirstBillingText"),
+    supportModalAchievementText: byId("supportModalAchievementText"),
+    supportModalVisibilityPanel: byId("supportModalVisibilityPanel"),
+    supportModalMessage: byId("supportModalMessage"),
+    supportModalPrimaryAction: byId("supportModalPrimaryAction"),
+    supportModalManageAction: byId("supportModalManageAction"),
+    supportModalStatusAction: byId("supportModalStatusAction"),
+    supportModalDecorAction: byId("supportModalDecorAction"),
+    supportModalCloseAction: byId("supportModalCloseAction"),
+    supportVisibilitySupporter: byId("supportVisibilitySupporter"),
+    supportVisibilityBadge: byId("supportVisibilityBadge"),
+    supportVisibilityDuration: byId("supportVisibilityDuration"),
+    supportVisibilityIconFrame: byId("supportVisibilityIconFrame"),
+    supportVisibilityProfileDecor: byId("supportVisibilityProfileDecor"),
+    supportIconFrameSelect: byId("supportIconFrameSelect"),
+    supportProfileDecorSelect: byId("supportProfileDecorSelect"),
+    supportVisibilitySaveButton: byId("supportVisibilitySaveButton"),
   };
 
   const shellState = {
@@ -230,7 +260,8 @@ export function initUserShell(app) {
     twoFactorDisableResendAvailableAt: 0,
     bypassVerificationCloseGuard: false,
     allowBrowserLeave: false,
-    actionConfirmResolver: null
+    actionConfirmResolver: null,
+    supportSavePending: false,
   };
 
   const CROP_DISPLAY = 240;
@@ -270,6 +301,29 @@ export function initUserShell(app) {
 
   function getFeatures() {
     return getSessionState().data?.features || {};
+  }
+
+  function getSupport() {
+    return getSessionState().data?.support || null;
+  }
+
+  function supportText(key, fallback, vars = {}) {
+    return app.i18n?.t?.(key, fallback, vars) || fallback;
+  }
+
+  function supportStatusText(code) {
+    const map = {
+      inactive: supportText("support.status.inactive", "未支援"),
+      active: supportText("support.status.active", "支援中"),
+      cancelScheduled: supportText("support.status.cancelScheduled", "停止予定"),
+      expired: supportText("support.status.expired", "支援終了"),
+      giftActive: supportText("support.status.giftActive", "ギフト中"),
+      permanentActive: supportText("support.status.permanentActive", "永久無料"),
+      scheduled: supportText("support.status.scheduled", "課金予約あり"),
+      past_due: supportText("support.admin.statusPastDue", "支払失敗"),
+      unpaid: supportText("support.admin.statusUnpaid", "未払い"),
+    };
+    return map[code] || code || "-";
   }
 
   function currentEmail() {
@@ -650,6 +704,11 @@ export function initUserShell(app) {
       ["#shellLoginButton", 0, "shell.static.login", "Log In"],
       ["#shellUploadOpenButton", 0, "shell.static.upload", "Upload"],
       ["#shellAdminLink", 0, "shell.static.admin", "Open Admin"],
+      ["#shellOpenSupportButton", 0, "support.entry.openSupport", "支援する"],
+      ["#shellSupportOpenFromSettingsButton", 0, "shell.static.open", "Open"],
+      ["#shellSupportOpenSettingsButton", 0, "shell.static.open", "Open"],
+      ["#supportVisibilitySaveButton", 0, "shell.static.save", "Save"],
+      ["#supportModalCloseAction", 0, "shell.static.close", "Close"],
     ];
     for (const [selector, index, key, fallback] of mappings) {
       const node = Array.from(document.querySelectorAll(selector))[index];
@@ -739,6 +798,185 @@ export function initUserShell(app) {
     refs.userFooter.hidden = !refs.userFooter.querySelector("button:not([hidden]), a:not([hidden])");
   }
 
+  function syncSupportEntry() {
+    const support = getSupport();
+    const isAuth = isAuthenticated();
+    if (refs.openSupportButton) refs.openSupportButton.hidden = !isAuth;
+    if (refs.supportOpenFromSettingsButton) refs.supportOpenFromSettingsButton.hidden = !isAuth;
+    if (refs.supportOpenSettingsButton) refs.supportOpenSettingsButton.hidden = !isAuth;
+    if (refs.supportSettingsShortcut) refs.supportSettingsShortcut.hidden = !isAuth || !(support?.status?.is_active);
+    if (refs.supportSummaryText) {
+      refs.supportSummaryText.textContent = support?.status?.code
+        ? supportStatusText(support.status.code)
+        : supportText("support.modal.default.planName", "Supporter Plan");
+    }
+  }
+
+  function applySupportPresentation(cardNode, avatarNode, supporterProfile) {
+    const frameClasses = ["supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring"];
+    const decorClasses = ["supporter-profile-decor--aurora-glow", "supporter-profile-decor--sunrise-wave"];
+    avatarNode?.classList?.remove(...frameClasses);
+    cardNode?.classList?.remove(...decorClasses);
+    const frame = supporterProfile?.selected_icon_frame;
+    const decor = supporterProfile?.selected_profile_decor;
+    if (frame === "aurora_ring") avatarNode?.classList?.add("supporter-icon-frame--aurora-ring");
+    if (frame === "amber_ring") avatarNode?.classList?.add("supporter-icon-frame--amber-ring");
+    if (decor === "aurora_glow") cardNode?.classList?.add("supporter-profile-decor--aurora-glow");
+    if (decor === "sunrise_wave") cardNode?.classList?.add("supporter-profile-decor--sunrise-wave");
+  }
+
+  function fillSupportSelect(select, items, value) {
+    if (!select) return;
+    select.innerHTML = "";
+    for (const item of items || []) {
+      const opt = document.createElement("option");
+      opt.value = item.key || "";
+      opt.textContent = supportText(item.label_key, item.key || "-");
+      opt.selected = item.key === value;
+      select.appendChild(opt);
+    }
+  }
+
+  function formatSupportValue(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString(document.documentElement.lang || "ja");
+  }
+
+  function supportVariantCopy(code) {
+    const variants = {
+      active: {
+        heading: supportText("support.modal.active.heading", "現在支援中です"),
+        description: supportText("support.modal.active.description", "Felixxsv Gallery へのご支援ありがとうございます。\n現在、Supporter 特典をご利用いただけます。\nプロフィール装飾やバッジ表示は設定から変更できます。"),
+        primary: supportText("support.actions.manageSupport", "支援内容を管理する"),
+      },
+      cancelScheduled: {
+        heading: supportText("support.modal.cancelScheduled.heading", "支援は停止予定です"),
+        description: supportText("support.modal.cancelScheduled.description", "現在の支援期間が終了するまで、Supporter 特典をご利用いただけます。\n期間終了後は、現在支援中の特典は停止されますが、取得済みの累計支援実績は保持されます。"),
+        primary: supportText("support.actions.manageSupport", "支援内容を管理する"),
+      },
+      expired: {
+        heading: supportText("support.modal.expired.heading", "再度支援する"),
+        description: supportText("support.modal.expired.description", "過去に Felixxsv Gallery をご支援いただきありがとうございました。\n取得済みの累計支援実績は保持されています。\n再度ご支援いただくことで、Supporter 特典をご利用いただけます。"),
+        primary: supportText("support.actions.rejoinSupport", "月額500円で再度支援する"),
+      },
+      giftActive: {
+        heading: supportText("support.modal.giftActive.heading", "現在ご利用中です"),
+        description: supportText("support.modal.giftActive.description", "現在、Supporter 特典をご利用いただけます。\n月額支援を開始する場合、現在の利用期間終了後からお支払いが開始されます。"),
+        primary: supportText("support.actions.startSupport", "月額500円で支援する"),
+      },
+      permanentActive: {
+        heading: supportText("support.modal.permanent.heading", "現在ご利用中です"),
+        description: supportText("support.modal.permanent.description", "現在、Supporter 特典をご利用中です。\n月額支援を開始しても特典内容は変わりません。運営への支援として開始できます。"),
+        primary: supportText("support.actions.startSupport", "月額500円で支援する"),
+      },
+      default: {
+        heading: supportText("support.modal.default.heading", "Felixxsv Gallery を応援する"),
+        description: supportText("support.modal.default.description", "Felixxsv Gallery を継続して運営・改善していくための支援プランです。\nご支援いただいた方には、支援者バッジやプロフィール装飾などの特典をご利用いただけます。\n支援は月額500円で、いつでも停止できます。"),
+        primary: supportText("support.actions.startSupport", "月額500円で支援する"),
+      },
+    };
+    return variants[code] || variants.default;
+  }
+
+  function renderSupportModal() {
+    const support = getSupport();
+    const status = support?.status || {};
+    const settings = support?.settings || {};
+    const variant = supportVariantCopy(status.code || "default");
+    if (refs.supportModalHeading) refs.supportModalHeading.textContent = variant.heading;
+    if (refs.supportModalDescription) refs.supportModalDescription.textContent = variant.description;
+    if (refs.supportModalStatusPanel) refs.supportModalStatusPanel.hidden = !support;
+    if (refs.supportModalStatusText) refs.supportModalStatusText.textContent = support ? supportStatusText(status.code) : supportText("support.status.inactive", "未支援");
+    if (refs.supportModalPlanText) refs.supportModalPlanText.textContent = supportText("support.modal.default.planName", "Supporter Plan");
+    if (refs.supportModalNextBillingText) refs.supportModalNextBillingText.textContent = formatSupportValue(status.next_billing_at || status.current_period_end || status.gift_ends_at);
+    if (refs.supportModalFirstBillingText) refs.supportModalFirstBillingText.textContent = formatSupportValue(status.first_billing_at);
+    if (refs.supportModalAchievementText) {
+      const totalMonths = support?.achievement_summary?.total_months || 0;
+      const highest = support?.achievement_summary?.highest_code;
+      refs.supportModalAchievementText.textContent = highest
+        ? `${supportText(`support.achievements.${highest}`, String(highest).toUpperCase())} / ${totalMonths}M`
+        : `${totalMonths}M`;
+    }
+    if (refs.supportModalVisibilityPanel) refs.supportModalVisibilityPanel.hidden = !support;
+    if (refs.supportVisibilitySupporter) refs.supportVisibilitySupporter.checked = Boolean(settings.supporter_visible);
+    if (refs.supportVisibilityBadge) refs.supportVisibilityBadge.checked = Boolean(settings.supporter_badge_visible);
+    if (refs.supportVisibilityDuration) refs.supportVisibilityDuration.checked = Boolean(settings.supporter_duration_badge_visible);
+    if (refs.supportVisibilityIconFrame) refs.supportVisibilityIconFrame.checked = Boolean(settings.supporter_icon_frame_visible);
+    if (refs.supportVisibilityProfileDecor) refs.supportVisibilityProfileDecor.checked = Boolean(settings.supporter_profile_decor_visible);
+    fillSupportSelect(refs.supportIconFrameSelect, support?.catalog?.icon_frames || [], settings.selected_icon_frame);
+    fillSupportSelect(refs.supportProfileDecorSelect, support?.catalog?.profile_decors || [], settings.selected_profile_decor);
+
+    const actions = support?.actions || {};
+    if (refs.supportModalPrimaryAction) {
+      refs.supportModalPrimaryAction.textContent = variant.primary;
+      refs.supportModalPrimaryAction.disabled = status.code === "active" || status.code === "cancelScheduled"
+        ? !actions.portal_available
+        : !actions.checkout_available;
+    }
+    if (refs.supportModalManageAction) refs.supportModalManageAction.disabled = !actions.portal_available;
+    if (refs.supportModalStatusAction) refs.supportModalStatusAction.disabled = !actions.status_available;
+    if (refs.supportModalDecorAction) refs.supportModalDecorAction.hidden = !support;
+
+    if (refs.supportModalMessage) {
+      let message = "";
+      if (!actions.checkout_available && !actions.portal_available && !actions.status_available) {
+        message = supportText("support.messages.supportUnavailable", "支援機能は現在準備中です。");
+      } else if (!actions.checkout_available && !status.is_active) {
+        message = supportText("support.messages.supportUnavailable", "支援機能は現在準備中です。");
+      }
+      refs.supportModalMessage.textContent = message;
+      refs.supportModalMessage.hidden = !message;
+    }
+    syncSupportEntry();
+  }
+
+  async function saveSupportSettings() {
+    if (!isAuthenticated()) return;
+    shellState.supportSavePending = true;
+    try {
+      const payload = {
+        supporter_visible: Boolean(refs.supportVisibilitySupporter?.checked),
+        supporter_badge_visible: Boolean(refs.supportVisibilityBadge?.checked),
+        supporter_duration_badge_visible: Boolean(refs.supportVisibilityDuration?.checked),
+        supporter_icon_frame_visible: Boolean(refs.supportVisibilityIconFrame?.checked),
+        supporter_profile_decor_visible: Boolean(refs.supportVisibilityProfileDecor?.checked),
+        selected_icon_frame: refs.supportIconFrameSelect?.value || "",
+        selected_profile_decor: refs.supportProfileDecorSelect?.value || "",
+      };
+      const result = await app.api.put("/api/support/me/settings", payload);
+      const sessionState = getSessionState();
+      if (sessionState?.data) {
+        sessionState.data.support = result.support || sessionState.data.support;
+      }
+      renderSupportModal();
+      renderUserCard();
+      app.toast?.success?.(t("shell.toast.profile_saved", "Saved."));
+    } catch (error) {
+      app.toast?.error?.(error?.message || supportText("support.messages.decorSettingsUnavailable", "装飾設定は現在利用できません。"));
+    } finally {
+      shellState.supportSavePending = false;
+    }
+  }
+
+  function openSupportModal(openSettings = false) {
+    if (!isAuthenticated()) return;
+    renderSupportModal();
+    app.modal?.open?.("support");
+    if (openSettings) {
+      refs.supportModalVisibilityPanel?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    }
+  }
+
+  function openSupportExternal(url, unavailableMessage) {
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    app.toast?.info?.(unavailableMessage);
+  }
+
   function renderUserCard() {
     renderHeaderIcon();
 
@@ -763,6 +1001,7 @@ export function initUserShell(app) {
       if (refs.adminLink) refs.adminLink.hidden = true;
       refs.userFooter.hidden = true;
       if (contactBtn) contactBtn.hidden = true;
+      syncSupportEntry();
       return;
     }
     if (contactBtn) contactBtn.hidden = false;
@@ -770,6 +1009,7 @@ export function initUserShell(app) {
     const user = getUser();
     const twoFactor = getTwoFactor();
     const features = getFeatures();
+    const support = getSupport();
 
     refs.userCard.classList.remove("is-guest");
     refs.guestOverlay.hidden = true;
@@ -807,6 +1047,8 @@ export function initUserShell(app) {
         refs.userCardAvatarInitial.textContent = (user.display_name || user.user_key || "?")[0].toUpperCase();
       }
     }
+    applySupportPresentation(refs.userCard, refs.userCardAvatar, support?.public_profile || {});
+    applySupportPresentation(null, refs.accountAvatar, support?.public_profile || {});
 
     // Bio
     const bio = (user.bio || "").trim();
@@ -838,6 +1080,7 @@ export function initUserShell(app) {
     if (refs.adminLink) {
       refs.adminLink.hidden = document.body.dataset.hideAdminLinkInShell === "1" || !features.can_open_admin;
     }
+    syncSupportEntry();
     renderUserFooter();
   }
 
@@ -1805,6 +2048,39 @@ export function initUserShell(app) {
       if (e.key === "Enter") handleLinkAdd();
     });
     refs.avatarDeleteButton?.addEventListener("click", handleAvatarDelete);
+    refs.openSupportButton?.addEventListener("click", () => openSupportModal(false));
+    refs.supportOpenFromSettingsButton?.addEventListener("click", () => openSupportModal(false));
+    refs.supportOpenSettingsButton?.addEventListener("click", () => openSupportModal(true));
+    refs.supportModalCloseAction?.addEventListener("click", () => app.modal?.close?.("support"));
+    refs.supportModalPrimaryAction?.addEventListener("click", () => {
+      const support = getSupport();
+      const statusCode = support?.status?.code;
+      const isPortalAction = statusCode === "active" || statusCode === "cancelScheduled";
+      openSupportExternal(
+        isPortalAction ? support?.actions?.portal_url : support?.actions?.checkout_url,
+        isPortalAction
+          ? supportText("support.messages.portalUnavailable", "支援管理機能は現在利用できません。")
+          : supportText("support.messages.supportUnavailable", "支援機能は現在準備中です。")
+      );
+    });
+    refs.supportModalManageAction?.addEventListener("click", () => {
+      const support = getSupport();
+      openSupportExternal(
+        support?.actions?.portal_url,
+        supportText("support.messages.portalUnavailable", "支援管理機能は現在利用できません。")
+      );
+    });
+    refs.supportModalStatusAction?.addEventListener("click", () => {
+      const support = getSupport();
+      openSupportExternal(
+        support?.actions?.status_url,
+        supportText("support.messages.statusUnavailable", "支援状況を現在確認できません。")
+      );
+    });
+    refs.supportModalDecorAction?.addEventListener("click", () => {
+      refs.supportModalVisibilityPanel?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    });
+    refs.supportVisibilitySaveButton?.addEventListener("click", saveSupportSettings);
     refs.twoFactorEnableButton?.addEventListener("click", handleTwoFactorEnable);
     refs.twoFactorSetupConfirmButton?.addEventListener("click", handleTwoFactorSetupConfirm);
     refs.twoFactorSetupResendButton?.addEventListener("click", handleTwoFactorSetupResend);
@@ -1883,6 +2159,9 @@ export function initUserShell(app) {
         const submit = byId("contactSubmitButton");
         if (submit) { submit.disabled = false; submit.textContent = t("shell.contact.submit", "Send"); }
       }
+      if (id === "support") {
+        renderSupportModal();
+      }
       if (id === "twofactor-action-confirm" && shellState.actionConfirmResolver) {
         closeActionConfirm(false);
       }
@@ -1947,6 +2226,7 @@ export function initUserShell(app) {
 
     session.subscribe(() => {
       renderUserCard();
+      renderSupportModal();
     });
 
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -1971,6 +2251,7 @@ export function initUserShell(app) {
     app.i18n?.apply?.(document.querySelector("[data-settings-support-links]") || document);
     refreshResendButtons();
     renderUserCard();
+    renderSupportModal();
     renderAccountSecurityModal();
   });
 

@@ -70,6 +70,44 @@ function screenStatusLabel(value) {
   return String(value || "") === "visible" ? t("visible", "Visible") : t("hidden", "Hidden");
 }
 
+function supportStatusLabel(value) {
+  switch (String(value || "")) {
+    case "active":
+      return window.AdminApp?.i18n?.t?.("support.status.active", "支援中") || "支援中";
+    case "cancelScheduled":
+      return window.AdminApp?.i18n?.t?.("support.status.cancelScheduled", "停止予定") || "停止予定";
+    case "giftActive":
+      return window.AdminApp?.i18n?.t?.("support.status.giftActive", "ギフト中") || "ギフト中";
+    case "permanentActive":
+      return window.AdminApp?.i18n?.t?.("support.status.permanentActive", "永久無料") || "永久無料";
+    case "scheduled":
+      return window.AdminApp?.i18n?.t?.("support.status.scheduled", "課金予約あり") || "課金予約あり";
+    case "past_due":
+      return window.AdminApp?.i18n?.t?.("support.admin.statusPastDue", "支払失敗") || "支払失敗";
+    case "unpaid":
+      return window.AdminApp?.i18n?.t?.("support.admin.statusUnpaid", "未払い") || "未払い";
+    case "expired":
+      return window.AdminApp?.i18n?.t?.("support.status.expired", "支援終了") || "支援終了";
+    default:
+      return window.AdminApp?.i18n?.t?.("support.status.inactive", "未支援") || "未支援";
+  }
+}
+
+function supportSourceLabel(value) {
+  switch (String(value || "")) {
+    case "paid_subscription":
+      return window.AdminApp?.i18n?.t?.("support.admin.sourcePaid", "課金") || "課金";
+    case "admin_gift":
+      return window.AdminApp?.i18n?.t?.("support.admin.sourceGift", "ギフト") || "ギフト";
+    case "admin_permanent":
+      return window.AdminApp?.i18n?.t?.("support.admin.sourcePermanent", "永久無料") || "永久無料";
+    case "mixed":
+      return window.AdminApp?.i18n?.t?.("support.admin.sourceMixed", "併用") || "併用";
+    default:
+      return "-";
+  }
+}
+
 const BADGE_COLOR_CLASS = {
   blue: "admin-badge--blue",
   red: "admin-badge--red",
@@ -304,7 +342,7 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(t("empty", "No users found."))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">${escapeHtml(t("empty", "No users found."))}</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
@@ -316,6 +354,7 @@ function renderTable() {
       const accountStatus = String(item.account_status || item.status || "active").toLowerCase();
       const loginStatus = String(item.login_status || "logged_out").toLowerCase();
       const screenStatus = String(item.screen_status || "hidden").toLowerCase();
+      const supportCode = item.support?.status?.code || "inactive";
       tr.innerHTML = `
         <td>
           <div class="admin-user-cell">
@@ -332,6 +371,7 @@ function renderTable() {
         <td>${buildPill(loginStatusLabel(loginStatus), loginStatus === "logged_in" ? "admin-users-pill--logged-in" : "admin-users-pill--logged-out")}</td>
         <td>${buildPill(screenStatusLabel(screenStatus), screenStatus === "visible" ? "admin-users-pill--visible" : "admin-users-pill--hidden")}</td>
         <td>${escapeHtml(twoFactorText)}</td>
+        <td>${buildPill(supportStatusLabel(supportCode), `admin-users-pill--support-${escapeHtml(supportCode)}`)}</td>
         <td>${item.upload_enabled ? t("allow", "Allowed") : t("deny", "Denied")}</td>
         <td>${escapeHtml(formatDateTime(item.last_access_at || item.last_seen_at))}</td>
         <td>
@@ -355,7 +395,7 @@ async function loadUsers() {
   const app = window.AdminApp;
   const tbody = byId("adminUsersTableBody");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">${escapeHtml(t("loading", "Loading..."))}</td></tr>`;
   }
   try {
     const payload = await app.api.get(`/api/admin/users?${qs()}`);
@@ -373,7 +413,64 @@ async function loadUsers() {
     renderTable();
     const tbody = byId("adminUsersTableBody");
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="10" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="admin-users-table__empty">${escapeHtml(message)}</td></tr>`;
+    }
+  }
+}
+
+function renderSupportLists(support) {
+  const status = support?.status || {};
+  const settings = support?.settings || {};
+  const grants = Array.isArray(support?.grants) ? support.grants : [];
+  const events = Array.isArray(support?.events) ? support.events : [];
+  byId("adminUsersSupportStatus").textContent = supportStatusLabel(status.code);
+  byId("adminUsersSupportSource").textContent = supportSourceLabel(status.source_type);
+  byId("adminUsersSupportNextBilling").textContent = formatDateTime(status.next_billing_at || status.current_period_end || status.gift_ends_at);
+  byId("adminUsersSupportFirstBilling").textContent = formatDateTime(status.first_billing_at);
+  const highest = support?.achievement_summary?.highest_code;
+  byId("adminUsersSupportAchievement").textContent = highest
+    ? `${window.AdminApp?.i18n?.t?.(`support.achievements.${highest}`, highest.toUpperCase()) || highest.toUpperCase()} / ${support?.achievement_summary?.total_months || 0}M`
+    : `${support?.achievement_summary?.total_months || 0}M`;
+  byId("adminUsersSupportVisibility").textContent = [
+    settings.supporter_visible ? "S" : "-",
+    settings.supporter_badge_visible ? "B" : "-",
+    settings.supporter_duration_badge_visible ? "D" : "-",
+    settings.supporter_icon_frame_visible ? "I" : "-",
+    settings.supporter_profile_decor_visible ? "P" : "-",
+  ].join(" ");
+  const permanentRevoke = byId("adminUsersSupportPermanentRevokeButton");
+  if (permanentRevoke) {
+    permanentRevoke.disabled = !grants.some((item) => item.is_permanent && item.is_active && !item.revoked_at);
+  }
+
+  const grantList = byId("adminUsersSupportGrantList");
+  if (grantList) {
+    if (!grants.length) {
+      grantList.innerHTML = `<div class="admin-users-support-log__empty">-</div>`;
+    } else {
+      grantList.innerHTML = grants.map((grant) => `
+        <div class="admin-users-support-log__item">
+          <div class="admin-users-support-log__meta">${escapeHtml(supportSourceLabel(grant.source_type))} / ${grant.is_permanent ? escapeHtml(window.AdminApp?.i18n?.t?.("support.status.permanentActive", "永久無料") || "永久無料") : `${escapeHtml(String(grant.months || 0))}M`}</div>
+          <div class="admin-users-support-log__sub">${escapeHtml(formatDateTime(grant.starts_at))} - ${escapeHtml(formatDateTime(grant.ends_at))}</div>
+          <div class="admin-users-support-log__sub">${escapeHtml(grant.reason || "-")}</div>
+          ${grant.revoked_at ? `<div class="admin-users-support-log__sub">${escapeHtml(formatDateTime(grant.revoked_at))} / ${escapeHtml(grant.revoke_reason || "-")}</div>` : `<button type="button" class="app-button app-button--ghost admin-users-mini-button" data-support-revoke-grant="${grant.id}">${escapeHtml(window.AdminApp?.i18n?.t?.("support.gift.stopGrant", "付与を停止") || "付与を停止")}</button>`}
+        </div>
+      `).join("");
+    }
+  }
+
+  const eventList = byId("adminUsersSupportEventList");
+  if (eventList) {
+    if (!events.length) {
+      eventList.innerHTML = `<div class="admin-users-support-log__empty">-</div>`;
+    } else {
+      eventList.innerHTML = events.map((item) => `
+        <div class="admin-users-support-log__item">
+          <div class="admin-users-support-log__meta">${escapeHtml(item.provider || "-")} / ${escapeHtml(item.event_type || "-")}</div>
+          <div class="admin-users-support-log__sub">${escapeHtml(formatDateTime(item.received_at))} / ${escapeHtml(item.process_status || "-")}</div>
+          <div class="admin-users-support-log__sub">${escapeHtml(item.mismatch_flag ? (item.mismatch_type || "mismatch") : (item.error_summary || "-"))}</div>
+        </div>
+      `).join("");
     }
   }
 }
@@ -413,9 +510,19 @@ async function openEditModal(userId) {
     byId("adminUsersEditCreatedAt").textContent = formatDateTime(user.created_at);
     byId("adminUsersEditLastSeenAt").textContent = formatDateTime(user.last_seen_at);
     byId("adminUsersEditTwoFactor").textContent = twoFactorStatusLabel(user.two_factor);
+    const grantPreset = byId("adminUsersSupportGrantPreset");
+    const grantMonths = byId("adminUsersSupportGrantMonths");
+    const grantReason = byId("adminUsersSupportGrantReason");
+    if (grantPreset) grantPreset.value = "1";
+    if (grantMonths) {
+      grantMonths.value = "1";
+      grantMonths.disabled = true;
+    }
+    if (grantReason) grantReason.value = "";
 
     renderLinksEditor();
     renderBadgePool();
+    renderSupportLists(user.support || {});
 
     state.editDirty = false;
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
@@ -514,6 +621,56 @@ async function deleteCurrentUser() {
     await loadUsers();
   } catch (error) {
     window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, t("delete_error", "Failed to delete user.")));
+  }
+}
+
+async function grantSupport() {
+  if (!state.currentUser) return;
+  const preset = byId("adminUsersSupportGrantPreset")?.value || "1";
+  const monthsInput = byId("adminUsersSupportGrantMonths")?.value || "1";
+  const reason = byId("adminUsersSupportGrantReason")?.value || "";
+  const payload = preset === "permanent"
+    ? { grant_type: "permanent", is_permanent: true, reason }
+    : { grant_type: "months", months: Number(preset === "custom" ? monthsInput : preset), reason };
+  const ok = await openActionConfirm(window.AdminApp?.i18n?.t?.("support.gift.confirmGrant", "支援特典を付与しますか？") || "支援特典を付与しますか？", window.AdminApp?.i18n?.t?.("support.gift.grant", "付与") || "付与");
+  if (!ok) return;
+  try {
+    const response = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/support/grants`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data?.error?.message || "grant failed");
+    state.currentUser.support = data.data?.support || state.currentUser.support;
+    renderSupportLists(state.currentUser.support);
+    window.AdminApp?.toast?.success?.(window.AdminApp?.i18n?.t?.("support.gift.granted", "支援特典を付与しました。") || "支援特典を付与しました。");
+    await loadUsers();
+  } catch (error) {
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, window.AdminApp?.i18n?.t?.("support.gift.grantFailed", "支援特典の付与に失敗しました。") || "支援特典の付与に失敗しました。"));
+  }
+}
+
+async function revokeSupportGrant(grantId, revokePermanentOnly = false) {
+  if (!state.currentUser || !grantId) return;
+  const ok = await openActionConfirm(window.AdminApp?.i18n?.t?.("support.gift.confirmRevoke", "支援付与を停止しますか？") || "支援付与を停止しますか？", window.AdminApp?.i18n?.t?.("support.gift.stopGrant", "付与を停止") || "付与を停止");
+  if (!ok) return;
+  try {
+    const response = await fetch(`${window.AdminApp.appBase}/api/admin/users/${state.currentUser.user_id}/support/grants/${grantId}/revoke`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revoke_reason: revokePermanentOnly ? "permanent revoke" : "" }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data?.error?.message || "revoke failed");
+    state.currentUser.support = data.data?.support || state.currentUser.support;
+    renderSupportLists(state.currentUser.support);
+    window.AdminApp?.toast?.success?.(window.AdminApp?.i18n?.t?.("support.gift.revoked", "支援付与を停止しました。") || "支援付与を停止しました。");
+    await loadUsers();
+  } catch (error) {
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(error, window.AdminApp?.i18n?.t?.("support.gift.revokeFailed", "支援付与の停止に失敗しました。") || "支援付与の停止に失敗しました。"));
   }
 }
 
@@ -630,6 +787,28 @@ function bindModals() {
   });
 
   byId("adminUsersEditBadgeGrantButton")?.addEventListener("click", grantBadge);
+  byId("adminUsersSupportGrantButton")?.addEventListener("click", grantSupport);
+  byId("adminUsersSupportGrantPreset")?.addEventListener("change", (event) => {
+    const value = event.target.value;
+    const months = byId("adminUsersSupportGrantMonths");
+    if (!months) return;
+    if (value === "custom") {
+      months.disabled = false;
+      return;
+    }
+    if (value === "permanent") {
+      months.value = "";
+      months.disabled = true;
+      return;
+    }
+    months.value = value;
+    months.disabled = true;
+  });
+  byId("adminUsersSupportPermanentRevokeButton")?.addEventListener("click", () => {
+    const grants = Array.isArray(state.currentUser?.support?.grants) ? state.currentUser.support.grants : [];
+    const target = grants.find((item) => item.is_permanent && !item.revoked_at && item.is_active);
+    if (target?.id) revokeSupportGrant(target.id, true);
+  });
 
   [
     "adminUsersEditDisplayName",
@@ -653,6 +832,12 @@ function bindModals() {
     const el = byId(id);
     el?.addEventListener("input", setCreateDirty);
     el?.addEventListener("change", setCreateDirty);
+  });
+
+  byId("adminUsersSupportGrantList")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-support-revoke-grant]");
+    if (!button) return;
+    revokeSupportGrant(Number(button.dataset.supportRevokeGrant || 0), false);
   });
 }
 
@@ -690,9 +875,10 @@ document.addEventListener("admin:ready", () => {
   if (head[3]) head[3].textContent = t("account_col", "Account");
   if (head[4]) head[4].textContent = t("login_col", "Login");
   if (head[5]) head[5].textContent = t("screen_col", "Screen");
-  if (head[7]) head[7].textContent = t("post_col", "Upload");
-  if (head[8]) head[8].textContent = t("last_access_col", "Last Access");
-  if (head[9]) head[9].textContent = t("action_col", "Action");
+  if (head[7]) head[7].textContent = window.AdminApp?.i18n?.t?.("support.common.title", "Support / 支援") || "Support / 支援";
+  if (head[8]) head[8].textContent = t("post_col", "Upload");
+  if (head[9]) head[9].textContent = t("last_access_col", "Last Access");
+  if (head[10]) head[10].textContent = t("action_col", "Action");
   const reload = byId("adminUsersReloadButton");
   if (reload) reload.textContent = t("reload", "Reload");
   const create = byId("adminUsersCreateButton");
@@ -723,9 +909,10 @@ document.addEventListener("admin:ready", () => {
     if (head[3]) head[3].textContent = t("account_col", "Account");
     if (head[4]) head[4].textContent = t("login_col", "Login");
     if (head[5]) head[5].textContent = t("screen_col", "Screen");
-    if (head[7]) head[7].textContent = t("post_col", "Upload");
-    if (head[8]) head[8].textContent = t("last_access_col", "Last Access");
-    if (head[9]) head[9].textContent = t("action_col", "Action");
+    if (head[7]) head[7].textContent = window.AdminApp?.i18n?.t?.("support.common.title", "Support / 支援") || "Support / 支援";
+    if (head[8]) head[8].textContent = t("post_col", "Upload");
+    if (head[9]) head[9].textContent = t("last_access_col", "Last Access");
+    if (head[10]) head[10].textContent = t("action_col", "Action");
     if (reload) reload.textContent = t("reload", "Reload");
     if (create) create.textContent = t("create_temp", "Create Temp User");
     if (prev) prev.textContent = t("prev", "Prev");

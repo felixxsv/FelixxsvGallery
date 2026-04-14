@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Felixxsv Gallery</title>
   <link rel="stylesheet" href="/assets/css/common.css">
-  <link rel="stylesheet" href="/assets/css/components.css?v=20260413-profile-media">
+  <link rel="stylesheet" href="/assets/css/components.css?v=20260414-support">
   <link rel="stylesheet" href="/assets/css/components/date-picker.css">
   <link rel="stylesheet" href="/assets/css/page/home.css?v=20260414-home-mobile-search-lock">
-  <link rel="stylesheet" href="/assets/css/components/image-modal.css">
+  <link rel="stylesheet" href="/assets/css/components/image-modal.css?v=20260414-support">
   <link rel="stylesheet" href="/assets/css/components/upload-modal.css?v=20260414-upload-mobile-fix">
   <link rel="stylesheet" href="/assets/css/components/toast.css">
   <script>
@@ -455,6 +455,7 @@
 
         <div id="shellUserFooter" class="app-modal-footer shell-user-footer" hidden>
           <div class="shell-user-footer__secondary">
+            <button id="shellOpenSupportButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
           </div>
           <div class="shell-user-footer__actions">
             <button id="shellViewMyPostsButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="shell.static.view_my_posts">投稿を見る</button>
@@ -497,6 +498,10 @@
                 <div id="userProfileBadgesSection" class="shell-user-profile__section" hidden>
                   <span class="shell-user-profile__section-label" data-i18n="public_profile.badges_label">バッジ</span>
                   <div id="userProfileBadges" class="user-profile-badges"></div>
+                </div>
+                <div id="userProfileSupportSection" class="shell-user-profile__section" hidden>
+                  <span class="shell-user-profile__section-label" data-i18n="support.common.title">Support / 支援</span>
+                  <div id="userProfileSupportBadges" class="user-profile-badges"></div>
                 </div>
               </div>
             </div>
@@ -567,6 +572,168 @@
             </div>
           </div>
 
+          <div class="shell-settings-group" data-settings-support-links>
+            <h3 class="shell-settings-group__title" data-i18n="shell.static.support_group">Support</h3>
+            <div class="shell-security-list">
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="support.common.title">Support / 支援</span>
+                  <span id="shellSupportSummaryText" class="shell-security-item__value" data-i18n="support.modal.default.planName">Supporter Plan</span>
+                </div>
+                <button type="button" class="app-button app-button--ghost app-button--small" id="shellSupportOpenFromSettingsButton" data-i18n="shell.static.open">Open</button>
+              </div>
+              <div class="shell-security-item" id="shellSupportSettingsShortcut" hidden>
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="support.entry.openSupportSettings">Supporter設定</span>
+                  <span class="shell-security-item__value" data-i18n="support.visibility.heading">表示設定</span>
+                </div>
+                <button type="button" class="app-button app-button--ghost app-button--small" id="shellSupportOpenSettingsButton" data-i18n="shell.static.open">Open</button>
+              </div>
+              <div class="shell-security-item" data-settings-contact-item>
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="shell.contact.button">Contact</span>
+                  <span class="shell-security-item__value" data-i18n="shell.contact.title">Contact</span>
+                </div>
+                <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="contact" data-i18n="shell.static.open">Open</button>
+              </div>
+              <div class="shell-security-item">
+                <div class="shell-security-item__left">
+                  <span class="shell-security-item__label" data-i18n="shell.static.credits">Credits</span>
+                  <span class="shell-security-item__value">Felixxsv Gallery</span>
+                </div>
+                <button type="button" class="app-button app-button--ghost app-button--small" data-modal-open="credits" data-i18n="shell.static.open">Open</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="support" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="support"></div>
+      <div class="app-modal-dialog app-modal-dialog--scroll support-modal" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="supportModalTitle" class="app-modal-title" data-i18n="support.common.title">Support / 支援</h2>
+        </div>
+        <div class="app-modal-body support-modal__body">
+          <section class="support-modal__hero">
+            <div class="support-modal__eyebrow" data-i18n="support.common.title">Support / 支援</div>
+            <h3 id="supportModalHeading" class="support-modal__heading" data-i18n="support.modal.default.heading">Felixxsv Gallery を応援する</h3>
+            <p id="supportModalDescription" class="support-modal__description" data-i18n="support.modal.default.description">Felixxsv Gallery を継続して運営・改善していくための支援プランです。
+ご支援いただいた方には、支援者バッジやプロフィール装飾などの特典をご利用いただけます。
+支援は月額500円で、いつでも停止できます。</p>
+          </section>
+
+          <section class="support-modal__plan">
+            <div class="support-modal__plan-name" data-i18n="support.modal.default.planName">Supporter Plan</div>
+            <div class="support-modal__plan-price" data-i18n="support.modal.default.priceLabel">月額 500円</div>
+          </section>
+
+          <section class="support-modal__panel" id="supportModalStatusPanel" hidden>
+            <h4 class="support-modal__panel-title" data-i18n="support.details.statusHeading">支援状況</h4>
+            <dl class="app-definition-list support-modal__detail-list">
+              <div class="app-definition-list__row">
+                <dt data-i18n="support.details.currentStatus">支援状態</dt>
+                <dd id="supportModalStatusText">-</dd>
+              </div>
+              <div class="app-definition-list__row">
+                <dt data-i18n="support.details.plan">現在のプラン</dt>
+                <dd id="supportModalPlanText">-</dd>
+              </div>
+              <div class="app-definition-list__row">
+                <dt data-i18n="support.details.nextBillingAt">次回更新日</dt>
+                <dd id="supportModalNextBillingText">-</dd>
+              </div>
+              <div class="app-definition-list__row">
+                <dt data-i18n="support.details.firstBillingAt">初回お支払い予定日</dt>
+                <dd id="supportModalFirstBillingText">-</dd>
+              </div>
+              <div class="app-definition-list__row">
+                <dt data-i18n="support.details.totalAchievement">累計支援実績</dt>
+                <dd id="supportModalAchievementText">-</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="support-modal__panel">
+            <h4 class="support-modal__panel-title" data-i18n="support.modal.default.benefitsHeading">支援特典</h4>
+            <ul class="support-modal__benefits">
+              <li data-i18n="support.benefits.badge.label">支援者バッジ</li>
+              <li data-i18n="support.benefits.durationBadge.label">累計支援期間バッジ</li>
+              <li data-i18n="support.benefits.iconFrame.label">アイコンフレーム</li>
+              <li data-i18n="support.benefits.profileDecor.label">プロフィール装飾</li>
+              <li data-i18n="support.benefits.decorPreset.label">支援者向け装飾プリセット</li>
+            </ul>
+            <p class="support-modal__note" data-i18n="support.modal.default.benefitsNote">支援特典は、サイトの基本的な利用を妨げない範囲で提供されます。
+閲覧や基本操作などの通常機能は、支援の有無にかかわらずご利用いただけます。</p>
+          </section>
+
+          <section class="support-modal__panel" id="supportModalVisibilityPanel" hidden>
+            <div class="support-modal__panel-head">
+              <h4 class="support-modal__panel-title" data-i18n="support.visibility.heading">表示設定</h4>
+            </div>
+            <div class="app-form-stack">
+              <div class="app-switch-row">
+                <span class="app-switch-row__label" data-i18n="support.visibility.supporterVisible">支援者情報を表示する</span>
+                <label class="app-switch">
+                  <input id="supportVisibilitySupporter" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                </label>
+              </div>
+              <div class="app-switch-row">
+                <span class="app-switch-row__label" data-i18n="support.visibility.badgeVisible">支援者バッジを表示する</span>
+                <label class="app-switch">
+                  <input id="supportVisibilityBadge" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                </label>
+              </div>
+              <div class="app-switch-row">
+                <span class="app-switch-row__label" data-i18n="support.visibility.durationBadgeVisible">累計支援実績を表示する</span>
+                <label class="app-switch">
+                  <input id="supportVisibilityDuration" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                </label>
+              </div>
+              <div class="app-switch-row">
+                <span class="app-switch-row__label" data-i18n="support.visibility.iconFrameVisible">アイコンフレームを表示する</span>
+                <label class="app-switch">
+                  <input id="supportVisibilityIconFrame" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                </label>
+              </div>
+              <div class="app-switch-row">
+                <span class="app-switch-row__label" data-i18n="support.visibility.profileDecorVisible">プロフィール装飾を表示する</span>
+                <label class="app-switch">
+                  <input id="supportVisibilityProfileDecor" class="app-switch__input" type="checkbox">
+                  <span class="app-switch__track" aria-hidden="true"><span class="app-switch__thumb"></span></span>
+                </label>
+              </div>
+              <label class="app-field">
+                <span class="app-field__label" data-i18n="support.details.iconFrame">アイコンフレーム</span>
+                <select id="supportIconFrameSelect" class="app-select"></select>
+              </label>
+              <label class="app-field">
+                <span class="app-field__label" data-i18n="support.details.profileDecor">プロフィール装飾</span>
+                <select id="supportProfileDecorSelect" class="app-select"></select>
+              </label>
+            </div>
+            <div class="app-button-row app-button-row--end">
+              <button id="supportVisibilitySaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
+            </div>
+          </section>
+
+          <p id="supportModalMessage" class="support-modal__message" hidden></p>
+        </div>
+        <div class="app-modal-footer support-modal__footer">
+          <div class="support-modal__footer-note" data-i18n="support.messages.externalPageNotice">この操作は別タブで開きます。</div>
+          <div class="app-button-row support-modal__actions">
+            <button id="supportModalPrimaryAction" type="button" class="app-button app-button--primary" data-i18n="support.actions.startSupport">月額500円で支援する</button>
+            <button id="supportModalManageAction" type="button" class="app-button app-button--ghost" data-i18n="support.actions.manageSupport">支援内容を管理する</button>
+            <button id="supportModalStatusAction" type="button" class="app-button app-button--ghost" data-i18n="support.actions.viewStatus">支援状況を見る</button>
+            <button id="supportModalDecorAction" type="button" class="app-button app-button--ghost" data-i18n="support.actions.openDecorSettings">装飾設定を開く</button>
+            <button id="supportModalCloseAction" type="button" class="app-button app-button--ghost" data-i18n="shell.static.close">閉じる</button>
+          </div>
         </div>
       </div>
     </section>
@@ -1021,6 +1188,6 @@
     </article>
   </template>
 
-  <script type="module" src="/assets/js/app.js?v=20260414-home-mobile-search-lock"></script>
+  <script type="module" src="/assets/js/app.js?v=20260414-support"></script>
 </body>
 </html>

@@ -179,6 +179,25 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+.admin-users-pill--support-active,
+.admin-users-pill--support-giftActive,
+.admin-users-pill--support-permanentActive {
+  background: rgba(234, 179, 8, 0.14);
+  border-color: rgba(250, 204, 21, 0.26);
+}
+
+.admin-users-pill--support-cancelScheduled,
+.admin-users-pill--support-scheduled {
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.24);
+}
+
+.admin-users-pill--support-past_due,
+.admin-users-pill--support-unpaid {
+  background: rgba(248, 113, 113, 0.16);
+  border-color: rgba(248, 113, 113, 0.24);
+}
+
 .admin-users-actions {
   display: inline-flex;
   gap: 8px;
@@ -428,6 +447,67 @@
 
 .admin-badge__revoke:hover {
   opacity: 1;
+}
+
+.admin-users-support-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-users-support-panel__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-users-support-panel__summary div {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-users-support-panel__summary span {
+  color: rgba(226, 232, 240, 0.64);
+  font-size: 0.78rem;
+}
+
+.admin-users-support-panel__grant,
+.admin-users-support-panel__history {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-users-support-panel__title {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.admin-users-support-log {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-users-support-log__item {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-users-support-log__meta {
+  font-weight: 700;
+}
+
+.admin-users-support-log__sub,
+.admin-users-support-log__empty {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
 
 @media (max-width: 1280px) {

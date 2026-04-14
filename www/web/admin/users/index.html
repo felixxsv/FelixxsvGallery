@@ -6,9 +6,9 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title data-i18n="admin_users.page_title">ユーザー管理</title>
 <link href="/assets/css/common.css" rel="stylesheet"/>
-<link href="/assets/css/components.css?v=20260413-profile-media" rel="stylesheet"/>
+<link href="/assets/css/components.css?v=20260414-support" rel="stylesheet"/>
 <link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
-<link href="/assets/css/page/admin/users.css" rel="stylesheet"/>
+<link href="/assets/css/page/admin/users.css?v=20260414-support" rel="stylesheet"/>
 </head>
 <body class="admin-page" data-admin-description="ユーザー一覧、編集、仮ユーザー作成を行います。" data-admin-page="users" data-app-base="" data-hide-admin-link-in-shell="1">
 <section class="admin-state-screen" id="adminLoadingState">
@@ -139,6 +139,7 @@
 <th data-i18n="admin_users.login_col">ログイン</th>
 <th data-i18n="admin_users.screen_col">画面</th>
 <th>2FA</th>
+<th data-i18n="support.common.title">支援</th>
 <th data-i18n="admin_users.post_col">投稿</th>
 <th data-i18n="admin_users.last_access_col">最終アクセス</th>
 <th data-i18n="admin_users.action_col">操作</th>
@@ -146,7 +147,7 @@
 </thead>
 <tbody id="adminUsersTableBody">
 <tr>
-<td class="admin-users-table__empty" colspan="10" data-i18n="admin_users.loading">読み込み中です。</td>
+<td class="admin-users-table__empty" colspan="11" data-i18n="admin_users.loading">読み込み中です。</td>
 </tr>
 </tbody>
 </table>
@@ -833,6 +834,44 @@
 <button class="app-button app-button--ghost" id="adminUsersEditBadgeGrantButton" type="button" data-i18n="admin_users.grant">付与</button>
 </div>
 </div>
+<div class="admin-users-modal__field admin-users-modal__field--full">
+<label class="admin-form-label" data-i18n="support.common.title">Support / 支援</label>
+<div class="admin-users-support-panel">
+<div class="admin-users-support-panel__summary">
+<div><span data-i18n="support.details.currentStatus">支援状態</span><strong id="adminUsersSupportStatus">-</strong></div>
+<div><span data-i18n="support.details.source">付与元</span><strong id="adminUsersSupportSource">-</strong></div>
+<div><span data-i18n="support.details.nextBillingAt">次回更新日</span><strong id="adminUsersSupportNextBilling">-</strong></div>
+<div><span data-i18n="support.details.firstBillingAt">初回お支払い予定日</span><strong id="adminUsersSupportFirstBilling">-</strong></div>
+<div><span data-i18n="support.details.totalAchievement">累計支援実績</span><strong id="adminUsersSupportAchievement">-</strong></div>
+<div><span data-i18n="support.details.visibilitySettings">表示設定</span><strong id="adminUsersSupportVisibility">-</strong></div>
+</div>
+<div class="admin-users-support-panel__grant">
+<label class="admin-form-label" for="adminUsersSupportGrantPreset" data-i18n="support.gift.preset">付与プリセット</label>
+<select class="app-select" id="adminUsersSupportGrantPreset">
+<option value="1">1か月</option>
+<option value="3">3か月</option>
+<option value="6">6か月</option>
+<option value="12">12か月</option>
+<option value="custom">任意月数</option>
+<option value="permanent">永久無料</option>
+</select>
+<label class="admin-form-label" for="adminUsersSupportGrantMonths" data-i18n="support.gift.months">月数</label>
+<input class="app-input" id="adminUsersSupportGrantMonths" type="number" min="1" step="1" value="1"/>
+<label class="admin-form-label" for="adminUsersSupportGrantReason" data-i18n="support.gift.reason">理由</label>
+<textarea class="app-input admin-users-modal__bio" id="adminUsersSupportGrantReason" rows="2"></textarea>
+<div class="app-button-row">
+<button class="app-button app-button--primary" id="adminUsersSupportGrantButton" type="button" data-i18n="support.gift.grant">付与</button>
+<button class="app-button app-button--ghost" id="adminUsersSupportPermanentRevokeButton" type="button" data-i18n="support.gift.revokePermanent">永久無料を解除</button>
+</div>
+</div>
+<div class="admin-users-support-panel__history">
+<h4 class="admin-users-support-panel__title" data-i18n="support.gift.history">手動付与履歴</h4>
+<div id="adminUsersSupportGrantList" class="admin-users-support-log"></div>
+<h4 class="admin-users-support-panel__title" data-i18n="support.admin.mismatchHeading">決済イベント / 不整合</h4>
+<div id="adminUsersSupportEventList" class="admin-users-support-log"></div>
+</div>
+</div>
+</div>
 <div class="admin-users-modal__meta">
 <div><span data-i18n="admin_users.email_label">メール</span><strong id="adminUsersEditEmail">-</strong></div>
 <div><span data-i18n="admin_users.created_at_label">作成日時</span><strong id="adminUsersEditCreatedAt">-</strong></div>
@@ -907,6 +946,6 @@
 </div>
 <div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
 <script src="/assets/js/components/admin-layout.js?v=20260413-crop" type="module"></script>
-<script src="/assets/js/page/admin/users.js?v=20260412-badges2" type="module"></script>
+<script src="/assets/js/page/admin/users.js?v=20260414-support" type="module"></script>
 </body>
 </html>

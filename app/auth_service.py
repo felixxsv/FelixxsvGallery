@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 from db import db_conn, load_conf
 from auth_mail import AuthMailError, send_password_reset_email, send_two_factor_code_email, send_verification_email
 from badge_defs import serialize_badge, _parse_display_badges_py, ensure_auto_badges
+from supporter_service import build_supporter_context
 from auth_models import (
     clear_password_failed_attempts,
     consume_email_verification,
@@ -3937,6 +3938,7 @@ def get_current_user_profile(
                     "badge_pool": badge_pool,
                     "display_badges": display_badge_keys,
                 },
+                "support": build_supporter_context(conn, user["id"], conf=_get_conf(), include_private=True, include_admin=False),
                 "security": {
                     "two_factor": {
                         "is_enabled": bool(two_factor_settings.get("is_enabled")) if two_factor_settings else False,

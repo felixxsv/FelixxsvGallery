@@ -976,6 +976,124 @@ body {
   color: var(--color-text-muted);
 }
 
+.supporter-icon-frame--aurora-ring,
+.supporter-icon-frame--amber-ring {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-bg-elevated) 88%, transparent),
+    0 0 0 5px transparent;
+}
+
+.supporter-icon-frame--aurora-ring {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-bg-elevated) 88%, transparent),
+    0 0 0 5px rgba(68, 188, 255, 0.42),
+    0 0 18px rgba(88, 214, 190, 0.28);
+}
+
+.supporter-icon-frame--amber-ring {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-bg-elevated) 88%, transparent),
+    0 0 0 5px rgba(255, 173, 63, 0.38),
+    0 0 18px rgba(255, 114, 61, 0.22);
+}
+
+.supporter-profile-decor--aurora-glow {
+  background:
+    radial-gradient(circle at top right, rgba(79, 172, 254, 0.16), transparent 38%),
+    radial-gradient(circle at left bottom, rgba(88, 214, 190, 0.12), transparent 34%);
+  border-radius: var(--radius-lg);
+}
+
+.supporter-profile-decor--sunrise-wave {
+  background:
+    linear-gradient(140deg, rgba(255, 172, 95, 0.12), transparent 42%),
+    radial-gradient(circle at 20% 20%, rgba(255, 123, 84, 0.14), transparent 30%);
+  border-radius: var(--radius-lg);
+}
+
+.support-modal {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.support-modal__body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.support-modal__hero {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.support-modal__eyebrow {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.support-modal__heading {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.support-modal__description,
+.support-modal__note {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+
+.support-modal__plan,
+.support-modal__panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: var(--space-4);
+}
+
+.support-modal__plan-name {
+  font-weight: 700;
+}
+
+.support-modal__plan-price {
+  margin-top: var(--space-1);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.support-modal__benefits {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.support-modal__panel-title {
+  margin: 0 0 var(--space-3);
+  font-size: 0.98rem;
+}
+
+.support-modal__detail-list {
+  gap: var(--space-2);
+}
+
+.support-modal__message {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.support-modal__footer-note {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.support-modal__actions {
+  justify-content: flex-end;
+}
+
 /* User shell: badge pool section */
 .shell-badge-pool {
   display: flex;

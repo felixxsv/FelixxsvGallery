@@ -28,6 +28,11 @@ from auth_security import DEFAULT_COOKIE_NAME
 from auth_service import get_current_user_by_session_token
 from galleryctl.colors import extract_top_colors, load_palette_from_conf, load_settings_from_conf
 from badge_defs import _parse_display_badges_py, get_post_count_badges, list_badge_keys, list_catalog as list_badge_catalog, serialize_badge
+from supporter_service import (
+    build_supporter_context,
+    get_public_supporter_profile,
+    update_supporter_settings,
+)
 from gallery_upload_service import (
     GalleryActor,
     GalleryUploadError,
@@ -713,6 +718,7 @@ def get_public_user_profile(user_key: str):
             avatar_url = f"/api/auth/avatar/{user['id']}" if user.get("avatar_path") else None
             display_badge_keys = _parse_display_badges_py(user.get("display_badges"), conn=conn)
             badges = _load_user_display_badges(conn, user["id"], display_badge_keys)
+            supporter_profile = get_public_supporter_profile(conn, int(user["id"]), conf=CONF)
 
             return {
                 "user": {
@@ -722,8 +728,73 @@ def get_public_user_profile(user_key: str):
                     "links": links,
                     "avatar_url": avatar_url,
                     "badges": badges,
+                    "supporter_profile": supporter_profile,
                 }
             }
+    finally:
+        conn.close()
+
+
+@app.get("/api/support/me")
+def get_my_support(
+    req: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    session_result = get_current_user_by_session_token(gallery_session)
+    user = (session_result or {}).get("user") if session_result else None
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です。")
+    conn = db_conn(CONF)
+    try:
+        return {
+            "support": build_supporter_context(conn, int(user["id"]), conf=CONF, include_private=True, include_admin=False),
+        }
+    finally:
+        conn.close()
+
+
+@app.put("/api/support/me/settings")
+async def update_my_support_settings(
+    req: Request,
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    session_result = get_current_user_by_session_token(gallery_session)
+    user = (session_result or {}).get("user") if session_result else None
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です。")
+    payload = await req.json()
+    conn = db_conn(CONF)
+    try:
+        settings = update_supporter_settings(conn, int(user["id"]), payload or {})
+        conn.commit()
+        support = build_supporter_context(conn, int(user["id"]), conf=CONF, include_private=True, include_admin=False)
+        support["settings"] = settings
+        return {
+            "ok": True,
+            "support": support,
+        }
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@app.get("/api/support/me/entitlements")
+def get_my_support_entitlements(
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    session_result = get_current_user_by_session_token(gallery_session)
+    user = (session_result or {}).get("user") if session_result else None
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です。")
+    conn = db_conn(CONF)
+    try:
+        support = build_supporter_context(conn, int(user["id"]), conf=CONF, include_private=True, include_admin=False)
+        return {
+            "entitlements": support.get("entitlements") or {},
+            "status": support.get("status") or {},
+        }
     finally:
         conn.close()
 
@@ -1990,6 +2061,7 @@ ORDER BY
         visibility = "public" if bool(primary.get("is_public", 1)) else "private"
         status = str(primary.get("moderation_status") or "normal")
         owner_user_id = int(primary.get("owner_user_id")) if primary.get("owner_user_id") is not None else None
+        supporter_profile = get_public_supporter_profile(conn, owner_user_id, conf=CONF) if owner_user_id is not None else {}
         viewer_permissions, owner_meta = _serialize_content_owner_controls(current_user, owner_user_id, visibility, status)
         return {
             "content_id": key,
@@ -2009,6 +2081,12 @@ ORDER BY
             "uploader_user_key": primary.get("uploader_user_key"),
             "uploader_display_name": primary.get("uploader_display_name"),
             "uploader_avatar_url": primary.get("uploader_avatar_url"),
+            "user": {
+                "user_key": primary.get("uploader_user_key"),
+                "display_name": primary.get("uploader_display_name"),
+                "avatar_url": primary.get("uploader_avatar_url"),
+                "supporter_profile": supporter_profile,
+            },
             "images": images,
         }
     finally:

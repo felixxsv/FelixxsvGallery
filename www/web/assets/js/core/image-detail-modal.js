@@ -137,13 +137,33 @@ export function createImageDetailModal({
     return `<div class="image-detail-modal__chips">${items.map((item) => `<span class="image-detail-modal__chip">${escapeHtml(item)}</span>`).join("")}</div>`;
   }
 
-  function renderColorTags(items) {
+function renderColorTags(items) {
     if (!items?.length) return `<div class="image-detail-modal__empty">${escapeHtml(td(app, "no_colors", "No color tags."))}</div>`;
     return `<div class="image-detail-modal__chips image-detail-modal__chips--colors">${items.map((item) => {
       const color = normalizeColorTag(item);
       if (!color) return "";
       return `<span class="image-detail-modal__chip image-detail-modal__chip--color">${color.swatch ? `<span class="image-detail-modal__swatch" style="background:${escapeHtml(color.swatch)};"></span>` : ""}${escapeHtml(color.label)}</span>`;
     }).join("")}</div>`;
+  }
+
+  function renderSupporterBadges(user) {
+    const supporter = user?.supporter_profile || {};
+    const chips = [];
+    if (supporter.badge_visible) {
+      chips.push(`<span class="image-detail-modal__support-chip image-detail-modal__support-chip--gold">${escapeHtml(app?.i18n?.t?.("support.common.supporter_badge", "Supporter") || "Supporter")}</span>`);
+    }
+    if (supporter.duration_badge_visible && supporter.duration_badge_code) {
+      chips.push(`<span class="image-detail-modal__support-chip image-detail-modal__support-chip--blue">${escapeHtml(app?.i18n?.t?.(`support.achievements.${supporter.duration_badge_code}`, String(supporter.duration_badge_code).toUpperCase()) || String(supporter.duration_badge_code).toUpperCase())}</span>`);
+    }
+    if (!chips.length) return "";
+    return `<div class="image-detail-modal__support-row">${chips.join("")}</div>`;
+  }
+
+  function supporterAvatarClass(user) {
+    const frame = user?.supporter_profile?.selected_icon_frame;
+    if (frame === "aurora_ring") return " supporter-icon-frame--aurora-ring";
+    if (frame === "amber_ring") return " supporter-icon-frame--amber-ring";
+    return "";
   }
 
 
@@ -197,10 +217,11 @@ export function createImageDetailModal({
         <div class="image-detail-modal__summary-group image-detail-modal__summary-group--user">
           <div class="image-detail-modal__summary-label">${escapeHtml(td(app, "user_info", "User"))}</div>
           <button type="button" class="image-detail-modal__user image-detail-modal__user--compact${user.user_key ? " is-clickable" : ""}" data-user-key="${escapeHtml(user.user_key || "")}">
-            ${user.avatar_url ? `<img class="image-detail-modal__avatar" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
+            ${user.avatar_url ? `<img class="image-detail-modal__avatar${supporterAvatarClass(user)}" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback${supporterAvatarClass(user)}">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
             <div class="image-detail-modal__user-meta">
               <div class="image-detail-modal__user-name">${escapeHtml(textOrDash(user.display_name))}</div>
               <div class="image-detail-modal__user-id">@${escapeHtml(textOrDash(user.user_key))}</div>
+              ${renderSupporterBadges(user)}
             </div>
           </button>
         </div>

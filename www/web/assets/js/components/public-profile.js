@@ -60,6 +60,15 @@ function isActiveBadge(badge) {
   return badge?.key && String(badge.key) !== "star";
 }
 
+function applySupportPresentation(container, avatar, supporterProfile) {
+  container?.classList?.remove("supporter-profile-decor--aurora-glow", "supporter-profile-decor--sunrise-wave");
+  avatar?.classList?.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
+  if (supporterProfile?.selected_icon_frame === "aurora_ring") avatar?.classList?.add("supporter-icon-frame--aurora-ring");
+  if (supporterProfile?.selected_icon_frame === "amber_ring") avatar?.classList?.add("supporter-icon-frame--amber-ring");
+  if (supporterProfile?.selected_profile_decor === "aurora_glow") container?.classList?.add("supporter-profile-decor--aurora-glow");
+  if (supporterProfile?.selected_profile_decor === "sunrise_wave") container?.classList?.add("supporter-profile-decor--sunrise-wave");
+}
+
 export function initPublicProfileModal(app) {
   const refs = {
     loading: byId("userProfileLoading"),
@@ -76,6 +85,8 @@ export function initPublicProfileModal(app) {
     linksSection: byId("userProfileLinksSection"),
     badges: byId("userProfileBadges"),
     badgesSection: byId("userProfileBadgesSection"),
+    supportBadges: byId("userProfileSupportBadges"),
+    supportSection: byId("userProfileSupportSection"),
     linkBadgeRow: byId("userProfileLinkBadgeRow"),
     footer: byId("userProfileFooter"),
     filterButton: byId("userProfileFilterButton"),
@@ -99,6 +110,29 @@ export function initPublicProfileModal(app) {
     document.querySelectorAll("[data-i18n='public_profile.bio_label']").forEach(el => { el.textContent = t("bio_label", "Bio"); });
     document.querySelectorAll("[data-i18n='public_profile.links_label']").forEach(el => { el.textContent = t("links_label", "Links"); });
     document.querySelectorAll("[data-i18n='public_profile.badges_label']").forEach(el => { el.textContent = t("badges_label", "Badges"); });
+  }
+
+  function renderSupportBadges(supporterProfile) {
+    if (!refs.supportBadges || !refs.supportSection) return false;
+    refs.supportBadges.innerHTML = "";
+    const items = [];
+    if (supporterProfile?.badge_visible) {
+      items.push({ className: "user-profile-badge user-profile-badge--gold", text: app.i18n?.t?.("support.common.supporter_badge", "Supporter") || "Supporter" });
+    }
+    if (supporterProfile?.duration_badge_visible && supporterProfile?.duration_badge_code) {
+      items.push({
+        className: "user-profile-badge user-profile-badge--blue",
+        text: app.i18n?.t?.(`support.achievements.${supporterProfile.duration_badge_code}`, String(supporterProfile.duration_badge_code).toUpperCase()) || String(supporterProfile.duration_badge_code).toUpperCase(),
+      });
+    }
+    for (const item of items) {
+      const chip = document.createElement("span");
+      chip.className = item.className;
+      chip.textContent = item.text;
+      refs.supportBadges.appendChild(chip);
+    }
+    refs.supportSection.hidden = items.length === 0;
+    return items.length > 0;
   }
 
   applyStaticTranslations();
@@ -189,7 +223,9 @@ export function initPublicProfileModal(app) {
       // Badges
       const badges = Array.isArray(user.badges) ? user.badges.filter(isActiveBadge) : [];
       const hasBadges = badges.length > 0;
+      const hasSupportBadges = renderSupportBadges(user.supporter_profile || {});
       currentUser = user;
+      applySupportPresentation(refs.content, refs.avatar, user.supporter_profile || {});
       if (refs.badgesSection) refs.badgesSection.hidden = !hasBadges;
       if (refs.badges) {
         refs.badges.innerHTML = "";
@@ -203,7 +239,7 @@ export function initPublicProfileModal(app) {
           refs.badges.appendChild(el);
         }
       }
-      if (refs.linkBadgeRow) refs.linkBadgeRow.hidden = !hasLinks && !hasBadges;
+      if (refs.linkBadgeRow) refs.linkBadgeRow.hidden = !hasLinks && !hasBadges && !hasSupportBadges;
 
       refs.loading.hidden = true;
       refs.content.hidden = false;
@@ -236,6 +272,8 @@ export function initPublicProfileModal(app) {
     refreshProfileMediaModalTexts(app);
     if (!currentUser || refs.content.hidden) return;
     const badges = Array.isArray(currentUser.badges) ? currentUser.badges.filter(isActiveBadge) : [];
+    const hasSupportBadges = renderSupportBadges(currentUser.supporter_profile || {});
+    applySupportPresentation(refs.content, refs.avatar, currentUser.supporter_profile || {});
     if (refs.badges) {
       refs.badges.innerHTML = "";
       refs.badges.hidden = badges.length === 0;
@@ -249,6 +287,7 @@ export function initPublicProfileModal(app) {
         refs.badges.appendChild(el);
       }
     }
+    if (refs.linkBadgeRow) refs.linkBadgeRow.hidden = !(currentUser.links || []).length && badges.length === 0 && !hasSupportBadges;
   });
 
   return { openProfile };

@@ -25,6 +25,12 @@ from auth_service import get_current_user_profile
 from auth_mail import AuthMailError, build_text_message, send_message
 from db import db_conn, load_conf
 from badge_defs import list_badge_keys, serialize_badge, list_catalog as list_badge_catalog
+from supporter_service import (
+    build_supporter_context,
+    grant_supporter_access,
+    revoke_supporter_grant,
+    upsert_supporter_subscription,
+)
 from galleryctl.colors import load_palette_from_conf
 
 
@@ -880,7 +886,7 @@ GROUP BY user_id
     return {int(row.get("user_id")): _coerce_utc_text(row.get("last_seen_at")) for row in rows}
 
 
-def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict]) -> dict:
+def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], two_factor_map: dict[int, dict], supporter_map: dict[int, dict] | None = None) -> dict:
     row = _normalize_user_row_runtime(row)
     user_id = int(row.get("id"))
     active_session_count = int(row.get("active_session_count") or 0)
@@ -895,6 +901,11 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
     screen_status = "visible" if is_visible else "hidden"
 
     last_access_value = row.get("last_access_at") or row.get("last_seen_at")
+
+    support = (supporter_map or {}).get(user_id) or {
+        "status": {"code": "inactive", "is_active": False},
+        "achievement_summary": {"total_months": 0, "highest_code": None},
+    }
 
     return {
         "user_id": user_id,
@@ -922,6 +933,10 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
         "last_seen_at": _coerce_utc_text(row.get("last_seen_at")),
         "last_presence_at": _coerce_utc_text(row.get("last_presence_at")),
         "last_access_at": _coerce_utc_text(last_access_value),
+        "support": {
+            "status": support.get("status") or {"code": "inactive", "is_active": False},
+            "achievement_summary": support.get("achievement_summary") or {"total_months": 0, "highest_code": None},
+        },
     }
 
 
@@ -1040,8 +1055,9 @@ LIMIT %s OFFSET %s
     user_ids = [int(row.get("id")) for row in rows]
     providers_map = _load_user_providers_map(conn, user_ids)
     two_factor_map = _load_user_two_factor_map(conn, user_ids)
+    supporter_map = _load_supporter_map(conn, user_ids)
 
-    items = [_serialize_user_list_item(row, providers_map, two_factor_map) for row in rows]
+    items = [_serialize_user_list_item(row, providers_map, two_factor_map, supporter_map) for row in rows]
     pages = (total + per_page - 1) // per_page if total > 0 else 1
     return {
         "page": page,
@@ -1096,6 +1112,22 @@ def _load_user_badges_for_admin(conn, user_id: int) -> list[dict]:
     return result
 
 
+def _load_supporter_map(conn, user_ids: list[int]) -> dict[int, dict]:
+    result: dict[int, dict] = {}
+    conf = _get_conf()
+    for user_id in user_ids:
+        try:
+            result[int(user_id)] = build_supporter_context(conn, int(user_id), conf=conf, include_private=True, include_admin=False)
+        except Exception:
+            logger.exception("failed to load supporter context", extra={"user_id": user_id})
+            result[int(user_id)] = {
+                "status": {"code": "inactive", "is_active": False},
+                "achievement_summary": {"total_months": 0, "highest_code": None},
+                "public_profile": {},
+            }
+    return result
+
+
 def _load_user_detail(conn, user_id: int) -> dict | None:
     email_col = _users_email_column(conn)
     upload_col = _users_upload_column(conn)
@@ -1143,10 +1175,11 @@ LIMIT 1
     providers_map = _load_user_providers_map(conn, [user_id])
     two_factor_map = _load_user_two_factor_map(conn, [user_id])
     last_seen_map = _load_user_last_seen_map(conn, [user_id])
+    supporter_map = _load_supporter_map(conn, [user_id])
     # Fix: apply last_seen_map to row before passing to serializer (was causing 500)
     row = dict(row)
     row["last_seen_at"] = last_seen_map.get(int(row["id"]))
-    item = _serialize_user_list_item(row, providers_map, two_factor_map)
+    item = _serialize_user_list_item(row, providers_map, two_factor_map, supporter_map)
     item["must_reset_password"] = bool(row.get("must_reset_password")) if row.get("must_reset_password") is not None else False
     item["deleted_at"] = _coerce_utc_text(row.get("deleted_at"))
     item["force_logout_after"] = _coerce_utc_text(row.get("force_logout_after"))
@@ -1166,6 +1199,7 @@ LIMIT 1
     item["is_hidden_from_search"] = bool(row.get("is_hidden_from_search"))
     item["links"] = _load_user_links_for_admin(conn, user_id)
     item["badges"] = _load_user_badges_for_admin(conn, user_id)
+    item["support"] = build_supporter_context(conn, user_id, conf=_get_conf(), include_private=True, include_admin=True)
     return item
 
 def _build_user_update_payload(payload: dict) -> tuple[dict, dict]:
@@ -1731,6 +1765,170 @@ def admin_user_revoke_badge(
             try: conn.rollback()
             except Exception: pass
         return _json_error(500, request_id, "server_error", "バッジの剥奪に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.get("/users/{user_id}/support")
+def admin_user_support(
+    user_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        support = build_supporter_context(conn, user_id, conf=_get_conf(), include_private=True, include_admin=True)
+        return _json_success(request_id=request_id, data={"support": support}, message="支援情報を取得しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        return _json_error(500, request_id, "server_error", "支援情報の取得に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.post("/users/{user_id}/support/grants")
+def admin_user_grant_support(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        support = grant_supporter_access(conn, user_id, int(actor.get("id") or 0) or None, payload or {})
+        _log_audit_event(
+            conn,
+            int(actor.get("id") or 0) or None,
+            "admin.users.grant_support",
+            "user",
+            str(user_id),
+            "success",
+            "支援特典を付与しました。",
+            {
+                "grant_type": payload.get("grant_type") or "months",
+                "months": int(payload.get("months") or 0),
+                "is_permanent": bool(payload.get("is_permanent")),
+                "reason": str(payload.get("reason") or ""),
+            },
+        )
+        conn.commit()
+        return _json_success(request_id=request_id, data={"support": support}, message="支援特典を付与しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "支援特典の付与に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.post("/users/{user_id}/support/grants/{grant_id}/revoke")
+def admin_user_revoke_support_grant(
+    user_id: int = Path(..., ge=1),
+    grant_id: int = Path(..., ge=1),
+    payload: dict = Body(default={}),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        revoked_user_id, support = revoke_supporter_grant(
+            conn,
+            grant_id=grant_id,
+            actor_user_id=int(actor.get("id") or 0) or None,
+            revoke_reason=str((payload or {}).get("revoke_reason") or ""),
+        )
+        if revoked_user_id is None or revoked_user_id != user_id or support is None:
+            return _json_error(404, request_id, "not_found", "対象付与が見つかりません。")
+        _log_audit_event(
+            conn,
+            int(actor.get("id") or 0) or None,
+            "admin.users.revoke_support",
+            "user",
+            str(user_id),
+            "success",
+            "支援特典を停止しました。",
+            {
+                "grant_id": grant_id,
+                "revoke_reason": str((payload or {}).get("revoke_reason") or ""),
+            },
+        )
+        conn.commit()
+        return _json_success(request_id=request_id, data={"support": support}, message="支援特典を停止しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "支援特典の停止に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.post("/users/{user_id}/support/subscription")
+def admin_user_upsert_support_subscription(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        support = upsert_supporter_subscription(conn, user_id, payload or {})
+        _log_audit_event(
+            conn,
+            int(actor.get("id") or 0) or None,
+            "admin.users.upsert_support_subscription",
+            "user",
+            str(user_id),
+            "success",
+            "支援サブスクリプション状態を更新しました。",
+            {
+                "status": str((payload or {}).get("status") or ""),
+                "provider": str((payload or {}).get("provider") or ""),
+                "provider_subscription_id": str((payload or {}).get("provider_subscription_id") or ""),
+            },
+        )
+        conn.commit()
+        return _json_success(request_id=request_id, data={"support": support}, message="支援サブスクリプション状態を更新しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "支援サブスクリプション状態の更新に失敗しました。")
     finally:
         if conn: conn.close()
 
