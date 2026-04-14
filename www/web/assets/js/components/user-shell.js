@@ -805,6 +805,13 @@ export function initUserShell(app) {
     if (refs.supportOpenFromSettingsButton) refs.supportOpenFromSettingsButton.hidden = !isAuth;
     if (refs.supportOpenSettingsButton) refs.supportOpenSettingsButton.hidden = !isAuth;
     if (refs.supportSettingsShortcut) refs.supportSettingsShortcut.hidden = !isAuth || !(support?.status?.is_active);
+    if (refs.openSupportButton) {
+      const statusCode = support?.status?.code || "inactive";
+      const label = statusCode === "inactive"
+        ? supportText("support.entry.openSupport", "支援する")
+        : supportText("support.actions.viewStatus", "支援状況を見る");
+      refs.openSupportButton.textContent = label;
+    }
     if (refs.supportSummaryText) {
       refs.supportSummaryText.textContent = support?.status?.code
         ? supportStatusText(support.status.code)
