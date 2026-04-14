@@ -779,6 +779,10 @@ export function initUserShell(app) {
     }
     if (refs.settingImageBackdropClose) {
       refs.settingImageBackdropClose.checked = Boolean(app.settings.getImageBackdropClose());
+      const backdropRow = refs.settingImageBackdropClose.closest(".app-switch-row");
+      if (backdropRow) {
+        backdropRow.hidden = window.matchMedia("(max-width: 720px)").matches;
+      }
     }
     if (refs.settingImageMetaPinned) {
       refs.settingImageMetaPinned.checked = Boolean(app.settings.getImageMetaPinned());

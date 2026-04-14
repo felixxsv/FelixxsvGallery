@@ -376,8 +376,28 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.cursorVisible = visible;
   }
 
+  function clearHideTimer() {
+    if (!state.hideTimer) return;
+    window.clearTimeout(state.hideTimer);
+    state.hideTimer = null;
+  }
+
+  function scheduleControlsAutoHide() {
+    clearHideTimer();
+    if (mobileImageMedia.matches) return;
+    if (state.detailOpen) return;
+    if (app.settings.getImageMetaPinned() && state.zoom <= 100) return;
+    state.hideTimer = window.setTimeout(() => {
+      state.hideTimer = null;
+      if (root.hidden || state.detailOpen) return;
+      if (app.settings.getImageMetaPinned() && state.zoom <= 100) return;
+      setControlsVisible(false);
+    }, 1800);
+  }
+
   function updateControlsVisibility(forceVisible = false) {
     if (state.detailOpen) {
+      clearHideTimer();
       setControlsVisible(true);
       return;
     }
@@ -385,14 +405,17 @@ export function createImageModalController({ app, body = document.body } = {}) {
     const metaPinned = app.settings.getImageMetaPinned();
     if (forceVisible) {
       setControlsVisible(true);
+      scheduleControlsAutoHide();
       return;
     }
 
     if (metaPinned && state.zoom <= 100) {
+      clearHideTimer();
       setControlsVisible(true);
       return;
     }
 
+    clearHideTimer();
     setControlsVisible(false);
   }
 
@@ -733,6 +756,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.onLikeChange = null;
     state.likePending = false;
     resetView();
+    clearHideTimer();
     root.classList.remove("is-controls-visible", "is-cursor-visible");
     syncGlobalCloseVisibility();
   }
@@ -784,6 +808,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
     if (clickedStage && mobileImageMedia.matches) {
       toggleControlsVisibility();
     }
+  });
+
+  viewport.addEventListener("mousemove", () => {
+    if (root.hidden || mobileImageMedia.matches || state.dragging) return;
+    updateControlsVisibility(true);
   });
 
   closeButton.addEventListener("click", () => {
