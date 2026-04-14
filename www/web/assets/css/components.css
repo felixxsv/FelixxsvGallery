@@ -392,7 +392,7 @@ body {
   position: absolute;
   top: 12px;
   right: 12px;
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   width: 40px;
@@ -1976,6 +1976,10 @@ body {
 
   .app-global-close {
     display: none;
+  }
+
+  .app-modal-header-close {
+    display: inline-flex;
   }
 
   .app-modal-dialog,

@@ -240,7 +240,6 @@ export function initUserShell(app) {
     supportModalPrimaryAction: byId("supportModalPrimaryAction"),
     supportModalManageAction: byId("supportModalManageAction"),
     supportModalStatusAction: byId("supportModalStatusAction"),
-    supportModalCloseAction: byId("supportModalCloseAction"),
   };
 
   const shellState = {
@@ -709,7 +708,6 @@ export function initUserShell(app) {
       ["#shellOpenSupportButton", 0, "support.entry.openSupport", "支援する"],
       ["#shellSupportOpenFromSettingsButton", 0, "shell.static.open", "Open"],
       ["#shellSupportOpenSettingsButton", 0, "shell.static.open", "Open"],
-      ["#supportModalCloseAction", 0, "shell.static.close", "Close"],
     ];
     for (const [selector, index, key, fallback] of mappings) {
       const node = Array.from(document.querySelectorAll(selector))[index];
@@ -2019,7 +2017,6 @@ export function initUserShell(app) {
       app.modal?.close?.("settings");
       app.modal?.open?.("account");
     });
-    refs.supportModalCloseAction?.addEventListener("click", () => app.modal?.close?.("support"));
     refs.supportModalPrimaryAction?.addEventListener("click", () => {
       const support = getSupport();
       const statusCode = support?.status?.code;

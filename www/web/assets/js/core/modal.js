@@ -80,6 +80,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
     });
 
     closeButton.hidden = stack.length === 0;
+    closeButton.setAttribute("aria-hidden", mobileModalMedia.matches || stack.length === 0 ? "true" : "false");
     body.classList.toggle("is-modal-open", stack.length > 0);
     if (stack.length > 0 && !bodyScrollLocked) {
       lockBodyScroll(body);

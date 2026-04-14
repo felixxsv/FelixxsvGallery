@@ -680,7 +680,7 @@
 .app-modal-close {
   width: 32px;
   height: 32px;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   border: none;
@@ -696,6 +696,12 @@
 .app-modal-close:hover {
   background: var(--color-surface-strong);
   color: var(--color-text);
+}
+
+@media (max-width: 720px) {
+  .app-modal-close {
+    display: flex;
+  }
 }
 
 /* ── Tag browse modal ──────────────────────────────────────────────────── */
