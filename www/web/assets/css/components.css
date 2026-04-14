@@ -824,40 +824,52 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
 }
 
 .shell-profile-badge-item__button {
-  width: 54px;
-  height: 54px;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
 }
 
 .shell-profile-badge-item__remove {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-bg-elevated);
-  color: var(--color-text-muted);
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-danger, #e53e3e);
+  color: #fff;
+  border: none;
   cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 1;
+  display: none;
 }
 
-.shell-profile-badge-item__remove:hover {
-  color: var(--color-text);
-  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+.shell-profile-badge-item:hover .shell-profile-badge-item__remove {
+  display: flex;
 }
 
 .shell-profile-badge-add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
-  border: 1px dashed color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  width: 44px;
+  height: 44px;
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+  background: transparent;
   color: var(--color-text-muted);
   font-size: 1.5rem;
   line-height: 1;
@@ -865,7 +877,7 @@ body {
 }
 
 .shell-profile-badge-add:hover {
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  background: var(--color-surface-raised);
   color: var(--color-text);
 }
 
@@ -2109,6 +2121,13 @@ body {
 
 .shell-profile-avatar-controls {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.shell-profile-avatar-controls__row {
+  display: flex;
   gap: var(--space-2);
   align-items: center;
 }
@@ -2119,7 +2138,7 @@ body {
 
 .shell-avatar-delete-btn {
   color: var(--color-danger, var(--color-warning));
-  border-color: transparent;
+  align-self: stretch;
 }
 
 /* Profile fields */

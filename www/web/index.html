@@ -836,15 +836,17 @@
                 <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="Avatar" hidden>
               </div>
               <div class="shell-profile-avatar-controls">
-                <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
-                  <span data-i18n="shell.static.icon_change">Change Avatar</span>
-                </label>
-                <button id="shellAvatarDecorButton" type="button" class="app-button app-button--ghost app-button--small">
-                  <span data-i18n="support.benefits.iconFrame.label">アイコンフレーム</span>
-                </button>
+                <div class="shell-profile-avatar-controls__row">
+                  <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
+                    <span data-i18n="shell.static.icon_change">Change Avatar</span>
+                  </label>
+                  <button id="shellAvatarDecorButton" type="button" class="app-button app-button--ghost app-button--small">
+                    <span data-i18n="support.benefits.iconFrame.label">アイコンフレーム</span>
+                  </button>
+                </div>
                 <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
                 <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden>
-                  <span data-i18n="shell.action.remove">Remove</span>
+                  <span data-i18n="shell.action.remove_avatar">アバターを削除</span>
                 </button>
               </div>
             </div>

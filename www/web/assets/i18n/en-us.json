@@ -252,6 +252,7 @@
   "shell.action.register": "Register",
   "shell.action.remove": "Remove",
   "shell.action.add_link": "Add link",
+  "shell.action.remove_avatar": "Remove avatar",
   "shell.static.settings": "Settings",
   "shell.static.help": "Help",
   "shell.static.credits": "Credits",

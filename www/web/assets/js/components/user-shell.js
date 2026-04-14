@@ -963,6 +963,7 @@ export function initUserShell(app) {
     setAttr("#shellAccountEditButton", "aria-label", t("shell.static.profile_edit", "Edit Profile"));
 
     setText("[data-modal-id='account'] .shell-avatar-upload-label", t("shell.static.icon_change", "Change icon"));
+    setText("#shellAvatarDeleteButton", t("shell.action.remove_avatar", "Remove avatar"));
     setText("[data-modal-id='account'] .app-field:nth-of-type(1) .app-field__label", t("shell.static.display_name", "Display Name"));
     setText("[data-modal-id='account'] .app-field:nth-of-type(2) .app-field__label", t("shell.static.user_id", "User ID"));
     setText("[data-modal-id='account'] .app-field:nth-of-type(2) .app-field__hint", t("shell.static.user_id_hint", "4-20 chars, start with a letter, letters/numbers/_/- only"));

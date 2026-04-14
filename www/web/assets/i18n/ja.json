@@ -252,6 +252,7 @@
   "shell.action.register": "登録",
   "shell.action.remove": "削除",
   "shell.action.add_link": "リンクを追加",
+  "shell.action.remove_avatar": "アバターを削除",
   "shell.static.settings": "設定",
   "shell.static.help": "ヘルプ",
   "shell.static.credits": "クレジット",
