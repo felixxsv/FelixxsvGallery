@@ -3921,6 +3921,8 @@ def get_current_user_profile(
         elif "email_password" in enabled_auth_providers or pw_creds is not None:
             registration_route = "email"
 
+        support_context = build_supporter_context(conn, user["id"], conf=_get_conf(), include_private=True, include_admin=False)
+
         return build_service_success(
             data={
                 "user": {
@@ -3938,7 +3940,7 @@ def get_current_user_profile(
                     "badge_pool": badge_pool,
                     "display_badges": display_badge_keys,
                 },
-                "support": build_supporter_context(conn, user["id"], conf=_get_conf(), include_private=True, include_admin=False),
+                "support": support_context,
                 "security": {
                     "two_factor": {
                         "is_enabled": bool(two_factor_settings.get("is_enabled")) if two_factor_settings else False,
@@ -3952,6 +3954,7 @@ def get_current_user_profile(
                 },
                 "features": {
                     "can_open_admin": can_open_admin,
+                    "support_ui_enabled": bool(support_context.get("ui_enabled", True)),
                 },
             },
             message="ログイン中ユーザー情報を取得しました。",

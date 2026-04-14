@@ -297,6 +297,18 @@ export function initUserShell(app) {
     return getSessionState().data?.support || null;
   }
 
+  function isSupportUiEnabled() {
+    const support = getSupport();
+    if (support && typeof support.ui_enabled === "boolean") {
+      return support.ui_enabled;
+    }
+    const features = getFeatures();
+    if (typeof features.support_ui_enabled === "boolean") {
+      return features.support_ui_enabled;
+    }
+    return true;
+  }
+
   function supportText(key, fallback, vars = {}) {
     return app.i18n?.t?.(key, fallback, vars) || fallback;
   }
@@ -790,10 +802,14 @@ export function initUserShell(app) {
   function syncSupportEntry() {
     const support = getSupport();
     const isAuth = isAuthenticated();
-    if (refs.openSupportButton) refs.openSupportButton.hidden = !isAuth;
-    if (refs.supportOpenFromSettingsButton) refs.supportOpenFromSettingsButton.hidden = !isAuth;
-    if (refs.supportOpenSettingsButton) refs.supportOpenSettingsButton.hidden = !isAuth;
-    if (refs.supportSettingsShortcut) refs.supportSettingsShortcut.hidden = !isAuth || !(support?.status?.is_active);
+    const supportUiEnabled = isSupportUiEnabled();
+    const supportSummaryItem = refs.supportSummaryText?.closest(".shell-security-item");
+    const supportShortcutItem = refs.supportSettingsShortcut;
+    if (refs.openSupportButton) refs.openSupportButton.hidden = !isAuth || !supportUiEnabled;
+    if (refs.supportOpenFromSettingsButton) refs.supportOpenFromSettingsButton.hidden = !isAuth || !supportUiEnabled;
+    if (refs.supportOpenSettingsButton) refs.supportOpenSettingsButton.hidden = !isAuth || !supportUiEnabled;
+    if (supportSummaryItem) supportSummaryItem.hidden = !isAuth || !supportUiEnabled;
+    if (supportShortcutItem) supportShortcutItem.hidden = !isAuth || !supportUiEnabled || !(support?.status?.is_active);
     if (refs.openSupportButton) {
       const statusCode = support?.status?.code || "inactive";
       const label = statusCode === "inactive"
@@ -866,6 +882,10 @@ export function initUserShell(app) {
 
   function renderSupportModal() {
     const support = getSupport();
+    if (!isSupportUiEnabled()) {
+      app.modal?.close?.("support");
+      return;
+    }
     const status = support?.status || {};
     const variant = supportVariantCopy(status.code || "default");
     if (refs.supportModalHeading) refs.supportModalHeading.textContent = variant.heading;
@@ -909,7 +929,7 @@ export function initUserShell(app) {
   }
 
   function openSupportModal() {
-    if (!isAuthenticated()) return;
+    if (!isAuthenticated() || !isSupportUiEnabled()) return;
     renderSupportModal();
     app.modal?.open?.("support");
   }

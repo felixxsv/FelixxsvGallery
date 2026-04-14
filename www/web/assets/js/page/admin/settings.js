@@ -64,6 +64,7 @@ function applyStaticTranslations() {
   setText("#adminSettingsGeneralImageOpenBehavior option[value='new_tab']", t("field_default_image_open_tab", "Open in new tab"));
   setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(5) .app-switch__label", t("field_default_backdrop_close", "Allow backdrop click by default"));
   setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(6) .app-switch__label", t("field_default_meta_pinned", "Keep the image meta bar pinned by default"));
+  setText("#adminSettingsFormGeneral .admin-settings-field:nth-of-type(7) .app-switch__label", t("field_support_ui_enabled", "Show supporter-facing UI"));
 
   setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(1) > span", t("field_password_min_length", "Minimum password length"));
   setText("#adminSettingsFormSecurity .admin-settings-field:nth-of-type(2) > span", t("field_login_rate_limit", "Login attempts per 10 minutes"));
@@ -139,6 +140,7 @@ const GROUP_META = {
       default_image_open_behavior: "adminSettingsGeneralImageOpenBehavior",
       default_image_backdrop_close: "adminSettingsGeneralBackdropClose",
       default_image_meta_bar_pinned: "adminSettingsGeneralMetaBarPinned",
+      support_ui_enabled: "adminSettingsGeneralSupportUiEnabled",
     },
   },
   security: {

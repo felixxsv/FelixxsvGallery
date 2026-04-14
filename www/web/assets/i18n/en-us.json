@@ -698,6 +698,7 @@
   "admin_settings.field_default_image_open_tab": "Open in new tab",
   "admin_settings.field_default_backdrop_close": "Allow backdrop click by default",
   "admin_settings.field_default_meta_pinned": "Keep the image meta bar pinned by default",
+  "admin_settings.field_support_ui_enabled": "Show supporter-facing UI",
   "admin_settings.field_password_min_length": "Minimum password length",
   "admin_settings.field_login_rate_limit": "Login attempts per 10 minutes",
   "admin_settings.field_session_idle_timeout": "Session idle timeout (minutes)",

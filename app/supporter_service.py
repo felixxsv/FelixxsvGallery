@@ -54,6 +54,25 @@ SUPPORTER_ENTITLEMENTS = (
 )
 
 
+def is_support_ui_enabled(conn, default: bool = True) -> bool:
+    if not _table_exists(conn, "admin_site_settings"):
+        return bool(default)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT value_json
+FROM admin_site_settings
+WHERE setting_group='general' AND setting_key='support_ui_enabled'
+LIMIT 1
+"""
+        )
+        row = cur.fetchone()
+    if not row:
+        return bool(default)
+    value = _json_loads(row.get("value_json"), default)
+    return bool(value if isinstance(value, bool) else default)
+
+
 def _table_exists(conn, table_name: str) -> bool:
     with conn.cursor() as cur:
         cur.execute("SHOW TABLES LIKE %s", (table_name,))
@@ -534,6 +553,7 @@ def _highest_achievement_code(achievements: list[dict]) -> str | None:
 
 def build_supporter_context(conn, user_id: int, conf: dict | None = None, include_private: bool = True, include_admin: bool = False) -> dict:
     now = _utc_now()
+    ui_enabled = is_support_ui_enabled(conn, default=True)
     settings = get_supporter_settings(conn, user_id, create=False)
     subscription_rows = _load_subscription_rows(conn, user_id)
     subscription_row = _pick_primary_subscription(subscription_rows, now)
@@ -567,12 +587,13 @@ def build_supporter_context(conn, user_id: int, conf: dict | None = None, includ
     if grant_state["gift_active"] is not None and subscription:
         gift_first_billing_at = subscription.get("first_billing_at") or _isoformat(grant_state["gift_active"].get("ends_at"))
 
-    has_visible_support = settings["supporter_visible"] and effective_active
+    has_visible_support = ui_enabled and settings["supporter_visible"] and effective_active
     public_profile = {
         "status": display_status,
-        "is_supporter": effective_active,
+        "is_supporter": bool(ui_enabled and effective_active),
+        "ui_enabled": ui_enabled,
         "badge_visible": bool(has_visible_support and settings["supporter_badge_visible"]),
-        "duration_badge_visible": bool(settings["supporter_visible"] and settings["supporter_duration_badge_visible"] and highest_achievement),
+        "duration_badge_visible": bool(ui_enabled and settings["supporter_visible"] and settings["supporter_duration_badge_visible"] and highest_achievement),
         "icon_frame_visible": bool(has_visible_support and settings["supporter_icon_frame_visible"]),
         "profile_decor_visible": bool(has_visible_support and settings["supporter_profile_decor_visible"]),
         "badge_label_key": "support.common.supporter_badge",
@@ -632,6 +653,7 @@ def build_supporter_context(conn, user_id: int, conf: dict | None = None, includ
     }
 
     result = {
+        "ui_enabled": ui_enabled,
         "status": status,
         "subscription": subscription,
         "settings": settings if include_private else None,

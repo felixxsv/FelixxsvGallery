@@ -698,6 +698,7 @@
   "admin_settings.field_default_image_open_tab": "別タブ表示",
   "admin_settings.field_default_backdrop_close": "画像モーダルで背景クリックを既定で許可する",
   "admin_settings.field_default_meta_pinned": "画像モーダルのメタ情報バーを既定で常時表示する",
+  "admin_settings.field_support_ui_enabled": "支援機能の公開UIを表示する",
   "admin_settings.field_password_min_length": "最小パスワード長",
   "admin_settings.field_login_rate_limit": "10分あたりのログイン試行上限",
   "admin_settings.field_session_idle_timeout": "セッションアイドルタイムアウト (分)",

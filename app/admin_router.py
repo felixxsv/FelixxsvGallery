@@ -4609,6 +4609,7 @@ def _settings_general_defaults() -> dict:
         "default_image_open_behavior": "modal",
         "default_image_backdrop_close": True,
         "default_image_meta_bar_pinned": False,
+        "support_ui_enabled": True,
     }
 
 
@@ -4729,6 +4730,7 @@ def _normalize_settings_group_payload(group: str, payload: dict) -> tuple[dict, 
             "default_image_open_behavior": open_behavior,
             "default_image_backdrop_close": _coerce_bool_setting(data.get("default_image_backdrop_close"), True),
             "default_image_meta_bar_pinned": _coerce_bool_setting(data.get("default_image_meta_bar_pinned"), False),
+            "support_ui_enabled": _coerce_bool_setting(data.get("support_ui_enabled"), True),
         }
         if not normalized["site_name"]:
             field_errors["site_name"] = "required"
