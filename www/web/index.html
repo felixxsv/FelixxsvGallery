@@ -839,6 +839,9 @@
                 <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
                   <span data-i18n="shell.static.icon_change">Change Avatar</span>
                 </label>
+                <button id="shellAvatarDecorButton" type="button" class="app-button app-button--ghost app-button--small">
+                  <span data-i18n="support.benefits.iconFrame.label">アイコンフレーム</span>
+                </button>
                 <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
                 <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden>
                   <span data-i18n="shell.action.remove">Remove</span>
@@ -877,15 +880,28 @@
           <!-- Badge selection section -->
           <div id="shellProfileBadgeSection" class="shell-profile-badge-section" hidden>
             <h3 class="shell-profile-links__title"><span data-i18n="shell.static.badges">Badges</span> <span class="shell-profile-badge-section__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</span></h3>
-            <div id="shellProfileBadgePool" class="shell-badge-pool__list shell-profile-badge-pool">
+            <div id="shellProfileBadgeGrid" class="shell-profile-badge-grid">
               <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
             </div>
           </div>
 
-          <div id="shellSupporterDecorSection" class="shell-supporter-settings" hidden>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="supporter-decor" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="supporter-decor"></div>
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="supporterDecorTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="supporterDecorTitle" class="app-modal-title" data-i18n="support.entry.openSupportSettings">Supporter設定</h2>
+        </div>
+        <div class="app-modal-body">
+          <div id="shellSupporterDecorSection" class="shell-supporter-settings">
             <div class="shell-supporter-settings__header">
               <div class="shell-supporter-settings__heading-wrap">
-                <h3 class="shell-profile-links__title" data-i18n="support.entry.openSupportSettings">Supporter設定</h3>
                 <p id="shellSupporterSettingsDescription" class="shell-supporter-settings__description" data-i18n="support.settings.description">支援者向けの装飾や公開表示をここで設定できます。未支援の状態でも内容は確認できます。</p>
               </div>
               <button id="shellSupporterSettingsActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
@@ -983,10 +999,27 @@
               </section>
             </div>
           </div>
-
         </div>
         <div class="app-modal-footer app-modal-footer--end">
-          <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
+          <button id="shellSupporterSettingsSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">Save</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="badge-select" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="badge-select"></div>
+      <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="badgeSelectTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="badgeSelectTitle" class="app-modal-title" data-i18n="shell.static.badges">Badges</h2>
+        </div>
+        <div class="app-modal-body">
+          <div class="shell-badge-pool">
+            <div class="shell-badge-pool__label" data-i18n="shell.static.badges">Badges</div>
+            <div id="shellBadgeSelectPool" class="shell-badge-pool__list">
+              <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
+            </div>
+            <div class="shell-badge-pool__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</div>
+          </div>
         </div>
       </div>
     </section>

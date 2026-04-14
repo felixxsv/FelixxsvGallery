@@ -171,6 +171,7 @@ export function initUserShell(app) {
     accountAvatar: byId("shellAccountAvatar"),
     accountAvatarInitial: byId("shellAccountAvatarInitial"),
     accountAvatarImg: byId("shellAccountAvatarImg"),
+    avatarDecorButton: byId("shellAvatarDecorButton"),
     avatarFileInput: byId("shellAvatarFileInput"),
     avatarDeleteButton: byId("shellAvatarDeleteButton"),
     profileDisplayNameInput: byId("shellProfileDisplayNameInput"),
@@ -179,6 +180,7 @@ export function initUserShell(app) {
     profileBioCount: byId("shellProfileBioCount"),
     profileSaveButton: byId("shellProfileSaveButton"),
     profileLinksGrid: byId("shellProfileLinksGrid"),
+    profileBadgeGrid: byId("shellProfileBadgeGrid"),
     addLinkInput: byId("shellAddLinkInput"),
     addLinkSubmitButton: byId("shellAddLinkSubmitButton"),
 
@@ -239,6 +241,7 @@ export function initUserShell(app) {
     supporterPreviewBadge: byId("shellSupporterPreviewBadge"),
     supporterPreviewDurationBadge: byId("shellSupporterPreviewDurationBadge"),
     supporterPreviewNote: byId("shellSupporterPreviewNote"),
+    supporterSettingsSaveButton: byId("shellSupporterSettingsSaveButton"),
     supporterVisibleInput: byId("shellSupporterVisibleInput"),
     supporterBadgeVisibleInput: byId("shellSupporterBadgeVisibleInput"),
     supporterDurationVisibleInput: byId("shellSupporterDurationVisibleInput"),
@@ -246,6 +249,7 @@ export function initUserShell(app) {
     supporterProfileDecorVisibleInput: byId("shellSupporterProfileDecorVisibleInput"),
     supporterIconFrameOptions: byId("shellSupporterIconFrameOptions"),
     supporterProfileDecorOptions: byId("shellSupporterProfileDecorOptions"),
+    badgeSelectPool: byId("shellBadgeSelectPool"),
 
     supportModalHeading: byId("supportModalHeading"),
     supportModalDescription: byId("supportModalDescription"),
@@ -1286,16 +1290,12 @@ export function initUserShell(app) {
     });
   }
 
-  /** Render badge pool in the profile edit modal (shellProfileBadgePool) */
-  function renderProfileBadgePool(user) {
-    const section = byId("shellProfileBadgeSection");
-    const list = byId("shellProfileBadgePool");
+  function renderBadgeSelectionPool(user) {
+    const list = refs.badgeSelectPool;
     if (!list) return;
-
     const pool = Array.isArray(user.badge_pool) ? user.badge_pool.filter(isActiveBadge) : [];
-    if (section) section.hidden = pool.length === 0;
     if (pool.length === 0) {
-      list.innerHTML = `<span class="shell-badge-pool__empty">${t("shell.value.none", "Not set")}</span>`;
+      list.innerHTML = `<span class="shell-badge-pool__empty">${t("shell.static.no_badges", "No badges yet.")}</span>`;
       return;
     }
 
@@ -1314,6 +1314,50 @@ export function initUserShell(app) {
       btn.setAttribute("aria-pressed", String(isSelected));
       list.appendChild(btn);
     }
+  }
+
+  /** Render selected badges in the profile edit modal */
+  function renderProfileBadgePool(user) {
+    const section = byId("shellProfileBadgeSection");
+    const list = refs.profileBadgeGrid;
+    if (!list) return;
+
+    const pool = Array.isArray(user.badge_pool) ? user.badge_pool.filter(isActiveBadge) : [];
+    if (section) section.hidden = pool.length === 0;
+    if (pool.length === 0) {
+      list.innerHTML = `<span class="shell-badge-pool__empty">${t("shell.value.none", "Not set")}</span>`;
+      return;
+    }
+
+    const displayBadges = Array.isArray(user.display_badges) ? user.display_badges : [];
+    const poolMap = new Map(pool.map((badge) => [badge.key, badge]));
+    list.innerHTML = "";
+    displayBadges.forEach((badgeKey) => {
+      const badge = poolMap.get(badgeKey);
+      if (!badge) return;
+      const item = document.createElement("div");
+      item.className = "shell-profile-badge-item";
+      item.dataset.badgeKey = badge.key;
+      item.innerHTML = `
+        <button type="button" class="user-profile-badge user-profile-badge--${badge.color || "gray"} profile-media-badge shell-profile-badge-item__button" data-badge-preview="${escapeHtml(badge.key)}" title="${escapeHtml(resolveBadgeText(app.i18n, badge, "name"))}">
+          ${getBadgeIconHtml(badge, app.appBase)}
+        </button>
+        <button type="button" class="shell-profile-badge-item__remove" aria-label="${escapeHtml(t("shell.action.remove", "Remove"))}" data-badge-remove="${escapeHtml(badge.key)}">×</button>
+      `;
+      list.appendChild(item);
+    });
+
+    const canAddMore = displayBadges.length < 3;
+    if (canAddMore) {
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = "shell-profile-badge-add";
+      addButton.id = "shellProfileBadgeAddButton";
+      addButton.setAttribute("aria-label", t("shell.action.add", "Add"));
+      addButton.textContent = "+";
+      list.appendChild(addButton);
+    }
+    renderBadgeSelectionPool(user);
   }
 
   async function handleBadgeToggle(badgeKey, user) {
@@ -1419,6 +1463,7 @@ export function initUserShell(app) {
     }
 
     const user = getUser();
+    const supportUiEnabled = isSupportUiEnabled();
 
     // Avatar
     const avatarUrl = user.avatar_url || null;
@@ -1449,6 +1494,9 @@ export function initUserShell(app) {
     // Badge pool (in profile edit)
     renderProfileBadgePool(user);
     renderSupporterSettings();
+    if (refs.avatarDecorButton) {
+      refs.avatarDecorButton.hidden = !supportUiEnabled;
+    }
   }
 
   function renderAccountSecurityModal() {
@@ -1864,7 +1912,6 @@ export function initUserShell(app) {
     const displayName = refs.profileDisplayNameInput.value.trim();
     const userKey = refs.profileUserKeyInput.value.trim();
     const bio = refs.profileBioInput.value;
-    const shouldSaveSupporterSettings = !refs.supporterDecorSection?.hidden && supporterSettingsChanged();
 
     if (!displayName) {
       toast.error(t("shell.toast.display_name_required", "Enter a display name."));
@@ -1884,9 +1931,6 @@ export function initUserShell(app) {
         user_key: userKey,
         bio: bio,
       });
-      if (shouldSaveSupporterSettings) {
-        await app.api.put("/api/support/me/settings", currentSupporterSettingsDraft());
-      }
       await refreshSession();
       renderAccountModal();
       renderUserCard();
@@ -1901,6 +1945,37 @@ export function initUserShell(app) {
       }
     } finally {
       refs.profileSaveButton.disabled = false;
+    }
+  }
+
+  async function saveSupporterSettings({ closeModal = false, showToast = true, refreshState = true } = {}) {
+    if (refs.supporterDecorSection?.hidden || !supporterSettingsChanged()) {
+      if (closeModal) {
+        app.modal?.close?.("supporter-decor");
+      }
+      return true;
+    }
+    refs.supporterSettingsSaveButton && (refs.supporterSettingsSaveButton.disabled = true);
+    try {
+      await app.api.put("/api/support/me/settings", currentSupporterSettingsDraft());
+      if (refreshState) {
+        await refreshSession();
+        renderAccountModal();
+        renderUserCard();
+        renderSupporterSettings();
+      }
+      if (showToast) {
+        toast.success(t("shell.toast.profile_updated", "Profile updated."));
+      }
+      if (closeModal) {
+        app.modal?.close?.("supporter-decor");
+      }
+      return true;
+    } catch (error) {
+      toast.error(resolveLocalizedMessage(error, t("shell.toast.profile_update_error", "Failed to update profile.")));
+      return false;
+    } finally {
+      refs.supporterSettingsSaveButton && (refs.supporterSettingsSaveButton.disabled = false);
     }
   }
 
@@ -2189,15 +2264,36 @@ export function initUserShell(app) {
       });
     });
     // Badge pool click delegation (in profile edit modal)
-    const profileBadgePoolEl = byId("shellProfileBadgePool");
-    if (profileBadgePoolEl) {
-      profileBadgePoolEl.addEventListener("click", (e) => {
-        const btn = e.target.closest(".shell-badge-pool__item[data-badge-key]");
-        if (!btn) return;
+    refs.profileBadgeGrid?.addEventListener("click", (e) => {
+      const removeBtn = e.target.closest("[data-badge-remove]");
+      if (removeBtn) {
         const user = getUser();
-        if (user) handleBadgeToggle(btn.dataset.badgeKey, user);
-      });
-    }
+        if (user) handleBadgeToggle(removeBtn.dataset.badgeRemove, user);
+        return;
+      }
+      const previewBtn = e.target.closest("[data-badge-preview]");
+      if (previewBtn) {
+        const user = getUser();
+        const pool = Array.isArray(user?.badge_pool) ? user.badge_pool.filter(isActiveBadge) : [];
+        const badge = pool.find((item) => item.key === previewBtn.dataset.badgePreview);
+        if (badge) showBadgeDetail(badge, app);
+        return;
+      }
+      const addBtn = e.target.closest("#shellProfileBadgeAddButton");
+      if (addBtn) {
+        const user = getUser();
+        if (user) {
+          renderBadgeSelectionPool(user);
+          app.modal?.open?.("badge-select");
+        }
+      }
+    });
+    refs.badgeSelectPool?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".shell-badge-pool__item[data-badge-key]");
+      if (!btn) return;
+      const user = getUser();
+      if (user) handleBadgeToggle(btn.dataset.badgeKey, user);
+    });
 
     refs.passwordSaveButton?.addEventListener("click", handlePasswordSave);
     if (refs.setPasswordSaveButton) refs.setPasswordSaveButton.addEventListener("click", handleSetPasswordSave);
@@ -2205,6 +2301,9 @@ export function initUserShell(app) {
     if (refs.discordUnlinkButton) refs.discordUnlinkButton.addEventListener("click", handleDiscordUnlink);
     refs.profileSaveButton?.addEventListener("click", handleProfileSave);
     refs.supporterSettingsActionButton?.addEventListener("click", () => openSupportModal());
+    refs.supporterSettingsSaveButton?.addEventListener("click", () => {
+      saveSupporterSettings({ closeModal: true, showToast: true, refreshState: true });
+    });
     refs.avatarFileInput?.addEventListener("change", () => {
       const file = refs.avatarFileInput.files?.[0] || null;
       refs.avatarFileInput.value = "";
@@ -2232,8 +2331,13 @@ export function initUserShell(app) {
     refs.openSupportButton?.addEventListener("click", () => openSupportModal());
     refs.supportOpenFromSettingsButton?.addEventListener("click", () => openSupportModal());
     refs.supportOpenSettingsButton?.addEventListener("click", () => {
+      renderSupporterSettings();
       app.modal?.close?.("settings");
-      app.modal?.open?.("account");
+      app.modal?.open?.("supporter-decor");
+    });
+    refs.avatarDecorButton?.addEventListener("click", () => {
+      renderSupporterSettings();
+      app.modal?.open?.("supporter-decor");
     });
     [
       refs.supporterVisibleInput,
@@ -2367,6 +2471,15 @@ export function initUserShell(app) {
       }
       if (id === "support") {
         renderSupportModal();
+      }
+      if (id === "supporter-decor") {
+        renderSupporterSettings();
+      }
+      if (id === "badge-select") {
+        const user = getUser();
+        if (user) {
+          renderBadgeSelectionPool(user);
+        }
       }
       if (id === "twofactor-action-confirm" && shellState.actionConfirmResolver) {
         closeActionConfirm(false);
