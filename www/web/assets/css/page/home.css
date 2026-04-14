@@ -452,7 +452,7 @@ body[data-page="home"] .app-site-header {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .home-filter-chip {
@@ -1080,6 +1080,20 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   pointer-events: none;
 }
 
+.home-gallery-card__body.supporter-profile-decor--aurora-glow {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.26), transparent 42%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.2), transparent 44%),
+    var(--home-card-overlay);
+}
+
+.home-gallery-card__body.supporter-profile-decor--sunrise-wave {
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.28), transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(249, 115, 22, 0.22), transparent 36%),
+    var(--home-card-overlay);
+}
+
 .home-gallery-card__title {
   font-weight: 700;
   color: var(--home-card-title);
@@ -1145,6 +1159,8 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   justify-content: center;
   font-size: 0.8rem;
   font-weight: 700;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .home-gallery-card__user-avatar img {
