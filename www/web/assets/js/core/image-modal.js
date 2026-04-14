@@ -202,6 +202,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
   ensureStylesheet(app.appBase);
   const mobileImageMedia = window.matchMedia("(max-width: 720px)");
   const globalCloseButton = document.getElementById("appGlobalClose");
+  let globalCloseHideTimer = null;
 
   const root = document.createElement("section");
   root.className = "image-modal";
@@ -326,16 +327,38 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   function syncGlobalCloseVisibility() {
     if (!globalCloseButton) return;
+    const setVisible = (visible) => {
+      if (globalCloseHideTimer !== null) {
+        window.clearTimeout(globalCloseHideTimer);
+        globalCloseHideTimer = null;
+      }
+      if (visible) {
+        globalCloseButton.hidden = false;
+        globalCloseButton.setAttribute("aria-hidden", "false");
+        requestAnimationFrame(() => {
+          globalCloseButton.classList.add("is-visible");
+        });
+        return;
+      }
+      globalCloseButton.classList.remove("is-visible");
+      globalCloseButton.setAttribute("aria-hidden", "true");
+      globalCloseHideTimer = window.setTimeout(() => {
+        const modalStack = app?.modal?.getStack?.() || [];
+        if (root.hidden && (!Array.isArray(modalStack) || modalStack.length === 0)) {
+          globalCloseButton.hidden = true;
+        }
+        globalCloseHideTimer = null;
+      }, 180);
+    };
+
     if (!root.hidden && !mobileImageMedia.matches) {
       const visible = Boolean(state.controlsVisible || state.detailOpen);
-      globalCloseButton.hidden = !visible;
-      globalCloseButton.setAttribute("aria-hidden", visible ? "false" : "true");
+      setVisible(visible);
       return;
     }
     const modalStack = app?.modal?.getStack?.() || [];
     const shouldShowForAppModal = Array.isArray(modalStack) && modalStack.length > 0 && !mobileImageMedia.matches;
-    globalCloseButton.hidden = !shouldShowForAppModal;
-    globalCloseButton.setAttribute("aria-hidden", shouldShowForAppModal ? "false" : "true");
+    setVisible(shouldShowForAppModal);
   }
 
   function currentItem() {

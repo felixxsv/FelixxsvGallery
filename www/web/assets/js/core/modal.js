@@ -51,6 +51,32 @@ export function createModalManager({ root, closeButton, body = document.body } =
   const previousFocus = new Map();
   const mobileModalMedia = window.matchMedia("(max-width: 720px)");
   let bodyScrollLocked = false;
+  let closeButtonHideTimer = null;
+
+  function clearCloseButtonHideTimer() {
+    if (closeButtonHideTimer === null) return;
+    window.clearTimeout(closeButtonHideTimer);
+    closeButtonHideTimer = null;
+  }
+
+  function setGlobalCloseVisible(visible) {
+    if (!closeButton) return;
+    clearCloseButtonHideTimer();
+    if (visible) {
+      closeButton.hidden = false;
+      closeButton.setAttribute("aria-hidden", "false");
+      requestAnimationFrame(() => {
+        closeButton.classList.add("is-visible");
+      });
+      return;
+    }
+    closeButton.classList.remove("is-visible");
+    closeButton.setAttribute("aria-hidden", "true");
+    closeButtonHideTimer = window.setTimeout(() => {
+      closeButton.hidden = true;
+      closeButtonHideTimer = null;
+    }, 180);
+  }
 
   function ensureHeaderCloseButton(layer, id) {
     const header = layer.querySelector(".app-modal-header");
@@ -79,8 +105,7 @@ export function createModalManager({ root, closeButton, body = document.body } =
       layer.style.zIndex = String(4000 + index * 10);
     });
 
-    closeButton.hidden = stack.length === 0;
-    closeButton.setAttribute("aria-hidden", mobileModalMedia.matches || stack.length === 0 ? "true" : "false");
+    setGlobalCloseVisible(!mobileModalMedia.matches && stack.length > 0);
     body.classList.toggle("is-modal-open", stack.length > 0);
     if (stack.length > 0 && !bodyScrollLocked) {
       lockBodyScroll(body);
