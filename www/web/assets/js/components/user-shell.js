@@ -1581,8 +1581,6 @@ export function initUserShell(app) {
     const user = getUser();
     const support = getSupport();
     const supportUiEnabled = isSupportUiEnabled();
-    const accountDialog = document.querySelector("[data-modal-id='account'] .app-modal-dialog");
-
     // Avatar
     const avatarUrl = user.avatar_url || null;
     if (avatarUrl) {
@@ -1599,7 +1597,7 @@ export function initUserShell(app) {
       }
       refs.avatarDeleteButton.hidden = true;
     }
-    applySupportPresentation(accountDialog, refs.accountAvatar, support?.public_profile || {});
+    applySupportPresentation(null, refs.accountAvatar, support?.public_profile || {});
 
     // Profile inputs
     refs.profileDisplayNameInput.value = user.display_name || "";
