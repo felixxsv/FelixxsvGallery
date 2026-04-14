@@ -336,6 +336,201 @@ def _get_current_user(req: Request | None) -> dict | None:
     }
 
 
+def _images_owner_expr(alias: str = "i") -> str | None:
+    has_uploader = _check_column_exists("images", "uploader_user_id")
+    has_owner = _check_column_exists("images", "owner_user_id")
+    if has_uploader and has_owner:
+        return f"COALESCE({alias}.uploader_user_id, {alias}.owner_user_id)"
+    if has_uploader:
+        return f"{alias}.uploader_user_id"
+    if has_owner:
+        return f"{alias}.owner_user_id"
+    return None
+
+
+def _ensure_admin_content_states_table(conn: pymysql.Connection) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+CREATE TABLE IF NOT EXISTS admin_content_states (
+    image_id BIGINT UNSIGNED NOT NULL,
+    moderation_status ENUM('normal', 'quarantined', 'deleted') NOT NULL DEFAULT 'normal',
+    previous_is_public TINYINT(1) NULL,
+    updated_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (image_id),
+    KEY idx_admin_content_states_status (moderation_status),
+    KEY idx_admin_content_states_updated_by_user_id (updated_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+"""
+        )
+
+
+def _serialize_content_owner_controls(current_user: dict | None, owner_user_id: int | None, visibility: str, status: str) -> tuple[dict, dict | None]:
+    actor_user_id = int(current_user["id"]) if current_user and current_user.get("id") is not None else None
+    is_owner = actor_user_id is not None and owner_user_id is not None and actor_user_id == int(owner_user_id)
+    can_manage = bool(is_owner and status == "normal")
+    viewer_permissions = {
+        "can_manage_content": can_manage,
+        "can_change_visibility": can_manage,
+        "can_delete_content": can_manage,
+    }
+    owner_meta = None
+    if is_owner:
+        owner_meta = {
+            "visibility": visibility,
+            "status": status,
+            "is_owner": True,
+        }
+    return viewer_permissions, owner_meta
+
+
+def _resolve_mutable_content_rows(conn: pymysql.Connection, content_key: str) -> list[dict]:
+    key = str(content_key or "").strip().lower()
+    if not key:
+        raise HTTPException(status_code=404, detail="not found")
+
+    _ensure_admin_content_states_table(conn)
+    owner_expr = _images_owner_expr("i")
+    owner_select = f"{owner_expr} AS owner_user_id" if owner_expr else "NULL AS owner_user_id"
+
+    with conn.cursor() as cur:
+        if key.startswith("i-"):
+            try:
+                image_id = int(key[2:])
+            except ValueError:
+                raise HTTPException(status_code=400, detail="invalid content key")
+            cur.execute(
+                f"""
+SELECT
+  i.id AS image_id,
+  COALESCE(i.is_public, 1) AS is_public,
+  COALESCE(acs.moderation_status, 'normal') AS moderation_status,
+  {owner_select}
+FROM images i
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+WHERE i.gallery=%s AND i.id=%s
+""",
+                (GALLERY, image_id),
+            )
+            rows = cur.fetchall()
+        elif key.startswith("c-"):
+            try:
+                content_id = int(key[2:])
+            except ValueError:
+                raise HTTPException(status_code=400, detail="invalid content key")
+            if not (_table_exists(conn, "gallery_contents") and _table_exists(conn, "gallery_content_images")):
+                raise HTTPException(status_code=404, detail="not found")
+            cur.execute(
+                f"""
+SELECT
+  i.id AS image_id,
+  COALESCE(i.is_public, 1) AS is_public,
+  COALESCE(acs.moderation_status, 'normal') AS moderation_status,
+  {owner_select}
+FROM gallery_content_images gci
+JOIN images i ON i.id=gci.image_id AND i.gallery=%s
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+WHERE gci.content_id=%s
+ORDER BY i.id ASC
+""",
+                (GALLERY, content_id),
+            )
+            rows = cur.fetchall()
+        else:
+            raise HTTPException(status_code=400, detail="invalid content key")
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="not found")
+    return rows
+
+
+def _apply_owned_content_visibility(conn: pymysql.Connection, content_key: str, actor_user_id: int, is_public: bool) -> dict:
+    if not _check_column_exists("images", "is_public"):
+        raise HTTPException(status_code=409, detail="visibility unsupported")
+    rows = _resolve_mutable_content_rows(conn, content_key)
+    owner_ids = {int(row["owner_user_id"]) for row in rows if row.get("owner_user_id") is not None}
+    if not owner_ids or owner_ids != {int(actor_user_id)}:
+        raise HTTPException(status_code=403, detail="forbidden")
+    if any(str(row.get("moderation_status") or "normal") != "normal" for row in rows):
+        raise HTTPException(status_code=409, detail="content locked")
+
+    with conn.cursor() as cur:
+        for row in rows:
+            image_id = int(row["image_id"])
+            cur.execute("UPDATE images SET is_public=%s WHERE id=%s", (1 if is_public else 0, image_id))
+            cur.execute(
+                """
+INSERT INTO admin_content_states (image_id, moderation_status, previous_is_public, updated_by_user_id)
+VALUES (%s, 'normal', NULL, %s)
+ON DUPLICATE KEY UPDATE
+  moderation_status=VALUES(moderation_status),
+  updated_by_user_id=VALUES(updated_by_user_id),
+  updated_at=CURRENT_TIMESTAMP(6)
+""",
+                (image_id, actor_user_id),
+            )
+
+    visibility = "public" if is_public else "private"
+    viewer_permissions, owner_meta = _serialize_content_owner_controls(
+        {"id": actor_user_id},
+        actor_user_id,
+        visibility,
+        "normal",
+    )
+    return {
+        "content_id": str(content_key).strip().lower(),
+        "visibility": visibility,
+        "status": "normal",
+        "viewer_permissions": viewer_permissions,
+        "owner_meta": owner_meta,
+    }
+
+
+def _apply_owned_content_delete(conn: pymysql.Connection, content_key: str, actor_user_id: int) -> dict:
+    if not _check_column_exists("images", "is_public"):
+        raise HTTPException(status_code=409, detail="visibility unsupported")
+    rows = _resolve_mutable_content_rows(conn, content_key)
+    owner_ids = {int(row["owner_user_id"]) for row in rows if row.get("owner_user_id") is not None}
+    if not owner_ids or owner_ids != {int(actor_user_id)}:
+        raise HTTPException(status_code=403, detail="forbidden")
+    if any(str(row.get("moderation_status") or "normal") == "quarantined" for row in rows):
+        raise HTTPException(status_code=409, detail="content locked")
+
+    with conn.cursor() as cur:
+        for row in rows:
+            image_id = int(row["image_id"])
+            prev_visibility = 1 if bool(row.get("is_public")) else 0
+            cur.execute("UPDATE images SET is_public=0 WHERE id=%s", (image_id,))
+            cur.execute(
+                """
+INSERT INTO admin_content_states (image_id, moderation_status, previous_is_public, updated_by_user_id)
+VALUES (%s, 'deleted', %s, %s)
+ON DUPLICATE KEY UPDATE
+  moderation_status='deleted',
+  previous_is_public=VALUES(previous_is_public),
+  updated_by_user_id=VALUES(updated_by_user_id),
+  updated_at=CURRENT_TIMESTAMP(6)
+""",
+                (image_id, prev_visibility, actor_user_id),
+            )
+
+    viewer_permissions, owner_meta = _serialize_content_owner_controls(
+        {"id": actor_user_id},
+        actor_user_id,
+        "private",
+        "deleted",
+    )
+    return {
+        "content_id": str(content_key).strip().lower(),
+        "visibility": "private",
+        "status": "deleted",
+        "viewer_permissions": viewer_permissions,
+        "owner_meta": owner_meta,
+    }
+
+
 def _table_cols(conn: pymysql.Connection, table: str) -> set[str]:
     with conn.cursor() as cur:
         cur.execute(f"SHOW COLUMNS FROM `{table}`")
@@ -822,6 +1017,7 @@ def get_image(image_id: int, req: Request):
     conn = db_conn(CONF)
     try:
         with conn.cursor() as cur:
+            owner_expr = _images_owner_expr("i")
             if _HAS_IMAGES_OWNER_USER_ID:
                 detail_user_select = """,
   u.user_key AS uploader_user_key,
@@ -831,6 +1027,7 @@ def get_image(image_id: int, req: Request):
             else:
                 detail_user_select = ""
                 detail_user_join = ""
+            owner_select = f", {owner_expr} AS owner_user_id" if owner_expr else ", NULL AS owner_user_id"
             cur.execute(
                 f"""
 SELECT
@@ -840,7 +1037,7 @@ SELECT
   COALESCE(st.view_count,0) AS view_count,
   i.like_count AS like_count,
   COALESCE(st.x_like_count,0) AS x_like_count,
-  {viewer_liked_sql}{detail_user_select}
+  {viewer_liked_sql}{detail_user_select}{owner_select}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
 {detail_user_join}
@@ -875,6 +1072,18 @@ ORDER BY rank_no ASC
             )
             img["colors"] = cur.fetchall()
             img["color_tags"] = _serialize_color_tags(img["colors"])
+
+        visibility = "public"
+        status = "normal"
+        viewer_permissions, owner_meta = _serialize_content_owner_controls(
+            current_user,
+            int(img["owner_user_id"]) if img.get("owner_user_id") is not None else None,
+            visibility,
+            status,
+        )
+        img["viewer_permissions"] = viewer_permissions
+        if owner_meta is not None:
+            img["owner_meta"] = owner_meta
 
         return img
     finally:
@@ -1745,6 +1954,63 @@ ORDER BY
             "uploader_avatar_url": primary.get("uploader_avatar_url"),
             "images": images,
         }
+    finally:
+        conn.close()
+
+
+@app.patch("/api/contents/{content_key}/visibility")
+def update_owned_content_visibility(
+    content_key: str,
+    req: Request,
+    payload: dict = Body(...),
+):
+    current_user = _get_current_user(req)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="login required")
+    if "is_public" not in (payload or {}):
+        raise HTTPException(status_code=400, detail="is_public required")
+
+    conn = db_conn(CONF)
+    try:
+        result = _apply_owned_content_visibility(
+            conn,
+            content_key=content_key,
+            actor_user_id=int(current_user["id"]),
+            is_public=bool(payload.get("is_public")),
+        )
+        conn.commit()
+        return {"ok": True, "data": result}
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
+
+
+@app.post("/api/contents/{content_key}/delete")
+def delete_owned_content(content_key: str, req: Request):
+    current_user = _get_current_user(req)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="login required")
+
+    conn = db_conn(CONF)
+    try:
+        result = _apply_owned_content_delete(
+            conn,
+            content_key=content_key,
+            actor_user_id=int(current_user["id"]),
+        )
+        conn.commit()
+        return {"ok": True, "data": result}
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 

@@ -634,6 +634,36 @@ body.is-image-modal-open {
   gap: 8px;
 }
 
+.image-detail-modal__owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.image-detail-modal__owner-button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f4f7ff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.image-detail-modal__owner-button:disabled {
+  opacity: 0.58;
+  cursor: default;
+}
+
+.image-detail-modal__owner-button--danger {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(127, 29, 29, 0.4);
+  color: #fecaca;
+}
+
 .image-detail-modal__chip {
   display: inline-flex;
   align-items: center;

@@ -274,6 +274,7 @@ function buildPublicDetail(image) {
 
   return {
     image_id: image.id ?? null,
+    content_id: image.content_id || null,
     title: image.title || homeT("home.image.untitled", "Untitled"),
     alt: image.alt || "",
     posted_at: image.created_at || image.posted_at || image.shot_at || null,
@@ -291,6 +292,9 @@ function buildPublicDetail(image) {
       user_key: normalizeUserKey(image.uploader_user_key || image.user_key),
       avatar_url: withAppBase(image.uploader_avatar_url || image.uploader_avatar_path || image.avatar_url || ""),
     },
+    viewer_permissions: image.viewer_permissions || null,
+    owner_meta: image.owner_meta || null,
+    admin_meta: image.admin_meta || null,
   };
 }
 
@@ -1722,6 +1726,9 @@ export function initHomePage(app) {
         if (getFilterSnapshot().shortcut === "favorites") {
           reloadFromFilters();
         }
+      },
+      onOwnerAction() {
+        reloadFromFilters();
       },
     });
   }

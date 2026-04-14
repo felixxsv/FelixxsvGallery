@@ -8,6 +8,10 @@ function t(app, key, fallback) {
   return app?.i18n?.t?.(`image_modal.${key}`, fallback) || fallback;
 }
 
+function td(app, key, fallback) {
+  return app?.i18n?.t?.(`image_detail.${key}`, fallback) || fallback;
+}
+
 function ensureStylesheet(appBase) {
   if (document.getElementById(STYLE_ID)) return;
   const link = document.createElement("link");
@@ -130,6 +134,9 @@ function normalizePayload(item, options = {}) {
   normalized.image_width = item?.image_width ?? item?.width ?? null;
   normalized.image_height = item?.image_height ?? item?.height ?? null;
   normalized.admin_meta = item?.admin_meta || {};
+  normalized.viewer_permissions = item?.viewer_permissions || null;
+  normalized.owner_meta = item?.owner_meta || null;
+  normalized.content_id = item?.content_id || normalized.content_id || null;
   normalized.detailLoader = options.detailLoader || item?.detailLoader || null;
   return normalized;
 }
@@ -216,7 +223,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
     detailCache: null,
     detailOpen: false,
     onLikeChange: null,
+    onOwnerAction: null,
     likePending: false,
+    ownerActionPending: false,
     zoom: 100,
     offsetX: 0,
     offsetY: 0,
@@ -259,6 +268,12 @@ export function createImageModalController({ app, body = document.body } = {}) {
       detailModal.close();
       updateControlsVisibility(true);
       viewport.focus?.();
+    },
+    onVisibilityToggle() {
+      toggleOwnedContentVisibility();
+    },
+    onDeleteContent() {
+      deleteOwnedContent();
     },
   });
 
@@ -404,10 +419,56 @@ export function createImageModalController({ app, body = document.body } = {}) {
     syncLikeUi();
   }
 
+  function applyOwnedContentState(nextState = {}) {
+    const current = currentItem();
+    const targetContentId = nextState.content_id || current?.content_id || (current?.image_id ? `i-${current.image_id}` : "");
+    if (!targetContentId) {
+      return;
+    }
+
+    state.items.forEach((item) => {
+      const itemContentId = item.content_id || (item.image_id ? `i-${item.image_id}` : "");
+      if (itemContentId !== targetContentId) {
+        return;
+      }
+      item.content_id = targetContentId;
+      item.viewer_permissions = nextState.viewer_permissions || item.viewer_permissions || null;
+      item.owner_meta = {
+        ...(item.owner_meta || {}),
+        ...(nextState.owner_meta || {}),
+      };
+      item.admin_meta = {
+        ...(item.admin_meta || {}),
+        ...(nextState.visibility ? { is_public: nextState.visibility === "public" } : {}),
+        ...(nextState.status ? { moderation_status: nextState.status } : {}),
+      };
+    });
+
+    if (state.detailCache) {
+      state.detailCache.content_id = targetContentId;
+      state.detailCache.viewer_permissions = nextState.viewer_permissions || state.detailCache.viewer_permissions || null;
+      state.detailCache.owner_meta = {
+        ...(state.detailCache.owner_meta || {}),
+        ...(nextState.owner_meta || {}),
+      };
+      state.detailCache.admin_meta = {
+        ...(state.detailCache.admin_meta || {}),
+        ...(nextState.visibility ? { is_public: nextState.visibility === "public" } : {}),
+        ...(nextState.status ? { moderation_status: nextState.status } : {}),
+      };
+      detailModal.update(state.detailCache);
+    }
+
+    populateFooter();
+  }
+
   async function openDetail() {
     const current = currentItem();
     if (!current) return;
-    if (!state.detailCache && typeof current.detailLoader === "function") {
+    if (
+      typeof current.detailLoader === "function" &&
+      (!state.detailCache || state.detailCache.viewer_permissions == null || state.detailCache.owner_meta == null)
+    ) {
       try {
         state.detailCache = normalizePayload(await current.detailLoader(current), {
           detailLoader: current.detailLoader,
@@ -419,6 +480,74 @@ export function createImageModalController({ app, body = document.body } = {}) {
       }
     }
     detailModal.open(state.detailCache || normalizePayload(current));
+  }
+
+  async function toggleOwnedContentVisibility() {
+    const current = currentItem();
+    const contentId = current?.content_id || (current?.image_id ? `i-${current.image_id}` : "");
+    const visibility = state.detailCache?.owner_meta?.visibility || current?.owner_meta?.visibility || "public";
+    const nextPublic = visibility !== "public";
+    if (!contentId || state.ownerActionPending) {
+      return;
+    }
+    const confirmed = window.confirm(
+      nextPublic
+        ? td(app, "confirm_make_public", "Make this content public?")
+        : td(app, "confirm_make_private", "Make this content private?")
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    state.ownerActionPending = true;
+    detailModal.setActionPending(true);
+    try {
+      const payload = await app.api.patch(`/api/contents/${encodeURIComponent(contentId)}/visibility`, { is_public: nextPublic });
+      const nextState = payload?.data ?? payload ?? {};
+      applyOwnedContentState(nextState);
+      app.toast.success(
+        nextPublic
+          ? td(app, "made_public", "Content is now public.")
+          : td(app, "made_private", "Content is now private.")
+      );
+      if (typeof state.onOwnerAction === "function") {
+        state.onOwnerAction(nextState);
+      }
+    } catch (error) {
+      app.toast.error(resolveLocalizedMessage(error, td(app, "action_error", "Failed to update content.")));
+    } finally {
+      state.ownerActionPending = false;
+      detailModal.setActionPending(false);
+    }
+  }
+
+  async function deleteOwnedContent() {
+    const current = currentItem();
+    const contentId = current?.content_id || (current?.image_id ? `i-${current.image_id}` : "");
+    if (!contentId || state.ownerActionPending) {
+      return;
+    }
+    const confirmed = window.confirm(td(app, "confirm_delete", "Delete this content?"));
+    if (!confirmed) {
+      return;
+    }
+
+    state.ownerActionPending = true;
+    detailModal.setActionPending(true);
+    try {
+      const payload = await app.api.post(`/api/contents/${encodeURIComponent(contentId)}/delete`, {});
+      const nextState = payload?.data ?? payload ?? {};
+      applyOwnedContentState(nextState);
+      app.toast.success(td(app, "deleted", "Content deleted."));
+      if (typeof state.onOwnerAction === "function") {
+        state.onOwnerAction(nextState);
+      }
+    } catch (error) {
+      app.toast.error(resolveLocalizedMessage(error, td(app, "action_error", "Failed to update content.")));
+    } finally {
+      state.ownerActionPending = false;
+      detailModal.setActionPending(false);
+    }
   }
 
   async function toggleLike() {
@@ -510,8 +639,10 @@ export function createImageModalController({ app, body = document.body } = {}) {
     const initialIndexRaw = Number(options.currentIndex ?? payload?.currentIndex ?? 0);
     state.currentIndex = Number.isFinite(initialIndexRaw) ? Math.min(state.items.length - 1, Math.max(0, initialIndexRaw)) : 0;
     state.onLikeChange = typeof options.onLikeChange === "function" ? options.onLikeChange : null;
+    state.onOwnerAction = typeof options.onOwnerAction === "function" ? options.onOwnerAction : null;
     state.detailCache = options.detail ? normalizePayload(options.detail, { detailLoader: options.detailLoader || state.items[state.currentIndex]?.detailLoader }) : null;
     state.detailOpen = false;
+    state.ownerActionPending = false;
     syncDetailStateClass();
     renderCurrentItem();
     detailModal.close();
