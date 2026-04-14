@@ -327,8 +327,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
   function syncGlobalCloseVisibility() {
     if (!globalCloseButton) return;
     if (!root.hidden && !mobileImageMedia.matches) {
-      globalCloseButton.hidden = false;
-      globalCloseButton.setAttribute("aria-hidden", "false");
+      const visible = Boolean(state.controlsVisible || state.detailOpen);
+      globalCloseButton.hidden = !visible;
+      globalCloseButton.setAttribute("aria-hidden", visible ? "false" : "true");
       return;
     }
     const modalStack = app?.modal?.getStack?.() || [];
@@ -374,6 +375,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     root.classList.toggle("is-cursor-visible", visible);
     state.controlsVisible = visible;
     state.cursorVisible = visible;
+    syncGlobalCloseVisibility();
   }
 
   function clearHideTimer() {
