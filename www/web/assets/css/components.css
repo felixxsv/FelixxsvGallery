@@ -1508,7 +1508,7 @@ body {
   min-width: 0;
   padding: 12px 14px;
   border-radius: 14px;
-  background-color: var(--color-surface);
+  background-color: transparent;
   border: 1px solid var(--color-border);
   box-shadow: none;
 }
