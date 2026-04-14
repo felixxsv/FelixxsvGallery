@@ -1111,7 +1111,7 @@ export function initUserShell(app) {
     const variants = {
       active: {
         heading: supportText("support.modal.active.heading", "現在支援中です"),
-        description: supportText("support.modal.active.description", "Felixxsv Gallery へのご支援ありがとうございます。\n現在、Supporter 特典をご利用いただけます。\nプロフィール装飾やバッジ表示は設定から変更できます。"),
+        description: supportText("support.modal.active.description", "Felixxsv Gallery へのご支援ありがとうございます。\n現在、Supporter 特典をご利用いただけます。\nプロフィール編集から装飾や表示内容を変更できます。"),
         primary: supportText("support.actions.manageSupport", "支援内容を管理する"),
       },
       cancelScheduled: {

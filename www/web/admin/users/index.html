@@ -6,9 +6,9 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title data-i18n="admin_users.page_title">ユーザー管理</title>
 <link href="/assets/css/common.css" rel="stylesheet"/>
-<link href="/assets/css/components.css?v=20260414-support-settings-v1" rel="stylesheet"/>
+<link href="/assets/css/components.css?v=20260415-admin-support-filter-v1" rel="stylesheet"/>
 <link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
-<link href="/assets/css/page/admin/users.css?v=20260414-support" rel="stylesheet"/>
+<link href="/assets/css/page/admin/users.css?v=20260415-admin-support-filter-v1" rel="stylesheet"/>
 </head>
 <body class="admin-page" data-admin-description="ユーザー一覧、編集、仮ユーザー作成を行います。" data-admin-page="users" data-app-base="" data-hide-admin-link-in-shell="1">
 <section class="admin-state-screen" id="adminLoadingState">
@@ -104,6 +104,21 @@
 <option value="locked" data-i18n="admin_users.locked">locked</option>
 <option value="disabled" data-i18n="admin_users.disabled">disabled</option>
 <option value="deleted" data-i18n="admin_users.deleted">deleted</option>
+</select>
+</div>
+<div class="admin-users-filter-wrap">
+<label class="admin-form-label" for="adminUsersSupportStatusFilter" data-i18n="admin_users.support_status">支援</label>
+<select class="app-select" id="adminUsersSupportStatusFilter">
+<option value="" data-i18n="admin_users.all">すべて</option>
+<option value="inactive" data-i18n="support.status.inactive">未支援</option>
+<option value="active" data-i18n="support.status.active">支援中</option>
+<option value="cancelScheduled" data-i18n="support.status.cancelScheduled">停止予定</option>
+<option value="giftActive" data-i18n="support.status.giftActive">ギフト中</option>
+<option value="permanentActive" data-i18n="support.status.permanentActive">永久無料</option>
+<option value="scheduled" data-i18n="support.status.scheduled">課金予約あり</option>
+<option value="past_due" data-i18n="support.admin.statusPastDue">支払失敗</option>
+<option value="unpaid" data-i18n="support.admin.statusUnpaid">未払い</option>
+<option value="expired" data-i18n="support.status.expired">支援終了</option>
 </select>
 </div>
 <div class="admin-users-filter-wrap">
@@ -946,6 +961,6 @@
 </div>
 <div aria-live="polite" class="app-toast-root" id="appToastRoot"></div>
 <script src="/assets/js/components/admin-layout.js?v=20260413-crop" type="module"></script>
-<script src="/assets/js/page/admin/users.js?v=20260414-support" type="module"></script>
+<script src="/assets/js/page/admin/users.js?v=20260415-admin-support-filter-v1" type="module"></script>
 </body>
 </html>

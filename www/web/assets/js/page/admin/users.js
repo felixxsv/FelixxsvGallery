@@ -127,6 +127,7 @@ const state = {
   q: "",
   role: "",
   status: "",
+  supportStatus: "",
   sort: "created_desc",
   total: 0,
   pages: 1,
@@ -150,6 +151,7 @@ function qs() {
   if (state.q) params.set("q", state.q);
   if (state.role) params.set("role", state.role);
   if (state.status) params.set("status", state.status);
+  if (state.supportStatus) params.set("support_status", state.supportStatus);
   return params.toString();
 }
 
@@ -722,6 +724,7 @@ function bindFilters() {
   const search = byId("adminUsersSearch");
   const role = byId("adminUsersRoleFilter");
   const status = byId("adminUsersStatusFilter");
+  const supportStatus = byId("adminUsersSupportStatusFilter");
   const sort = byId("adminUsersSort");
   const reload = byId("adminUsersReloadButton");
   const prev = byId("adminUsersPrevPage");
@@ -732,6 +735,7 @@ function bindFilters() {
     state.q = search?.value?.trim() || "";
     state.role = role?.value || "";
     state.status = status?.value || "";
+    state.supportStatus = supportStatus?.value || "";
     state.sort = sort?.value || "created_desc";
     loadUsers();
   }
@@ -742,6 +746,7 @@ function bindFilters() {
   });
   role?.addEventListener("change", trigger);
   status?.addEventListener("change", trigger);
+  supportStatus?.addEventListener("change", trigger);
   sort?.addEventListener("change", trigger);
   reload?.addEventListener("click", () => loadUsers());
   prev?.addEventListener("click", () => {
@@ -853,14 +858,17 @@ document.addEventListener("admin:ready", () => {
   if (labels[0]) labels[0].textContent = t("search", "Search");
   if (labels[1]) labels[1].textContent = t("role", "Role");
   if (labels[2]) labels[2].textContent = t("status", "Status");
-  if (labels[3]) labels[3].textContent = t("sort", "Sort");
+  if (labels[3]) labels[3].textContent = t("support_status", "Support");
+  if (labels[4]) labels[4].textContent = t("sort", "Sort");
   const search = byId("adminUsersSearch");
   if (search) search.placeholder = t("search_placeholder", "Search display name / ID / email");
   const role = byId("adminUsersRoleFilter");
   const status = byId("adminUsersStatusFilter");
+  const supportStatus = byId("adminUsersSupportStatusFilter");
   const sort = byId("adminUsersSort");
   if (role?.options[0]) role.options[0].text = t("all", "All");
   if (status?.options[0]) status.options[0].text = t("all", "All");
+  if (supportStatus?.options[0]) supportStatus.options[0].text = t("all", "All");
   if (sort?.options[0]) sort.options[0].text = t("created_desc", "Newest");
   if (sort?.options[1]) sort.options[1].text = t("created_asc", "Oldest");
   if (sort?.options[2]) sort.options[2].text = t("name_asc", "Name A-Z");
@@ -893,10 +901,12 @@ document.addEventListener("admin:ready", () => {
     if (labels[0]) labels[0].textContent = t("search", "Search");
     if (labels[1]) labels[1].textContent = t("role", "Role");
     if (labels[2]) labels[2].textContent = t("status", "Status");
-    if (labels[3]) labels[3].textContent = t("sort", "Sort");
+    if (labels[3]) labels[3].textContent = t("support_status", "Support");
+    if (labels[4]) labels[4].textContent = t("sort", "Sort");
     if (search) search.placeholder = t("search_placeholder", "Search display name / ID / email");
     if (role?.options[0]) role.options[0].text = t("all", "All");
     if (status?.options[0]) status.options[0].text = t("all", "All");
+    if (supportStatus?.options[0]) supportStatus.options[0].text = t("all", "All");
     if (sort?.options[0]) sort.options[0].text = t("created_desc", "Newest");
     if (sort?.options[1]) sort.options[1].text = t("created_asc", "Oldest");
     if (sort?.options[2]) sort.options[2].text = t("name_asc", "Name A-Z");

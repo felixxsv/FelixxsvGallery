@@ -59,6 +59,7 @@ _DASHBOARD_PREFERENCE_KEY = "admin_dashboard.clock_mode"
 _ALLOWED_CLOCK_MODES = {"digital", "analog"}
 _ALLOWED_ROLES = {"admin", "user"}
 _ALLOWED_STATUSES = {"active", "locked", "disabled", "deleted"}
+_ALLOWED_SUPPORT_STATUS_FILTERS = {"active", "cancelScheduled", "giftActive", "permanentActive", "scheduled", "past_due", "unpaid", "expired", "inactive"}
 _PRESENCE_VISIBLE_WINDOW_SEC = 90
 _SESSION_FUTURE_SKEW_SEC = 300
 _USERKEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{3,19}$")
@@ -940,7 +941,7 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
     }
 
 
-def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | None, status: str | None, provider: str | None, sort: str | None) -> dict:
+def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | None, status: str | None, provider: str | None, sort: str | None, support_status: str | None = None) -> dict:
     page = max(1, int(page or 1))
     per_page = max(1, min(100, int(per_page or 20)))
     offset = (page - 1) * per_page
@@ -949,6 +950,9 @@ def _load_users_page(conn, page: int, per_page: int, q: str | None, role: str | 
     status_value = str(status or "").strip().lower() or None
     provider_value = str(provider or "").strip().lower() or None
     sort_value = str(sort or "created_desc").strip().lower()
+    support_status_value = str(support_status or "").strip() or None
+    if support_status_value not in _ALLOWED_SUPPORT_STATUS_FILTERS:
+        support_status_value = None
 
     email_col = _users_email_column(conn)
     upload_col = _users_upload_column(conn)
@@ -1021,11 +1025,48 @@ LEFT JOIN (
     avatar_select = f"u.{avatar_col} AS avatar_path" if avatar_col else "NULL AS avatar_path"
 
     with conn.cursor() as cur:
-        cur.execute(f"SELECT COUNT(*) AS c FROM users u WHERE {where_sql}", params)
-        total = int((cur.fetchone() or {}).get("c") or 0)
+        if support_status_value:
+            cur.execute(
+                f"""
+SELECT
+    u.id,
+    u.display_name,
+    u.user_key,
+    {email_select},
+    u.role,
+    u.status,
+    {upload_select},
+    u.is_email_verified,
+    {avatar_select},
+    u.created_at,
+    u.updated_at,
+    session_state.last_seen_at,
+    session_state.last_access_at,
+    session_state.last_presence_at,
+    session_state.active_session_count
+FROM users u
+{session_join}
+WHERE {where_sql}
+ORDER BY {order_sql}
+""",
+                [*session_params, *params],
+            )
+            all_rows = cur.fetchall()
+            all_user_ids = [int(row.get("id")) for row in all_rows]
+            all_supporter_map = _load_supporter_map(conn, all_user_ids)
+            filtered_rows = [
+                row for row in all_rows
+                if str((all_supporter_map.get(int(row.get("id"))) or {}).get("status", {}).get("code") or "inactive") == support_status_value
+            ]
+            total = len(filtered_rows)
+            rows = filtered_rows[offset:offset + per_page]
+            supporter_map = {int(row.get("id")): all_supporter_map.get(int(row.get("id"))) for row in rows}
+        else:
+            cur.execute(f"SELECT COUNT(*) AS c FROM users u WHERE {where_sql}", params)
+            total = int((cur.fetchone() or {}).get("c") or 0)
 
-        cur.execute(
-            f"""
+            cur.execute(
+                f"""
 SELECT
     u.id,
     u.display_name,
@@ -1048,14 +1089,14 @@ WHERE {where_sql}
 ORDER BY {order_sql}
 LIMIT %s OFFSET %s
 """,
-            [*session_params, *params, per_page, offset],
-        )
-        rows = cur.fetchall()
+                [*session_params, *params, per_page, offset],
+            )
+            rows = cur.fetchall()
+            supporter_map = _load_supporter_map(conn, [int(row.get("id")) for row in rows])
 
     user_ids = [int(row.get("id")) for row in rows]
     providers_map = _load_user_providers_map(conn, user_ids)
     two_factor_map = _load_user_two_factor_map(conn, user_ids)
-    supporter_map = _load_supporter_map(conn, user_ids)
 
     items = [_serialize_user_list_item(row, providers_map, two_factor_map, supporter_map) for row in rows]
     pages = (total + per_page - 1) // per_page if total > 0 else 1
@@ -1444,6 +1485,7 @@ def admin_users_list(
     status: str | None = Query(default=None),
     provider: str | None = Query(default=None),
     sort: str | None = Query(default="created_desc"),
+    support_status: str | None = Query(default=None),
     session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
 ):
     request_id = _request_id()
@@ -1454,7 +1496,7 @@ def admin_users_list(
     conn = None
     try:
         conn = _get_db_connection(autocommit=True)
-        data = _load_users_page(conn, page=page, per_page=per_page, q=q, role=role, status=status, provider=provider, sort=sort)
+        data = _load_users_page(conn, page=page, per_page=per_page, q=q, role=role, status=status, provider=provider, sort=sort, support_status=support_status)
         return _json_success(request_id=request_id, data=data, message="ユーザー一覧を取得しました。")
     except Exception:
         logger.exception("Unhandled error")
