@@ -781,7 +781,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
       return;
     }
     const clickedStage = event.target === stage || event.target === image;
-    if (clickedStage) {
+    if (clickedStage && mobileImageMedia.matches) {
       toggleControlsVisibility();
     }
   });
