@@ -373,19 +373,34 @@ body {
   top: 16px;
   right: 16px;
   z-index: 5000;
-  width: 48px;
-  height: 48px;
-  border: 1px solid color-mix(in srgb, var(--color-text) 18%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-bg) 70%, transparent);
-  color: #ffffff;
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid color-mix(in srgb, white 16%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
+    rgba(14, 18, 28, 0.58);
+  color: transparent;
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   cursor: pointer;
+  transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .app-global-close:hover {
-  background: color-mix(in srgb, var(--color-bg-elevated) 84%, transparent);
+  transform: translateY(-1px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08)),
+    rgba(20, 26, 38, 0.72);
+  border-color: color-mix(in srgb, white 24%, transparent);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .app-modal-header-close {
@@ -397,16 +412,57 @@ body {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-surface) 84%, transparent);
-  color: var(--color-text);
+  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white 6%), color-mix(in srgb, var(--color-surface) 88%, transparent));
+  color: transparent;
   cursor: pointer;
   flex: 0 0 auto;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .app-modal-header-close:hover {
-  background: var(--color-surface-strong);
+  transform: translateY(-1px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface-strong) 94%, white 6%), color-mix(in srgb, var(--color-surface-strong) 88%, transparent));
+  border-color: color-mix(in srgb, var(--color-text) 18%, transparent);
+  box-shadow:
+    0 14px 28px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.app-global-close::before,
+.app-global-close::after,
+.app-modal-header-close::before,
+.app-modal-header-close::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 1.8px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.app-global-close::before,
+.app-modal-header-close::before {
+  transform: rotate(45deg);
+}
+
+.app-global-close::after,
+.app-modal-header-close::after {
+  transform: rotate(-45deg);
+}
+
+.app-global-close {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.app-modal-header-close {
+  color: color-mix(in srgb, var(--color-text) 82%, transparent);
 }
 
 .app-modal-root {
