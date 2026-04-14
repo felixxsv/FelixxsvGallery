@@ -1189,6 +1189,7 @@
   "admin_contacts.role_user": "ユーザー",
 
   "support.common.title": "Support / 支援",
+  "support.common.decorSection": "装飾",
   "support.common.supporter_badge": "Supporter",
   "support.entry.openSupport": "支援する",
   "support.entry.openSupportSettings": "Supporter設定",
