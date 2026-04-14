@@ -728,7 +728,8 @@ export function initUserShell(app) {
     setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(1) .app-field:nth-of-type(2) .app-field__label", t("shell.static.theme", "Theme"));
     setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(2) .shell-settings-group__title", t("shell.static.image_group", "Images"));
     setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(2) .app-field .app-field__label", t("shell.static.image_open_behavior", "Click Behavior"));
-    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(2) .app-switch-row:nth-of-type(1) .app-switch-row__label", t("shell.static.meta_pinned", "Keep the meta bar pinned"));
+    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(2) .app-switch-row:nth-of-type(1) .app-switch-row__label", t("shell.static.backdrop_close", "Close modal on backdrop click"));
+    setText("[data-modal-id='settings'] .shell-settings-group:nth-of-type(2) .app-switch-row:nth-of-type(2) .app-switch-row__label", t("shell.static.meta_pinned", "Keep the meta bar pinned"));
     setText("#shellSettingTheme option[value='system']", t("shell.static.theme_system", "Follow system setting"));
     setText("#shellSettingTheme option[value='dark']", t("shell.static.theme_dark", "Dark"));
     setText("#shellSettingTheme option[value='light']", t("shell.static.theme_light", "Light"));
