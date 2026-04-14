@@ -1536,7 +1536,7 @@ body {
   gap: 8px;
   min-height: 44px;
   align-content: start;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 #userProfileBadges.user-profile-badges,
@@ -1547,7 +1547,7 @@ body {
   gap: 8px;
   min-height: 44px;
   align-content: start;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .shell-user-profile__bio {
@@ -1568,16 +1568,9 @@ body {
 }
 
 .shell-user-profile .shell-user-link,
-.shell-user-profile .user-profile-badge,
-.shell-user-profile__slot-placeholder {
+.shell-user-profile .user-profile-badge {
   width: 44px;
   height: 44px;
-}
-
-.shell-user-profile__slot-placeholder {
-  border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, var(--color-border) 88%, transparent 12%);
-  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent 28%);
 }
 
 .shell-user-profile .shell-user-link__icon {

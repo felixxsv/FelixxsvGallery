@@ -60,10 +60,6 @@ function isActiveBadge(badge) {
   return badge?.key && String(badge.key) !== "star";
 }
 
-function renderSlotPlaceholders(count) {
-  return Array.from({ length: Math.max(0, count) }, () => '<span class="shell-user-profile__slot-placeholder" aria-hidden="true"></span>').join("");
-}
-
 function applySupportPresentation(container, avatar, supporterProfile) {
   container?.classList?.remove("supporter-profile-decor--aurora-glow", "supporter-profile-decor--sunrise-wave");
   avatar?.classList?.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
@@ -201,11 +197,10 @@ export function initPublicProfileModal(app) {
       const links = user.links || [];
       if (refs.linksSection) refs.linksSection.hidden = false;
       if (refs.links) {
-        const renderedLinks = links.slice(0, 5).map((link) => {
+        refs.links.innerHTML = links.slice(0, 5).map((link) => {
           const iconUrl = getLinkIconUrl(link.url);
           return `<a class="shell-user-link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}"><span class="shell-user-link__icon" style="--link-icon: url('${iconUrl}')"></span></a>`;
         }).join("");
-        refs.links.innerHTML = `${renderedLinks}${renderSlotPlaceholders(5 - Math.min(links.length, 5))}`;
       }
 
       // Badges
@@ -225,7 +220,6 @@ export function initPublicProfileModal(app) {
           el.addEventListener("click", () => showBadgeDetail(badge, app));
           refs.badges.appendChild(el);
         }
-        refs.badges.insertAdjacentHTML("beforeend", renderSlotPlaceholders(3 - Math.min(badges.length, 3)));
       }
       if (refs.supportSection) refs.supportSection.hidden = !hasSupportBadges;
       if (refs.linkBadgeRow) {
