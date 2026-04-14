@@ -439,10 +439,10 @@ export function initUserShell(app) {
     const settings = support?.settings || {};
     const entitlements = support?.entitlements || {};
     return {
-      selected_icon_frame: entitlements.icon_frame
+      selected_icon_frame: entitlements.icon_frame && settings.supporter_icon_frame_visible
         ? settings.selected_icon_frame || null
         : null,
-      selected_profile_decor: entitlements.profile_decor
+      selected_profile_decor: entitlements.profile_decor && settings.supporter_profile_decor_visible
         ? settings.selected_profile_decor || null
         : null,
     };
