@@ -1529,21 +1529,12 @@ body {
   padding-right: 4px;
 }
 
-#userProfileLinksSection {
-  min-height: 116px;
-}
-
-#userProfileBadgesSection,
-#userProfileSupportSection {
-  min-height: 116px;
-}
-
 #userProfileLinks.shell-user-card__links {
   display: grid;
   grid-template-columns: repeat(5, 44px);
   grid-auto-rows: 44px;
   gap: 8px;
-  min-height: 96px;
+  min-height: 44px;
   align-content: start;
   justify-content: flex-start;
 }
@@ -1554,7 +1545,7 @@ body {
   grid-template-columns: repeat(3, 44px);
   grid-auto-rows: 44px;
   gap: 8px;
-  min-height: 96px;
+  min-height: 44px;
   align-content: start;
   justify-content: flex-start;
 }
@@ -1576,21 +1567,17 @@ body {
   margin: 0;
 }
 
-.shell-user-profile__empty {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 96px;
-  margin: 0;
-  font-size: 0.84rem;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
 .shell-user-profile .shell-user-link,
-.shell-user-profile .user-profile-badge {
+.shell-user-profile .user-profile-badge,
+.shell-user-profile__slot-placeholder {
   width: 44px;
   height: 44px;
+}
+
+.shell-user-profile__slot-placeholder {
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 88%, transparent 12%);
+  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent 28%);
 }
 
 .shell-user-profile .shell-user-link__icon {

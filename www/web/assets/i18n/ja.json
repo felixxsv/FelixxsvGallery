@@ -1132,8 +1132,6 @@
   "public_profile.no_bio": "まだ書かれていません",
   "public_profile.links_label": "リンク",
   "public_profile.badges_label": "バッジ",
-  "public_profile.no_links": "リンクは未設定です",
-  "public_profile.no_badges": "バッジはありません",
 
   "admin_layout.nav_contacts": "お問い合わせ",
 
