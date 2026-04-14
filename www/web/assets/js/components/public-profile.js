@@ -82,8 +82,10 @@ export function initPublicProfileModal(app) {
     bio: byId("userProfileBio"),
     bioEmpty: byId("userProfileBioEmpty"),
     links: byId("userProfileLinks"),
+    linksEmpty: byId("userProfileLinksEmpty"),
     linksSection: byId("userProfileLinksSection"),
     badges: byId("userProfileBadges"),
+    badgesEmpty: byId("userProfileBadgesEmpty"),
     badgesSection: byId("userProfileBadgesSection"),
     supportBadges: byId("userProfileSupportBadges"),
     supportSection: byId("userProfileSupportSection"),
@@ -107,6 +109,8 @@ export function initPublicProfileModal(app) {
     refs.error.textContent = t("not_found", "User not found.");
     if (refs.filterButton) refs.filterButton.textContent = t("view_posts", "View Posts");
     if (refs.bioEmpty) refs.bioEmpty.textContent = t("no_bio", "Nothing here yet.");
+    if (refs.linksEmpty) refs.linksEmpty.textContent = t("no_links", "No links added.");
+    if (refs.badgesEmpty) refs.badgesEmpty.textContent = t("no_badges", "No badges.");
     document.querySelectorAll("[data-i18n='public_profile.bio_label']").forEach(el => { el.textContent = t("bio_label", "Bio"); });
     document.querySelectorAll("[data-i18n='public_profile.links_label']").forEach(el => { el.textContent = t("links_label", "Links"); });
     document.querySelectorAll("[data-i18n='public_profile.badges_label']").forEach(el => { el.textContent = t("badges_label", "Badges"); });
@@ -196,13 +200,14 @@ export function initPublicProfileModal(app) {
       // Links
       const links = user.links || [];
       const hasLinks = links.length > 0;
-      if (refs.linksSection) refs.linksSection.hidden = !hasLinks;
+      if (refs.linksSection) refs.linksSection.hidden = false;
       if (refs.links) {
         refs.links.innerHTML = links.slice(0, 5).map((link) => {
           const iconUrl = getLinkIconUrl(link.url);
           return `<a class="shell-user-link" href="${link.url}" target="_blank" rel="noopener noreferrer" title="${link.url}"><span class="shell-user-link__icon" style="--link-icon: url('${iconUrl}')"></span></a>`;
         }).join("");
       }
+      if (refs.linksEmpty) refs.linksEmpty.hidden = hasLinks;
 
       // Badges
       const badges = Array.isArray(user.badges) ? user.badges.filter(isActiveBadge) : [];
@@ -210,7 +215,7 @@ export function initPublicProfileModal(app) {
       const hasSupportBadges = renderSupportBadges(user.supporter_profile || {});
       currentUser = user;
       applySupportPresentation(refs.content, refs.avatar, user.supporter_profile || {});
-      if (refs.badgesSection) refs.badgesSection.hidden = !hasBadges;
+      if (refs.badgesSection) refs.badgesSection.hidden = false;
       if (refs.badges) {
         refs.badges.innerHTML = "";
         for (const badge of badges.slice(0, 3)) {
@@ -223,7 +228,12 @@ export function initPublicProfileModal(app) {
           refs.badges.appendChild(el);
         }
       }
-      if (refs.linkBadgeRow) refs.linkBadgeRow.hidden = !hasLinks && !hasBadges && !hasSupportBadges;
+      if (refs.badgesEmpty) refs.badgesEmpty.hidden = hasBadges;
+      if (refs.supportSection) refs.supportSection.hidden = !hasSupportBadges;
+      if (refs.linkBadgeRow) {
+        refs.linkBadgeRow.hidden = false;
+        refs.linkBadgeRow.classList.toggle("shell-user-profile__link-badge-row--without-support", !hasSupportBadges);
+      }
 
       refs.loading.hidden = true;
       refs.content.hidden = false;

@@ -1497,6 +1497,10 @@ body {
   align-items: stretch;
 }
 
+.shell-user-profile__link-badge-row--without-support {
+  grid-template-columns: minmax(0, 1.35fr) minmax(154px, 1fr);
+}
+
 .shell-user-profile__section {
   display: flex;
   flex-direction: column;
@@ -1570,6 +1574,17 @@ body {
   color: var(--color-text-muted);
   font-style: italic;
   margin: 0;
+}
+
+.shell-user-profile__empty {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 96px;
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
 }
 
 .shell-user-profile .shell-user-link,
