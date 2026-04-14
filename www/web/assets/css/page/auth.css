@@ -12,13 +12,16 @@ body.auth-page {
 
 .auth-main {
   flex: 1 1 auto;
+  display: flex;
   min-height: 0;
+  min-height: calc(100dvh - var(--header-height));
   overflow: hidden;
 }
 
 .auth-split {
   display: grid;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 100%;
 }
 
 /* ── PC: side-by-side ───────────────────────────────────────────────────── */
