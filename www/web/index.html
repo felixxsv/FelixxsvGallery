@@ -831,18 +831,21 @@
           <!-- Avatar section -->
           <div class="shell-profile-avatar-section">
             <div class="shell-profile-avatar-wrap">
-              <div id="shellAccountAvatar" class="shell-profile-avatar">
+              <div class="shell-profile-avatar-stage">
+                <div id="shellAccountAvatar" class="shell-profile-avatar">
                 <span id="shellAccountAvatarInitial" class="shell-profile-avatar__initial"></span>
                 <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="Avatar" hidden>
+                </div>
+                <button id="shellAvatarDecorButton" type="button" class="shell-avatar-decor-trigger">
+                  <span class="shell-avatar-decor-trigger__icon" aria-hidden="true">✦</span>
+                  <span data-i18n="support.benefits.iconFrame.label">アイコンフレーム</span>
+                </button>
               </div>
               <div class="shell-profile-avatar-controls">
                 <div class="shell-profile-avatar-controls__row">
                   <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
                     <span data-i18n="shell.static.icon_change">Change Avatar</span>
                   </label>
-                  <button id="shellAvatarDecorButton" type="button" class="app-button app-button--ghost app-button--small">
-                    <span data-i18n="support.benefits.iconFrame.label">アイコンフレーム</span>
-                  </button>
                 </div>
                 <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
                 <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden>
@@ -1015,9 +1018,9 @@
           <h2 id="badgeSelectTitle" class="app-modal-title" data-i18n="shell.static.badges">Badges</h2>
         </div>
         <div class="app-modal-body">
-          <div class="shell-badge-pool">
+          <div class="shell-badge-picker">
             <div class="shell-badge-pool__label" data-i18n="shell.static.badges">Badges</div>
-            <div id="shellBadgeSelectPool" class="shell-badge-pool__list">
+            <div id="shellBadgeSelectPool" class="shell-badge-picker__grid">
               <span class="shell-badge-pool__empty" data-i18n="shell.static.no_badges">No badges yet.</span>
             </div>
             <div class="shell-badge-pool__hint" data-i18n="shell.static.badges_hint">(up to 3 shown on profile)</div>
