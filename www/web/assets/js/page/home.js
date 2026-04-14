@@ -1041,6 +1041,34 @@ export function initHomePage(app) {
     if (userKey) applyOwnerFilter(userKey, displayName);
   });
 
+  document.addEventListener("app:support-presentation-updated", (event) => {
+    const userKey = normalizeUserKey(event.detail?.userKey);
+    if (!userKey) {
+      return;
+    }
+    const supporterProfile = event.detail?.publicProfile || {};
+    state.items.forEach((item) => {
+      const itemUserKey = normalizeUserKey(item?.user?.user_key || item?.uploader_user_key || item?.user_key);
+      if (itemUserKey === userKey) {
+        const targetUser = item.user || (item.user = {});
+        targetUser.supporter_profile = {
+          ...(targetUser.supporter_profile || {}),
+          ...supporterProfile,
+        };
+      }
+    });
+    document.querySelectorAll("[data-card-user]").forEach((userButton) => {
+      if (normalizeUserKey(userButton.dataset.userKey) !== userKey) {
+        return;
+      }
+      const article = userButton.closest(".home-gallery-card");
+      applySupportPresentation(article, userButton, {
+        ...supporterProfile,
+        selected_profile_decor: null,
+      });
+    });
+  });
+
   function scheduleSugFetch(q, panelRefs) {
     window.clearTimeout(state.sugDebounceTimer);
     if (!q || q.length < 1) {

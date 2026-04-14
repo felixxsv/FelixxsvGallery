@@ -434,6 +434,21 @@ export function initUserShell(app) {
       : supportText("support.actions.viewStatus", "支援状況を見る");
   }
 
+  function notifySupportPresentationUpdated() {
+    const user = getUser();
+    const support = getSupport();
+    const userKey = user?.user_key ? String(user.user_key).trim() : "";
+    if (!userKey) {
+      return;
+    }
+    document.dispatchEvent(new CustomEvent("app:support-presentation-updated", {
+      detail: {
+        userKey,
+        publicProfile: support?.public_profile || {},
+      },
+    }));
+  }
+
   function ownAccountModalSupportPresentation() {
     const support = getSupport();
     const settings = support?.settings || {};
@@ -2137,6 +2152,7 @@ export function initUserShell(app) {
         renderUserCard();
         renderSupporterSettings();
         renderProfileDecorSection();
+        notifySupportPresentationUpdated();
       }
       if (showToast) {
         toast.success(t("shell.toast.profile_updated", "Profile updated."));

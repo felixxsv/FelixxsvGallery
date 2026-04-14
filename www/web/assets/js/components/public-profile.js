@@ -251,6 +251,18 @@ export function initPublicProfileModal(app) {
     if (userKey) openProfile(userKey);
   });
 
+  document.addEventListener("app:support-presentation-updated", (event) => {
+    const userKey = normalizeUserKey(event.detail?.userKey);
+    if (!currentUser || normalizeUserKey(currentUser.user_key) !== userKey) {
+      return;
+    }
+    currentUser.supporter_profile = {
+      ...(currentUser.supporter_profile || {}),
+      ...(event.detail?.publicProfile || {}),
+    };
+    applySupportPresentation(refs.content, refs.avatar, currentUser.supporter_profile || {});
+  });
+
   window.addEventListener("gallery:language-changed", () => {
     applyStaticTranslations();
     refreshProfileMediaModalTexts(app);

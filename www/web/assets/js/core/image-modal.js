@@ -501,6 +501,42 @@ export function createImageModalController({ app, body = document.body } = {}) {
     syncLikeUi();
   }
 
+  document.addEventListener("app:support-presentation-updated", (event) => {
+    const userKey = normalizeUserKey(event.detail?.userKey);
+    if (!userKey) {
+      return;
+    }
+    const publicProfile = event.detail?.publicProfile || {};
+    let updated = false;
+    state.items.forEach((item) => {
+      const itemUserKey = normalizeUserKey(item?.user?.user_key || item?.uploader_user_key || item?.user_key);
+      if (itemUserKey !== userKey) {
+        return;
+      }
+      const targetUser = item.user || (item.user = {});
+      targetUser.supporter_profile = {
+        ...(targetUser.supporter_profile || {}),
+        ...publicProfile,
+      };
+      updated = true;
+    });
+    if (state.detailCache) {
+      const detailUserKey = normalizeUserKey(state.detailCache?.user?.user_key || state.detailCache?.uploader_user_key || state.detailCache?.user_key);
+      if (detailUserKey === userKey) {
+        const targetUser = state.detailCache.user || (state.detailCache.user = {});
+        targetUser.supporter_profile = {
+          ...(targetUser.supporter_profile || {}),
+          ...publicProfile,
+        };
+        updated = true;
+        detailModal.update(state.detailCache);
+      }
+    }
+    if (updated && !root.hidden) {
+      populateFooter();
+    }
+  });
+
   function bodyLock(lock) {
     body.classList.toggle("is-image-modal-open", lock);
     if (lock) {
