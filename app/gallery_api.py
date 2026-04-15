@@ -1711,9 +1711,24 @@ LIMIT 1
     window.addEventListener('mouseup',()=>{{dr=false;stage.classList.remove('dragging');}});
     stage.addEventListener('dblclick',reset);
     let tp={{}},pd=0;
-    stage.addEventListener('touchstart',e=>{{for(const t of e.changedTouches)tp[t.identifier]=t;const v=Object.values(tp);if(v.length===2)pd=Math.hypot(v[0].clientX-v[1].clientX,v[0].clientY-v[1].clientY);}},{{passive:true}});
-    stage.addEventListener('touchmove',e=>{{e.preventDefault();for(const t of e.changedTouches)tp[t.identifier]=t;const v=Object.values(tp);if(v.length===2){{const nd=Math.hypot(v[0].clientX-v[1].clientX,v[0].clientY-v[1].clientY);zoomAt((v[0].clientX+v[1].clientX)/2,(v[0].clientY+v[1].clientY)/2,nd/pd);pd=nd;}}}},{{passive:false}});
-    stage.addEventListener('touchend',e=>{{for(const t of e.changedTouches)delete tp[t.identifier];}},{{passive:true}});
+    stage.addEventListener('touchstart',e=>{{
+      for(const t of e.changedTouches)tp[t.identifier]=t;
+      const v=Object.values(tp);
+      if(v.length===1){{dx=v[0].clientX-tx;dy=v[0].clientY-ty;}}
+      else if(v.length===2)pd=Math.hypot(v[0].clientX-v[1].clientX,v[0].clientY-v[1].clientY);
+    }},{{passive:true}});
+    stage.addEventListener('touchmove',e=>{{
+      e.preventDefault();
+      for(const t of e.changedTouches)tp[t.identifier]=t;
+      const v=Object.values(tp);
+      if(v.length===1&&sc>1){{tx=v[0].clientX-dx;ty=v[0].clientY-dy;apply();}}
+      else if(v.length===2){{const nd=Math.hypot(v[0].clientX-v[1].clientX,v[0].clientY-v[1].clientY);zoomAt((v[0].clientX+v[1].clientX)/2,(v[0].clientY+v[1].clientY)/2,nd/pd);pd=nd;}}
+    }},{{passive:false}});
+    stage.addEventListener('touchend',e=>{{
+      for(const t of e.changedTouches)delete tp[t.identifier];
+      const v=Object.values(tp);
+      if(v.length===1){{dx=v[0].clientX-tx;dy=v[0].clientY-ty;}}
+    }},{{passive:true}});
   </script>
 </body>
 </html>"""
