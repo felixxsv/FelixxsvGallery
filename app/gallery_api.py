@@ -1644,19 +1644,63 @@ LIMIT 1
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <title>{safe_title}</title>
   <style>
     *{{margin:0;padding:0;box-sizing:border-box}}
-    html,body{{width:100%;height:100%;background:#111;display:flex;align-items:center;justify-content:center}}
-    img{{max-width:100vw;max-height:100vh;object-fit:contain;display:block;-webkit-user-drag:none;user-select:none}}
+    html,body{{width:100%;height:100%;background:#111;overflow:hidden}}
+    #stage{{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;cursor:grab}}
+    #stage.dragging{{cursor:grabbing}}
+    #img{{max-width:100vw;max-height:100vh;object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;will-change:transform;transform-origin:center}}
+    .ui-btn{{position:fixed;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;cursor:pointer;backdrop-filter:blur(8px);transition:background .15s;z-index:10;font-family:system-ui,sans-serif}}
+    .ui-btn:hover{{background:rgba(255,255,255,.18)}}
+    #close-btn{{top:16px;right:16px;padding:8px 16px;font-size:14px}}
+    #zoom-wrap{{position:fixed;bottom:20px;right:16px;display:flex;gap:6px;z-index:10}}
+    #zoom-wrap .ui-btn{{width:38px;height:38px;font-size:20px;display:flex;align-items:center;justify-content:center}}
   </style>
 </head>
 <body>
-  <img src="{data_uri}" alt="{safe_title}" draggable="false">
+  <div id="stage"><img id="img" src="{data_uri}" alt="{safe_title}" draggable="false"></div>
+  <button id="close-btn" class="ui-btn">✕ 閉じる</button>
+  <div id="zoom-wrap">
+    <button class="ui-btn" id="z-out" title="縮小">−</button>
+    <button class="ui-btn" id="z-rst" title="リセット">↺</button>
+    <button class="ui-btn" id="z-in"  title="拡大">＋</button>
+  </div>
   <script>
-    document.addEventListener('contextmenu',function(e){{e.preventDefault();}});
-    document.addEventListener('dragstart',function(e){{e.preventDefault();}});
+    document.addEventListener('contextmenu',e=>e.preventDefault());
+    document.addEventListener('dragstart',e=>e.preventDefault());
+    const stage=document.getElementById('stage'),img=document.getElementById('img');
+    let sc=1,tx=0,ty=0;
+    function apply(){{img.style.transform=`translate(${{tx}}px,${{ty}}px) scale(${{sc}})`;}}
+    function zoomAt(cx,cy,f){{
+      const ns=Math.min(8,Math.max(1,sc*f)),r=ns/sc;
+      tx=(cx-innerWidth/2)*(1-r)+tx*r;
+      ty=(cy-innerHeight/2)*(1-r)+ty*r;
+      sc=ns;
+      if(sc<=1){{sc=1;tx=0;ty=0;}}
+      apply();
+    }}
+    function reset(){{
+      sc=1;tx=0;ty=0;
+      img.style.transition='transform .2s ease';
+      apply();
+      setTimeout(()=>img.style.transition='',200);
+    }}
+    stage.addEventListener('wheel',e=>{{e.preventDefault();zoomAt(e.clientX,e.clientY,e.deltaY<0?1.15:1/1.15);}},{{passive:false}});
+    let dr=false,dx,dy;
+    stage.addEventListener('mousedown',e=>{{if(e.button||sc<=1)return;dr=true;dx=e.clientX-tx;dy=e.clientY-ty;stage.classList.add('dragging');}});
+    window.addEventListener('mousemove',e=>{{if(!dr)return;tx=e.clientX-dx;ty=e.clientY-dy;apply();}});
+    window.addEventListener('mouseup',()=>{{dr=false;stage.classList.remove('dragging');}});
+    stage.addEventListener('dblclick',reset);
+    let tp={{}},pd=0;
+    stage.addEventListener('touchstart',e=>{{for(const t of e.changedTouches)tp[t.identifier]=t;const v=Object.values(tp);if(v.length===2)pd=Math.hypot(v[0].clientX-v[1].clientX,v[0].clientY-v[1].clientY);}},{{passive:true}});
+    stage.addEventListener('touchmove',e=>{{e.preventDefault();for(const t of e.changedTouches)tp[t.identifier]=t;const v=Object.values(tp);if(v.length===2){{const nd=Math.hypot(v[0].clientX-v[1].clientX,v[0].clientY-v[1].clientY);zoomAt((v[0].clientX+v[1].clientX)/2,(v[0].clientY+v[1].clientY)/2,nd/pd);pd=nd;}}}},{{passive:false}});
+    stage.addEventListener('touchend',e=>{{for(const t of e.changedTouches)delete tp[t.identifier];}},{{passive:true}});
+    document.getElementById('z-in').onclick=()=>zoomAt(innerWidth/2,innerHeight/2,1.5);
+    document.getElementById('z-out').onclick=()=>zoomAt(innerWidth/2,innerHeight/2,1/1.5);
+    document.getElementById('z-rst').onclick=reset;
+    document.getElementById('close-btn').onclick=()=>{{window.opener?window.close():history.back();}};
   </script>
 </body>
 </html>"""
