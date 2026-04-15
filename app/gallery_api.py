@@ -1107,6 +1107,7 @@ def get_image(image_id: int, req: Request):
         viewer_liked_sql = "EXISTS(SELECT 1 FROM image_likes il WHERE il.image_id=i.id AND il.user_id=%s) AS viewer_liked"
         viewer_liked_params.append(viewer_user_id)
 
+    access_token_select = ", i.access_token" if _HAS_IMAGES_ACCESS_TOKEN else ", NULL AS access_token"
     conn = db_conn(CONF)
     try:
         _ensure_admin_content_states_table(conn)
@@ -1635,6 +1636,7 @@ def _normalize_content_detail_item(item: dict, content_title: str | None, conten
         "owner_user_id": item.get("owner_user_id"),
         "is_public": item.get("is_public"),
         "moderation_status": item.get("moderation_status"),
+        "access_token": item.get("access_token") or None,
     }
 
 
@@ -1789,6 +1791,7 @@ LIMIT %s OFFSET %s
 
         if content_keys:
             key_placeholders = ",".join(["%s"] * len(content_keys))
+            at_col = "i.access_token" if _HAS_IMAGES_ACCESS_TOKEN else "NULL"
             thumb_viewer_sql = "0 AS viewer_liked"
             thumb_params: list = []
             if viewer_user_id is not None:
@@ -1815,6 +1818,7 @@ FROM (
     COALESCE(i.is_public, 1) AS is_public,
     COALESCE(i.focal_x, 50) AS focal_x,
     COALESCE(i.focal_y, 50) AS focal_y,
+    {at_col} AS access_token,
     {thumb_viewer_sql}{content_user_select},
     COUNT(*) OVER (PARTITION BY {content_key_expr}) AS image_count,
     ROW_NUMBER() OVER (
@@ -2036,6 +2040,7 @@ def get_content(content_key: str, req: Request):
                 "view_count": int(detail.get("view_count") or 0),
                 "sort_order": 1,
                 "is_thumbnail": True,
+                "access_token": detail.get("access_token"),
             }
         ]
         return detail
@@ -2077,6 +2082,7 @@ LIMIT 1
             if not content_row:
                 raise HTTPException(status_code=404, detail="not found")
 
+            content_detail_at_col = "i.access_token" if _HAS_IMAGES_ACCESS_TOKEN else "NULL"
             if _HAS_IMAGES_OWNER_USER_ID:
                 content_detail_user_select = """,
   i.owner_user_id AS owner_user_id,
@@ -2107,6 +2113,7 @@ SELECT
   COALESCE(acs.moderation_status, 'normal') AS moderation_status,
   COALESCE(st.view_count,0) AS view_count,
   {viewer_liked_sql}{content_detail_user_select},
+  {content_detail_at_col} AS access_token,
   gci.sort_order,
   COALESCE(gci.is_thumbnail, 0) AS is_thumbnail
 FROM gallery_content_images gci
