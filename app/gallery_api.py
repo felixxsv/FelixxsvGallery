@@ -1540,7 +1540,7 @@ LIMIT 1
 
 @app.get("/img/{token}")
 def get_by_token(token: str, req: Request):
-    if not re.match(r'^[0-9a-f]{16}$', token):
+    if not re.match(r'^[0-9a-fA-F]{16}$', token):
         raise HTTPException(status_code=404, detail="not found")
     current_user = _get_current_user(req)
     viewer_user_id = int(current_user["id"]) if current_user else None
