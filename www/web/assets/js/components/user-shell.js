@@ -2285,45 +2285,28 @@ export function initUserShell(app) {
     const stage = refs.avatarCropStage;
     if (!stage) return;
 
-    stage.addEventListener("mousedown", (e) => {
+    stage.addEventListener("pointerdown", (e) => {
+      if (!cropState.img) return;
+      e.preventDefault();
       cropState.isDragging = true;
       cropState.dragStartX = e.clientX;
       cropState.dragStartY = e.clientY;
       cropState.dragStartOffsetX = cropState.offsetX;
       cropState.dragStartOffsetY = cropState.offsetY;
-      e.preventDefault();
+      stage.setPointerCapture(e.pointerId);
     });
 
-    window.addEventListener("mousemove", (e) => {
+    stage.addEventListener("pointermove", (e) => {
       if (!cropState.isDragging) return;
+      e.preventDefault();
       cropState.offsetX = cropState.dragStartOffsetX + (e.clientX - cropState.dragStartX);
       cropState.offsetY = cropState.dragStartOffsetY + (e.clientY - cropState.dragStartY);
       cropClampOffset();
       cropDraw();
     });
 
-    window.addEventListener("mouseup", () => { cropState.isDragging = false; });
-
-    stage.addEventListener("touchstart", (e) => {
-      const t = e.touches[0];
-      cropState.isDragging = true;
-      cropState.dragStartX = t.clientX;
-      cropState.dragStartY = t.clientY;
-      cropState.dragStartOffsetX = cropState.offsetX;
-      cropState.dragStartOffsetY = cropState.offsetY;
-      e.preventDefault();
-    }, { passive: false });
-
-    window.addEventListener("touchmove", (e) => {
-      if (!cropState.isDragging) return;
-      const t = e.touches[0];
-      cropState.offsetX = cropState.dragStartOffsetX + (t.clientX - cropState.dragStartX);
-      cropState.offsetY = cropState.dragStartOffsetY + (t.clientY - cropState.dragStartY);
-      cropClampOffset();
-      cropDraw();
-    }, { passive: false });
-
-    window.addEventListener("touchend", () => { cropState.isDragging = false; });
+    stage.addEventListener("pointerup", () => { cropState.isDragging = false; });
+    stage.addEventListener("pointercancel", () => { cropState.isDragging = false; });
   }
 
   async function handleAvatarDelete() {
@@ -2409,6 +2392,14 @@ export function initUserShell(app) {
 
   function bindEvents() {
     app.confirmAction = openActionConfirm;
+    app.modal?.setBeforeClose?.("crop-avatar", async () => {
+      if (!cropState.img) return true;
+      return openActionConfirm(
+        t("shell.confirm.unsaved_close", "未保存の変更があります。閉じますか？"),
+        t("shell.confirm.discard_close", "破棄して閉じる"),
+        true
+      );
+    });
     app.modal?.setBeforeClose?.("account", async () => {
       if (!accountModalChanged()) {
         resetAccountDraftState();
@@ -2734,9 +2725,6 @@ export function initUserShell(app) {
       if (id === "twofactor-action-confirm" && shellState.actionConfirmResolver) {
         closeActionConfirm(false);
       }
-      if (id === "crop-avatar") {
-        cropState.img = null;
-      }
     });
 
     byId("contactSubmitButton")?.addEventListener("click", async () => {
@@ -2790,6 +2778,10 @@ export function initUserShell(app) {
       if (id === "email") {
         // モーダルを閉じたらステップをリセット
         _showEmailStep1();
+      }
+      if (id === "crop-avatar") {
+        cropState.img = null;
+        cropState.isDragging = false;
       }
     });
 
