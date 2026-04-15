@@ -1776,6 +1776,7 @@ body {
   height: 180px;
   display: grid;
   place-items: center;
+  margin-bottom: 12px;
 }
 
 .profile-media-modal__avatar {
