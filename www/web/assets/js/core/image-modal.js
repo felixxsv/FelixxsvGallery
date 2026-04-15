@@ -223,7 +223,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
       <button type="button" class="image-modal__nav image-modal__nav--prev" data-action="prev" aria-label="${escapeHtml(t(app, "prev", "Previous image"))}">‹</button>
       <button type="button" class="image-modal__nav image-modal__nav--next" data-action="next" aria-label="${escapeHtml(t(app, "next", "Next image"))}">›</button>
       <div class="image-modal__stage">
-        <img class="image-modal__image" alt="">
+        <img class="image-modal__image" alt="" draggable="false">
       </div>
       <div class="image-modal__slider-wrap" hidden>
         <input class="image-modal__slider" type="range" min="100" max="300" step="10" value="100" aria-label="${escapeHtml(t(app, "zoom", "Zoom"))}">
@@ -1031,6 +1031,10 @@ export function createImageModalController({ app, body = document.body } = {}) {
     const userKey = normalizeUserKey(event.currentTarget.dataset.userKey);
     if (!userKey) return;
     document.dispatchEvent(new CustomEvent("app:open-user-profile", { detail: { userKey } }));
+  });
+
+  image.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
   });
 
   return {

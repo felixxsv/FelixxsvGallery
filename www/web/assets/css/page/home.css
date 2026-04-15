@@ -947,6 +947,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   grid-template-columns: repeat(var(--home-grid-columns), minmax(0, 1fr));
   gap: 12px;
   align-items: start;
+  user-select: none;
 }
 
 .home-gallery-grid[data-grid-cols="1"] {
@@ -1017,6 +1018,8 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   height: 100%;
   object-fit: cover;
   display: block;
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 .home-gallery-card__image-empty {

@@ -1471,6 +1471,7 @@ export function initHomePage(app) {
       imageNode.src = imageUrl;
       imageNode.alt = textOrDash(image.alt || image.title || "");
       imageNode.style.objectPosition = `${image.focal_x ?? 50}% ${image.focal_y ?? 50}%`;
+      imageNode.draggable = false;
       imageNode.hidden = false;
       emptyNode.hidden = true;
     } else {
@@ -1508,7 +1509,7 @@ export function initHomePage(app) {
         const avatarEl = userButton.querySelector("[data-card-user-avatar]");
         if (avatarEl) {
           if (user.avatar_url) {
-            avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="">`;
+            avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="" draggable="false">`;
           } else {
             avatarEl.textContent = (user.display_name || "?").slice(0, 1).toUpperCase();
           }
@@ -2143,6 +2144,16 @@ export function initHomePage(app) {
     }
     event.preventDefault();
     openImageFromCard(index);
+  });
+
+  refs.galleryGrid.addEventListener("contextmenu", (event) => {
+    if (event.target.closest("img, .home-gallery-card__image, .home-gallery-card__badge img")) {
+      event.preventDefault();
+    }
+  });
+
+  refs.galleryGrid.addEventListener("dragstart", (event) => {
+    event.preventDefault();
   });
 
   refs.gridControls?.addEventListener("click", (event) => {
