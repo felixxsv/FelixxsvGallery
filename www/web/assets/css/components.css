@@ -1670,13 +1670,13 @@ body {
 
   .shell-user-profile .shell-user-link,
   .shell-user-profile .user-profile-badge {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
   }
 
   .shell-user-profile .shell-user-link__icon {
-    width: 21px;
-    height: 21px;
+    width: 18px;
+    height: 18px;
   }
 
   .shell-user-profile__right {
@@ -1695,16 +1695,16 @@ body {
   }
 
   #userProfileLinks.shell-user-card__links {
-    grid-template-columns: repeat(5, 44px);
-    grid-auto-rows: 44px;
-    min-height: 96px;
+    grid-template-columns: repeat(5, 36px);
+    grid-auto-rows: 36px;
+    min-height: 36px;
   }
 
   #userProfileBadges.user-profile-badges,
   #userProfileSupportBadges.user-profile-badges {
-    grid-template-columns: repeat(3, 44px);
-    grid-auto-rows: 44px;
-    min-height: 96px;
+    grid-template-columns: repeat(3, 36px);
+    grid-auto-rows: 36px;
+    min-height: 36px;
   }
 }
 
