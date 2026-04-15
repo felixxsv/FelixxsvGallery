@@ -6,6 +6,7 @@ from pathlib import Path
 import hashlib
 import logging
 import re
+import secrets
 import shutil
 import tempfile
 import uuid
@@ -370,6 +371,9 @@ def perform_gallery_upload(
                     if "focal_y" in img_cols:
                         img_cols_list.append("focal_y")
                         img_vals.append(focal_y_val)
+                    if "access_token" in img_cols:
+                        img_cols_list.append("access_token")
+                        img_vals.append(secrets.token_hex(8))
                     if actor is not None:
                         if "uploader_user_id" in img_cols:
                             img_cols_list.append("uploader_user_id")

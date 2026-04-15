@@ -121,6 +121,13 @@ function normalizeImageUrl(image) {
   return "";
 }
 
+function normalizeOriginalUrl(image) {
+  if (image.access_token) return withAppBase(`/img/${image.access_token}`);
+  const id = image.id ?? image.image_id;
+  if (id !== undefined && id !== null) return withAppBase(`/media/original/${id}`);
+  return normalizeImageUrl(image);
+}
+
 function extractListPayload(payload) {
   const root = payload?.data ?? payload;
 
@@ -1710,7 +1717,7 @@ export function initHomePage(app) {
             image_id: item?.id ?? null,
             id: item?.id ?? null,
             preview_url: normalizeImageUrl(item || {}),
-            original_url: item?.id ? withAppBase(`/media/original/${item.id}`) : normalizeImageUrl(item || {}),
+            original_url: normalizeOriginalUrl(item || {}),
             viewer_liked: Boolean(item?.viewer_liked),
             detailLoader: async () => fetchImageDetail(item),
           },
@@ -1735,7 +1742,7 @@ export function initHomePage(app) {
           alt: contentAlt,
           posted_at: image.posted_at || image.created_at || detailRoot.created_at || item.created_at || item.shot_at || null,
           preview_url: normalizeImageUrl(image),
-          original_url: imageId ? withAppBase(`/media/original/${imageId}`) : normalizeImageUrl(image),
+          original_url: normalizeOriginalUrl({ ...image, id: imageId }),
           viewer_liked: Boolean(image.viewer_liked),
         };
         merged.detailLoader = async () => fetchImageDetail(merged);
@@ -1765,7 +1772,7 @@ export function initHomePage(app) {
             image_id: item.id ?? null,
             id: item.id ?? null,
             preview_url: normalizeImageUrl(item),
-            original_url: item.id ? withAppBase(`/media/original/${item.id}`) : normalizeImageUrl(item),
+            original_url: normalizeOriginalUrl(item),
             viewer_liked: Boolean(item.viewer_liked),
             detailLoader: async () => fetchImageDetail(item),
           },
@@ -1789,7 +1796,7 @@ export function initHomePage(app) {
       ...contentDetail,
       image_id: images[initialIndex]?.image_id ?? item.id ?? null,
       preview_url: images[initialIndex]?.preview_url || normalizeImageUrl(item),
-      original_url: images[initialIndex]?.original_url || (item.id ? withAppBase(`/media/original/${item.id}`) : normalizeImageUrl(item)),
+      original_url: images[initialIndex]?.original_url || normalizeOriginalUrl(item),
       images,
       currentIndex: initialIndex,
       viewer_liked: Boolean(images[initialIndex]?.viewer_liked ?? item.viewer_liked),

@@ -12,6 +12,8 @@ import hashlib
 import tempfile
 import base64
 import hmac
+import secrets
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 
@@ -655,6 +657,7 @@ def _check_column_exists(table: str, column: str) -> bool:
 
 # Cache column-existence checks at startup to avoid per-request overhead
 _HAS_IMAGES_OWNER_USER_ID: bool = _check_column_exists("images", "owner_user_id")
+_HAS_IMAGES_ACCESS_TOKEN: bool = _check_column_exists("images", "access_token")
 _HAS_USERS_HIDDEN_FROM_SEARCH: bool = _check_column_exists("users", "is_hidden_from_search")
 
 
@@ -995,6 +998,7 @@ def list_images(
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
     status_join = "LEFT JOIN admin_content_states acs ON acs.image_id=i.id"
     visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
+    access_token_select = ", i.access_token" if _HAS_IMAGES_ACCESS_TOKEN else ", NULL AS access_token"
     if _HAS_IMAGES_OWNER_USER_ID:
         user_select = """,
   i.owner_user_id AS owner_user_id,
@@ -1046,7 +1050,7 @@ SELECT
   COALESCE(st.view_count,0) AS view_count,
   i.like_count,
   COALESCE(i.is_public, 1) AS is_public,
-  {viewer_liked_sql}{user_select}
+  {viewer_liked_sql}{access_token_select}{user_select}
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
@@ -1130,7 +1134,7 @@ SELECT
   COALESCE(st.x_like_count,0) AS x_like_count,
   COALESCE(i.is_public, 1) AS is_public,
   COALESCE(acs.moderation_status, 'normal') AS moderation_status,
-  {viewer_liked_sql}{detail_user_select}{owner_select}
+  {viewer_liked_sql}{detail_user_select}{owner_select}{access_token_select}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id
@@ -1531,6 +1535,54 @@ LIMIT 1
         shutil.copy2(src, dst)
 
     return FileResponse(str(dst))
+
+
+@app.get("/img/{token}")
+def get_by_token(token: str, req: Request):
+    if not re.match(r'^[0-9a-f]{16}$', token):
+        raise HTTPException(status_code=404, detail="not found")
+    current_user = _get_current_user(req)
+    viewer_user_id = int(current_user["id"]) if current_user else None
+    conn = db_conn(CONF)
+    try:
+        _ensure_admin_content_states_table(conn)
+        visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+SELECT i.id, i.title, s.source_path
+FROM images i
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+WHERE i.gallery=%s AND i.access_token=%s AND {visibility_sql}
+LIMIT 1
+""",
+                (GALLERY, GALLERY, token, *visibility_params),
+            )
+            r = cur.fetchone()
+            if not r:
+                raise HTTPException(status_code=404, detail="not found")
+            image_id = int(r["id"])
+            title = str(r["title"] or "").strip()
+            rel = str(r["source_path"])
+    finally:
+        conn.close()
+
+    src = SOURCE_ROOT / rel
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="source missing")
+
+    ext = src.suffix.lstrip(".").lower() or "bin"
+    dst = cache_path(CACHE_ROOT, image_id, ext)
+    ensure_dir(dst.parent)
+
+    if not dst.exists():
+        shutil.copy2(src, dst)
+
+    display_name = title or token
+    encoded = urllib.parse.quote(display_name, safe="")
+    headers = {"Content-Disposition": f"inline; filename*=UTF-8''{encoded}"}
+    return FileResponse(str(dst), headers=headers)
 
 
 def _table_exists(conn: pymysql.Connection, table_name: str) -> bool:
