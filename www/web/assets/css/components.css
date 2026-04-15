@@ -3002,6 +3002,7 @@ body {
   padding: 0;
   margin: 0;
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
 }
 
@@ -3172,5 +3173,9 @@ body {
 
   .support-modal__visual-image {
     max-width: 78px;
+  }
+
+  .support-modal__feature-list {
+    grid-template-columns: 1fr;
   }
 }
