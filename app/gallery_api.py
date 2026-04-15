@@ -1652,7 +1652,8 @@ LIMIT 1
     #stage{{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;cursor:grab}}
     #stage.dragging{{cursor:grabbing}}
     #img{{max-width:100vw;max-height:100vh;object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;will-change:transform;transform-origin:center}}
-    #slider-wrap{{position:fixed;top:50%;right:18px;transform:translateY(-50%);width:48px;height:220px;display:grid;place-items:center;background:rgba(12,18,28,.52);border-radius:999px;border:1px solid rgba(255,255,255,.12);z-index:10;transition:opacity .18s}}
+    #slider-wrap{{position:fixed;top:50%;right:18px;transform:translateY(-50%);width:48px;height:220px;display:grid;place-items:center;background:rgba(12,18,28,.52);border-radius:999px;border:1px solid rgba(255,255,255,.12);z-index:10;opacity:0;transition:opacity .18s ease}}
+    body.is-controls-visible #slider-wrap{{opacity:1}}
     #slider{{appearance:auto;writing-mode:vertical-lr;direction:rtl;width:8px;height:180px;accent-color:#88a9ff;background:transparent;cursor:pointer}}
   </style>
 </head>
@@ -1666,7 +1667,7 @@ LIMIT 1
     document.addEventListener('dragstart',e=>e.preventDefault());
     const stage=document.getElementById('stage'),img=document.getElementById('img');
     const sliderWrap=document.getElementById('slider-wrap'),slider=document.getElementById('slider');
-    let sc=1,tx=0,ty=0;
+    let sc=1,tx=0,ty=0,hideTimer=null,dr=false,dx,dy;
     function apply(){{
       img.style.transform=`translate(${{tx}}px,${{ty}}px) scale(${{sc}})`;
       slider.value=String(Math.round(sc*100));
@@ -1686,12 +1687,25 @@ LIMIT 1
       apply();
       setTimeout(()=>img.style.transition='',200);
     }}
+    function showControls(){{
+      document.body.classList.add('is-controls-visible');
+      clearTimeout(hideTimer);
+      hideTimer=setTimeout(()=>document.body.classList.remove('is-controls-visible'),1800);
+    }}
+    function keepControls(){{
+      document.body.classList.add('is-controls-visible');
+      clearTimeout(hideTimer);
+    }}
+    document.addEventListener('mousemove',()=>{{if(!dr)showControls();}});
+    slider.addEventListener('mousedown',keepControls);
+    slider.addEventListener('touchstart',keepControls,{{passive:true}});
+    slider.addEventListener('mouseup',showControls);
+    slider.addEventListener('touchend',showControls,{{passive:true}});
     slider.addEventListener('input',()=>{{
       const ns=Number(slider.value)/100;
       zoomAt(innerWidth/2,innerHeight/2,ns/sc);
     }});
     stage.addEventListener('wheel',e=>{{e.preventDefault();zoomAt(e.clientX,e.clientY,e.deltaY<0?1.15:1/1.15);}},{{passive:false}});
-    let dr=false,dx,dy;
     stage.addEventListener('mousedown',e=>{{if(e.button||sc<=1)return;dr=true;dx=e.clientX-tx;dy=e.clientY-ty;stage.classList.add('dragging');}});
     window.addEventListener('mousemove',e=>{{if(!dr)return;tx=e.clientX-dx;ty=e.clientY-dy;apply();}});
     window.addEventListener('mouseup',()=>{{dr=false;stage.classList.remove('dragging');}});
