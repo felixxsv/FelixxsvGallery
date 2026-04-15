@@ -1464,7 +1464,6 @@ export function initHomePage(app) {
     article.dataset.contentId = String(image.content_id ?? `i-${image.id ?? ""}`);
 
     if (imageUrl) {
-      link.href = imageUrl;
       link.dataset.action = "open-image";
       imageNode.src = imageUrl;
       imageNode.alt = textOrDash(image.alt || image.title || "");
@@ -1473,7 +1472,6 @@ export function initHomePage(app) {
       imageNode.hidden = false;
       emptyNode.hidden = true;
     } else {
-      link.href = "#";
       imageNode.hidden = true;
       emptyNode.hidden = false;
     }
