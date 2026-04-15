@@ -504,7 +504,7 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
   width: min(560px, calc(100vw - 32px));
-  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--color-border);
@@ -3133,12 +3133,13 @@ body {
   .support-modal.app-modal-dialog {
     width: min(100vw - 18px, 920px);
     height: auto;
-    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
   }
 
   .support-modal .app-modal-body {
     flex: unset;
     overflow-y: auto;
+    padding-bottom: max(var(--space-5), env(safe-area-inset-bottom));
   }
 
   .support-modal__layout {
