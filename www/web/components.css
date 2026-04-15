@@ -1020,18 +1020,27 @@ body {
   border-radius: var(--radius-lg);
 }
 
-.support-modal {
+/* Combined selector for higher specificity than .app-modal-dialog alone */
+.support-modal.app-modal-dialog {
   width: min(1080px, calc(100vw - 40px));
+  height: min(600px, calc(100vh - 80px));
 }
 
 .support-modal__body {
   padding: 0;
 }
 
+/* Body fills remaining dialog height; does not scroll itself */
+.support-modal .app-modal-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .support-modal__layout {
   display: grid;
-  grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.2fr);
-  min-height: 100%;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.2fr);
+  height: 100%;
 }
 
 .support-modal__visual {
@@ -1049,7 +1058,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100%;
+  height: 100%;
   padding: clamp(24px, 3vw, 34px);
 }
 
@@ -1159,6 +1168,9 @@ body {
   display: grid;
   gap: var(--space-4);
   padding: clamp(24px, 3vw, 34px);
+  align-content: start;
+  overflow-y: auto;
+  height: 100%;
 }
 
 .support-modal__hero {
@@ -1419,12 +1431,20 @@ body {
 }
 
 @media (max-width: 760px) {
-  .support-modal {
+  .support-modal.app-modal-dialog {
     width: min(100vw - 18px, 920px);
+    height: auto;
+    max-height: calc(100vh - 40px);
+  }
+
+  .support-modal .app-modal-body {
+    flex: unset;
+    overflow-y: auto;
   }
 
   .support-modal__layout {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   .support-modal__visual {
@@ -1432,6 +1452,7 @@ body {
   }
 
   .support-modal__visual-surface {
+    height: auto;
     gap: var(--space-3);
     padding: 18px 18px 14px;
   }
@@ -1441,6 +1462,8 @@ body {
   }
 
   .support-modal__content {
+    overflow-y: visible;
+    height: auto;
     padding: 18px;
   }
 
