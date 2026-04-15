@@ -1587,6 +1587,13 @@ LIMIT 1
     return FileResponse(str(dst), headers=headers)
 
 
+_VIEW_MIME: dict[str, str] = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg",
+    "png": "image/png", "gif": "image/gif",
+    "webp": "image/webp", "avif": "image/avif",
+    "svg": "image/svg+xml",
+}
+
 @app.get("/view/{token}")
 def view_by_token(token: str, req: Request):
     if not re.match(r'^[0-9a-fA-F]{16}$', token):
@@ -1600,23 +1607,39 @@ def view_by_token(token: str, req: Request):
         with conn.cursor() as cur:
             cur.execute(
                 f"""
-SELECT i.title
+SELECT i.id, i.title, s.source_path
 FROM images i
+JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id
 WHERE i.gallery=%s AND i.access_token=%s AND {visibility_sql}
 LIMIT 1
 """,
-                (GALLERY, token, *visibility_params),
+                (GALLERY, GALLERY, token, *visibility_params),
             )
             r = cur.fetchone()
             if not r:
                 raise HTTPException(status_code=404, detail="not found")
+            image_id = int(r["id"])
             title = str(r["title"] or "").strip() or token
+            rel = str(r["source_path"])
     finally:
         conn.close()
 
+    src = SOURCE_ROOT / rel
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="source missing")
+
+    ext = src.suffix.lstrip(".").lower() or "bin"
+    dst = cache_path(CACHE_ROOT, image_id, ext)
+    ensure_dir(dst.parent)
+    if not dst.exists():
+        shutil.copy2(src, dst)
+
+    mime = _VIEW_MIME.get(ext, "image/jpeg")
+    img_b64 = base64.b64encode(dst.read_bytes()).decode()
+    data_uri = f"data:{mime};base64,{img_b64}"
+
     safe_title = _html.escape(title)
-    safe_token = _html.escape(token)
     page = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1630,7 +1653,7 @@ LIMIT 1
   </style>
 </head>
 <body>
-  <img src="/img/{safe_token}" alt="{safe_title}" draggable="false">
+  <img src="{data_uri}" alt="{safe_title}" draggable="false">
   <script>
     document.addEventListener('contextmenu',function(e){{e.preventDefault();}});
     document.addEventListener('dragstart',function(e){{e.preventDefault();}});
