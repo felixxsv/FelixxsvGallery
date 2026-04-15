@@ -2906,10 +2906,10 @@ body {
 }
 
 .support-modal__content {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
   padding: clamp(24px, 3vw, 34px);
-  align-content: start;
   overflow-y: auto;
   height: 100%;
 }
@@ -3067,8 +3067,15 @@ body {
   margin-left: 0.4em;
 }
 
+#supportModalBenefitsSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .support-modal__feature-action {
-  margin-top: var(--space-4);
+  margin-top: auto;
+  padding-top: var(--space-5);
   display: grid;
   gap: var(--space-2);
 }
