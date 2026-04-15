@@ -261,12 +261,17 @@ export function initUserShell(app) {
 
     supportModalHeading: byId("supportModalHeading"),
     supportModalDescription: byId("supportModalDescription"),
+    supportModalPlanSection: byId("supportModalPlanSection"),
     supportModalStatusPanel: byId("supportModalStatusPanel"),
     supportModalStatusText: byId("supportModalStatusText"),
     supportModalPlanText: byId("supportModalPlanText"),
     supportModalNextBillingText: byId("supportModalNextBillingText"),
     supportModalFirstBillingText: byId("supportModalFirstBillingText"),
     supportModalAchievementText: byId("supportModalAchievementText"),
+    supportModalPaymentHistorySection: byId("supportModalPaymentHistorySection"),
+    supportModalPaymentHistoryBody: byId("supportModalPaymentHistoryBody"),
+    supportModalBenefitsSection: byId("supportModalBenefitsSection"),
+    supportModalSupporterActions: byId("supportModalSupporterActions"),
     supportModalMessage: byId("supportModalMessage"),
     supportModalPrimaryAction: byId("supportModalPrimaryAction"),
     supportModalManageAction: byId("supportModalManageAction"),
@@ -1227,6 +1232,61 @@ export function initUserShell(app) {
     return variants[code] || variants.default;
   }
 
+  function renderSupportPaymentHistory(payments) {
+    const el = refs.supportModalPaymentHistoryBody;
+    if (!el) return;
+    if (!Array.isArray(payments) || payments.length === 0) {
+      el.innerHTML = `<p class="support-modal__payment-empty">${supportText("support.details.paymentHistoryEmpty", "お支払い履歴はありません。")}</p>`;
+      return;
+    }
+    const rows = payments.map((p) => {
+      const date = p.paid_at ? new Date(p.paid_at) : null;
+      const dateStr = date && !Number.isNaN(date.getTime())
+        ? date.toLocaleDateString(document.documentElement.lang || "ja", { year: "numeric", month: "long" })
+        : "-";
+      const amount = typeof p.amount === "number"
+        ? p.amount.toLocaleString(document.documentElement.lang || "ja") + (p.currency === "JPY" ? "円" : ` ${p.currency}`)
+        : "-";
+      const statusLabel = p.status === "paid"
+        ? supportText("support.payment.status.paid", "支払い済み")
+        : p.status === "refunded"
+          ? supportText("support.payment.status.refunded", "返金")
+          : p.status || "-";
+      return `<tr class="support-modal__payment-row">
+        <td class="support-modal__payment-cell support-modal__payment-cell--date">${dateStr}</td>
+        <td class="support-modal__payment-cell support-modal__payment-cell--amount">${amount}</td>
+        <td class="support-modal__payment-cell support-modal__payment-cell--status">${statusLabel}</td>
+      </tr>`;
+    }).join("");
+    el.innerHTML = `<table class="support-modal__payment-table">
+      <thead>
+        <tr>
+          <th class="support-modal__payment-th">${supportText("support.details.paymentDate", "支払い月")}</th>
+          <th class="support-modal__payment-th">${supportText("support.details.paymentAmount", "金額")}</th>
+          <th class="support-modal__payment-th">${supportText("support.details.paymentStatus", "状態")}</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  async function loadSupportPaymentHistory() {
+    if (refs.supportModalPaymentHistorySection) {
+      refs.supportModalPaymentHistorySection.hidden = false;
+    }
+    if (refs.supportModalPaymentHistoryBody) {
+      refs.supportModalPaymentHistoryBody.innerHTML = `<p class="support-modal__payment-empty">${supportText("support.details.paymentHistoryLoading", "読み込み中...")}</p>`;
+    }
+    try {
+      const data = await app.api.get("/api/support/me/payments");
+      renderSupportPaymentHistory(data?.payments || []);
+    } catch (_e) {
+      if (refs.supportModalPaymentHistoryBody) {
+        refs.supportModalPaymentHistoryBody.innerHTML = `<p class="support-modal__payment-empty">${supportText("support.details.paymentHistoryError", "履歴の取得に失敗しました。")}</p>`;
+      }
+    }
+  }
+
   function renderSupportModal() {
     const support = getSupport();
     if (!isSupportUiEnabled()) {
@@ -1234,9 +1294,14 @@ export function initUserShell(app) {
       return;
     }
     const status = support?.status || {};
+    const isActiveSupporter = Boolean(support && status.is_active);
+    const hasPaymentHistory = Boolean(support && (status.is_active || (support.achievement_summary?.total_months || 0) > 0));
     const variant = supportVariantCopy(status.code || "default");
     if (refs.supportModalHeading) refs.supportModalHeading.textContent = variant.heading;
-    if (refs.supportModalDescription) refs.supportModalDescription.textContent = variant.description;
+    if (refs.supportModalDescription) refs.supportModalDescription.hidden = isActiveSupporter;
+    if (!isActiveSupporter && refs.supportModalDescription) refs.supportModalDescription.textContent = variant.description;
+    if (refs.supportModalPlanSection) refs.supportModalPlanSection.hidden = isActiveSupporter;
+    if (refs.supportModalBenefitsSection) refs.supportModalBenefitsSection.hidden = isActiveSupporter;
     if (refs.supportModalStatusPanel) refs.supportModalStatusPanel.hidden = !support;
     if (refs.supportModalStatusText) refs.supportModalStatusText.textContent = support ? supportStatusText(status.code) : supportText("support.status.inactive", "未支援");
     if (refs.supportModalPlanText) refs.supportModalPlanText.textContent = supportText("support.modal.default.planName", "Supporter Plan");
@@ -1249,6 +1314,7 @@ export function initUserShell(app) {
         ? `${supportText(`support.achievements.${highest}`, String(highest).toUpperCase())} / ${totalMonths}M`
         : `${totalMonths}M`;
     }
+    if (refs.supportModalPaymentHistorySection) refs.supportModalPaymentHistorySection.hidden = !hasPaymentHistory;
 
     const actions = support?.actions || {};
     const showManage = Boolean(support && actions.portal_available);
@@ -1258,6 +1324,7 @@ export function initUserShell(app) {
         ? !actions.portal_available
         : !actions.checkout_available;
     }
+    if (refs.supportModalSupporterActions) refs.supportModalSupporterActions.hidden = !showManage;
     if (refs.supportModalManageAction) refs.supportModalManageAction.hidden = !showManage;
 
     if (refs.supportModalMessage) {
@@ -1276,6 +1343,11 @@ export function initUserShell(app) {
   function openSupportModal() {
     if (!isAuthenticated() || !isSupportUiEnabled()) return;
     renderSupportModal();
+    const support = getSupport();
+    const status = support?.status || {};
+    if (support && (status.is_active || (support.achievement_summary?.total_months || 0) > 0)) {
+      loadSupportPaymentHistory();
+    }
     app.modal?.open?.("support");
   }
 

@@ -34,6 +34,7 @@ from badge_defs import _parse_display_badges_py, get_post_count_badges, list_bad
 from supporter_service import (
     build_supporter_context,
     get_public_supporter_profile,
+    get_user_payment_history,
     update_supporter_settings,
 )
 from gallery_upload_service import (
@@ -799,6 +800,23 @@ def get_my_support_entitlements(
             "entitlements": support.get("entitlements") or {},
             "status": support.get("status") or {},
         }
+    finally:
+        conn.close()
+
+
+@app.get("/api/support/me/payments")
+def get_my_support_payments(
+    gallery_session: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+    limit: int = Query(default=24, ge=1, le=60),
+):
+    session_result = get_current_user_by_session_token(gallery_session)
+    user = (session_result or {}).get("user") if session_result else None
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です。")
+    conn = db_conn(CONF)
+    try:
+        payments = get_user_payment_history(conn, int(user["id"]), limit=limit)
+        return {"payments": payments}
     finally:
         conn.close()
 

@@ -28,6 +28,7 @@ from badge_defs import list_badge_keys, serialize_badge, list_catalog as list_ba
 from supporter_service import (
     build_supporter_context,
     grant_supporter_access,
+    record_supporter_payment,
     record_supporter_provider_event,
     revoke_supporter_grant,
     upsert_supporter_subscription,
@@ -2038,6 +2039,51 @@ def admin_user_record_support_event(
             try: conn.rollback()
             except Exception: pass
         return _json_error(500, request_id, "server_error", "支援イベントの記録に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.post("/users/{user_id}/support/payments")
+def admin_user_record_support_payment(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        payment = record_supporter_payment(conn, user_id, payload or {})
+        _log_audit_event(
+            conn,
+            int(actor.get("id") or 0) or None,
+            "admin.users.record_support_payment",
+            "user",
+            str(user_id),
+            "success",
+            "支援決済履歴を記録しました。",
+            {
+                "amount": str((payload or {}).get("amount") or ""),
+                "paid_at": str((payload or {}).get("paid_at") or ""),
+                "provider": str((payload or {}).get("provider") or ""),
+            },
+        )
+        conn.commit()
+        return _json_success(request_id=request_id, data={"payment": payment}, message="支援決済履歴を記録しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "支援決済履歴の記録に失敗しました。")
     finally:
         if conn: conn.close()
 

@@ -1036,3 +1036,104 @@ LIMIT 1
         )
         row = cur.fetchone()
     return _serialize_event(row) if row else None
+
+
+def _load_payment_history_rows(conn, user_id: int, limit: int = 24) -> list[dict]:
+    if not _table_exists(conn, "supporter_payment_history"):
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT
+  id,
+  provider,
+  provider_subscription_id,
+  provider_payment_id,
+  amount,
+  currency,
+  paid_at,
+  period_start,
+  period_end,
+  status,
+  note,
+  created_at
+FROM supporter_payment_history
+WHERE user_id=%s
+ORDER BY paid_at DESC, id DESC
+LIMIT %s
+""",
+            (user_id, int(limit)),
+        )
+        return list(cur.fetchall() or [])
+
+
+def _serialize_payment_history(row: dict) -> dict:
+    return {
+        "id": int(row.get("id") or 0),
+        "provider": row.get("provider") or SUPPORTER_PROVIDER,
+        "provider_subscription_id": row.get("provider_subscription_id") or "",
+        "provider_payment_id": row.get("provider_payment_id") or "",
+        "amount": int(row.get("amount") or 0),
+        "currency": row.get("currency") or SUPPORTER_CURRENCY,
+        "paid_at": _isoformat(row.get("paid_at")),
+        "period_start": _isoformat(row.get("period_start")),
+        "period_end": _isoformat(row.get("period_end")),
+        "status": row.get("status") or "paid",
+        "note": row.get("note") or "",
+        "created_at": _isoformat(row.get("created_at")),
+    }
+
+
+def get_user_payment_history(conn, user_id: int, limit: int = 24) -> list[dict]:
+    rows = _load_payment_history_rows(conn, user_id, limit=limit)
+    return [_serialize_payment_history(row) for row in rows]
+
+
+def record_supporter_payment(conn, user_id: int, payload: dict) -> dict:
+    now = _utc_now()
+    provider = str(payload.get("provider") or SUPPORTER_PROVIDER).strip() or SUPPORTER_PROVIDER
+    provider_subscription_id = str(payload.get("provider_subscription_id") or "").strip() or None
+    provider_payment_id = str(payload.get("provider_payment_id") or "").strip() or None
+    amount = int(payload.get("amount") or SUPPORTER_AMOUNT)
+    currency = str(payload.get("currency") or SUPPORTER_CURRENCY).strip() or SUPPORTER_CURRENCY
+    paid_at = payload.get("paid_at") or now
+    period_start = payload.get("period_start") or None
+    period_end = payload.get("period_end") or None
+    status = str(payload.get("status") or "paid").strip() or "paid"
+    note = str(payload.get("note") or "").strip() or None
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+INSERT INTO supporter_payment_history (
+  user_id, provider, provider_subscription_id, provider_payment_id,
+  amount, currency, paid_at, period_start, period_end, status, note,
+  created_at, updated_at
+) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+""",
+            (
+                user_id,
+                provider,
+                provider_subscription_id,
+                provider_payment_id,
+                amount,
+                currency,
+                paid_at,
+                period_start,
+                period_end,
+                status,
+                note,
+                now,
+                now,
+            ),
+        )
+        row_id = cur.lastrowid
+        cur.execute(
+            """
+SELECT id, provider, provider_subscription_id, provider_payment_id,
+  amount, currency, paid_at, period_start, period_end, status, note, created_at
+FROM supporter_payment_history WHERE id=%s LIMIT 1
+""",
+            (row_id,),
+        )
+        row = cur.fetchone()
+    return _serialize_payment_history(row) if row else {}

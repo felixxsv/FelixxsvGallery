@@ -185,6 +185,10 @@ body {
   font-size: 0.875rem;
 }
 
+.app-button--full {
+  width: 100%;
+}
+
 .app-button:disabled,
 .app-link-button:disabled,
 .app-icon-button:disabled {
@@ -1042,9 +1046,9 @@ body {
 
 .support-modal__visual-surface {
   position: relative;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 100%;
   padding: clamp(24px, 3vw, 34px);
 }
@@ -1070,7 +1074,8 @@ body {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 220px;
+  min-height: 280px;
+  width: 100%;
 }
 
 .support-modal__visual-glow {
@@ -1236,10 +1241,172 @@ body {
   gap: var(--space-2);
 }
 
+.support-modal__price {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.support-modal__price-display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3em;
+  line-height: 1;
+}
+
+.support-modal__price-amount {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+}
+
+.support-modal__price-sep {
+  font-size: 1.2rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.support-modal__price-unit {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.support-modal__price-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.support-modal__feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.support-modal__feature-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.support-modal__feature-item:not(.support-modal__feature-item--secret):hover {
+  background: color-mix(in srgb, var(--color-surface) 60%, var(--color-border) 40%);
+}
+
+.support-modal__feature-item--secret {
+  opacity: 0.45;
+}
+
+.support-modal__feature-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.support-modal__feature-icon--frame {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.support-modal__feature-icon--decor {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+}
+
+.support-modal__feature-icon--slideshow {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.support-modal__feature-icon--secret {
+  background: rgba(120, 120, 140, 0.10);
+  color: var(--color-text-muted);
+}
+
+.support-modal__feature-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.support-modal__feature-item--secret .support-modal__feature-name::after {
+  content: "（準備中）";
+  font-size: 0.75em;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 0.4em;
+}
+
+.support-modal__feature-action {
+  margin-top: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.support-modal__feature-action-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.support-modal__supporter-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
 .support-modal__message {
   margin: 0;
   color: var(--color-text-muted);
   font-size: 0.9rem;
+}
+
+.support-modal__payment-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.support-modal__payment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.support-modal__payment-th {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.support-modal__payment-row:not(:last-child) .support-modal__payment-cell {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.support-modal__payment-cell {
+  padding: var(--space-2) var(--space-3);
+  vertical-align: middle;
+}
+
+.support-modal__payment-cell--amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.support-modal__payment-cell--status {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
 }
 
 .support-modal__footer-note {
@@ -1270,7 +1437,7 @@ body {
   }
 
   .support-modal__visual-art {
-    min-height: 120px;
+    min-height: 140px;
   }
 
   .support-modal__content {
