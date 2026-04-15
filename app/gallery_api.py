@@ -18,7 +18,8 @@ import urllib.parse
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request, Response, Cookie, Body
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+import html as _html
 import pymysql
 from pymysql.err import IntegrityError
 from PIL import Image, UnidentifiedImageError
@@ -1584,6 +1585,59 @@ LIMIT 1
     encoded = urllib.parse.quote(display_name, safe="")
     headers = {"Content-Disposition": f"inline; filename*=UTF-8''{encoded}"}
     return FileResponse(str(dst), headers=headers)
+
+
+@app.get("/view/{token}")
+def view_by_token(token: str, req: Request):
+    if not re.match(r'^[0-9a-fA-F]{16}$', token):
+        raise HTTPException(status_code=404, detail="not found")
+    current_user = _get_current_user(req)
+    viewer_user_id = int(current_user["id"]) if current_user else None
+    conn = db_conn(CONF)
+    try:
+        _ensure_admin_content_states_table(conn)
+        visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+SELECT i.title
+FROM images i
+LEFT JOIN admin_content_states acs ON acs.image_id=i.id
+WHERE i.gallery=%s AND i.access_token=%s AND {visibility_sql}
+LIMIT 1
+""",
+                (GALLERY, token, *visibility_params),
+            )
+            r = cur.fetchone()
+            if not r:
+                raise HTTPException(status_code=404, detail="not found")
+            title = str(r["title"] or "").strip() or token
+    finally:
+        conn.close()
+
+    safe_title = _html.escape(title)
+    safe_token = _html.escape(token)
+    page = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{safe_title}</title>
+  <style>
+    *{{margin:0;padding:0;box-sizing:border-box}}
+    html,body{{width:100%;height:100%;background:#111;display:flex;align-items:center;justify-content:center}}
+    img{{max-width:100vw;max-height:100vh;object-fit:contain;display:block;-webkit-user-drag:none;user-select:none}}
+  </style>
+</head>
+<body>
+  <img src="/img/{safe_token}" alt="{safe_title}" draggable="false">
+  <script>
+    document.addEventListener('contextmenu',function(e){{e.preventDefault();}});
+    document.addEventListener('dragstart',function(e){{e.preventDefault();}});
+  </script>
+</body>
+</html>"""
+    return HTMLResponse(content=page)
 
 
 def _table_exists(conn: pymysql.Connection, table_name: str) -> bool:
