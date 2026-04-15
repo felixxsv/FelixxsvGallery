@@ -626,7 +626,9 @@ function renderLatestImage(item) {
   image.style.objectPosition = `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%`;
   title.textContent = item.title || t("untitled", "Untitled");
   meta.textContent = `${formatDateTime(item.posted_at)} ・ ${item.user?.display_name || t("unknown_user", "Unknown uploader")}`;
-  stats.textContent = `♥ ${item.like_count_short || "0"} ・ ${item.view_count_short || "0"}`;
+  const likeText = item.like_count_short || item.like_count_text || String(item.like_count ?? 0);
+  const viewText = item.view_count_short || item.view_count_text || String(item.view_count ?? 0);
+  stats.textContent = `♥ ${likeText} ・ ${viewText}`;
   card.hidden = false;
   placeholder.hidden = true;
 }
