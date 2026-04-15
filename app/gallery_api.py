@@ -1654,6 +1654,7 @@ LIMIT 1
     #img{{max-width:100vw;max-height:100vh;object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;will-change:transform;transform-origin:center}}
     #slider-wrap{{position:fixed;top:50%;right:18px;transform:translateY(-50%);width:48px;height:220px;display:grid;place-items:center;background:rgba(12,18,28,.52);border-radius:999px;border:1px solid rgba(255,255,255,.12);z-index:10;opacity:0;transition:opacity .18s ease}}
     body.is-controls-visible #slider-wrap{{opacity:1}}
+    @media(pointer:coarse){{#slider-wrap{{display:none}}}}
     #slider{{appearance:auto;writing-mode:vertical-lr;direction:rtl;width:8px;height:180px;accent-color:#88a9ff;background:transparent;cursor:pointer}}
   </style>
 </head>
