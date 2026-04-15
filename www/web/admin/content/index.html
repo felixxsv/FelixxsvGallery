@@ -140,12 +140,13 @@
 <th data-i18n="admin_content.likes">いいね</th>
 <th data-i18n="admin_content.views">閲覧</th>
 <th data-i18n="admin_content.posted_at">投稿日</th>
+<th data-i18n="admin_content.upload_source">経路</th>
 <th data-i18n="admin_content.action">操作</th>
 </tr>
 </thead>
 <tbody id="adminContentTableBody">
 <tr>
-<td class="admin-content-table__empty" colspan="9" data-i18n="admin_content.loading">読み込み中です。</td>
+<td class="admin-content-table__empty" colspan="10" data-i18n="admin_content.loading">読み込み中です。</td>
 </tr>
 </tbody>
 </table>
@@ -849,6 +850,7 @@
 <div><dt data-i18n="admin_content.detail_field_colors">カラータグ</dt><dd id="adminContentDetailFieldColors">-</dd></div>
 <div><dt data-i18n="admin_content.visibility">公開状態</dt><dd id="adminContentDetailFieldVisibility">-</dd></div>
 <div><dt data-i18n="admin_content.status">状態</dt><dd id="adminContentDetailFieldStatus">-</dd></div>
+<div><dt data-i18n="admin_content.upload_source">投稿経路</dt><dd id="adminContentDetailFieldUploadSource">-</dd></div>
 <div class="admin-content-detail__admin-only"><dt data-i18n="admin_content.detail_field_file_name">ファイル名</dt><dd id="adminContentDetailFieldFileName">-</dd></div>
 </dl>
 </div>
@@ -869,6 +871,15 @@
 </div>
 <div class="app-modal-body">
 <form class="admin-content-edit" id="adminContentEditForm">
+<div class="app-field">
+<span class="app-field__label" data-i18n="admin_content.focal_label">サムネイル位置</span>
+<span class="app-field__hint" data-i18n="admin_content.focal_hint">画像をドラッグして重要な部分を指定してください。</span>
+<div class="admin-content-edit__focal-wrap" id="adminContentEditFocalWrap">
+<img alt="focal preview" class="admin-content-edit__focal-image" id="adminContentEditFocalImage" hidden/>
+<div class="admin-content-edit__focal-empty" id="adminContentEditFocalEmpty" data-i18n="admin_content.no_image">No Image</div>
+<div class="admin-content-edit__focal-crosshair" id="adminContentEditFocalCrosshair" hidden></div>
+</div>
+</div>
 <label class="app-field">
 <span class="app-field__label" data-i18n="admin_content.detail_field_title">タイトル</span>
 <input class="app-input" id="adminContentEditTitleInput" name="title" required maxlength="255" type="text"/>

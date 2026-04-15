@@ -41,6 +41,43 @@ function buildPill(text, mod) {
   return `<span class="admin-content-pill ${mod}">${escapeHtml(text)}</span>`;
 }
 
+function formatUploadSource(source) {
+  const labels = {
+    web: t("upload_source_web", "Web"),
+    discord: t("upload_source_discord", "Discord"),
+  };
+  return labels[source] || escapeHtml(source || "web");
+}
+
+function updateEditFocalDisplay() {
+  const wrap = byId("adminContentEditFocalWrap");
+  const img = byId("adminContentEditFocalImage");
+  const crosshair = byId("adminContentEditFocalCrosshair");
+  const empty = byId("adminContentEditFocalEmpty");
+  const hasImage = img && !img.hidden;
+  if (img) img.style.objectPosition = `${state.editFocalX}% ${state.editFocalY}%`;
+  if (crosshair) {
+    crosshair.hidden = !hasImage;
+    if (hasImage) {
+      crosshair.style.left = `${state.editFocalX}%`;
+      crosshair.style.top = `${state.editFocalY}%`;
+    }
+  }
+  if (empty) empty.hidden = Boolean(hasImage);
+  if (wrap) wrap.style.cursor = hasImage ? "crosshair" : "default";
+}
+
+function editFocalPointerToPercent(event) {
+  const wrap = byId("adminContentEditFocalWrap");
+  if (!wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * 100;
+  const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) * 100;
+  state.editFocalX = Math.round(x * 10) / 10;
+  state.editFocalY = Math.round(y * 10) / 10;
+  updateEditFocalDisplay();
+}
+
 function buildImageModalPayload(item) {
   const imageId = Number(item?.image_id || item?.id || 0);
   const uploader = item?.uploader || item?.user || {};
@@ -89,6 +126,9 @@ const state = {
   editTagPool: [],
   editTags: [],
   editColorIds: [],
+  editFocalX: 50,
+  editFocalY: 50,
+  editFocalDragging: false,
   uploadModalController: null
 };
 
@@ -113,7 +153,7 @@ function renderTable() {
 
   tbody.innerHTML = "";
   if (!Array.isArray(state.items) || state.items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="admin-content-table__empty">${escapeHtml(t("empty", "No content found."))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="admin-content-table__empty">${escapeHtml(t("empty", "No content found."))}</td></tr>`;
   } else {
     for (const item of state.items) {
       const tr = document.createElement("tr");
@@ -150,6 +190,7 @@ function renderTable() {
         <td>${escapeHtml(item.like_count_text || "0")}</td>
         <td>${escapeHtml(item.view_count_text || "0")}</td>
         <td>${escapeHtml(formatDateTime(item.posted_at))}</td>
+        <td>${escapeHtml(formatUploadSource(item.upload_source))}</td>
         <td>
           <div class="admin-content-actions">
             <button type="button" class="app-button app-button--ghost admin-content-mini-button" data-action="detail" data-image-id="${item.image_id}">${escapeHtml(t("detail", "Details"))}</button>
@@ -172,6 +213,7 @@ function renderTable() {
             <td><div class="admin-content-child-shot">${escapeHtml(formatDateTime(child.shot_at))}</div></td>
             <td></td>
             <td>${buildPill(child.status || "-", `admin-content-pill--${escapeHtml(child.status || "normal")}`)}</td>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>
@@ -251,6 +293,7 @@ function setDetail(content) {
   byId("adminContentDetailFieldColors").textContent = Array.isArray(content.color_tags) && content.color_tags.length ? content.color_tags.map((item) => item.label || `Color ${item.color_id}`).join(", ") : "-";
   byId("adminContentDetailFieldVisibility").textContent = content.visibility || "-";
   byId("adminContentDetailFieldStatus").textContent = content.status || "-";
+  byId("adminContentDetailFieldUploadSource").textContent = formatUploadSource(content.upload_source);
   byId("adminContentDetailFieldFileName").textContent = content.admin_meta?.file_name || "-";
 
   const visibilityButton = byId("adminContentVisibilityButton");
@@ -485,6 +528,20 @@ function openEditModal() {
   state.editColorIds = Array.isArray(item.color_tags)
     ? item.color_tags.map((color) => Number(color.id || color.color_id || 0)).filter((id) => id > 0)
     : [];
+  state.editFocalX = typeof item.focal_x === "number" ? item.focal_x : 50;
+  state.editFocalY = typeof item.focal_y === "number" ? item.focal_y : 50;
+  state.editFocalDragging = false;
+  const focalImg = byId("adminContentEditFocalImage");
+  if (focalImg) {
+    if (item.preview_url) {
+      focalImg.src = item.preview_url;
+      focalImg.hidden = false;
+    } else {
+      focalImg.hidden = true;
+      focalImg.removeAttribute("src");
+    }
+  }
+  updateEditFocalDisplay();
   const searchInput = byId("adminContentEditTagSearchInput");
   if (searchInput) searchInput.value = "";
   void ensureEditTagPool().then(() => {
@@ -528,7 +585,9 @@ async function submitEdit() {
       shot_at: shotAt,
       posted_at: postedAt,
       tags: state.editTags,
-      color_tags: state.editColorIds
+      color_tags: state.editColorIds,
+      focal_x: state.editFocalX,
+      focal_y: state.editFocalY,
     });
     const content = payload.data?.content;
     if (content) {
@@ -955,6 +1014,21 @@ function bindModals() {
     button.setAttribute("aria-pressed", active ? "true" : "false");
     document.activeElement?.blur?.();
   });
+  const focalWrap = byId("adminContentEditFocalWrap");
+  focalWrap?.addEventListener("pointerdown", (event) => {
+    const img = byId("adminContentEditFocalImage");
+    if (event.button !== 0 || !img || img.hidden) return;
+    state.editFocalDragging = true;
+    focalWrap.setPointerCapture(event.pointerId);
+    editFocalPointerToPercent(event);
+  });
+  focalWrap?.addEventListener("pointermove", (event) => {
+    if (!state.editFocalDragging) return;
+    editFocalPointerToPercent(event);
+  });
+  focalWrap?.addEventListener("pointerup", () => { state.editFocalDragging = false; });
+  focalWrap?.addEventListener("pointercancel", () => { state.editFocalDragging = false; });
+
   byId("adminContentEditSaveButton")?.addEventListener("click", () => submitEdit());
   byId("adminContentEditForm")?.addEventListener("submit", (event) => {
     event.preventDefault();

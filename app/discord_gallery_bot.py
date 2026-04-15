@@ -330,6 +330,7 @@ class UploadChoiceView(discord.ui.View):
             shot_at=shot_at,
             files=prepared,
             actor=self.actor,
+            upload_source="discord",
         )
 
     async def _send_temporary_followup(self, interaction: discord.Interaction, content: str) -> None:

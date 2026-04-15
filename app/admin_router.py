@@ -2367,6 +2367,7 @@ def _build_content_list_item(row: dict) -> dict:
         "view_count": int(row.get("view_count") or 0),
         "like_count_text": _format_count_short(row.get("like_count")),
         "view_count_text": _format_count_short(row.get("view_count")),
+        "upload_source": str(row.get("upload_source") or "web"),
         "uploader": {
             "user_id": row.get("uploader_user_id") if row.get("uploader_user_id") is not None else nested_uploader.get("user_id"),
             "display_name": row.get("uploader_display_name") or nested_uploader.get("display_name"),
@@ -2528,7 +2529,8 @@ SELECT
     MIN({visibility_expr}) AS is_public,
     {status_expr} AS moderation_status,
     SUM(COALESCE(st.like_count, 0)) AS like_count,
-    SUM(COALESCE(st.view_count, 0)) AS view_count
+    SUM(COALESCE(st.view_count, 0)) AS view_count,
+    MAX(COALESCE(gc.upload_source, 'web')) AS upload_source
 FROM images i
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id
 {stats_join}
@@ -2572,6 +2574,7 @@ SELECT
     i.shot_at,
     COALESCE(st.like_count, 0) AS like_count,
     COALESCE(st.view_count, 0) AS view_count,
+    COALESCE(gc.upload_source, 'web') AS upload_source,
     {uploader_select}
 FROM images i
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id
@@ -2786,8 +2789,14 @@ def _load_content_detail(conn, image_id: int) -> dict | None:
     uploader_expr = _images_uploader_expr(conn)
     avatar_col = _users_avatar_column(conn)
     has_stats = _image_stats_table(conn) is not None
+    has_content_tables = _detect_table(conn, "gallery_contents") is not None and _detect_table(conn, "gallery_content_images") is not None
 
     stats_join = "LEFT JOIN image_stats st ON st.image_id=i.id" if has_stats else "LEFT JOIN (SELECT NULL AS image_id, 0 AS like_count, 0 AS view_count) st ON st.image_id=i.id"
+    content_join = """
+LEFT JOIN gallery_content_images gci ON gci.image_id=i.id
+LEFT JOIN gallery_contents gc ON gc.id=gci.content_id
+""" if has_content_tables else ""
+    upload_source_select = "COALESCE(gc.upload_source, 'web') AS upload_source" if has_content_tables else "'web' AS upload_source"
 
     uploader_join = ""
     uploader_select = "NULL AS uploader_user_id, NULL AS uploader_display_name, NULL AS uploader_user_key, NULL AS uploader_avatar_path"
@@ -2801,6 +2810,7 @@ def _load_content_detail(conn, image_id: int) -> dict | None:
         uploader_select = ", ".join(parts)
 
     visibility_select = f"COALESCE(i.{visibility_col}, 1) AS is_public" if visibility_col else "1 AS is_public"
+    focal_select = "i.focal_x, i.focal_y" if "focal_x" in _images_columns(conn) else "50 AS focal_x, 50 AS focal_y"
 
     with conn.cursor() as cur:
         cur.execute(
@@ -2820,10 +2830,13 @@ SELECT
     i.shot_at,
     COALESCE(st.like_count, 0) AS like_count,
     COALESCE(st.view_count, 0) AS view_count,
+    {focal_select},
+    {upload_source_select},
     {uploader_select}
 FROM images i
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id
 {stats_join}
+{content_join}
 {uploader_join}
 WHERE i.id=%s
 LIMIT 1
@@ -2846,6 +2859,9 @@ LIMIT 1
         "shot_at": _coerce_local_text(row.get("shot_at")),
         "visibility": "public" if bool(row.get("is_public")) else "private",
         "status": str(row.get("moderation_status") or "normal"),
+        "upload_source": str(row.get("upload_source") or "web"),
+        "focal_x": float(row.get("focal_x") if row.get("focal_x") is not None else 50),
+        "focal_y": float(row.get("focal_y") if row.get("focal_y") is not None else 50),
         "image_width": row.get("image_width"),
         "image_height": row.get("image_height"),
         "file_size_bytes": file_meta.get("file_size_bytes"),
@@ -2925,9 +2941,20 @@ def _update_content_metadata(conn, image_id: int, actor_user_id: int | None, pay
     if posted_at is None:
         raise ValueError("posted_at_invalid")
 
+    focal_x_raw = data.get("focal_x")
+    focal_y_raw = data.get("focal_y")
+    focal_x = max(0.0, min(100.0, float(focal_x_raw))) if focal_x_raw is not None else None
+    focal_y = max(0.0, min(100.0, float(focal_y_raw))) if focal_y_raw is not None else None
+
     image_cols = _images_columns(conn)
     update_cols = ["title=%s", "alt=%s", "shot_at=%s", "created_at=%s"]
     params: list = [title, alt, shot_at, posted_at]
+    if focal_x is not None and "focal_x" in image_cols:
+        update_cols.append("focal_x=%s")
+        params.append(focal_x)
+    if focal_y is not None and "focal_y" in image_cols:
+        update_cols.append("focal_y=%s")
+        params.append(focal_y)
     if "updated_at" in image_cols:
         update_cols.append("updated_at=CURRENT_TIMESTAMP(6)")
     params.append(image_id)

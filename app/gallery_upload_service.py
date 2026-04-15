@@ -203,6 +203,7 @@ def perform_gallery_upload(
     focal_y: float = 50.0,
     files: list[GalleryUploadPreparedFile],
     actor: GalleryActor | None = None,
+    upload_source: str = "web",
 ) -> dict:
     if _upload_requires_login(conf):
         if actor is None:
@@ -468,6 +469,9 @@ def perform_gallery_upload(
                     if "uploader_user_id" in content_cols and actor is not None:
                         content_cols_list.append("uploader_user_id")
                         content_vals.append(int(actor.id))
+                    if "upload_source" in content_cols:
+                        content_cols_list.append("upload_source")
+                        content_vals.append(str(upload_source or "web"))
                     if "thumbnail_image_id" in content_cols:
                         content_cols_list.append("thumbnail_image_id")
                         content_vals.append(int(first_item["image_id"]))

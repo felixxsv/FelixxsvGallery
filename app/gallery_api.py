@@ -1486,6 +1486,7 @@ def upload_images(
             focal_y=focal_y,
             files=prepared_files,
             actor=actor,
+            upload_source="web",
         )
     except GalleryUploadError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message)

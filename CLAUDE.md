@@ -23,19 +23,19 @@
 
 ## サーバー構成（2台）
 
-| サーバー | ホスト名 | 役割 | ブランチ |
-|---|---|---|---|
-| `192.168.10.102` | felixxsv2 | Apache リバースプロキシ・HTTPS終端。ファイルは配信しない | `syu` |
-| `192.168.10.120` | web02 | **実際の配信サーバー**。FastAPI + 静的ファイルをここから配信 | `main` |
+| サーバー | ホスト名 | 役割 | ブランチ | 認証方式 |
+|---|---|---|---|---|
+| `192.168.10.102` | felixxsv2 | Apache リバースプロキシ・HTTPS終端。ファイルは配信しない | `syu` | パスワード認証（`sshpass`） |
+| `192.168.10.120` | web02 | **実際の配信サーバー**。FastAPI + 静的ファイルをここから配信 | `main` | 公開鍵認証（`sshpass` 不要） |
 
 **静的ファイル（HTML/CSS/JS）も含めすべて `.120` から配信される。`.102` だけにpullしても本番に反映されない。**
 
 ## デプロイ手順（必ずこの順序で行う）
 
 ### 前提
-- 編集の実態はサーバー (`felix@192.168.10.102`, `/data/felixxsv-gallery`) にある
-- ローカル (`/home/felix/felixxsv-gallery`) はgitで管理するための場所
-- **`.102` は `syu` ブランチ、`.120` は `main` ブランチで運用**
+- **ローカル (`/home/felix/felixxsv-gallery`) は `syu` ブランチで作業する**
+- ローカルで `syu` を編集・コミットし、`main` にマージして各サーバーへ反映する
+- **`.102` は `syu` ブランチ・パスワード認証、`.120` は `main` ブランチ・公開鍵認証で運用**
 
 ### 手順
 
@@ -67,12 +67,12 @@ git checkout syu
 sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 \
   "cd /data/felixxsv-gallery && git reset HEAD . && git checkout -- . && git pull"
 
-# .120（mainブランチ）をpull ← これをしないと本番に反映されない
-sshpass -p "jimon.jp0710" ssh felix@192.168.10.120 \
+# .120（mainブランチ）をpull ← これをしないと本番に反映されない（公開鍵認証）
+ssh felix@192.168.10.120 \
   "cd /data/felixxsv-gallery && git reset HEAD . && git checkout -- . && git pull"
 
-# APIサーバー再起動（Pythonバックエンドの変更時のみ）
-sshpass -p "jimon.jp0710" ssh felix@192.168.10.120 \
+# APIサーバー再起動（Pythonバックエンドの変更時のみ・公開鍵認証）
+ssh felix@192.168.10.120 \
   "echo 'jimon.jp0710' | sudo -S systemctl restart felixxsv-gallery-api"
 ```
 
