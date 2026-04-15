@@ -1635,7 +1635,8 @@ body {
 
   .shell-user-profile__left {
     width: auto;
-    padding: 0;
+    padding: 8px 0 0;
+    overflow: visible;
   }
 
   .shell-user-profile__right {
@@ -1656,7 +1657,8 @@ body {
 
   .shell-user-profile__left {
     width: auto;
-    padding: 0;
+    padding: 8px 0 0;
+    overflow: visible;
   }
 
   .shell-user-profile__left .shell-user-profile__avatar {
