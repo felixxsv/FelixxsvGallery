@@ -2803,7 +2803,7 @@ body {
 /* Combined selector for higher specificity than .app-modal-dialog alone */
 .support-modal.app-modal-dialog {
   width: min(1080px, calc(100vw - 40px));
-  height: min(600px, calc(100vh - 80px));
+  height: min(720px, calc(100vh - 80px));
 }
 
 .support-modal__body {
