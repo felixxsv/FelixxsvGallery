@@ -1652,7 +1652,7 @@ LIMIT 1
     #stage{{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;cursor:grab}}
     #stage.dragging{{cursor:grabbing}}
     #img{{max-width:100vw;max-height:100vh;object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;will-change:transform;transform-origin:center}}
-    .ui-btn{{position:fixed;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;cursor:pointer;backdrop-filter:blur(8px);transition:background .15s;z-index:10;font-family:system-ui,sans-serif}}
+    .ui-btn{{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;cursor:pointer;backdrop-filter:blur(8px);transition:background .15s;font-family:system-ui,sans-serif}}
     .ui-btn:hover{{background:rgba(255,255,255,.18)}}
     #zoom-wrap{{position:fixed;bottom:20px;right:16px;display:flex;gap:6px;z-index:10}}
     #zoom-wrap .ui-btn{{width:38px;height:38px;font-size:20px;display:flex;align-items:center;justify-content:center}}
