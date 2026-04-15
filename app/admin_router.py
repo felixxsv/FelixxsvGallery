@@ -495,6 +495,7 @@ def _load_latest_image(conn) -> dict | None:
         uploader_key = "owner_user_id"
 
     public_expr = "i.is_public" if "is_public" in image_cols else "1"
+    focal_select = ", COALESCE(i.focal_x, 50) AS focal_x, COALESCE(i.focal_y, 50) AS focal_y" if "focal_x" in image_cols else ", 50 AS focal_x, 50 AS focal_y"
     user_join = f"LEFT JOIN users u ON u.id=i.{uploader_key}" if uploader_key else ""
     user_avatar_col = _users_avatar_column(conn)
 
@@ -519,6 +520,7 @@ SELECT
     COALESCE(st.like_count, 0) AS like_count,
     COALESCE(st.view_count, 0) AS view_count,
     {public_expr} AS is_public
+    {focal_select}
     {user_select}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
@@ -551,6 +553,8 @@ LIMIT 1
         "posted_at": _coerce_local_text(row.get("posted_at")),
         "shot_at": _coerce_local_text(row.get("shot_at")),
         "is_public": bool(row.get("is_public")),
+        "focal_x": float(row.get("focal_x") if row.get("focal_x") is not None else 50),
+        "focal_y": float(row.get("focal_y") if row.get("focal_y") is not None else 50),
         "user": {
             "display_name": row.get("user_display_name"),
             "user_key": row.get("user_user_key"),
@@ -2368,6 +2372,8 @@ def _build_content_list_item(row: dict) -> dict:
         "like_count_text": _format_count_short(row.get("like_count")),
         "view_count_text": _format_count_short(row.get("view_count")),
         "upload_source": str(row.get("upload_source") or "web"),
+        "focal_x": float(row.get("focal_x") if row.get("focal_x") is not None else 50),
+        "focal_y": float(row.get("focal_y") if row.get("focal_y") is not None else 50),
         "uploader": {
             "user_id": row.get("uploader_user_id") if row.get("uploader_user_id") is not None else nested_uploader.get("user_id"),
             "display_name": row.get("uploader_display_name") or nested_uploader.get("display_name"),
@@ -2575,6 +2581,8 @@ SELECT
     COALESCE(st.like_count, 0) AS like_count,
     COALESCE(st.view_count, 0) AS view_count,
     COALESCE(gc.upload_source, 'web') AS upload_source,
+    COALESCE(i.focal_x, 50) AS focal_x,
+    COALESCE(i.focal_y, 50) AS focal_y,
     {uploader_select}
 FROM images i
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id

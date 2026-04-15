@@ -623,6 +623,7 @@ function renderLatestImage(item) {
 
   image.src = item.preview_url;
   image.alt = item.title || "latest image";
+  image.style.objectPosition = `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%`;
   title.textContent = item.title || t("untitled", "Untitled");
   meta.textContent = `${formatDateTime(item.posted_at)} ・ ${item.user?.display_name || t("unknown_user", "Unknown uploader")}`;
   stats.textContent = `♥ ${item.like_count_short || "0"} ・ ${item.view_count_short || "0"}`;
@@ -681,6 +682,8 @@ function buildDashboardSnapshot(data) {
       preview_url: data.latest_image.preview_url,
       like_count_short: data.latest_image.like_count_short,
       view_count_short: data.latest_image.view_count_short,
+      focal_x: data.latest_image.focal_x ?? 50,
+      focal_y: data.latest_image.focal_y ?? 50,
     } : null,
     integrity_summary: data.integrity_summary || {},
     clock_mode: data.clock_mode || "digital",

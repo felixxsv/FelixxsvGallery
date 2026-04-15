@@ -164,8 +164,9 @@ function renderTable() {
         .filter(({ child }) => Number(child.image_id || child.id || 0) !== Number(item.image_id || item.id || 0));
       const isGroup = children.length > 1 || Number(item.image_count || 0) > 1;
       const isExpanded = state.expandedContentKeys.has(contentKey);
+      const focalStyle = `object-position: ${item.focal_x ?? 50}% ${item.focal_y ?? 50}%`;
       const preview = item.preview_url
-        ? `<div class="admin-content-thumb" data-image-open="true" data-image-id="${item.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || t("preview_alt", "preview"))}"></div>`
+        ? `<div class="admin-content-thumb" data-image-open="true" data-image-id="${item.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(item.title || t("preview_alt", "preview"))}" style="${focalStyle}"></div>`
         : `<div class="admin-content-thumb"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
       const uploaderLabel = item.uploader?.display_name || item.uploader?.user_key || "-";
       const groupToggle = isGroup
@@ -203,8 +204,9 @@ function renderTable() {
         for (const { child, index } of visibleChildren) {
           const childTr = document.createElement("tr");
           childTr.className = "admin-content-row admin-content-row--child";
+          const childFocalStyle = `object-position: ${child.focal_x ?? 50}% ${child.focal_y ?? 50}%`;
           const childPreview = child.preview_url
-            ? `<div class="admin-content-thumb admin-content-thumb--child" data-image-open="true" data-image-id="${child.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(child.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(child.preview_url)}" alt="${escapeHtml(child.title || t("preview_alt", "preview"))}"></div>`
+            ? `<div class="admin-content-thumb admin-content-thumb--child" data-image-open="true" data-image-id="${child.image_id}" role="button" tabindex="0" aria-label="${escapeHtml(child.title || t("preview_open", "Open image"))}"><img src="${escapeHtml(child.preview_url)}" alt="${escapeHtml(child.title || t("preview_alt", "preview"))}" style="${childFocalStyle}"></div>`
             : `<div class="admin-content-thumb admin-content-thumb--child"><div class="admin-content-thumb__empty">${escapeHtml(t("no_image", "No Image"))}</div></div>`;
           const positionText = `${index + 1}/${children.length}`;
           childTr.innerHTML = `
