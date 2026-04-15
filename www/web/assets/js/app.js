@@ -515,6 +515,12 @@ function initPublicSidebar() {
 }
 
 async function bootstrap() {
+  document.addEventListener("contextmenu", (event) => {
+    if (event.target.tagName === "IMG") {
+      event.preventDefault();
+    }
+  });
+
   const app = createAppContext();
   window.App = app;
   app.theme.init();

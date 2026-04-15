@@ -295,3 +295,8 @@ h6 {
 .app-mono {
   font-family: var(--font-mono);
 }
+
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
