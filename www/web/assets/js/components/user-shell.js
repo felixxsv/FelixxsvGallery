@@ -1302,7 +1302,7 @@ export function initUserShell(app) {
     if (!isActiveSupporter && refs.supportModalDescription) refs.supportModalDescription.textContent = variant.description;
     if (refs.supportModalPlanSection) refs.supportModalPlanSection.hidden = isActiveSupporter;
     if (refs.supportModalBenefitsSection) refs.supportModalBenefitsSection.hidden = isActiveSupporter;
-    if (refs.supportModalStatusPanel) refs.supportModalStatusPanel.hidden = !support;
+    if (refs.supportModalStatusPanel) refs.supportModalStatusPanel.hidden = !isActiveSupporter;
     if (refs.supportModalStatusText) refs.supportModalStatusText.textContent = support ? supportStatusText(status.code) : supportText("support.status.inactive", "未支援");
     if (refs.supportModalPlanText) refs.supportModalPlanText.textContent = supportText("support.modal.default.planName", "Supporter Plan");
     if (refs.supportModalNextBillingText) refs.supportModalNextBillingText.textContent = formatSupportValue(status.next_billing_at || status.current_period_end || status.gift_ends_at);
