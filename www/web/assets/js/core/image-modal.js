@@ -166,7 +166,7 @@ function normalizePayload(item, options = {}) {
       (normalized.image_id ? (item?.access_token ? `/img/${item.access_token}` : `/media/original/${normalized.image_id}`) : "")
   );
   normalized.original_url = withAppBase(
-    item?.original_url || item?.image_url || item?.url || (normalized.image_id ? (item?.access_token ? `/view/${item.access_token}` : `/media/original/${normalized.image_id}`) : normalized.preview_url)
+    item?.original_url || item?.image_url || item?.url || (item?.access_token ? `/view/${item.access_token}` : "")
   );
   normalized.posted_at = item?.posted_at || item?.created_at || item?.shot_at || null;
   normalized.shot_at = item?.shot_at || null;

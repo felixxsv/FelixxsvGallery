@@ -123,9 +123,7 @@ function normalizeImageUrl(image) {
 
 function normalizeOriginalUrl(image) {
   if (image.access_token) return withAppBase(`/view/${image.access_token}`);
-  const id = image.id ?? image.image_id;
-  if (id !== undefined && id !== null) return withAppBase(`/media/original/${id}`);
-  return normalizeImageUrl(image);
+  return "";
 }
 
 function extractListPayload(payload) {

@@ -86,7 +86,7 @@ function buildImageModalPayload(item) {
     title: item?.title || item?.alt || t("untitled", "Untitled"),
     alt: item?.alt ?? "",
     preview_url: item?.preview_url || item?.original_url || (imageId ? (item?.access_token ? `/img/${item.access_token}` : `/media/original/${imageId}`) : ""),
-    original_url: item?.original_url || item?.preview_url || (imageId ? (item?.access_token ? `/view/${item.access_token}` : `/media/original/${imageId}`) : ""),
+    original_url: item?.original_url || (item?.access_token ? `/view/${item.access_token}` : ""),
     posted_at: item?.posted_at || item?.created_at || item?.shot_at || null,
     shot_at: item?.shot_at || null,
     like_count: Number(item?.like_count ?? 0),
