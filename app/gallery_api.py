@@ -1654,14 +1654,12 @@ LIMIT 1
     #img{{max-width:100vw;max-height:100vh;object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;will-change:transform;transform-origin:center}}
     .ui-btn{{position:fixed;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;cursor:pointer;backdrop-filter:blur(8px);transition:background .15s;z-index:10;font-family:system-ui,sans-serif}}
     .ui-btn:hover{{background:rgba(255,255,255,.18)}}
-    #close-btn{{top:16px;right:16px;padding:8px 16px;font-size:14px}}
     #zoom-wrap{{position:fixed;bottom:20px;right:16px;display:flex;gap:6px;z-index:10}}
     #zoom-wrap .ui-btn{{width:38px;height:38px;font-size:20px;display:flex;align-items:center;justify-content:center}}
   </style>
 </head>
 <body>
   <div id="stage"><img id="img" src="{data_uri}" alt="{safe_title}" draggable="false"></div>
-  <button id="close-btn" class="ui-btn">✕ 閉じる</button>
   <div id="zoom-wrap">
     <button class="ui-btn" id="z-out" title="縮小">−</button>
     <button class="ui-btn" id="z-rst" title="リセット">↺</button>
@@ -1700,7 +1698,6 @@ LIMIT 1
     document.getElementById('z-in').onclick=()=>zoomAt(innerWidth/2,innerHeight/2,1.5);
     document.getElementById('z-out').onclick=()=>zoomAt(innerWidth/2,innerHeight/2,1/1.5);
     document.getElementById('z-rst').onclick=reset;
-    document.getElementById('close-btn').onclick=()=>{{window.opener?window.close():history.back();}};
   </script>
 </body>
 </html>"""
