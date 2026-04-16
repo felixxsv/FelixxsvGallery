@@ -1049,8 +1049,8 @@ function bindModals() {
     const cW = focalWrap.offsetWidth, cH = focalWrap.offsetHeight;
     const dx = event.clientX - state.editFocalDragStartX;
     const dy = event.clientY - state.editFocalDragStartY;
-    state.editFocalX = _clampEditFocal(state.editFocalDragStartFX + dx / cW * 100);
-    state.editFocalY = _clampEditFocal(state.editFocalDragStartFY + dy / cH * 100);
+    state.editFocalX = _clampEditFocal(state.editFocalDragStartFX - dx / cW * 100);
+    state.editFocalY = _clampEditFocal(state.editFocalDragStartFY - dy / cH * 100);
     updateEditFocalDisplay();
   });
   focalWrap?.addEventListener("pointerup", () => { state.editFocalDragging = false; });

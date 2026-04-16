@@ -1437,8 +1437,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const cW = refs.thumbnailWrap.offsetWidth, cH = refs.thumbnailWrap.offsetHeight;
       const dx = event.clientX - state.focalDragStartX;
       const dy = event.clientY - state.focalDragStartY;
-      state.focalX = _clampFocal(state.focalDragStartFX + dx / cW * 100);
-      state.focalY = _clampFocal(state.focalDragStartFY + dy / cH * 100);
+      state.focalX = _clampFocal(state.focalDragStartFX - dx / cW * 100);
+      state.focalY = _clampFocal(state.focalDragStartFY - dy / cH * 100);
       updateFocalDisplay();
     });
     refs.thumbnailWrap?.addEventListener("pointerup", () => { state.focalDragging = false; });
