@@ -391,7 +391,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (!cW || !cH) return;
     const { dW, dH } = _focalDisplayDims(cW, cH, img, zoom);
     img.style.position = "absolute";
-    img.style.objectFit = "none";
+    img.style.objectFit = "fill";
     img.style.width = dW + "px";
     img.style.height = dH + "px";
     img.style.left = (cW / 2 - dW * fX / 100) + "px";
@@ -1057,6 +1057,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       return;
     }
     refs.thumbnailImage.hidden = false;
+    refs.thumbnailImage.onload = () => updateFocalDisplay();
     refs.thumbnailImage.src = first.objectUrl;
     refs.thumbnailImage.alt = first.file.name || t(app, "thumbnail_alt", "Thumbnail");
     refs.thumbnailEmpty.hidden = true;

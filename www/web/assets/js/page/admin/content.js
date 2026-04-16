@@ -65,7 +65,7 @@ function _applyEditFocalTransform(img, wrap, fX, fY, zoom) {
   if (!cW || !cH) return;
   const { dW, dH } = _editFocalDisplayDims(cW, cH, img, zoom);
   img.style.position = "absolute";
-  img.style.objectFit = "none";
+  img.style.objectFit = "fill";
   img.style.width = dW + "px";
   img.style.height = dH + "px";
   img.style.left = (cW / 2 - dW * fX / 100) + "px";
