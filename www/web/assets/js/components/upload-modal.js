@@ -375,37 +375,20 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   // ── Focal point ───────────────────────────────────────────────────────────
 
-  function _focalDisplayDims(cW, cH, img, zoom) {
-    const natW = (img && img.naturalWidth > 0) ? img.naturalWidth : cW;
-    const natH = (img && img.naturalHeight > 0) ? img.naturalHeight : cH;
-    const cr = cW / cH, ir = natW / natH;
-    let coverW, coverH;
-    if (ir >= cr) { coverH = cH; coverW = cH * ir; }
-    else { coverW = cW; coverH = cW / ir; }
-    return { dW: coverW * zoom, dH: coverH * zoom };
+  function _applyFocalTransform(img, fX, fY, zoom) {
+    if (!img) return;
+    img.style.objectFit = "cover";
+    img.style.objectPosition = `${fX}% ${fY}%`;
+    img.style.transformOrigin = `${fX}% ${fY}%`;
+    img.style.transform = zoom > 1 ? `scale(${zoom})` : "";
+    img.style.left = "";
+    img.style.top = "";
+    img.style.width = "";
+    img.style.height = "";
   }
 
-  function _applyFocalTransform(img, wrap, fX, fY, zoom) {
-    if (!img || !wrap) return;
-    if (!img.naturalWidth || !img.naturalHeight) {
-      // 画像未ロード: CSS デフォルト (object-fit: cover) に戻す
-      img.style.cssText = "";
-      return;
-    }
-    const cW = wrap.offsetWidth, cH = wrap.offsetHeight;
-    if (!cW || !cH) return;
-    const { dW, dH } = _focalDisplayDims(cW, cH, img, zoom);
-    img.style.position = "absolute";
-    img.style.objectFit = "fill";
-    img.style.width = dW + "px";
-    img.style.height = dH + "px";
-    img.style.left = (cW / 2 - dW * fX / 100) + "px";
-    img.style.top = (cH / 2 - dH * fY / 100) + "px";
-  }
-
-  function _clampFocal(v, zoom) {
-    const mn = 50 / zoom, mx = 100 - mn;
-    return Math.round(Math.max(mn, Math.min(mx, v)) * 10) / 10;
+  function _clampFocal(v) {
+    return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10;
   }
 
   function updateFocalDisplay() {
@@ -414,17 +397,17 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     if (refs.thumbnailImage) {
       if (hasImage) {
-        _applyFocalTransform(refs.thumbnailImage, refs.thumbnailWrap, state.focalX, state.focalY, state.focalZoom);
+        _applyFocalTransform(refs.thumbnailImage, state.focalX, state.focalY, state.focalZoom);
       } else {
-        refs.thumbnailImage.style.cssText = "";
+        refs.thumbnailImage.style.transform = "";
+        refs.thumbnailImage.style.objectPosition = "";
       }
     }
-    // クロスヘアは常にコンテナ中央（焦点が中心に固定されるため）
     if (refs.focalCrosshair) {
       refs.focalCrosshair.hidden = !hasImage;
       if (hasImage) {
-        refs.focalCrosshair.style.left = "50%";
-        refs.focalCrosshair.style.top = "50%";
+        refs.focalCrosshair.style.left = `${state.focalX}%`;
+        refs.focalCrosshair.style.top = `${state.focalY}%`;
       }
     }
     if (refs.thumbnailWrap) {
@@ -1062,7 +1045,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       return;
     }
     refs.thumbnailImage.hidden = false;
-    refs.thumbnailImage.onload = () => updateFocalDisplay();
     refs.thumbnailImage.src = first.objectUrl;
     refs.thumbnailImage.alt = first.file.name || t(app, "thumbnail_alt", "Thumbnail");
     refs.thumbnailEmpty.hidden = true;
@@ -1445,7 +1427,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       refs.strip.scrollBy({ left: 120, behavior: "smooth" });
     });
 
-    // Focal: drag to pan + wheel to zoom
+    // Focal: drag to move focal point + wheel to zoom toward cursor
     refs.thumbnailWrap?.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !state.items.length) return;
       state.focalDragging = true;
@@ -1459,11 +1441,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.thumbnailWrap?.addEventListener("pointermove", (event) => {
       if (!state.focalDragging) return;
       const cW = refs.thumbnailWrap.offsetWidth, cH = refs.thumbnailWrap.offsetHeight;
-      const { dW, dH } = _focalDisplayDims(cW, cH, refs.thumbnailImage, state.focalZoom);
       const dx = event.clientX - state.focalDragStartX;
       const dy = event.clientY - state.focalDragStartY;
-      state.focalX = _clampFocal(state.focalDragStartFX - dx / dW * 100, state.focalZoom);
-      state.focalY = _clampFocal(state.focalDragStartFY - dy / dH * 100, state.focalZoom);
+      state.focalX = _clampFocal(state.focalDragStartFX + dx / cW * 100);
+      state.focalY = _clampFocal(state.focalDragStartFY + dy / cH * 100);
       updateFocalDisplay();
     });
     refs.thumbnailWrap?.addEventListener("pointerup", () => { state.focalDragging = false; });
@@ -1476,17 +1457,17 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const newZoom = Math.round(Math.max(1.0, Math.min(8.0,
         oldZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
       if (newZoom === oldZoom) return;
-      const cW = refs.thumbnailWrap.offsetWidth;
-      const cH = refs.thumbnailWrap.offsetHeight;
-      const img = refs.thumbnailImage;
-      const { dW: oldDW, dH: oldDH } = _focalDisplayDims(cW, cH, img, oldZoom);
-      const { dW: newDW, dH: newDH } = _focalDisplayDims(cW, cH, img, newZoom);
       const rect = refs.thumbnailWrap.getBoundingClientRect();
-      const cursorX = (event.clientX - rect.left) / rect.width * 100;
-      const cursorY = (event.clientY - rect.top) / rect.height * 100;
+      const cx = (event.clientX - rect.left) / rect.width * 100;
+      const cy = (event.clientY - rect.top) / rect.height * 100;
+      // ズーム前にカーソル下の画像座標を計算し、ズーム後も同じ点がカーソル下に来るよう焦点を補正
+      const imgX = state.focalX + (cx - state.focalX) / oldZoom;
+      const imgY = state.focalY + (cy - state.focalY) / oldZoom;
       state.focalZoom = newZoom;
-      state.focalX = _clampFocal(state.focalX + (cursorX - 50) * cW * (1 / oldDW - 1 / newDW), newZoom);
-      state.focalY = _clampFocal(state.focalY + (cursorY - 50) * cH * (1 / oldDH - 1 / newDH), newZoom);
+      if (newZoom > 1) {
+        state.focalX = _clampFocal((imgX * newZoom - cx) / (newZoom - 1));
+        state.focalY = _clampFocal((imgY * newZoom - cy) / (newZoom - 1));
+      }
       updateFocalDisplay();
     }, { passive: false });
 

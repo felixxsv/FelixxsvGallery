@@ -49,37 +49,20 @@ function formatUploadSource(source) {
   return labels[source] || escapeHtml(source || "web");
 }
 
-function _editFocalDisplayDims(cW, cH, img, zoom) {
-  const natW = (img && img.naturalWidth > 0) ? img.naturalWidth : cW;
-  const natH = (img && img.naturalHeight > 0) ? img.naturalHeight : cH;
-  const cr = cW / cH, ir = natW / natH;
-  let coverW, coverH;
-  if (ir >= cr) { coverH = cH; coverW = cH * ir; }
-  else { coverW = cW; coverH = cW / ir; }
-  return { dW: coverW * zoom, dH: coverH * zoom };
+function _applyEditFocalTransform(img, fX, fY, zoom) {
+  if (!img) return;
+  img.style.objectFit = "cover";
+  img.style.objectPosition = `${fX}% ${fY}%`;
+  img.style.transformOrigin = `${fX}% ${fY}%`;
+  img.style.transform = zoom > 1 ? `scale(${zoom})` : "";
+  img.style.left = "";
+  img.style.top = "";
+  img.style.width = "";
+  img.style.height = "";
 }
 
-function _applyEditFocalTransform(img, wrap, fX, fY, zoom) {
-  if (!img || !wrap) return;
-  if (!img.naturalWidth || !img.naturalHeight) {
-    // 画像未ロード: CSS デフォルト (object-fit: cover) に戻す
-    img.style.cssText = "";
-    return;
-  }
-  const cW = wrap.offsetWidth, cH = wrap.offsetHeight;
-  if (!cW || !cH) return;
-  const { dW, dH } = _editFocalDisplayDims(cW, cH, img, zoom);
-  img.style.position = "absolute";
-  img.style.objectFit = "fill";
-  img.style.width = dW + "px";
-  img.style.height = dH + "px";
-  img.style.left = (cW / 2 - dW * fX / 100) + "px";
-  img.style.top = (cH / 2 - dH * fY / 100) + "px";
-}
-
-function _clampEditFocal(v, zoom) {
-  const mn = 50 / zoom, mx = 100 - mn;
-  return Math.round(Math.max(mn, Math.min(mx, v)) * 10) / 10;
+function _clampEditFocal(v) {
+  return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10;
 }
 
 function updateEditFocalDisplay() {
@@ -90,17 +73,17 @@ function updateEditFocalDisplay() {
   const hasImage = img && !img.hidden;
   if (img) {
     if (hasImage) {
-      _applyEditFocalTransform(img, wrap, state.editFocalX, state.editFocalY, state.editFocalZoom);
+      _applyEditFocalTransform(img, state.editFocalX, state.editFocalY, state.editFocalZoom);
     } else {
-      img.style.cssText = "";
+      img.style.transform = "";
+      img.style.objectPosition = "";
     }
   }
-  // クロスヘアは常にコンテナ中央（焦点が中心に固定されるため）
   if (crosshair) {
     crosshair.hidden = !hasImage;
     if (hasImage) {
-      crosshair.style.left = "50%";
-      crosshair.style.top = "50%";
+      crosshair.style.left = `${state.editFocalX}%`;
+      crosshair.style.top = `${state.editFocalY}%`;
     }
   }
   if (empty) empty.hidden = Boolean(hasImage);
@@ -1067,13 +1050,11 @@ function bindModals() {
   });
   focalWrap?.addEventListener("pointermove", (event) => {
     if (!state.editFocalDragging) return;
-    const img = byId("adminContentEditFocalImage");
     const cW = focalWrap.offsetWidth, cH = focalWrap.offsetHeight;
-    const { dW, dH } = _editFocalDisplayDims(cW, cH, img, state.editFocalZoom);
     const dx = event.clientX - state.editFocalDragStartX;
     const dy = event.clientY - state.editFocalDragStartY;
-    state.editFocalX = _clampEditFocal(state.editFocalDragStartFX - dx / dW * 100, state.editFocalZoom);
-    state.editFocalY = _clampEditFocal(state.editFocalDragStartFY - dy / dH * 100, state.editFocalZoom);
+    state.editFocalX = _clampEditFocal(state.editFocalDragStartFX + dx / cW * 100);
+    state.editFocalY = _clampEditFocal(state.editFocalDragStartFY + dy / cH * 100);
     updateEditFocalDisplay();
   });
   focalWrap?.addEventListener("pointerup", () => { state.editFocalDragging = false; });
@@ -1087,17 +1068,16 @@ function bindModals() {
     const newZoom = Math.round(Math.max(1.0, Math.min(8.0,
       oldZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
     if (newZoom === oldZoom) return;
-    const wrap = byId("adminContentEditFocalWrap");
-    const cW = wrap.offsetWidth;
-    const cH = wrap.offsetHeight;
-    const { dW: oldDW, dH: oldDH } = _editFocalDisplayDims(cW, cH, img, oldZoom);
-    const { dW: newDW, dH: newDH } = _editFocalDisplayDims(cW, cH, img, newZoom);
-    const rect = wrap.getBoundingClientRect();
-    const cursorX = (event.clientX - rect.left) / rect.width * 100;
-    const cursorY = (event.clientY - rect.top) / rect.height * 100;
+    const rect = focalWrap.getBoundingClientRect();
+    const cx = (event.clientX - rect.left) / rect.width * 100;
+    const cy = (event.clientY - rect.top) / rect.height * 100;
+    const imgX = state.editFocalX + (cx - state.editFocalX) / oldZoom;
+    const imgY = state.editFocalY + (cy - state.editFocalY) / oldZoom;
     state.editFocalZoom = newZoom;
-    state.editFocalX = _clampEditFocal(state.editFocalX + (cursorX - 50) * cW * (1 / oldDW - 1 / newDW), newZoom);
-    state.editFocalY = _clampEditFocal(state.editFocalY + (cursorY - 50) * cH * (1 / oldDH - 1 / newDH), newZoom);
+    if (newZoom > 1) {
+      state.editFocalX = _clampEditFocal((imgX * newZoom - cx) / (newZoom - 1));
+      state.editFocalY = _clampEditFocal((imgY * newZoom - cy) / (newZoom - 1));
+    }
     updateEditFocalDisplay();
   }, { passive: false });
 
