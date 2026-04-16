@@ -598,7 +598,7 @@ class GalleryDiscordBot(discord.Client):
         if actor is None:
             await message.reply(
                 "Gallery へ投稿するには、先に Gallery 側アカウントへ Discord を連携してください。\n"
-                "URL: https://felixxsv.net/gallery/\n"
+                "URL: https://gallery.felixxsv.net/\n"
                 "手順: 1. Galleryへログイン 2. アカウント設定でDiscord連携 3. このチャンネルへ戻って再投稿",
                 mention_author=False,
             )
