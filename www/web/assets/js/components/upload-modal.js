@@ -8,7 +8,9 @@ const TITLE_MAX = 100;
 const ACCEPTED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const MODAL_ID = "upload-modal";
 const TAG_BROWSE_MODAL_ID = "tag-browse-modal";
-const DRAFT_KEY = "gallery.upload.draft.v1";
+const DRAFT_KEY = "gallery.upload.draft.v1"; // legacy (migration only)
+const DRAFTS_KEY = "gallery.upload.drafts.v1";
+const MAX_DRAFTS = 10;
 const TAG_QUICK_LIMIT = 10;
 
 function t(app, key, fallback, vars = {}) {
@@ -92,6 +94,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     focalDragStartFY: 50,
     lastSavedDraft: null,
     formDirty: false,
+    draftListOpen: false,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -235,7 +238,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
             <div class="app-modal-footer upload-modal__footer">
               <div class="upload-modal__footer-draft">
                 <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "save_draft", "Save Draft"))}</button>
-                <button id="uploadModalLoadDraftButton" type="button" class="app-button app-button--ghost" hidden>${escapeHtml(t(app, "load_draft", "Load Draft"))}</button>
+                <div class="upload-modal__draft-list-wrap" id="uploadModalDraftListWrap">
+                  <button id="uploadModalLoadDraftButton" type="button" class="app-button app-button--ghost" hidden>${escapeHtml(t(app, "load_draft", "Drafts"))}</button>
+                  <div id="uploadModalDraftList" class="upload-modal__draft-list" hidden></div>
+                </div>
               </div>
               <div class="upload-modal__footer-actions">
                 <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">${escapeHtml(t(app, "submit", "Upload"))}</button>
@@ -285,6 +291,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.submitButton = document.getElementById("uploadModalSubmitButton");
     refs.draftButton = document.getElementById("uploadModalDraftButton");
     refs.loadDraftButton = document.getElementById("uploadModalLoadDraftButton");
+    refs.draftListWrap = document.getElementById("uploadModalDraftListWrap");
+    refs.draftList = document.getElementById("uploadModalDraftList");
 
     attachDatePicker(refs.shotAtDateInput, { getLocale: () => document.documentElement.lang || "en-US" });
 
@@ -695,8 +703,31 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   // ── Draft ─────────────────────────────────────────────────────────────────
 
+  function readDraftList() {
+    try {
+      const raw = localStorage.getItem(DRAFTS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    // Legacy migration from single-draft format
+    try {
+      const legacy = localStorage.getItem(DRAFT_KEY);
+      if (legacy) {
+        const draft = JSON.parse(legacy);
+        if (draft && typeof draft === "object") {
+          const entry = { id: `legacy-${draft.savedAt || Date.now()}`, ...draft };
+          const list = [entry];
+          try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(list)); } catch {}
+          try { localStorage.removeItem(DRAFT_KEY); } catch {}
+          return list;
+        }
+      }
+    } catch {}
+    return [];
+  }
+
   function saveDraft() {
     const draft = {
+      id: `draft-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
       title: refs.titleInput?.value || "",
       alt: refs.altInput?.value || "",
       shotAt: getShotAtValue(),
@@ -707,59 +738,120 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       focalZoom: state.focalZoom,
       savedAt: Date.now(),
     };
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
+    const list = readDraftList();
+    list.unshift(draft);
+    if (list.length > MAX_DRAFTS) list.length = MAX_DRAFTS;
+    try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(list)); } catch {}
     state.lastSavedDraft = { ...draft };
     state.formDirty = false;
     updateDraftLoadButton();
     app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
   }
 
-  function loadDraft() {
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (!raw) return;
-      const draft = JSON.parse(raw);
-      if (refs.titleInput) refs.titleInput.value = draft.title || "";
-      if (refs.altInput) refs.altInput.value = draft.alt || "";
-      if ((refs.shotAtDateInput || refs.shotAtTimeInput) && draft.shotAt) {
-        setShotAtValue(draft.shotAt);
-        state.shotAtDirty = true;
-      }
-      if (typeof draft.focalX === "number") state.focalX = draft.focalX;
-      if (typeof draft.focalY === "number") state.focalY = draft.focalY;
-      if (typeof draft.focalZoom === "number") state.focalZoom = Math.max(1.0, draft.focalZoom);
-      if (Array.isArray(draft.tags)) {
-        state.tagState = draft.tags.filter((t) => typeof t === "string" && t.trim());
-        renderTagChips();
-      }
-      if (refs.visInput) refs.visInput.checked = draft.isPublic !== false;
-      state.lastSavedDraft = {
-        title: draft.title || "",
-        alt: draft.alt || "",
-        shotAt: draft.shotAt || "",
-        tags: Array.isArray(draft.tags) ? [...draft.tags] : [],
-        isPublic: draft.isPublic !== false,
-        focalX: typeof draft.focalX === "number" ? draft.focalX : 50,
-        focalY: typeof draft.focalY === "number" ? draft.focalY : 50,
-        focalZoom: typeof draft.focalZoom === "number" ? Math.max(1.0, draft.focalZoom) : 1.0,
-      };
-      state.formDirty = false;
-      updateTitleCounter();
-      updateVisLabel();
-      updateShotAtBadge();
-    } catch {}
+  function loadDraftItem(entry) {
+    if (!entry) return;
+    if (refs.titleInput) refs.titleInput.value = entry.title || "";
+    if (refs.altInput) refs.altInput.value = entry.alt || "";
+    if ((refs.shotAtDateInput || refs.shotAtTimeInput) && entry.shotAt) {
+      setShotAtValue(entry.shotAt);
+      state.shotAtDirty = true;
+    }
+    if (typeof entry.focalX === "number") state.focalX = entry.focalX;
+    if (typeof entry.focalY === "number") state.focalY = entry.focalY;
+    if (typeof entry.focalZoom === "number") state.focalZoom = Math.max(1.0, entry.focalZoom);
+    if (Array.isArray(entry.tags)) {
+      state.tagState = entry.tags.filter((t) => typeof t === "string" && t.trim());
+      renderTagChips();
+    }
+    if (refs.visInput) refs.visInput.checked = entry.isPublic !== false;
+    state.lastSavedDraft = {
+      title: entry.title || "",
+      alt: entry.alt || "",
+      shotAt: entry.shotAt || "",
+      tags: Array.isArray(entry.tags) ? [...entry.tags] : [],
+      isPublic: entry.isPublic !== false,
+      focalX: typeof entry.focalX === "number" ? entry.focalX : 50,
+      focalY: typeof entry.focalY === "number" ? entry.focalY : 50,
+      focalZoom: typeof entry.focalZoom === "number" ? Math.max(1.0, entry.focalZoom) : 1.0,
+    };
+    state.formDirty = false;
+    updateTitleCounter();
+    updateVisLabel();
+    updateShotAtBadge();
+  }
+
+  function deleteDraftItem(id) {
+    const list = readDraftList().filter((e) => e.id !== id);
+    try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(list)); } catch {}
+    updateDraftLoadButton();
+    renderDraftListPopover();
   }
 
   function clearDraft() {
+    try { localStorage.removeItem(DRAFTS_KEY); } catch {}
     try { localStorage.removeItem(DRAFT_KEY); } catch {}
     updateDraftLoadButton();
   }
 
   function updateDraftLoadButton() {
     if (!refs.loadDraftButton) return;
-    let hasDraft = false;
-    try { hasDraft = Boolean(localStorage.getItem(DRAFT_KEY)); } catch {}
-    refs.loadDraftButton.hidden = !hasDraft;
+    const list = readDraftList();
+    refs.loadDraftButton.hidden = list.length === 0;
+  }
+
+  function formatDraftDate(ts) {
+    if (!ts) return "";
+    try {
+      const d = new Date(ts);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return "";
+    }
+  }
+
+  function renderDraftListPopover() {
+    if (!refs.draftList) return;
+    const list = readDraftList();
+    refs.draftList.innerHTML = "";
+    if (!list.length) {
+      closeDraftList();
+      return;
+    }
+    const header = createElement("div", { className: "upload-modal__draft-list-header" });
+    header.textContent = t(app, "load_draft", "Drafts");
+    refs.draftList.appendChild(header);
+    for (const entry of list) {
+      const item = createElement("div", {
+        className: "upload-modal__draft-item",
+        attributes: { "data-draft-id": entry.id }
+      });
+      item.innerHTML = `
+        <div class="upload-modal__draft-item-info">
+          <div class="upload-modal__draft-item-title">${escapeHtml(entry.title || t(app, "draft_no_title", "(No title)"))}</div>
+          <div class="upload-modal__draft-item-date">${escapeHtml(formatDraftDate(entry.savedAt))}</div>
+        </div>
+        <button type="button" class="upload-modal__draft-item-del" data-draft-del="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t(app, "draft_delete", "Delete draft"))}">×</button>
+      `;
+      refs.draftList.appendChild(item);
+    }
+  }
+
+  function toggleDraftList() {
+    if (!refs.draftList) return;
+    if (!refs.draftList.hidden) {
+      closeDraftList();
+    } else {
+      renderDraftListPopover();
+      refs.draftList.hidden = false;
+      state.draftListOpen = true;
+    }
+  }
+
+  function closeDraftList() {
+    if (!refs.draftList) return;
+    refs.draftList.hidden = true;
+    state.draftListOpen = false;
   }
 
   function hasUnsavedChanges() {
@@ -902,6 +994,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.focalDragging = false;
     state.lastSavedDraft = null;
     state.formDirty = false;
+    closeDraftList();
     removeStripGhost();
     state.stripDragActive = false;
     state.stripDragIndex = -1;
@@ -1190,7 +1283,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     if (refs.visInput) refs.visInput.parentElement?.setAttribute("aria-label", t(app, "visibility_aria", "Visibility"));
     if (refs.draftButton) refs.draftButton.textContent = t(app, "save_draft", "Save Draft");
-    if (refs.loadDraftButton) refs.loadDraftButton.textContent = t(app, "load_draft", "Load Draft");
+    if (refs.loadDraftButton) refs.loadDraftButton.textContent = t(app, "load_draft", "Drafts");
     setSubmitting(state.uploading);
     updateVisLabel();
 
@@ -1599,10 +1692,29 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     // Footer
     refs.draftButton?.addEventListener("click", () => saveDraft());
-    refs.loadDraftButton?.addEventListener("click", () => {
-      loadDraft();
-      app.toast?.info?.(t(app, "draft_loaded", "Draft loaded."));
+    refs.loadDraftButton?.addEventListener("click", () => toggleDraftList());
+    refs.draftList?.addEventListener("click", (event) => {
+      const delBtn = event.target.closest("[data-draft-del]");
+      if (delBtn) {
+        event.stopPropagation();
+        deleteDraftItem(delBtn.dataset.draftDel);
+        return;
+      }
+      const item = event.target.closest("[data-draft-id]");
+      if (item) {
+        const id = item.dataset.draftId;
+        const entry = readDraftList().find((e) => e.id === id);
+        if (entry) {
+          loadDraftItem(entry);
+          closeDraftList();
+          app.toast?.info?.(t(app, "draft_loaded", "Draft loaded."));
+        }
+      }
     });
+    document.addEventListener("pointerdown", (event) => {
+      if (!state.draftListOpen) return;
+      if (!refs.draftListWrap?.contains(event.target)) closeDraftList();
+    }, { capture: true });
     refs.submitButton?.addEventListener("click", () => submit());
   }
 
@@ -1616,7 +1728,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       return;
     }
     state.onUploaded = options.onUploaded || null;
-    loadDraft();
     updateDraftLoadButton();
     app.modal.open(MODAL_ID);
   }
