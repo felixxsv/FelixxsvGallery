@@ -11,6 +11,7 @@ const TAG_BROWSE_MODAL_ID = "tag-browse-modal";
 const DRAFT_KEY = "gallery.upload.draft.v1"; // legacy (migration only)
 const DRAFTS_KEY = "gallery.upload.drafts.v1";
 const MAX_DRAFTS = 10;
+const DRAFT_LIST_MODAL_ID = "draft-list-modal";
 const TAG_QUICK_LIMIT = 10;
 
 function t(app, key, fallback, vars = {}) {
@@ -94,7 +95,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     focalDragStartFY: 50,
     lastSavedDraft: null,
     formDirty: false,
-    draftListOpen: false,
+    draftListMounted: false,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -238,10 +239,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
             <div class="app-modal-footer upload-modal__footer">
               <div class="upload-modal__footer-draft">
                 <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "save_draft", "Save Draft"))}</button>
-                <div class="upload-modal__draft-list-wrap" id="uploadModalDraftListWrap">
-                  <button id="uploadModalLoadDraftButton" type="button" class="app-button app-button--ghost" hidden>${escapeHtml(t(app, "load_draft", "Drafts"))}</button>
-                  <div id="uploadModalDraftList" class="upload-modal__draft-list" hidden></div>
-                </div>
+                <button id="uploadModalLoadDraftButton" type="button" class="app-button app-button--ghost" hidden>${escapeHtml(t(app, "load_draft", "Drafts"))}</button>
               </div>
               <div class="upload-modal__footer-actions">
                 <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">${escapeHtml(t(app, "submit", "Upload"))}</button>
@@ -291,8 +289,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.submitButton = document.getElementById("uploadModalSubmitButton");
     refs.draftButton = document.getElementById("uploadModalDraftButton");
     refs.loadDraftButton = document.getElementById("uploadModalLoadDraftButton");
-    refs.draftListWrap = document.getElementById("uploadModalDraftListWrap");
-    refs.draftList = document.getElementById("uploadModalDraftList");
 
     attachDatePicker(refs.shotAtDateInput, { getLocale: () => document.documentElement.lang || "en-US" });
 
@@ -784,7 +780,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const list = readDraftList().filter((e) => e.id !== id);
     try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(list)); } catch {}
     updateDraftLoadButton();
-    renderDraftListPopover();
+    if (!list.length) {
+      closeDraftListModal();
+    } else {
+      renderDraftListItems();
+    }
   }
 
   function clearDraft() {
@@ -810,48 +810,88 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     }
   }
 
-  function renderDraftListPopover() {
-    if (!refs.draftList) return;
-    const list = readDraftList();
-    refs.draftList.innerHTML = "";
-    if (!list.length) {
-      closeDraftList();
-      return;
+  function ensureDraftListMounted() {
+    if (state.draftListMounted) return;
+    const modalRoot = root();
+    if (!modalRoot) return;
+    if (!modalRoot.querySelector(`[data-modal-id="${DRAFT_LIST_MODAL_ID}"]`)) {
+      const layer = createElement("section", {
+        className: "app-modal-layer",
+        attributes: { "data-modal-layer": true, "data-modal-id": DRAFT_LIST_MODAL_ID, hidden: true },
+        html: `
+          <div class="app-modal-backdrop" data-modal-backdrop="${DRAFT_LIST_MODAL_ID}"></div>
+          <div class="app-modal-dialog app-modal-dialog--draft-list" role="dialog" aria-modal="true" tabindex="-1">
+            <div class="app-modal-header">
+              <h2 class="app-modal-title">${escapeHtml(t(app, "load_draft", "Drafts"))}</h2>
+              <button type="button" class="app-modal-close" id="draftListClose" aria-label="${escapeHtml(t(app, "close", "Close"))}">×</button>
+            </div>
+            <div class="app-modal-body draft-list-modal">
+              <div id="draftListItems" class="draft-list-modal__items"></div>
+            </div>
+          </div>
+        `
+      });
+      modalRoot.appendChild(layer);
     }
-    const header = createElement("div", { className: "upload-modal__draft-list-header" });
-    header.textContent = t(app, "load_draft", "Drafts");
-    refs.draftList.appendChild(header);
+    app.modal?.refresh?.();
+    refs.draftListLayer = modalRoot.querySelector(`[data-modal-id="${DRAFT_LIST_MODAL_ID}"]`);
+    refs.draftListItems = document.getElementById("draftListItems");
+    refs.draftListClose = document.getElementById("draftListClose");
+
+    refs.draftListClose?.addEventListener("click", () => closeDraftListModal());
+    refs.draftListLayer?.querySelector(`[data-modal-backdrop="${DRAFT_LIST_MODAL_ID}"]`)
+      ?.addEventListener("click", () => closeDraftListModal());
+
+    refs.draftListItems?.addEventListener("click", (event) => {
+      const delBtn = event.target.closest("[data-draft-del]");
+      if (delBtn) {
+        event.stopPropagation();
+        deleteDraftItem(delBtn.dataset.draftDel);
+        return;
+      }
+      const item = event.target.closest("[data-draft-id]");
+      if (item) {
+        const entry = readDraftList().find((e) => e.id === item.dataset.draftId);
+        if (entry) {
+          loadDraftItem(entry);
+          closeDraftListModal();
+          app.toast?.info?.(t(app, "draft_loaded", "Draft loaded."));
+        }
+      }
+    });
+
+    state.draftListMounted = true;
+  }
+
+  function openDraftListModal() {
+    ensureDraftListMounted();
+    renderDraftListItems();
+    app.modal?.open?.(DRAFT_LIST_MODAL_ID);
+  }
+
+  function closeDraftListModal() {
+    if (!state.draftListMounted) return;
+    app.modal?.close?.(DRAFT_LIST_MODAL_ID);
+  }
+
+  function renderDraftListItems() {
+    if (!refs.draftListItems) return;
+    const list = readDraftList();
+    refs.draftListItems.innerHTML = "";
     for (const entry of list) {
       const item = createElement("div", {
-        className: "upload-modal__draft-item",
+        className: "draft-list-modal__item",
         attributes: { "data-draft-id": entry.id }
       });
       item.innerHTML = `
-        <div class="upload-modal__draft-item-info">
-          <div class="upload-modal__draft-item-title">${escapeHtml(entry.title || t(app, "draft_no_title", "(No title)"))}</div>
-          <div class="upload-modal__draft-item-date">${escapeHtml(formatDraftDate(entry.savedAt))}</div>
+        <div class="draft-list-modal__item-info">
+          <div class="draft-list-modal__item-title">${escapeHtml(entry.title || t(app, "draft_no_title", "(No title)"))}</div>
+          <div class="draft-list-modal__item-meta">${escapeHtml(formatDraftDate(entry.savedAt))}</div>
         </div>
-        <button type="button" class="upload-modal__draft-item-del" data-draft-del="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t(app, "draft_delete", "Delete draft"))}">×</button>
+        <button type="button" class="draft-list-modal__item-del" data-draft-del="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t(app, "draft_delete", "Delete draft"))}">×</button>
       `;
-      refs.draftList.appendChild(item);
+      refs.draftListItems.appendChild(item);
     }
-  }
-
-  function toggleDraftList() {
-    if (!refs.draftList) return;
-    if (!refs.draftList.hidden) {
-      closeDraftList();
-    } else {
-      renderDraftListPopover();
-      refs.draftList.hidden = false;
-      state.draftListOpen = true;
-    }
-  }
-
-  function closeDraftList() {
-    if (!refs.draftList) return;
-    refs.draftList.hidden = true;
-    state.draftListOpen = false;
   }
 
   function hasUnsavedChanges() {
@@ -994,7 +1034,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.focalDragging = false;
     state.lastSavedDraft = null;
     state.formDirty = false;
-    closeDraftList();
+    closeDraftListModal();
     removeStripGhost();
     state.stripDragActive = false;
     state.stripDragIndex = -1;
@@ -1692,29 +1732,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     // Footer
     refs.draftButton?.addEventListener("click", () => saveDraft());
-    refs.loadDraftButton?.addEventListener("click", () => toggleDraftList());
-    refs.draftList?.addEventListener("click", (event) => {
-      const delBtn = event.target.closest("[data-draft-del]");
-      if (delBtn) {
-        event.stopPropagation();
-        deleteDraftItem(delBtn.dataset.draftDel);
-        return;
-      }
-      const item = event.target.closest("[data-draft-id]");
-      if (item) {
-        const id = item.dataset.draftId;
-        const entry = readDraftList().find((e) => e.id === id);
-        if (entry) {
-          loadDraftItem(entry);
-          closeDraftList();
-          app.toast?.info?.(t(app, "draft_loaded", "Draft loaded."));
-        }
-      }
-    });
-    document.addEventListener("pointerdown", (event) => {
-      if (!state.draftListOpen) return;
-      if (!refs.draftListWrap?.contains(event.target)) closeDraftList();
-    }, { capture: true });
+    refs.loadDraftButton?.addEventListener("click", () => openDraftListModal());
     refs.submitButton?.addEventListener("click", () => submit());
   }
 
