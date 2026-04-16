@@ -992,7 +992,7 @@
 
 .app-modal-dialog--draft-list {
   width: min(420px, calc(100vw - 32px));
-  max-height: min(540px, calc(100dvh - 64px));
+  height: min(540px, calc(100dvh - 64px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
