@@ -8,9 +8,6 @@ const TITLE_MAX = 100;
 const ACCEPTED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const MODAL_ID = "upload-modal";
 const TAG_BROWSE_MODAL_ID = "tag-browse-modal";
-const DRAFT_KEY = "gallery.upload.draft.v1"; // legacy (migration only)
-const DRAFTS_KEY = "gallery.upload.drafts.v1";
-const MAX_DRAFTS = 10;
 const DRAFT_LIST_MODAL_ID = "draft-list-modal";
 const TAG_QUICK_LIMIT = 10;
 
@@ -96,6 +93,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     lastSavedDraft: null,
     formDirty: false,
     draftListMounted: false,
+    draftListCache: null,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -699,35 +697,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   // ── Draft ─────────────────────────────────────────────────────────────────
 
-  function readDraftList() {
-    try {
-      const raw = localStorage.getItem(DRAFTS_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    // Legacy migration from single-draft format
-    try {
-      const legacy = localStorage.getItem(DRAFT_KEY);
-      if (legacy) {
-        const draft = JSON.parse(legacy);
-        if (draft && typeof draft === "object") {
-          const entry = { id: `legacy-${draft.savedAt || Date.now()}`, ...draft };
-          const list = [entry];
-          try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(list)); } catch {}
-          try { localStorage.removeItem(DRAFT_KEY); } catch {}
-          return list;
-        }
-      }
-    } catch {}
-    return [];
-  }
-
   async function captureDraftThumbnail() {
     const first = state.items[0];
     if (!first?.objectUrl) return null;
     try {
       const img = new Image();
       await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = first.objectUrl; });
-      const W = 160, H = 100;
+      const W = 240, H = 150;
       const canvas = document.createElement("canvas");
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d");
@@ -739,82 +715,96 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   }
 
   async function saveDraft() {
-    const draft = {
-      id: `draft-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
-      title: refs.titleInput?.value || "",
-      alt: refs.altInput?.value || "",
-      shotAt: getShotAtValue(),
-      tags: [...state.tagState],
-      isPublic: refs.visInput?.checked ?? true,
-      focalX: state.focalX,
-      focalY: state.focalY,
-      focalZoom: state.focalZoom,
-      thumbnail: await captureDraftThumbnail(),
-      savedAt: Date.now(),
-    };
-    const list = readDraftList();
-    list.unshift(draft);
-    if (list.length > MAX_DRAFTS) list.length = MAX_DRAFTS;
-    try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(list)); } catch {}
-    state.lastSavedDraft = { ...draft };
-    state.formDirty = false;
-    updateDraftLoadButton();
-    app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
+    const thumbDataUrl = await captureDraftThumbnail();
+    const formData = new FormData();
+    formData.append("title", refs.titleInput?.value || "");
+    formData.append("alt", refs.altInput?.value || "");
+    formData.append("tags", state.tagState.join(","));
+    formData.append("is_public", refs.visInput?.checked ? "true" : "false");
+    formData.append("shot_at", getShotAtValue());
+    formData.append("focal_x", String(state.focalX));
+    formData.append("focal_y", String(state.focalY));
+    formData.append("focal_zoom", String(state.focalZoom));
+    if (thumbDataUrl) {
+      try {
+        const blob = await (await fetch(thumbDataUrl)).blob();
+        formData.append("thumbnail", blob, "thumbnail.jpg");
+      } catch {}
+    }
+    try {
+      const res = await fetch(`${app.appBase}/api/drafts`, { method: "POST", credentials: "include", body: formData });
+      if (!res.ok) {
+        app.toast?.error?.(t(app, "draft_saved", "Draft saved.").replace(/。.*/, "") || "Failed to save draft.");
+        return;
+      }
+      state.lastSavedDraft = { title: refs.titleInput?.value || "" };
+      state.formDirty = false;
+      state.draftListCache = null; // invalidate cache
+      if (refs.loadDraftButton) refs.loadDraftButton.hidden = false;
+      app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
+    } catch {
+      app.toast?.error?.("Failed to save draft.");
+    }
   }
 
   function loadDraftItem(entry) {
     if (!entry) return;
     if (refs.titleInput) refs.titleInput.value = entry.title || "";
     if (refs.altInput) refs.altInput.value = entry.alt || "";
-    if ((refs.shotAtDateInput || refs.shotAtTimeInput) && entry.shotAt) {
-      setShotAtValue(entry.shotAt);
+    const shotAt = entry.shot_at || entry.shotAt || "";
+    if ((refs.shotAtDateInput || refs.shotAtTimeInput) && shotAt) {
+      setShotAtValue(shotAt);
       state.shotAtDirty = true;
     }
-    if (typeof entry.focalX === "number") state.focalX = entry.focalX;
-    if (typeof entry.focalY === "number") state.focalY = entry.focalY;
-    if (typeof entry.focalZoom === "number") state.focalZoom = Math.max(1.0, entry.focalZoom);
+    const fX = entry.focal_x ?? entry.focalX;
+    const fY = entry.focal_y ?? entry.focalY;
+    const fZ = entry.focal_zoom ?? entry.focalZoom;
+    if (typeof fX === "number") state.focalX = fX;
+    if (typeof fY === "number") state.focalY = fY;
+    if (typeof fZ === "number") state.focalZoom = Math.max(1.0, fZ);
     if (Array.isArray(entry.tags)) {
       state.tagState = entry.tags.filter((t) => typeof t === "string" && t.trim());
       renderTagChips();
     }
-    if (refs.visInput) refs.visInput.checked = entry.isPublic !== false;
-    state.lastSavedDraft = {
-      title: entry.title || "",
-      alt: entry.alt || "",
-      shotAt: entry.shotAt || "",
-      tags: Array.isArray(entry.tags) ? [...entry.tags] : [],
-      isPublic: entry.isPublic !== false,
-      focalX: typeof entry.focalX === "number" ? entry.focalX : 50,
-      focalY: typeof entry.focalY === "number" ? entry.focalY : 50,
-      focalZoom: typeof entry.focalZoom === "number" ? Math.max(1.0, entry.focalZoom) : 1.0,
-    };
+    const isPublic = entry.is_public ?? entry.isPublic;
+    if (refs.visInput) refs.visInput.checked = isPublic !== false;
+    state.lastSavedDraft = { title: entry.title || "" };
     state.formDirty = false;
     updateTitleCounter();
     updateVisLabel();
     updateShotAtBadge();
+    updateFocalDisplay();
   }
 
-  function deleteDraftItem(id) {
-    const list = readDraftList().filter((e) => e.id !== id);
-    try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(list)); } catch {}
-    updateDraftLoadButton();
-    if (!list.length) {
+  async function deleteDraftItem(id) {
+    try {
+      const res = await fetch(`${app.appBase}/api/drafts/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) return;
+    } catch { return; }
+    if (state.draftListCache) {
+      state.draftListCache = state.draftListCache.filter((e) => String(e.id) !== String(id));
+    }
+    if (!state.draftListCache?.length) {
+      if (refs.loadDraftButton) refs.loadDraftButton.hidden = true;
       closeDraftListModal();
     } else {
       renderDraftListItems();
     }
   }
 
-  function clearDraft() {
-    try { localStorage.removeItem(DRAFTS_KEY); } catch {}
-    try { localStorage.removeItem(DRAFT_KEY); } catch {}
-    updateDraftLoadButton();
-  }
-
   function updateDraftLoadButton() {
     if (!refs.loadDraftButton) return;
-    const list = readDraftList();
-    refs.loadDraftButton.hidden = list.length === 0;
+    refs.loadDraftButton.hidden = !(state.draftListCache?.length > 0);
+  }
+
+  async function fetchDraftsForButton() {
+    try {
+      const res = await fetch(`${app.appBase}/api/drafts`, { credentials: "include" });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      state.draftListCache = Array.isArray(data?.items) ? data.items : [];
+      updateDraftLoadButton();
+    } catch {}
   }
 
   function formatDraftDate(ts) {
@@ -823,9 +813,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const d = new Date(ts);
       const pad = (n) => String(n).padStart(2, "0");
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    } catch {
-      return "";
-    }
+    } catch { return ""; }
   }
 
   function ensureDraftListMounted() {
@@ -864,12 +852,12 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const delBtn = event.target.closest("[data-draft-del]");
       if (delBtn) {
         event.stopPropagation();
-        deleteDraftItem(delBtn.dataset.draftDel);
+        deleteDraftItem(Number(delBtn.dataset.draftDel));
         return;
       }
       const item = event.target.closest("[data-draft-id]");
       if (item) {
-        const entry = readDraftList().find((e) => e.id === item.dataset.draftId);
+        const entry = (state.draftListCache || []).find((e) => String(e.id) === item.dataset.draftId);
         if (entry) {
           loadDraftItem(entry);
           closeDraftListModal();
@@ -881,8 +869,17 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.draftListMounted = true;
   }
 
-  function openDraftListModal() {
+  async function openDraftListModal() {
     ensureDraftListMounted();
+    if (!state.draftListCache) {
+      try {
+        const res = await fetch(`${app.appBase}/api/drafts`, { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          state.draftListCache = Array.isArray(data?.items) ? data.items : [];
+        }
+      } catch {}
+    }
     renderDraftListItems();
     app.modal?.open?.(DRAFT_LIST_MODAL_ID);
   }
@@ -894,24 +891,25 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function renderDraftListItems() {
     if (!refs.draftListItems) return;
-    const list = readDraftList();
+    const list = state.draftListCache || [];
     refs.draftListItems.innerHTML = "";
     for (const entry of list) {
+      const thumbSrc = entry.thumbnail_path ? `${app.appBase}/storage/${entry.thumbnail_path}` : null;
       const item = createElement("div", {
         className: "draft-list-modal__item",
-        attributes: { "data-draft-id": entry.id }
+        attributes: { "data-draft-id": String(entry.id) }
       });
       item.innerHTML = `
         <div class="draft-list-modal__item-thumb">
-          ${entry.thumbnail
-            ? `<img src="${escapeHtml(entry.thumbnail)}" alt="" class="draft-list-modal__item-thumb-img">`
+          ${thumbSrc
+            ? `<img src="${escapeHtml(thumbSrc)}" alt="" class="draft-list-modal__item-thumb-img">`
             : `<div class="draft-list-modal__item-thumb-empty"></div>`}
         </div>
         <div class="draft-list-modal__item-info">
           <div class="draft-list-modal__item-title">${escapeHtml(entry.title || t(app, "draft_no_title", "(No title)"))}</div>
           ${entry.alt ? `<div class="draft-list-modal__item-desc">${escapeHtml(entry.alt)}</div>` : ""}
         </div>
-        <button type="button" class="draft-list-modal__item-del" data-draft-del="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t(app, "draft_delete", "Delete draft"))}">×</button>
+        <button type="button" class="draft-list-modal__item-del" data-draft-del="${escapeHtml(String(entry.id))}" aria-label="${escapeHtml(t(app, "draft_delete", "Delete draft"))}">×</button>
       `;
       refs.draftListItems.appendChild(item);
     }
@@ -1057,6 +1055,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.focalDragging = false;
     state.lastSavedDraft = null;
     state.formDirty = false;
+    state.draftListCache = null;
     closeDraftListModal();
     removeStripGhost();
     state.stripDragActive = false;
@@ -1459,7 +1458,6 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         : t(app, "success_default", "Upload completed.");
       setInlineMessage(successMessage, "success");
       app.toast?.success?.(resolveLocalizedMessage(successMessage, t(app, "success_default", "Upload completed.")));
-      clearDraft();
       const uploadedCallback = state.onUploaded;
       close();
       if (typeof uploadedCallback === "function") {
@@ -1769,7 +1767,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       return;
     }
     state.onUploaded = options.onUploaded || null;
-    updateDraftLoadButton();
+    fetchDraftsForButton();
     app.modal.open(MODAL_ID);
   }
 

@@ -9,6 +9,7 @@ import re
 import shutil
 import uuid
 import hashlib
+import io
 import tempfile
 import base64
 import hmac
@@ -1519,6 +1520,163 @@ def upload_images(
         )
     except GalleryUploadError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
+# ── Drafts ────────────────────────────────────────────────────────────────────
+
+_DRAFT_MAX_PER_USER = 30
+
+
+@app.get("/api/drafts")
+def list_drafts(req: Request):
+    u = _get_current_user(req)
+    if not u:
+        raise HTTPException(status_code=401, detail="login required")
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, title, alt, tags, is_public, shot_at, "
+                "focal_x, focal_y, focal_zoom, thumbnail_path, created_at "
+                "FROM drafts WHERE user_id=%s ORDER BY created_at DESC LIMIT %s",
+                [u["id"], _DRAFT_MAX_PER_USER],
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    items = []
+    for r in rows:
+        tags_raw = r.get("tags") or ""
+        shot_at_val = r.get("shot_at")
+        items.append({
+            "id": int(r["id"]),
+            "title": r.get("title") or "",
+            "alt": r.get("alt") or "",
+            "tags": [t.strip() for t in tags_raw.split(",") if t.strip()],
+            "is_public": bool(r.get("is_public", True)),
+            "shot_at": shot_at_val.strftime("%Y-%m-%dT%H:%M") if shot_at_val else "",
+            "focal_x": float(r.get("focal_x") or 50.0),
+            "focal_y": float(r.get("focal_y") or 50.0),
+            "focal_zoom": float(r.get("focal_zoom") or 1.0),
+            "thumbnail_path": r.get("thumbnail_path"),
+            "created_at": r["created_at"].isoformat() if r.get("created_at") else None,
+        })
+    return {"ok": True, "items": items}
+
+
+@app.post("/api/drafts")
+def save_draft(
+    req: Request,
+    title: str = Form(""),
+    alt: str = Form(""),
+    tags: str = Form(""),
+    is_public: str = Form("true"),
+    shot_at: str = Form(""),
+    focal_x: float = Form(50.0),
+    focal_y: float = Form(50.0),
+    focal_zoom: float = Form(1.0),
+    thumbnail: UploadFile | None = File(None),
+):
+    u = _get_current_user(req)
+    if not u:
+        raise HTTPException(status_code=401, detail="login required")
+
+    shot_at_dt: datetime | None = None
+    if shot_at and shot_at.strip():
+        try:
+            shot_at_dt = datetime.fromisoformat(shot_at.strip())
+        except ValueError:
+            pass
+
+    is_public_bool = str(is_public or "true").strip().lower() in ("1", "true", "yes", "on")
+
+    conn = db_conn(CONF)
+    try:
+        # Evict oldest if at limit
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) AS cnt FROM drafts WHERE user_id=%s", [u["id"]])
+            count = int((cur.fetchone() or {}).get("cnt", 0))
+        if count >= _DRAFT_MAX_PER_USER:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM drafts WHERE user_id=%s ORDER BY created_at ASC LIMIT %s",
+                    [u["id"], count - _DRAFT_MAX_PER_USER + 1],
+                )
+            conn.commit()
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO drafts "
+                "(user_id, title, alt, tags, is_public, shot_at, focal_x, focal_y, focal_zoom) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                [
+                    u["id"],
+                    (title or "")[:255],
+                    alt or None,
+                    (tags or "")[:1024] or None,
+                    is_public_bool,
+                    shot_at_dt,
+                    focal_x,
+                    focal_y,
+                    focal_zoom,
+                ],
+            )
+            draft_id = cur.lastrowid
+        conn.commit()
+
+        # Save thumbnail
+        thumbnail_path: str | None = None
+        if thumbnail and thumbnail.filename:
+            try:
+                content = thumbnail.file.read()
+                img = Image.open(io.BytesIO(content)).convert("RGB")
+                W, H = 240, 150
+                scale = max(W / img.width, H / img.height)
+                nw, nh = int(img.width * scale), int(img.height * scale)
+                img = img.resize((nw, nh), Image.Resampling.LANCZOS)
+                img = img.crop(((nw - W) // 2, (nh - H) // 2, (nw - W) // 2 + W, (nh - H) // 2 + H))
+                dest_dir = STORAGE_ROOT / "drafts" / str(u["id"])
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                img.save(str(dest_dir / f"{draft_id}.webp"), "webp", quality=82, method=6)
+                thumbnail_path = f"drafts/{u['id']}/{draft_id}.webp"
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE drafts SET thumbnail_path=%s WHERE id=%s", [thumbnail_path, draft_id])
+                conn.commit()
+            except Exception:
+                logger.exception("Failed to save draft thumbnail")
+
+        return {"ok": True, "id": draft_id, "thumbnail_path": thumbnail_path}
+    finally:
+        conn.close()
+
+
+@app.delete("/api/drafts/{draft_id}")
+def delete_draft(draft_id: int, req: Request):
+    u = _get_current_user(req)
+    if not u:
+        raise HTTPException(status_code=401, detail="login required")
+    conn = db_conn(CONF)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, thumbnail_path FROM drafts WHERE id=%s AND user_id=%s",
+                [draft_id, u["id"]],
+            )
+            row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="draft not found")
+        if row.get("thumbnail_path"):
+            try:
+                (STORAGE_ROOT / str(row["thumbnail_path"])).unlink(missing_ok=True)
+            except Exception:
+                pass
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM drafts WHERE id=%s AND user_id=%s", [draft_id, u["id"]])
+        conn.commit()
+        return {"ok": True}
+    finally:
+        conn.close()
 
 
 @app.get("/media/original/{image_id}")
