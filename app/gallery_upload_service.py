@@ -202,6 +202,7 @@ def perform_gallery_upload(
     shot_at: str = "",
     focal_x: float = 50.0,
     focal_y: float = 50.0,
+    focal_zoom: float = 1.0,
     files: list[GalleryUploadPreparedFile],
     actor: GalleryActor | None = None,
     upload_source: str = "web",
@@ -226,6 +227,7 @@ def perform_gallery_upload(
 
     focal_x_val = max(0.0, min(100.0, float(focal_x if focal_x is not None else 50.0)))
     focal_y_val = max(0.0, min(100.0, float(focal_y if focal_y is not None else 50.0)))
+    focal_zoom_val = max(1.0, min(10.0, float(focal_zoom if focal_zoom is not None else 1.0)))
     tag_list = [x for x in parse_csv_strs(tags) if x]
     shot_at_override = parse_shot_at_input(shot_at)
 
@@ -371,6 +373,9 @@ def perform_gallery_upload(
                     if "focal_y" in img_cols:
                         img_cols_list.append("focal_y")
                         img_vals.append(focal_y_val)
+                    if "focal_zoom" in img_cols:
+                        img_cols_list.append("focal_zoom")
+                        img_vals.append(focal_zoom_val)
                     if "access_token" in img_cols:
                         img_cols_list.append("access_token")
                         img_vals.append(secrets.token_hex(8))

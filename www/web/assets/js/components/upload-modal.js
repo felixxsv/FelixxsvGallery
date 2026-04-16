@@ -84,7 +84,12 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     tagBrowseQuery: "",
     focalX: 50,
     focalY: 50,
+    focalZoom: 1.0,
     focalDragging: false,
+    focalDragStartX: 0,
+    focalDragStartY: 0,
+    focalDragStartFX: 50,
+    focalDragStartFY: 50,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -370,37 +375,56 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   // ── Focal point ───────────────────────────────────────────────────────────
 
+  function _focalDisplayDims(cW, cH, img, zoom) {
+    const natW = (img && img.naturalWidth > 0) ? img.naturalWidth : cW;
+    const natH = (img && img.naturalHeight > 0) ? img.naturalHeight : cH;
+    const cr = cW / cH, ir = natW / natH;
+    let coverW, coverH;
+    if (ir >= cr) { coverH = cH; coverW = cH * ir; }
+    else { coverW = cW; coverH = cW / ir; }
+    return { dW: coverW * zoom, dH: coverH * zoom };
+  }
+
+  function _applyFocalTransform(img, wrap, fX, fY, zoom) {
+    if (!img || !wrap) return;
+    const cW = wrap.offsetWidth, cH = wrap.offsetHeight;
+    if (!cW || !cH) return;
+    const { dW, dH } = _focalDisplayDims(cW, cH, img, zoom);
+    img.style.position = "absolute";
+    img.style.objectFit = "none";
+    img.style.width = dW + "px";
+    img.style.height = dH + "px";
+    img.style.left = (cW / 2 - dW * fX / 100) + "px";
+    img.style.top = (cH / 2 - dH * fY / 100) + "px";
+  }
+
+  function _clampFocal(v, zoom) {
+    const mn = 50 / zoom, mx = 100 - mn;
+    return Math.round(Math.max(mn, Math.min(mx, v)) * 10) / 10;
+  }
+
   function updateFocalDisplay() {
     const first = state.items[0];
     const hasImage = Boolean(first);
 
-    // サムネイル画像に focal position を反映
     if (refs.thumbnailImage) {
-      refs.thumbnailImage.style.objectPosition = hasImage
-        ? `${state.focalX}% ${state.focalY}%`
-        : "";
+      if (hasImage) {
+        _applyFocalTransform(refs.thumbnailImage, refs.thumbnailWrap, state.focalX, state.focalY, state.focalZoom);
+      } else {
+        refs.thumbnailImage.style.cssText = "";
+      }
     }
-    // クロスヘア表示
+    // クロスヘアは常にコンテナ中央（焦点が中心に固定されるため）
     if (refs.focalCrosshair) {
       refs.focalCrosshair.hidden = !hasImage;
       if (hasImage) {
-        refs.focalCrosshair.style.left = `${state.focalX}%`;
-        refs.focalCrosshair.style.top = `${state.focalY}%`;
+        refs.focalCrosshair.style.left = "50%";
+        refs.focalCrosshair.style.top = "50%";
       }
     }
-    // ドラッグカーソル切り替え
     if (refs.thumbnailWrap) {
       refs.thumbnailWrap.classList.toggle("is-focal-active", hasImage);
     }
-  }
-
-  function focalPointerToPercent(event) {
-    const rect = refs.thumbnailWrap.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * 100;
-    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) * 100;
-    state.focalX = Math.round(x * 10) / 10;
-    state.focalY = Math.round(y * 10) / 10;
-    updateFocalDisplay();
   }
 
   // ── Tag pool ──────────────────────────────────────────────────────────────
@@ -690,6 +714,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       isPublic: refs.visInput?.checked ?? true,
       focalX: state.focalX,
       focalY: state.focalY,
+      focalZoom: state.focalZoom,
       savedAt: Date.now(),
     };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
@@ -709,6 +734,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       }
       if (typeof draft.focalX === "number") state.focalX = draft.focalX;
       if (typeof draft.focalY === "number") state.focalY = draft.focalY;
+      if (typeof draft.focalZoom === "number") state.focalZoom = Math.max(1.0, draft.focalZoom);
       if (Array.isArray(draft.tags)) {
         state.tagState = draft.tags.filter((t) => typeof t === "string" && t.trim());
         renderTagChips();
@@ -733,7 +759,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       state.tagState.length > 0 ||
       (refs.visInput?.checked ?? true) === false ||
       state.focalX !== 50 ||
-      state.focalY !== 50
+      state.focalY !== 50 ||
+      state.focalZoom !== 1.0
     );
   }
 
@@ -855,6 +882,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.tagSugOpen = false;
     state.focalX = 50;
     state.focalY = 50;
+    state.focalZoom = 1.0;
     state.focalDragging = false;
     removeStripGhost();
     state.stripDragActive = false;
@@ -1223,6 +1251,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (shotAt) formData.append("shot_at", shotAt);
     formData.append("focal_x", String(state.focalX));
     formData.append("focal_y", String(state.focalY));
+    formData.append("focal_zoom", String(state.focalZoom));
     for (const item of state.items) {
       formData.append("files", item.file, item.file.name);
     }
@@ -1410,19 +1439,39 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       refs.strip.scrollBy({ left: 120, behavior: "smooth" });
     });
 
-    // Focal: drag to set position (directly on thumbnail wrap)
+    // Focal: drag to pan + wheel to zoom
     refs.thumbnailWrap?.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !state.items.length) return;
       state.focalDragging = true;
+      state.focalDragStartX = event.clientX;
+      state.focalDragStartY = event.clientY;
+      state.focalDragStartFX = state.focalX;
+      state.focalDragStartFY = state.focalY;
       refs.thumbnailWrap.setPointerCapture(event.pointerId);
-      focalPointerToPercent(event);
+      event.preventDefault();
     });
     refs.thumbnailWrap?.addEventListener("pointermove", (event) => {
       if (!state.focalDragging) return;
-      focalPointerToPercent(event);
+      const cW = refs.thumbnailWrap.offsetWidth, cH = refs.thumbnailWrap.offsetHeight;
+      const { dW, dH } = _focalDisplayDims(cW, cH, refs.thumbnailImage, state.focalZoom);
+      const dx = event.clientX - state.focalDragStartX;
+      const dy = event.clientY - state.focalDragStartY;
+      state.focalX = _clampFocal(state.focalDragStartFX - dx / dW * 100, state.focalZoom);
+      state.focalY = _clampFocal(state.focalDragStartFY - dy / dH * 100, state.focalZoom);
+      updateFocalDisplay();
     });
     refs.thumbnailWrap?.addEventListener("pointerup", () => { state.focalDragging = false; });
     refs.thumbnailWrap?.addEventListener("pointercancel", () => { state.focalDragging = false; });
+    refs.thumbnailWrap?.addEventListener("wheel", (event) => {
+      if (!state.items.length) return;
+      event.preventDefault();
+      const step = 0.15;
+      state.focalZoom = Math.round(Math.max(1.0, Math.min(8.0,
+        state.focalZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
+      state.focalX = _clampFocal(state.focalX, state.focalZoom);
+      state.focalY = _clampFocal(state.focalY, state.focalZoom);
+      updateFocalDisplay();
+    }, { passive: false });
 
     // Title counter
     refs.titleInput?.addEventListener("input", () => {

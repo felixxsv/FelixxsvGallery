@@ -1025,6 +1025,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   aspect-ratio: var(--home-card-media-ratio);
   background: var(--home-card-surface);
   cursor: default;
+  overflow: hidden;
 }
 
 .home-gallery-grid[data-grid-cols="1"] .home-gallery-card__media {

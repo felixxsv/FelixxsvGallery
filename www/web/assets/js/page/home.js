@@ -1469,7 +1469,17 @@ export function initHomePage(app) {
       link.dataset.action = "open-image";
       imageNode.src = imageUrl;
       imageNode.alt = textOrDash(image.alt || image.title || "");
-      imageNode.style.objectPosition = `${image.focal_x ?? 50}% ${image.focal_y ?? 50}%`;
+      const _fX = image.focal_x ?? 50;
+      const _fY = image.focal_y ?? 50;
+      const _fZ = image.focal_zoom ?? 1.0;
+      imageNode.style.objectPosition = `${_fX}% ${_fY}%`;
+      if (_fZ !== 1.0) {
+        imageNode.style.transform = `scale(${_fZ})`;
+        imageNode.style.transformOrigin = `${_fX}% ${_fY}%`;
+      } else {
+        imageNode.style.transform = "";
+        imageNode.style.transformOrigin = "";
+      }
       imageNode.draggable = false;
       imageNode.hidden = false;
       emptyNode.hidden = true;

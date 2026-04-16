@@ -661,6 +661,7 @@ def _check_column_exists(table: str, column: str) -> bool:
 _HAS_IMAGES_OWNER_USER_ID: bool = _check_column_exists("images", "owner_user_id")
 _HAS_IMAGES_ACCESS_TOKEN: bool = _check_column_exists("images", "access_token")
 _HAS_USERS_HIDDEN_FROM_SEARCH: bool = _check_column_exists("users", "is_hidden_from_search")
+_HAS_IMAGES_FOCAL_ZOOM: bool = _check_column_exists("images", "focal_zoom")
 
 
 @app.get("/api/health")
@@ -1018,6 +1019,7 @@ def list_images(
     status_join = "LEFT JOIN admin_content_states acs ON acs.image_id=i.id"
     visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
     access_token_select = ", i.access_token" if _HAS_IMAGES_ACCESS_TOKEN else ", NULL AS access_token"
+    focal_zoom_select = ", COALESCE(i.focal_zoom, 1.0) AS focal_zoom" if _HAS_IMAGES_FOCAL_ZOOM else ", 1.0 AS focal_zoom"
     if _HAS_IMAGES_OWNER_USER_ID:
         user_select = """,
   i.owner_user_id AS owner_user_id,
@@ -1069,7 +1071,7 @@ SELECT
   COALESCE(st.view_count,0) AS view_count,
   i.like_count,
   COALESCE(i.is_public, 1) AS is_public,
-  {viewer_liked_sql}{access_token_select}{user_select}
+  {viewer_liked_sql}{access_token_select}{focal_zoom_select}{user_select}
 FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
@@ -1127,6 +1129,7 @@ def get_image(image_id: int, req: Request):
         viewer_liked_params.append(viewer_user_id)
 
     access_token_select = ", i.access_token" if _HAS_IMAGES_ACCESS_TOKEN else ", NULL AS access_token"
+    _fz_sel = ", COALESCE(i.focal_zoom, 1.0) AS focal_zoom" if _HAS_IMAGES_FOCAL_ZOOM else ", 1.0 AS focal_zoom"
     conn = db_conn(CONF)
     try:
         _ensure_admin_content_states_table(conn)
@@ -1154,7 +1157,7 @@ SELECT
   COALESCE(st.x_like_count,0) AS x_like_count,
   COALESCE(i.is_public, 1) AS is_public,
   COALESCE(acs.moderation_status, 'normal') AS moderation_status,
-  {viewer_liked_sql}{detail_user_select}{owner_select}{access_token_select}
+  {viewer_liked_sql}{detail_user_select}{owner_select}{access_token_select}{_fz_sel}
 FROM images i
 LEFT JOIN image_stats st ON st.image_id=i.id
 LEFT JOIN admin_content_states acs ON acs.image_id=i.id
@@ -1481,6 +1484,7 @@ def upload_images(
     shot_at: str = Form(""),
     focal_x: float = Form(50.0),
     focal_y: float = Form(50.0),
+    focal_zoom: float = Form(1.0),
     files: list[UploadFile] = File(...),
 ):
     u = _get_current_user(req)
@@ -1508,6 +1512,7 @@ def upload_images(
             shot_at=shot_at,
             focal_x=focal_x,
             focal_y=focal_y,
+            focal_zoom=focal_zoom,
             files=prepared_files,
             actor=actor,
             upload_source="web",
@@ -1986,6 +1991,7 @@ FROM (
     COALESCE(i.is_public, 1) AS is_public,
     COALESCE(i.focal_x, 50) AS focal_x,
     COALESCE(i.focal_y, 50) AS focal_y,
+    {'COALESCE(i.focal_zoom, 1.0)' if _HAS_IMAGES_FOCAL_ZOOM else '1.0'} AS focal_zoom,
     {at_col} AS access_token,
     {thumb_viewer_sql}{content_user_select},
     COUNT(*) OVER (PARTITION BY {content_key_expr}) AS image_count,
@@ -2053,6 +2059,7 @@ WHERE picked.rn=1
                 "visibility": "public" if bool(thumb.get("is_public")) else "private",
                 "focal_x": float(thumb.get("focal_x") or 50),
                 "focal_y": float(thumb.get("focal_y") or 50),
+                "focal_zoom": float(thumb.get("focal_zoom") if thumb.get("focal_zoom") is not None else 1.0),
                 "owner_user_id": owner_user_id,
                 "uploader_user_key": thumb.get("uploader_user_key"),
                 "uploader_display_name": thumb.get("uploader_display_name"),

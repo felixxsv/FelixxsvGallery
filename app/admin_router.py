@@ -496,7 +496,11 @@ def _load_latest_image(conn) -> dict | None:
         uploader_key = "owner_user_id"
 
     public_expr = "i.is_public" if "is_public" in image_cols else "1"
-    focal_select = ", COALESCE(i.focal_x, 50) AS focal_x, COALESCE(i.focal_y, 50) AS focal_y" if "focal_x" in image_cols else ", 50 AS focal_x, 50 AS focal_y"
+    if "focal_x" in image_cols:
+        _fz_sql = "COALESCE(i.focal_zoom, 1.0)" if "focal_zoom" in image_cols else "1.0"
+        focal_select = f", COALESCE(i.focal_x, 50) AS focal_x, COALESCE(i.focal_y, 50) AS focal_y, {_fz_sql} AS focal_zoom"
+    else:
+        focal_select = ", 50 AS focal_x, 50 AS focal_y, 1.0 AS focal_zoom"
     access_token_select = ", i.access_token" if "access_token" in image_cols else ", NULL AS access_token"
     user_join = f"LEFT JOIN users u ON u.id=i.{uploader_key}" if uploader_key else ""
     user_avatar_col = _users_avatar_column(conn)
@@ -558,6 +562,7 @@ LIMIT 1
         "is_public": bool(row.get("is_public")),
         "focal_x": float(row.get("focal_x") if row.get("focal_x") is not None else 50),
         "focal_y": float(row.get("focal_y") if row.get("focal_y") is not None else 50),
+        "focal_zoom": float(row.get("focal_zoom") if row.get("focal_zoom") is not None else 1.0),
         "user": {
             "display_name": row.get("user_display_name"),
             "user_key": row.get("user_user_key"),
@@ -2422,6 +2427,7 @@ def _build_content_list_item(row: dict) -> dict:
         "upload_source": str(row.get("upload_source") or "web"),
         "focal_x": float(row.get("focal_x") if row.get("focal_x") is not None else 50),
         "focal_y": float(row.get("focal_y") if row.get("focal_y") is not None else 50),
+        "focal_zoom": float(row.get("focal_zoom") if row.get("focal_zoom") is not None else 1.0),
         "access_token": row.get("access_token") or None,
         "uploader": {
             "user_id": row.get("uploader_user_id") if row.get("uploader_user_id") is not None else nested_uploader.get("user_id"),
@@ -2868,7 +2874,12 @@ LEFT JOIN gallery_contents gc ON gc.id=gci.content_id
         uploader_select = ", ".join(parts)
 
     visibility_select = f"COALESCE(i.{visibility_col}, 1) AS is_public" if visibility_col else "1 AS is_public"
-    focal_select = "i.focal_x, i.focal_y" if "focal_x" in _images_columns(conn) else "50 AS focal_x, 50 AS focal_y"
+    _img_cols_focal = _images_columns(conn)
+    if "focal_x" in _img_cols_focal:
+        _fz_sql2 = "COALESCE(i.focal_zoom, 1.0)" if "focal_zoom" in _img_cols_focal else "1.0"
+        focal_select = f"i.focal_x, i.focal_y, {_fz_sql2} AS focal_zoom"
+    else:
+        focal_select = "50 AS focal_x, 50 AS focal_y, 1.0 AS focal_zoom"
     token_col = "i.access_token" if "access_token" in _images_columns(conn) else "NULL"
     access_token_select = f"{token_col} AS access_token"
 
@@ -2924,6 +2935,7 @@ LIMIT 1
         "upload_source": str(row.get("upload_source") or "web"),
         "focal_x": float(row.get("focal_x") if row.get("focal_x") is not None else 50),
         "focal_y": float(row.get("focal_y") if row.get("focal_y") is not None else 50),
+        "focal_zoom": float(row.get("focal_zoom") if row.get("focal_zoom") is not None else 1.0),
         "image_width": row.get("image_width"),
         "image_height": row.get("image_height"),
         "file_size_bytes": file_meta.get("file_size_bytes"),
@@ -3005,8 +3017,10 @@ def _update_content_metadata(conn, image_id: int, actor_user_id: int | None, pay
 
     focal_x_raw = data.get("focal_x")
     focal_y_raw = data.get("focal_y")
+    focal_zoom_raw = data.get("focal_zoom")
     focal_x = max(0.0, min(100.0, float(focal_x_raw))) if focal_x_raw is not None else None
     focal_y = max(0.0, min(100.0, float(focal_y_raw))) if focal_y_raw is not None else None
+    focal_zoom = max(1.0, min(10.0, float(focal_zoom_raw))) if focal_zoom_raw is not None else None
 
     image_cols = _images_columns(conn)
     update_cols = ["title=%s", "alt=%s", "shot_at=%s", "created_at=%s"]
@@ -3017,6 +3031,9 @@ def _update_content_metadata(conn, image_id: int, actor_user_id: int | None, pay
     if focal_y is not None and "focal_y" in image_cols:
         update_cols.append("focal_y=%s")
         params.append(focal_y)
+    if focal_zoom is not None and "focal_zoom" in image_cols:
+        update_cols.append("focal_zoom=%s")
+        params.append(focal_zoom)
     if "updated_at" in image_cols:
         update_cols.append("updated_at=CURRENT_TIMESTAMP(6)")
     params.append(image_id)

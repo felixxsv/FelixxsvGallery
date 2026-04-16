@@ -49,33 +49,57 @@ function formatUploadSource(source) {
   return labels[source] || escapeHtml(source || "web");
 }
 
+function _editFocalDisplayDims(cW, cH, img, zoom) {
+  const natW = (img && img.naturalWidth > 0) ? img.naturalWidth : cW;
+  const natH = (img && img.naturalHeight > 0) ? img.naturalHeight : cH;
+  const cr = cW / cH, ir = natW / natH;
+  let coverW, coverH;
+  if (ir >= cr) { coverH = cH; coverW = cH * ir; }
+  else { coverW = cW; coverH = cW / ir; }
+  return { dW: coverW * zoom, dH: coverH * zoom };
+}
+
+function _applyEditFocalTransform(img, wrap, fX, fY, zoom) {
+  if (!img || !wrap) return;
+  const cW = wrap.offsetWidth, cH = wrap.offsetHeight;
+  if (!cW || !cH) return;
+  const { dW, dH } = _editFocalDisplayDims(cW, cH, img, zoom);
+  img.style.position = "absolute";
+  img.style.objectFit = "none";
+  img.style.width = dW + "px";
+  img.style.height = dH + "px";
+  img.style.left = (cW / 2 - dW * fX / 100) + "px";
+  img.style.top = (cH / 2 - dH * fY / 100) + "px";
+}
+
+function _clampEditFocal(v, zoom) {
+  const mn = 50 / zoom, mx = 100 - mn;
+  return Math.round(Math.max(mn, Math.min(mx, v)) * 10) / 10;
+}
+
 function updateEditFocalDisplay() {
   const wrap = byId("adminContentEditFocalWrap");
   const img = byId("adminContentEditFocalImage");
   const crosshair = byId("adminContentEditFocalCrosshair");
   const empty = byId("adminContentEditFocalEmpty");
   const hasImage = img && !img.hidden;
-  if (img) img.style.objectPosition = `${state.editFocalX}% ${state.editFocalY}%`;
+  if (img) {
+    if (hasImage) {
+      _applyEditFocalTransform(img, wrap, state.editFocalX, state.editFocalY, state.editFocalZoom);
+    } else {
+      img.style.cssText = "";
+    }
+  }
+  // クロスヘアは常にコンテナ中央（焦点が中心に固定されるため）
   if (crosshair) {
     crosshair.hidden = !hasImage;
     if (hasImage) {
-      crosshair.style.left = `${state.editFocalX}%`;
-      crosshair.style.top = `${state.editFocalY}%`;
+      crosshair.style.left = "50%";
+      crosshair.style.top = "50%";
     }
   }
   if (empty) empty.hidden = Boolean(hasImage);
   if (wrap) wrap.style.cursor = hasImage ? "crosshair" : "default";
-}
-
-function editFocalPointerToPercent(event) {
-  const wrap = byId("adminContentEditFocalWrap");
-  if (!wrap) return;
-  const rect = wrap.getBoundingClientRect();
-  const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * 100;
-  const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) * 100;
-  state.editFocalX = Math.round(x * 10) / 10;
-  state.editFocalY = Math.round(y * 10) / 10;
-  updateEditFocalDisplay();
 }
 
 function buildImageModalPayload(item) {
@@ -128,7 +152,12 @@ const state = {
   editColorIds: [],
   editFocalX: 50,
   editFocalY: 50,
+  editFocalZoom: 1.0,
   editFocalDragging: false,
+  editFocalDragStartX: 0,
+  editFocalDragStartY: 0,
+  editFocalDragStartFX: 50,
+  editFocalDragStartFY: 50,
   uploadModalController: null
 };
 
@@ -532,10 +561,12 @@ function openEditModal() {
     : [];
   state.editFocalX = typeof item.focal_x === "number" ? item.focal_x : 50;
   state.editFocalY = typeof item.focal_y === "number" ? item.focal_y : 50;
+  state.editFocalZoom = typeof item.focal_zoom === "number" ? Math.max(1.0, item.focal_zoom) : 1.0;
   state.editFocalDragging = false;
   const focalImg = byId("adminContentEditFocalImage");
   if (focalImg) {
     if (item.preview_url) {
+      focalImg.onload = () => updateEditFocalDisplay();
       focalImg.src = item.preview_url;
       focalImg.hidden = false;
     } else {
@@ -590,6 +621,7 @@ async function submitEdit() {
       color_tags: state.editColorIds,
       focal_x: state.editFocalX,
       focal_y: state.editFocalY,
+      focal_zoom: state.editFocalZoom,
     });
     const content = payload.data?.content;
     if (content) {
@@ -1021,15 +1053,37 @@ function bindModals() {
     const img = byId("adminContentEditFocalImage");
     if (event.button !== 0 || !img || img.hidden) return;
     state.editFocalDragging = true;
+    state.editFocalDragStartX = event.clientX;
+    state.editFocalDragStartY = event.clientY;
+    state.editFocalDragStartFX = state.editFocalX;
+    state.editFocalDragStartFY = state.editFocalY;
     focalWrap.setPointerCapture(event.pointerId);
-    editFocalPointerToPercent(event);
+    event.preventDefault();
   });
   focalWrap?.addEventListener("pointermove", (event) => {
     if (!state.editFocalDragging) return;
-    editFocalPointerToPercent(event);
+    const img = byId("adminContentEditFocalImage");
+    const cW = focalWrap.offsetWidth, cH = focalWrap.offsetHeight;
+    const { dW, dH } = _editFocalDisplayDims(cW, cH, img, state.editFocalZoom);
+    const dx = event.clientX - state.editFocalDragStartX;
+    const dy = event.clientY - state.editFocalDragStartY;
+    state.editFocalX = _clampEditFocal(state.editFocalDragStartFX - dx / dW * 100, state.editFocalZoom);
+    state.editFocalY = _clampEditFocal(state.editFocalDragStartFY - dy / dH * 100, state.editFocalZoom);
+    updateEditFocalDisplay();
   });
   focalWrap?.addEventListener("pointerup", () => { state.editFocalDragging = false; });
   focalWrap?.addEventListener("pointercancel", () => { state.editFocalDragging = false; });
+  focalWrap?.addEventListener("wheel", (event) => {
+    const img = byId("adminContentEditFocalImage");
+    if (!img || img.hidden) return;
+    event.preventDefault();
+    const step = 0.15;
+    state.editFocalZoom = Math.round(Math.max(1.0, Math.min(8.0,
+      state.editFocalZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
+    state.editFocalX = _clampEditFocal(state.editFocalX, state.editFocalZoom);
+    state.editFocalY = _clampEditFocal(state.editFocalY, state.editFocalZoom);
+    updateEditFocalDisplay();
+  }, { passive: false });
 
   byId("adminContentEditSaveButton")?.addEventListener("click", () => submitEdit());
   byId("adminContentEditForm")?.addEventListener("submit", (event) => {
