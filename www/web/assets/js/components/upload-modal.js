@@ -90,6 +90,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     focalDragStartY: 0,
     focalDragStartFX: 50,
     focalDragStartFY: 50,
+    lastSavedDraft: null,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -700,6 +701,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       savedAt: Date.now(),
     };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
+    state.lastSavedDraft = { ...draft };
     app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
   }
 
@@ -722,6 +724,16 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         renderTagChips();
       }
       if (refs.visInput) refs.visInput.checked = draft.isPublic !== false;
+      state.lastSavedDraft = {
+        title: draft.title || "",
+        alt: draft.alt || "",
+        shotAt: draft.shotAt || "",
+        tags: Array.isArray(draft.tags) ? [...draft.tags] : [],
+        isPublic: draft.isPublic !== false,
+        focalX: typeof draft.focalX === "number" ? draft.focalX : 50,
+        focalY: typeof draft.focalY === "number" ? draft.focalY : 50,
+        focalZoom: typeof draft.focalZoom === "number" ? Math.max(1.0, draft.focalZoom) : 1.0,
+      };
       updateTitleCounter();
       updateVisLabel();
       updateShotAtBadge();
@@ -733,8 +745,23 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   }
 
   function hasUnsavedChanges() {
+    // ファイルが選択されている場合は常に「未保存」（下書きにはファイルは保存できない）
+    if (state.items.length > 0) return true;
+    // 下書きが保存・復元済みの場合は、その時点からの差分があるかチェック
+    if (state.lastSavedDraft) {
+      const d = state.lastSavedDraft;
+      return (
+        (refs.titleInput?.value || "") !== d.title ||
+        (refs.altInput?.value || "") !== d.alt ||
+        getShotAtValue() !== (d.shotAt || "") ||
+        JSON.stringify(state.tagState) !== JSON.stringify(d.tags) ||
+        (refs.visInput?.checked ?? true) !== d.isPublic ||
+        state.focalX !== d.focalX ||
+        state.focalY !== d.focalY ||
+        state.focalZoom !== d.focalZoom
+      );
+    }
     return (
-      state.items.length > 0 ||
       Boolean(refs.titleInput?.value?.trim()) ||
       Boolean(refs.altInput?.value?.trim()) ||
       Boolean(getShotAtValue()) ||
@@ -866,6 +893,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.focalY = 50;
     state.focalZoom = 1.0;
     state.focalDragging = false;
+    state.lastSavedDraft = null;
     removeStripGhost();
     state.stripDragActive = false;
     state.stripDragIndex = -1;
@@ -1207,13 +1235,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (!title) {
       const message = t(app, "title_required", "Enter a title.");
       setInlineMessage(message, "error");
-      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "draft_load_error", "Failed to load draft.")));
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "title_required", "Enter a title.")));
       return;
     }
     if (!state.items.length) {
       const message = t(app, "image_required", "Select at least one image.");
       setInlineMessage(message, "error");
-      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "draft_load_error", "Failed to load draft.")));
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "image_required", "Select at least one image.")));
       return;
     }
 
@@ -1221,7 +1249,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (localDupIndex >= 0) {
       const message = t(app, "duplicate_local_order", "Image #{order} is duplicated.", { order: localDupIndex + 1 });
       setInlineMessage(message, "error");
-      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "draft_load_error", "Failed to load draft.")));
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "duplicate_local_order", "Image #{order} is duplicated.", { order: localDupIndex + 1 })));
       return;
     }
 
@@ -1256,7 +1284,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         applyServerDuplicateFlags(payload);
         const message = collectDuplicateMessageFromPayload(payload);
         setInlineMessage(message, "error");
-        app.toast?.error?.(resolveLocalizedMessage(message, t(app, "upload_error", "Upload failed.")));
+        app.toast?.error?.(resolveLocalizedMessage(message, t(app, "submit_error", "Upload failed.")));
         return;
       }
 
@@ -1275,7 +1303,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     } catch (error) {
       const message = error?.message || t(app, "submit_error", "Upload failed.");
       setInlineMessage(message, "error");
-      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "upload_error", "Upload failed.")));
+      app.toast?.error?.(resolveLocalizedMessage(message, t(app, "submit_error", "Upload failed.")));
     } finally {
       setSubmitting(false);
     }
@@ -1560,6 +1588,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   function open(options = {}) {
     ensureMounted();
     if (!canOpen()) return;
+    if (app.modal?.isOpen?.(MODAL_ID)) {
+      app.modal.open(MODAL_ID);
+      return;
+    }
     state.onUploaded = options.onUploaded || null;
     loadDraft();
     app.modal.open(MODAL_ID);
