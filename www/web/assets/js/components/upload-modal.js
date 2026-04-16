@@ -1437,10 +1437,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       const cW = refs.thumbnailWrap.offsetWidth, cH = refs.thumbnailWrap.offsetHeight;
       const dx = event.clientX - state.focalDragStartX;
       const dy = event.clientY - state.focalDragStartY;
-      // zoom > 1 のとき視覚的に 1:1 になるよう (zoom-1) で割る
-      const zf = state.focalZoom > 1 ? state.focalZoom - 1 : 1;
-      state.focalX = _clampFocal(state.focalDragStartFX - dx / cW * 100 / zf);
-      state.focalY = _clampFocal(state.focalDragStartFY - dy / cH * 100 / zf);
+      state.focalX = _clampFocal(state.focalDragStartFX - dx / cW * 100 / state.focalZoom);
+      state.focalY = _clampFocal(state.focalDragStartFY - dy / cH * 100 / state.focalZoom);
       updateFocalDisplay();
     });
     refs.thumbnailWrap?.addEventListener("pointerup", () => { state.focalDragging = false; });
