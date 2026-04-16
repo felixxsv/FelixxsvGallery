@@ -1045,6 +1045,13 @@
   border-radius: var(--radius-sm);
 }
 
+.draft-list-modal__item-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .draft-list-modal__item-info {
   flex: 1;
   min-width: 0;

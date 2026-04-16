@@ -721,7 +721,24 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     return [];
   }
 
-  function saveDraft() {
+  async function captureDraftThumbnail() {
+    const first = state.items[0];
+    if (!first?.objectUrl) return null;
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = first.objectUrl; });
+      const W = 160, H = 100;
+      const canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+      const sw = W / scale, sh = H / scale;
+      ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, 0, 0, W, H);
+      return canvas.toDataURL("image/jpeg", 0.72);
+    } catch { return null; }
+  }
+
+  async function saveDraft() {
     const draft = {
       id: `draft-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
       title: refs.titleInput?.value || "",
@@ -732,6 +749,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       focalX: state.focalX,
       focalY: state.focalY,
       focalZoom: state.focalZoom,
+      thumbnail: await captureDraftThumbnail(),
       savedAt: Date.now(),
     };
     const list = readDraftList();
@@ -884,7 +902,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         attributes: { "data-draft-id": entry.id }
       });
       item.innerHTML = `
-        <div class="draft-list-modal__item-thumb"><div class="draft-list-modal__item-thumb-empty"></div></div>
+        <div class="draft-list-modal__item-thumb">
+          ${entry.thumbnail
+            ? `<img src="${escapeHtml(entry.thumbnail)}" alt="" class="draft-list-modal__item-thumb-img">`
+            : `<div class="draft-list-modal__item-thumb-empty"></div>`}
+        </div>
         <div class="draft-list-modal__item-info">
           <div class="draft-list-modal__item-title">${escapeHtml(entry.title || t(app, "draft_no_title", "(No title)"))}</div>
           ${entry.alt ? `<div class="draft-list-modal__item-desc">${escapeHtml(entry.alt)}</div>` : ""}
