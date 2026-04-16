@@ -387,6 +387,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function _applyFocalTransform(img, wrap, fX, fY, zoom) {
     if (!img || !wrap) return;
+    if (!img.naturalWidth || !img.naturalHeight) {
+      // 画像未ロード: CSS デフォルト (object-fit: cover) に戻す
+      img.style.cssText = "";
+      return;
+    }
     const cW = wrap.offsetWidth, cH = wrap.offsetHeight;
     if (!cW || !cH) return;
     const { dW, dH } = _focalDisplayDims(cW, cH, img, zoom);
