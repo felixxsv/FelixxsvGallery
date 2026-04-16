@@ -80,11 +80,7 @@ function updateEditFocalDisplay() {
     }
   }
   if (crosshair) {
-    crosshair.hidden = !hasImage;
-    if (hasImage) {
-      crosshair.style.left = `${state.editFocalX}%`;
-      crosshair.style.top = `${state.editFocalY}%`;
-    }
+    crosshair.hidden = true;
   }
   if (empty) empty.hidden = Boolean(hasImage);
   if (wrap) wrap.style.cursor = hasImage ? "crosshair" : "default";

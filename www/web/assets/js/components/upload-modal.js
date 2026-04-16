@@ -403,13 +403,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         refs.thumbnailImage.style.objectPosition = "";
       }
     }
-    if (refs.focalCrosshair) {
-      refs.focalCrosshair.hidden = !hasImage;
-      if (hasImage) {
-        refs.focalCrosshair.style.left = `${state.focalX}%`;
-        refs.focalCrosshair.style.top = `${state.focalY}%`;
-      }
-    }
+    if (refs.focalCrosshair) refs.focalCrosshair.hidden = true;
     if (refs.thumbnailWrap) {
       refs.thumbnailWrap.classList.toggle("is-focal-active", hasImage);
     }
