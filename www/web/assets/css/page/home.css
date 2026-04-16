@@ -969,6 +969,18 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   --home-card-media-ratio: 3 / 2;
 }
 
+@keyframes homeCardNewArrival {
+  0%, 100% {
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
+  }
+  50% {
+    box-shadow:
+      0 18px 36px rgba(0, 0, 0, 0.24),
+      0 0 0 2px rgba(56, 189, 248, 0.85),
+      0 0 20px 8px rgba(56, 189, 248, 0.28);
+  }
+}
+
 .home-gallery-card {
   position: relative;
   overflow: hidden;
@@ -977,6 +989,10 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   background: var(--home-card-bg);
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
   cursor: default;
+}
+
+.home-gallery-card.is-new-arrival {
+  animation: homeCardNewArrival 0.8s ease-in-out 5;
 }
 
 .home-gallery-card::after {
