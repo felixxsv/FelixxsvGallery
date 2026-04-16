@@ -1083,10 +1083,21 @@ function bindModals() {
     if (!img || img.hidden) return;
     event.preventDefault();
     const step = 0.15;
-    state.editFocalZoom = Math.round(Math.max(1.0, Math.min(8.0,
-      state.editFocalZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
-    state.editFocalX = _clampEditFocal(state.editFocalX, state.editFocalZoom);
-    state.editFocalY = _clampEditFocal(state.editFocalY, state.editFocalZoom);
+    const oldZoom = state.editFocalZoom;
+    const newZoom = Math.round(Math.max(1.0, Math.min(8.0,
+      oldZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
+    if (newZoom === oldZoom) return;
+    const wrap = byId("adminContentEditFocalWrap");
+    const cW = wrap.offsetWidth;
+    const cH = wrap.offsetHeight;
+    const { dW: oldDW, dH: oldDH } = _editFocalDisplayDims(cW, cH, img, oldZoom);
+    const { dW: newDW, dH: newDH } = _editFocalDisplayDims(cW, cH, img, newZoom);
+    const rect = wrap.getBoundingClientRect();
+    const cursorX = (event.clientX - rect.left) / rect.width * 100;
+    const cursorY = (event.clientY - rect.top) / rect.height * 100;
+    state.editFocalZoom = newZoom;
+    state.editFocalX = _clampEditFocal(state.editFocalX + (cursorX - 50) * cW * (1 / oldDW - 1 / newDW), newZoom);
+    state.editFocalY = _clampEditFocal(state.editFocalY + (cursorY - 50) * cH * (1 / oldDH - 1 / newDH), newZoom);
     updateEditFocalDisplay();
   }, { passive: false });
 

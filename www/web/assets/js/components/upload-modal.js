@@ -1472,10 +1472,21 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       if (!state.items.length) return;
       event.preventDefault();
       const step = 0.15;
-      state.focalZoom = Math.round(Math.max(1.0, Math.min(8.0,
-        state.focalZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
-      state.focalX = _clampFocal(state.focalX, state.focalZoom);
-      state.focalY = _clampFocal(state.focalY, state.focalZoom);
+      const oldZoom = state.focalZoom;
+      const newZoom = Math.round(Math.max(1.0, Math.min(8.0,
+        oldZoom + (event.deltaY < 0 ? step : -step))) * 100) / 100;
+      if (newZoom === oldZoom) return;
+      const cW = refs.thumbnailWrap.offsetWidth;
+      const cH = refs.thumbnailWrap.offsetHeight;
+      const img = refs.thumbnailImage;
+      const { dW: oldDW, dH: oldDH } = _focalDisplayDims(cW, cH, img, oldZoom);
+      const { dW: newDW, dH: newDH } = _focalDisplayDims(cW, cH, img, newZoom);
+      const rect = refs.thumbnailWrap.getBoundingClientRect();
+      const cursorX = (event.clientX - rect.left) / rect.width * 100;
+      const cursorY = (event.clientY - rect.top) / rect.height * 100;
+      state.focalZoom = newZoom;
+      state.focalX = _clampFocal(state.focalX + (cursorX - 50) * cW * (1 / oldDW - 1 / newDW), newZoom);
+      state.focalY = _clampFocal(state.focalY + (cursorY - 50) * cH * (1 / oldDH - 1 / newDH), newZoom);
       updateFocalDisplay();
     }, { passive: false });
 
