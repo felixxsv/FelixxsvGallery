@@ -591,6 +591,7 @@ class GalleryDiscordBot(discord.Client):
             await message.reply(
                 f"Gallery 連携は {self.bot_cfg.max_files} 枚までです。今回の投稿は {len(attachments)} 枚でした。",
                 mention_author=False,
+                delete_after=PROMPT_INACTIVITY_SECONDS,
             )
             return
 
@@ -601,12 +602,14 @@ class GalleryDiscordBot(discord.Client):
                 "URL: https://gallery.felixxsv.net/\n"
                 "手順: 1. Galleryへログイン 2. アカウント設定でDiscord連携 3. このチャンネルへ戻って再投稿",
                 mention_author=False,
+                delete_after=PROMPT_INACTIVITY_SECONDS,
             )
             return
         if not actor.can_upload:
             await message.reply(
                 "Gallery への投稿権限がありません。管理者へ確認してください。",
                 mention_author=False,
+                delete_after=PROMPT_INACTIVITY_SECONDS,
             )
             return
 
