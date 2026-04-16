@@ -91,6 +91,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     focalDragStartFX: 50,
     focalDragStartFY: 50,
     lastSavedDraft: null,
+    formDirty: false,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -232,7 +233,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
               </div>
             </div>
             <div class="app-modal-footer upload-modal__footer">
-              <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "save_draft", "Save Draft"))}</button>
+              <div class="upload-modal__footer-draft">
+                <button id="uploadModalDraftButton" type="button" class="app-button app-button--ghost">${escapeHtml(t(app, "save_draft", "Save Draft"))}</button>
+                <button id="uploadModalLoadDraftButton" type="button" class="app-button app-button--ghost" hidden>${escapeHtml(t(app, "load_draft", "Load Draft"))}</button>
+              </div>
               <div class="upload-modal__footer-actions">
                 <button id="uploadModalSubmitButton" type="button" class="app-button app-button--primary">${escapeHtml(t(app, "submit", "Upload"))}</button>
               </div>
@@ -280,6 +284,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.inlineMessage = document.getElementById("uploadModalInlineMessage");
     refs.submitButton = document.getElementById("uploadModalSubmitButton");
     refs.draftButton = document.getElementById("uploadModalDraftButton");
+    refs.loadDraftButton = document.getElementById("uploadModalLoadDraftButton");
 
     attachDatePicker(refs.shotAtDateInput, { getLocale: () => document.documentElement.lang || "en-US" });
 
@@ -435,6 +440,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       if (state.tagState.length >= MAX_TAGS) break;
       state.tagState.push(tag);
     }
+    state.formDirty = true;
     if (refs.tagInput) refs.tagInput.value = "";
     renderTagChips();
     closeTagSug();
@@ -442,6 +448,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function removeTag(index) {
     state.tagState.splice(index, 1);
+    state.formDirty = true;
     renderTagChips();
   }
 
@@ -702,6 +709,8 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
     state.lastSavedDraft = { ...draft };
+    state.formDirty = false;
+    updateDraftLoadButton();
     app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
   }
 
@@ -734,6 +743,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         focalY: typeof draft.focalY === "number" ? draft.focalY : 50,
         focalZoom: typeof draft.focalZoom === "number" ? Math.max(1.0, draft.focalZoom) : 1.0,
       };
+      state.formDirty = false;
       updateTitleCounter();
       updateVisLabel();
       updateShotAtBadge();
@@ -742,25 +752,21 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function clearDraft() {
     try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    updateDraftLoadButton();
+  }
+
+  function updateDraftLoadButton() {
+    if (!refs.loadDraftButton) return;
+    let hasDraft = false;
+    try { hasDraft = Boolean(localStorage.getItem(DRAFT_KEY)); } catch {}
+    refs.loadDraftButton.hidden = !hasDraft;
   }
 
   function hasUnsavedChanges() {
     // ファイルが選択されている場合は常に「未保存」（下書きにはファイルは保存できない）
     if (state.items.length > 0) return true;
-    // 下書きが保存・復元済みの場合は、その時点からの差分があるかチェック
-    if (state.lastSavedDraft) {
-      const d = state.lastSavedDraft;
-      return (
-        (refs.titleInput?.value || "") !== d.title ||
-        (refs.altInput?.value || "") !== d.alt ||
-        getShotAtValue() !== (d.shotAt || "") ||
-        JSON.stringify(state.tagState) !== JSON.stringify(d.tags) ||
-        (refs.visInput?.checked ?? true) !== d.isPublic ||
-        state.focalX !== d.focalX ||
-        state.focalY !== d.focalY ||
-        state.focalZoom !== d.focalZoom
-      );
-    }
+    // 下書きが保存・復元済みで、それ以降フォームを変更していない場合は問題なし
+    if (state.lastSavedDraft && !state.formDirty) return false;
     return (
       Boolean(refs.titleInput?.value?.trim()) ||
       Boolean(refs.altInput?.value?.trim()) ||
@@ -853,6 +859,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (refs.fileSelectButton) refs.fileSelectButton.disabled = state.uploading;
     if (refs.fileInput) refs.fileInput.disabled = state.uploading;
     if (refs.draftButton) refs.draftButton.disabled = state.uploading;
+    if (refs.loadDraftButton) refs.loadDraftButton.disabled = state.uploading;
   }
 
   function currentUser() {
@@ -894,6 +901,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.focalZoom = 1.0;
     state.focalDragging = false;
     state.lastSavedDraft = null;
+    state.formDirty = false;
     removeStripGhost();
     state.stripDragActive = false;
     state.stripDragIndex = -1;
@@ -1182,6 +1190,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     if (refs.visInput) refs.visInput.parentElement?.setAttribute("aria-label", t(app, "visibility_aria", "Visibility"));
     if (refs.draftButton) refs.draftButton.textContent = t(app, "save_draft", "Save Draft");
+    if (refs.loadDraftButton) refs.loadDraftButton.textContent = t(app, "load_draft", "Load Draft");
     setSubmitting(state.uploading);
     updateVisLabel();
 
@@ -1452,6 +1461,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     // Focal: drag to move focal point + wheel to zoom toward cursor
     refs.thumbnailWrap?.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !state.items.length) return;
+      state.formDirty = true;
       state.focalDragging = true;
       state.focalDragStartX = event.clientX;
       state.focalDragStartY = event.clientY;
@@ -1473,6 +1483,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.thumbnailWrap?.addEventListener("pointercancel", () => { state.focalDragging = false; });
     refs.thumbnailWrap?.addEventListener("wheel", (event) => {
       if (!state.items.length) return;
+      state.formDirty = true;
       event.preventDefault();
       const step = 0.15;
       const oldZoom = state.focalZoom;
@@ -1495,12 +1506,17 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     // Title counter
     refs.titleInput?.addEventListener("input", () => {
+      state.formDirty = true;
       updateTitleCounter();
       updateThumbOverlay();
     });
 
+    // Alt text
+    refs.altInput?.addEventListener("input", () => { state.formDirty = true; });
+
     // Shot_at manual edit
     const handleShotAtInput = () => {
+      state.formDirty = true;
       state.shotAtDirty = true;
       updateShotAtBadge();
       updateThumbOverlay();
@@ -1509,7 +1525,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     refs.shotAtTimeInput?.addEventListener("input", handleShotAtInput);
 
     // Visibility toggle
-    refs.visInput?.addEventListener("change", () => updateVisLabel());
+    refs.visInput?.addEventListener("change", () => {
+      state.formDirty = true;
+      updateVisLabel();
+    });
 
     // Tag chips: remove
     refs.tagChips?.addEventListener("click", (event) => {
@@ -1580,6 +1599,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
     // Footer
     refs.draftButton?.addEventListener("click", () => saveDraft());
+    refs.loadDraftButton?.addEventListener("click", () => {
+      loadDraft();
+      app.toast?.info?.(t(app, "draft_loaded", "Draft loaded."));
+    });
     refs.submitButton?.addEventListener("click", () => submit());
   }
 
@@ -1594,6 +1617,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     }
     state.onUploaded = options.onUploaded || null;
     loadDraft();
+    updateDraftLoadButton();
     app.modal.open(MODAL_ID);
   }
 

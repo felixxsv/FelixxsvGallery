@@ -1063,6 +1063,8 @@
   "upload.tag_search_placeholder": "Search tags...",
   "upload.tag_empty": "No tags found",
   "upload.draft_saved": "Draft saved.",
+  "upload.load_draft": "Load Draft",
+  "upload.draft_loaded": "Draft loaded.",
   "upload.disabled": "Image uploads are currently disabled.",
   "upload.max_files_error": "You can upload up to {count} images.",
   "upload.unsupported_format": "{name} is not a supported format.",

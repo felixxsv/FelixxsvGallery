@@ -1043,6 +1043,8 @@
   "upload.tag_search_placeholder": "Rechercher des tags...",
   "upload.tag_empty": "Aucun tag trouvé",
   "upload.draft_saved": "Brouillon sauvegardé.",
+  "upload.load_draft": "Charger le brouillon",
+  "upload.draft_loaded": "Brouillon chargé.",
   "upload.disabled": "Le téléversement d'images est actuellement désactivé.",
   "upload.max_files_error": "Vous pouvez téléverser jusqu'à {count} images.",
   "upload.unsupported_format": "{name} n'est pas un format pris en charge.",

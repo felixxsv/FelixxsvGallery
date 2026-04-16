@@ -1063,6 +1063,8 @@
   "upload.tag_search_placeholder": "タグを検索…",
   "upload.tag_empty": "タグが見つかりません",
   "upload.draft_saved": "下書きを保存しました。",
+  "upload.load_draft": "下書きを読み込む",
+  "upload.draft_loaded": "下書きを読み込みました。",
   "upload.disabled": "現在、画像投稿は無効化されています。",
   "upload.max_files_error": "画像は最大 {count} 枚までです。",
   "upload.unsupported_format": "{name} は対応していない形式です。",

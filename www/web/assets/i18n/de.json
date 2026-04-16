@@ -1043,6 +1043,8 @@
   "upload.tag_search_placeholder": "Tags suchen...",
   "upload.tag_empty": "Keine Tags gefunden",
   "upload.draft_saved": "Entwurf gespeichert.",
+  "upload.load_draft": "Entwurf laden",
+  "upload.draft_loaded": "Entwurf geladen.",
   "upload.disabled": "Bild-Upload ist derzeit deaktiviert.",
   "upload.max_files_error": "Es können bis zu {count} Bilder hochgeladen werden.",
   "upload.unsupported_format": "{name} ist kein unterstütztes Format.",

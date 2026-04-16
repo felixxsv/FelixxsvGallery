@@ -1043,6 +1043,8 @@
   "upload.tag_search_placeholder": "Поиск тегов...",
   "upload.tag_empty": "Теги не найдены",
   "upload.draft_saved": "Черновик сохранён.",
+  "upload.load_draft": "Загрузить черновик",
+  "upload.draft_loaded": "Черновик загружен.",
   "upload.disabled": "Загрузка изображений в данный момент отключена.",
   "upload.max_files_error": "Можно загрузить не более {count} изображений.",
   "upload.unsupported_format": "Формат {name} не поддерживается.",
