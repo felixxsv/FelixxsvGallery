@@ -884,9 +884,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         attributes: { "data-draft-id": entry.id }
       });
       item.innerHTML = `
+        <div class="draft-list-modal__item-thumb"><div class="draft-list-modal__item-thumb-empty"></div></div>
         <div class="draft-list-modal__item-info">
           <div class="draft-list-modal__item-title">${escapeHtml(entry.title || t(app, "draft_no_title", "(No title)"))}</div>
-          <div class="draft-list-modal__item-meta">${escapeHtml(formatDraftDate(entry.savedAt))}</div>
+          ${entry.alt ? `<div class="draft-list-modal__item-desc">${escapeHtml(entry.alt)}</div>` : ""}
         </div>
         <button type="button" class="draft-list-modal__item-del" data-draft-del="${escapeHtml(entry.id)}" aria-label="${escapeHtml(t(app, "draft_delete", "Delete draft"))}">×</button>
       `;
