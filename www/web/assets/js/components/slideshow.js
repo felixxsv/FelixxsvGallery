@@ -125,9 +125,9 @@ export function createSlideshowController({ app }) {
     flash:          $("[data-ss-flash]"),
     flashIcon:      $("[data-ss-flash-icon]"),
 
-    hud:            $("[data-ss-hud]"),
     metaTitle:      $("[data-ss-meta-title]"),
     metaDate:       $("[data-ss-meta-date]"),
+    sourceLabel:    $("[data-ss-source-label]"),
     likeBtn:        $("[data-ss-like]"),
     likeIcon:       $("[data-ss-like-icon]"),
     likeCount:      $("[data-ss-like-count]"),
@@ -135,9 +135,6 @@ export function createSlideshowController({ app }) {
     prevBtn:        $("[data-ss-prev]"),
     playPauseBtn:   $("[data-ss-playpause]"),
     nextBtn:        $("[data-ss-next]"),
-
-    toolbar:        $("[data-ss-toolbar]"),
-    sourceLabel:    $("[data-ss-source-label]"),
     settingsToggle: $("[data-ss-settings-toggle]"),
     fullscreenBtn:  $("[data-ss-fullscreen]"),
     playbackClose:  $("[data-ss-playback-close]"),
@@ -154,10 +151,6 @@ export function createSlideshowController({ app }) {
     return `
 <div class="slideshow__stage" data-ss-stage></div>
 
-<div class="slideshow__progress" data-ss-progress>
-  <div class="slideshow__progress-fill" data-ss-progress-fill></div>
-</div>
-
 <button type="button" class="slideshow__zone slideshow__zone--prev" data-ss-zone-prev aria-label="Previous"></button>
 <button type="button" class="slideshow__zone slideshow__zone--next" data-ss-zone-next aria-label="Next"></button>
 
@@ -165,45 +158,44 @@ export function createSlideshowController({ app }) {
   <span class="slideshow__flash-icon" data-ss-flash-icon></span>
 </div>
 
-<div class="slideshow__toolbar" data-ss-toolbar>
-  <span class="slideshow__source-label" data-ss-source-label></span>
-  <button type="button" class="slideshow__toolbar-btn" data-ss-settings-toggle aria-label="Settings" title="Settings">
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"/></svg>
-  </button>
-  <button type="button" class="slideshow__toolbar-btn" data-ss-fullscreen aria-label="Fullscreen" title="Fullscreen">
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>
-  </button>
-  <button type="button" class="slideshow__toolbar-btn slideshow__toolbar-btn--close" data-ss-playback-close aria-label="Close">
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
-  </button>
-</div>
+<button type="button" class="slideshow__close" data-ss-playback-close aria-label="Close"></button>
 
-<div class="slideshow__hud" data-ss-hud>
-  <div class="slideshow__hud-meta">
-    <div class="slideshow__hud-meta-text">
-      <span class="slideshow__hud-title" data-ss-meta-title></span>
-      <span class="slideshow__hud-date" data-ss-meta-date></span>
-    </div>
-    <div class="slideshow__hud-meta-actions">
-      <button type="button" class="slideshow__hud-like" data-ss-like aria-label="Like" hidden>
-        <span class="slideshow__hud-like-icon" data-ss-like-icon>♡</span>
-        <span class="slideshow__hud-like-count" data-ss-like-count>0</span>
-      </button>
-      <button type="button" class="slideshow__hud-detail-btn" data-ss-detail aria-label="Details" title="Details">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="8"/><line x1="10" y1="9" x2="10" y2="15"/><circle cx="10" cy="6" r="0.5" fill="currentColor" stroke="none"/></svg>
-      </button>
-    </div>
+<div class="slideshow__bar" data-ss-hud>
+  <div class="slideshow__progress" data-ss-progress hidden>
+    <div class="slideshow__progress-fill" data-ss-progress-fill></div>
   </div>
-  <div class="slideshow__hud-nav">
-    <button type="button" class="slideshow__hud-btn slideshow__hud-btn--prev" data-ss-prev aria-label="Previous">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <button type="button" class="slideshow__hud-btn slideshow__hud-btn--playpause" data-ss-playpause aria-label="Play/Pause">
-      <span data-ss-playpause-icon></span>
-    </button>
-    <button type="button" class="slideshow__hud-btn slideshow__hud-btn--next" data-ss-next aria-label="Next">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </button>
+  <div class="slideshow__bar-inner">
+    <div class="slideshow__bar-left">
+      <span class="slideshow__bar-title" data-ss-meta-title></span>
+      <span class="slideshow__bar-date" data-ss-meta-date></span>
+      <span class="slideshow__bar-source" data-ss-source-label></span>
+    </div>
+    <div class="slideshow__bar-center">
+      <button type="button" class="slideshow__nav-btn" data-ss-prev aria-label="Previous">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button type="button" class="slideshow__nav-btn slideshow__nav-btn--play" data-ss-playpause aria-label="Play/Pause">
+        <span data-ss-playpause-icon></span>
+      </button>
+      <button type="button" class="slideshow__nav-btn" data-ss-next aria-label="Next">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+    <div class="slideshow__bar-right">
+      <button type="button" class="slideshow__bar-action slideshow__bar-like" data-ss-like aria-label="Like" hidden>
+        <span data-ss-like-icon>♡</span>
+        <span data-ss-like-count>0</span>
+      </button>
+      <button type="button" class="slideshow__bar-action" data-ss-detail aria-label="Details" title="Details">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="16" cy="10" r="1.6"/></svg>
+      </button>
+      <button type="button" class="slideshow__bar-action" data-ss-settings-toggle aria-label="Settings" title="Settings">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"/></svg>
+      </button>
+      <button type="button" class="slideshow__bar-action" data-ss-fullscreen aria-label="Fullscreen" title="Fullscreen">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -211,7 +203,7 @@ export function createSlideshowController({ app }) {
   <div class="slideshow__settings-panel-header">
     <span data-ss-settings-panel-title>Settings</span>
     <button type="button" class="slideshow__toolbar-btn" data-ss-settings-close aria-label="Close settings">
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
     </button>
   </div>
   <div class="slideshow__settings-rows" data-ss-settings-body></div>
@@ -412,7 +404,10 @@ export function createSlideshowController({ app }) {
     if (!item) return null;
     const path = item.preview_path || item.thumb_path_960 || item.thumb_path_480;
     if (!path) return null;
-    return path.startsWith("http") ? path : `${app.appBase}${path}`;
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    if (path.startsWith("/")) return `${app.appBase}${path}`;
+    if (path.startsWith("storage/") || path.startsWith("media/") || path.startsWith("api/")) return `${app.appBase}/${path}`;
+    return `${app.appBase}/storage/${path}`;
   }
 
   function buildApiParams(page) {
