@@ -1527,6 +1527,13 @@ def upload_images(
 _DRAFT_MAX_PER_USER = 30
 
 
+def _delete_draft_disk_files(user_id: int, draft_id: int) -> None:
+    """下書きに紐づくファイルディレクトリをディスクから削除する。"""
+    files_dir = STORAGE_ROOT / "drafts" / str(user_id) / str(draft_id) / "files"
+    if files_dir.is_dir():
+        shutil.rmtree(str(files_dir), ignore_errors=True)
+
+
 @app.get("/api/drafts")
 def list_drafts(req: Request):
     u = _get_current_user(req)
@@ -1542,6 +1549,23 @@ def list_drafts(req: Request):
                 [u["id"], _DRAFT_MAX_PER_USER],
             )
             rows = cur.fetchall()
+
+        draft_ids = [r["id"] for r in rows]
+        files_by_draft: dict = {}
+        if draft_ids:
+            placeholders = ",".join(["%s"] * len(draft_ids))
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT draft_id, file_path, original_name FROM draft_files "
+                    f"WHERE draft_id IN ({placeholders}) ORDER BY draft_id, sort_order",
+                    draft_ids,
+                )
+                for f in cur.fetchall():
+                    did = int(f["draft_id"])
+                    files_by_draft.setdefault(did, []).append({
+                        "file_path": f["file_path"],
+                        "original_name": f["original_name"],
+                    })
     finally:
         conn.close()
 
@@ -1561,8 +1585,13 @@ def list_drafts(req: Request):
             "focal_zoom": float(r.get("focal_zoom") or 1.0),
             "thumbnail_path": r.get("thumbnail_path"),
             "created_at": r["created_at"].isoformat() if r.get("created_at") else None,
+            "files": files_by_draft.get(int(r["id"]), []),
         })
     return {"ok": True, "items": items}
+
+
+_DRAFT_ACCEPTED_EXTS = {"png", "jpg", "jpeg", "webp"}
+_DRAFT_MAX_FILE_BYTES = 50 * 1024 * 1024
 
 
 @app.post("/api/drafts")
@@ -1577,6 +1606,7 @@ def save_draft(
     focal_y: float = Form(50.0),
     focal_zoom: float = Form(1.0),
     thumbnail: UploadFile | None = File(None),
+    files: list[UploadFile] = File(default=[]),
 ):
     u = _get_current_user(req)
     if not u:
@@ -1593,15 +1623,24 @@ def save_draft(
 
     conn = db_conn(CONF)
     try:
-        # Evict oldest if at limit
+        # Evict oldest if at limit (disk files cleaned up before DB delete)
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) AS cnt FROM drafts WHERE user_id=%s", [u["id"]])
             count = int((cur.fetchone() or {}).get("cnt", 0))
         if count >= _DRAFT_MAX_PER_USER:
+            evict_count = count - _DRAFT_MAX_PER_USER + 1
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id FROM drafts WHERE user_id=%s ORDER BY created_at ASC LIMIT %s",
+                    [u["id"], evict_count],
+                )
+                evict_rows = cur.fetchall()
+            for evict_row in evict_rows:
+                _delete_draft_disk_files(u["id"], evict_row["id"])
             with conn.cursor() as cur:
                 cur.execute(
                     "DELETE FROM drafts WHERE user_id=%s ORDER BY created_at ASC LIMIT %s",
-                    [u["id"], count - _DRAFT_MAX_PER_USER + 1],
+                    [u["id"], evict_count],
                 )
             conn.commit()
 
@@ -1646,7 +1685,38 @@ def save_draft(
             except Exception:
                 logger.exception("Failed to save draft thumbnail")
 
-        return {"ok": True, "id": draft_id, "thumbnail_path": thumbnail_path}
+        # Save draft files
+        saved_files = []
+        valid_files = [f for f in (files or []) if f and f.filename]
+        if valid_files:
+            files_dir = STORAGE_ROOT / "drafts" / str(u["id"]) / str(draft_id) / "files"
+            files_dir.mkdir(parents=True, exist_ok=True)
+            for sort_order, uploaded_file in enumerate(valid_files):
+                fname = uploaded_file.filename or ""
+                ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+                if ext not in _DRAFT_ACCEPTED_EXTS:
+                    continue
+                try:
+                    content = uploaded_file.file.read()
+                    if len(content) > _DRAFT_MAX_FILE_BYTES:
+                        continue
+                    file_uuid = uuid.uuid4().hex
+                    dest_name = f"{file_uuid}.{ext}"
+                    (files_dir / dest_name).write_bytes(content)
+                    rel_path = f"drafts/{u['id']}/{draft_id}/files/{dest_name}"
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "INSERT INTO draft_files "
+                            "(draft_id, user_id, file_path, original_name, sort_order) "
+                            "VALUES (%s,%s,%s,%s,%s)",
+                            [draft_id, u["id"], rel_path, fname[:1024], sort_order],
+                        )
+                    conn.commit()
+                    saved_files.append({"file_path": rel_path, "original_name": fname})
+                except Exception:
+                    logger.exception("Failed to save draft file")
+
+        return {"ok": True, "id": draft_id, "thumbnail_path": thumbnail_path, "files": saved_files}
     finally:
         conn.close()
 
@@ -1666,6 +1736,7 @@ def delete_draft(draft_id: int, req: Request):
             row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="draft not found")
+        _delete_draft_disk_files(u["id"], row["id"])
         if row.get("thumbnail_path"):
             try:
                 (STORAGE_ROOT / str(row["thumbnail_path"])).unlink(missing_ok=True)

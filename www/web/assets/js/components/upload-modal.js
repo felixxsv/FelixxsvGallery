@@ -92,8 +92,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     focalDragStartFY: 50,
     lastSavedDraft: null,
     formDirty: false,
+    draftJustSaved: false,
     draftListMounted: false,
     draftListCache: null,
+    draftPreviewThumbUrl: null,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -731,6 +733,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         formData.append("thumbnail", blob, "thumbnail.jpg");
       } catch {}
     }
+    for (const item of state.items) {
+      formData.append("files", item.file, item.file.name);
+    }
     try {
       const res = await fetch(`${app.appBase}/api/drafts`, { method: "POST", credentials: "include", body: formData });
       if (!res.ok) {
@@ -739,6 +744,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       }
       state.lastSavedDraft = { title: refs.titleInput?.value || "" };
       state.formDirty = false;
+      state.draftJustSaved = true;
       state.draftListCache = null; // invalidate cache
       if (refs.loadDraftButton) refs.loadDraftButton.hidden = false;
       app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
@@ -749,6 +755,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   function loadDraftItem(entry) {
     if (!entry) return;
+    // 現在選択中のファイルを破棄してから下書きを復元する
+    revokeUrls();
+    state.items = [];
     if (refs.titleInput) refs.titleInput.value = entry.title || "";
     if (refs.altInput) refs.altInput.value = entry.alt || "";
     const shotAt = entry.shot_at || entry.shotAt || "";
@@ -770,10 +779,36 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (refs.visInput) refs.visInput.checked = isPublic !== false;
     state.lastSavedDraft = { title: entry.title || "" };
     state.formDirty = false;
+    state.draftPreviewThumbUrl = entry.thumbnail_path
+      ? `${app.appBase}/storage/${entry.thumbnail_path}`
+      : null;
     updateTitleCounter();
     updateVisLabel();
     updateShotAtBadge();
-    updateFocalDisplay();
+    render();
+    // ファイルをサーバーから取得して復元（非同期）
+    if (Array.isArray(entry.files) && entry.files.length > 0) {
+      _restoreDraftFiles(entry.files);
+    }
+  }
+
+  async function _restoreDraftFiles(files) {
+    const fileObjects = [];
+    for (const f of files) {
+      try {
+        const url = `${app.appBase}/storage/${f.file_path}`;
+        const resp = await fetch(url, { credentials: "include" });
+        if (!resp.ok) continue;
+        const blob = await resp.blob();
+        const name = f.original_name || "image";
+        fileObjects.push(new File([blob], name, { type: blob.type }));
+      } catch {}
+    }
+    if (fileObjects.length > 0) {
+      // ファイル取得完了後に追加（ハッシュ計算・重複チェックも行われる）
+      state.draftPreviewThumbUrl = null;
+      await addFiles(fileObjects);
+    }
   }
 
   async function deleteDraftItem(id) {
@@ -916,10 +951,12 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   }
 
   function hasUnsavedChanges() {
-    // ファイルが選択されている場合は常に「未保存」（下書きにはファイルは保存できない）
+    // 下書き保存直後（フォーム変更なし）はクリーンに閉じてよい
+    // ファイルが選択されていてもフォームデータはDBに保存済みなので警告不要
+    if (state.draftJustSaved && !state.formDirty) return false;
+    // ファイルが選択されている場合は「未保存」（下書きにはファイルは保存できない）
     if (state.items.length > 0) return true;
-    // 下書きが保存・復元済みで、それ以降フォームを変更していない場合は問題なし
-    if (state.lastSavedDraft && !state.formDirty) return false;
+    // 下書き読み込み後や手入力データは未保存扱い（誤操作で消えないよう警告）
     return (
       Boolean(refs.titleInput?.value?.trim()) ||
       Boolean(refs.altInput?.value?.trim()) ||
@@ -1055,7 +1092,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.focalDragging = false;
     state.lastSavedDraft = null;
     state.formDirty = false;
+    state.draftJustSaved = false;
     state.draftListCache = null;
+    state.draftPreviewThumbUrl = null;
     closeDraftListModal();
     removeStripGhost();
     state.stripDragActive = false;
@@ -1224,9 +1263,16 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     const first = state.items[0];
     if (!refs.thumbnailImage || !refs.thumbnailEmpty) return;
     if (!first) {
-      refs.thumbnailImage.hidden = true;
-      refs.thumbnailImage.removeAttribute("src");
-      refs.thumbnailEmpty.hidden = false;
+      if (state.draftPreviewThumbUrl) {
+        refs.thumbnailImage.hidden = false;
+        refs.thumbnailImage.src = state.draftPreviewThumbUrl;
+        refs.thumbnailImage.alt = t(app, "thumbnail_alt", "Thumbnail");
+        refs.thumbnailEmpty.hidden = true;
+      } else {
+        refs.thumbnailImage.hidden = true;
+        refs.thumbnailImage.removeAttribute("src");
+        refs.thumbnailEmpty.hidden = false;
+      }
       return;
     }
     refs.thumbnailImage.hidden = false;
