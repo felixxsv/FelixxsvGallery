@@ -320,6 +320,16 @@ export function createImageModalController({ app, body = document.body } = {}) {
       state.detailOpen = false;
       syncDetailStateClass();
       updateControlsVisibility(true);
+      if (root.classList.contains("is-detail-standalone")) {
+        root.classList.remove("is-detail-standalone");
+        root.hidden = true;
+        bodyLock(false);
+        state.items = [];
+        state.currentIndex = 0;
+        state.onLikeChange = null;
+        state.detailCache = null;
+        syncGlobalCloseVisibility();
+      }
     },
     onPreviewOpen() {
       detailModal.close();
@@ -1076,6 +1086,21 @@ export function createImageModalController({ app, body = document.body } = {}) {
         }
       }
       open(payload, options);
+    },
+    openDetail(payload, options = {}) {
+      if (!root.hidden) return; // viewer already open — don't interfere
+      const normalized = normalizePayload(payload, options);
+      state.items = [normalized];
+      state.currentIndex = 0;
+      state.onLikeChange = typeof options.onLikeChange === "function" ? options.onLikeChange : null;
+      state.detailCache = normalized;
+      root.classList.add("is-detail-standalone");
+      root.hidden = false;
+      bodyLock(true);
+      syncGlobalCloseVisibility();
+      state.detailOpen = true;
+      syncDetailStateClass();
+      detailModal.open(normalized);
     },
   };
 }

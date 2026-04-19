@@ -788,7 +788,7 @@ export function createSlideshowController({ app }) {
     if (!currentItem) return;
     if (isPlaying) pause();
     const item = currentItem;
-    app.imageModal?.openByPreference({
+    app.imageModal?.openDetail({
       id: item.id,
       image_id: item.id,
       preview_url: imageUrl(item),

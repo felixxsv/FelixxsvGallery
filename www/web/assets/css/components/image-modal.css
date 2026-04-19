@@ -200,6 +200,21 @@ body.is-image-modal-open {
   opacity: 1;
 }
 
+/* standalone: image viewer hidden, detail panel only */
+.image-modal.is-detail-standalone {
+  background: transparent;
+}
+.image-modal.is-detail-standalone .image-modal__backdrop,
+.image-modal.is-detail-standalone .image-modal__img,
+.image-modal.is-detail-standalone .image-modal__controls,
+.image-modal.is-detail-standalone .image-modal__nav,
+.image-modal.is-detail-standalone .image-modal__slider-wrap {
+  display: none;
+}
+.image-modal.is-detail-standalone .image-detail-modal {
+  opacity: 1;
+}
+
 .image-modal.is-controls-visible .image-modal__nav,
 .image-modal.is-detail-open .image-modal__nav {
   opacity: 1;
