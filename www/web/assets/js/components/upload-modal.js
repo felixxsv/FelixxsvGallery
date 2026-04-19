@@ -755,9 +755,10 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
       state.lastSavedDraft = { title: refs.titleInput?.value || "" };
       state.formDirty = false;
       state.draftJustSaved = true;
-      state.draftListCache = null; // invalidate cache
+      state.draftListCache = null;
       if (refs.loadDraftButton) refs.loadDraftButton.hidden = false;
       app.toast?.info?.(t(app, "draft_saved", "Draft saved."));
+      close();
     } catch {
       app.toast?.error?.("Failed to save draft.");
     }
@@ -790,6 +791,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.lastSavedDraft = { title: entry.title || "" };
     state.formDirty = false;
     state.loadedDraftId = entry.id ?? null;
+    if (state.draftListCache && entry.id != null) {
+      state.draftListCache = state.draftListCache.filter((e) => String(e.id) !== String(entry.id));
+      renderDraftListItems();
+      updateDraftLoadButton();
+    }
     state.draftPreviewThumbUrl = entry.thumbnail_path
       ? `${app.appBase}/storage/${entry.thumbnail_path}`
       : null;
