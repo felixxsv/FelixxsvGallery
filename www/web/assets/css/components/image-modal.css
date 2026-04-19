@@ -5,7 +5,7 @@ body.is-image-modal-open {
 .image-modal {
   position: fixed;
   inset: 0;
-  z-index: 990;
+  z-index: 1300;
   background: rgba(4, 8, 14, 0.96);
   color: #f4f7ff;
 }
