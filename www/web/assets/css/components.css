@@ -3300,7 +3300,8 @@ body.is-slideshow-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   min-height: 36px;
 }
 
@@ -3308,22 +3309,26 @@ body.is-slideshow-open {
   font-size: 0.85rem;
   color: var(--color-text);
   flex: 0 0 auto;
-  min-width: 80px;
+  min-width: 70px;
 }
 
 .slideshow__setting-ctrl {
   flex: 1;
+  min-width: 0;
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .slideshow__seg {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 2px;
+  max-width: 100%;
 }
 
 .slideshow__seg-btn {
@@ -3347,22 +3352,22 @@ body.is-slideshow-open {
   color: var(--color-text);
 }
 
-/* Toggle switch */
+/* Toggle switch — matches .app-switch design */
 .slideshow__toggle {
   position: relative;
   width: 40px;
-  height: 22px;
-  border-radius: 11px;
+  height: 24px;
+  border-radius: 999px;
   border: 1px solid var(--color-border);
-  background: var(--color-surface-strong);
+  background: var(--color-surface);
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.18s ease, border-color 0.18s ease;
   flex-shrink: 0;
 }
 
 .slideshow__toggle.is-on {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 38%, transparent);
 }
 
 .slideshow__toggle-knob {
@@ -3372,13 +3377,14 @@ body.is-slideshow-open {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
-  transition: transform 0.2s;
+  background: var(--color-text-faint);
+  transition: transform 0.18s ease, background 0.18s ease;
   pointer-events: none;
 }
 
 .slideshow__toggle.is-on .slideshow__toggle-knob {
-  transform: translateX(18px);
+  transform: translateX(16px);
+  background: var(--color-primary);
 }
 
 /* ── Playback ────────────────────────────────────────────────────── */
@@ -3755,6 +3761,7 @@ body.is-slideshow-open {
   display: flex;
   flex-direction: column;
   backdrop-filter: blur(8px);
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -3793,8 +3800,21 @@ body.is-slideshow-open {
 }
 
 [data-ss-settings-body] .slideshow__toggle {
-  background: rgba(255,255,255,0.12);
-  border-color: rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.15);
+}
+
+[data-ss-settings-body] .slideshow__toggle-knob {
+  background: rgba(255,255,255,0.40);
+}
+
+[data-ss-settings-body] .slideshow__toggle.is-on {
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+[data-ss-settings-body] .slideshow__toggle.is-on .slideshow__toggle-knob {
+  background: var(--color-primary);
 }
 
 /* ── Overlay messages ────────────────────────────────────────────── */
