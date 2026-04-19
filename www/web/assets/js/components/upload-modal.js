@@ -718,8 +718,12 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
 
   async function saveDraft() {
     const title = refs.titleInput?.value?.trim() || "";
-    if (!title && !state.items.length) {
-      app.toast?.error?.(t(app, "draft_empty", "タイトルまたは画像を入力してから保存してください。"));
+    if (!title) {
+      app.toast?.error?.(t(app, "draft_no_title", "タイトルを入力してから保存してください。"));
+      return;
+    }
+    if (!state.items.length) {
+      app.toast?.error?.(t(app, "draft_no_image", "画像を選択してから保存してください。"));
       return;
     }
     const thumbDataUrl = await captureDraftThumbnail();
