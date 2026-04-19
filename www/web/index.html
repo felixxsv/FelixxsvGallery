@@ -82,8 +82,8 @@
       </div>
 
       <div class="app-site-header__right">
-        <button id="shellHeaderUploadButton" class="app-button app-button--ghost app-upload-launch-button" type="button" data-i18n="home.actions.upload">Upload</button>
         <button id="shellSlideshowButton" class="app-button app-button--ghost" type="button" data-i18n="slideshow.action.open" hidden>Slideshow</button>
+        <button id="shellHeaderUploadButton" class="app-button app-button--ghost app-upload-launch-button" type="button" data-i18n="home.actions.upload">Upload</button>
         <button
           id="shellUserTrigger"
           class="app-icon-button"
@@ -1310,6 +1310,26 @@
         </div>
         <div class="app-modal-footer app-modal-footer--end">
           <button id="shellTwoFactorActionConfirmApproveButton" type="button" class="app-button app-button--primary" data-i18n="auth.actions.confirm">Confirm</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-modal-layer" data-modal-layer data-modal-id="slideshow-picker" hidden>
+      <div class="app-modal-backdrop" data-modal-backdrop="slideshow-picker"></div>
+      <div class="app-modal-dialog app-modal-dialog--scroll app-modal-dialog--slideshow-picker" role="dialog" aria-modal="true" aria-labelledby="slideshowPickerTitle" tabindex="-1">
+        <div class="app-modal-header">
+          <h2 id="slideshowPickerTitle" class="app-modal-title" data-i18n="slideshow.title">Slideshow</h2>
+        </div>
+        <div class="app-modal-body slideshow-picker-body">
+          <div id="slideshowSourceGrid" class="slideshow__source-grid"></div>
+          <h3 class="slideshow__picker-section-title" data-i18n="slideshow.settings.title">Settings</h3>
+          <div id="slideshowPickerSettingsRows" class="slideshow__settings-rows"></div>
+        </div>
+        <div class="app-modal-footer app-modal-footer--end">
+          <button type="button" id="slideshowStartBtn" class="app-button app-button--primary" disabled>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true" style="margin-right:4px"><polygon points="1,1 11,6 1,11"/></svg>
+            <span data-i18n="slideshow.action.start">Start</span>
+          </button>
         </div>
       </div>
     </section>

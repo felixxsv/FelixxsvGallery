@@ -1,7 +1,6 @@
 const LS_KEY = "gallery.slideshow.v1";
 const FETCH_PER_PAGE = 30;
 const PRELOAD_AHEAD = 2;
-const PRELOAD_BEHIND = 1;
 const CURSOR_HIDE_MS = 2500;
 const FLASH_DURATION_MS = 700;
 const TRANSITION_DURATION_MS = 420;
@@ -96,26 +95,27 @@ export function createSlideshowController({ app }) {
   let likesPending = new Set();
   let randomSeed = null;
 
-  // Build root DOM
+  // Playback overlay (full-screen, separate from modal system)
   const overlay = document.createElement("div");
   overlay.className = "slideshow";
   overlay.hidden = true;
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
   overlay.setAttribute("aria-label", "Slideshow");
-  overlay.innerHTML = buildHTML();
+  overlay.innerHTML = buildPlaybackHTML();
   document.body.appendChild(overlay);
 
-  // Cache refs
+  // Picker elements live in index.html inside #appModalRoot
+  const pickerEl = {
+    sourceGrid:     document.getElementById("slideshowSourceGrid"),
+    settingsRows:   document.getElementById("slideshowPickerSettingsRows"),
+    startBtn:       document.getElementById("slideshowStartBtn"),
+  };
+
+  // Playback elements
   const $ = (sel) => overlay.querySelector(sel);
   const el = {
-    picker:         $(".slideshow__picker"),
-    pickerClose:    $("[data-ss-picker-close]"),
-    pickerTitle:    $("[data-ss-picker-title]"),
-    sourceGrid:     $("[data-ss-source-grid]"),
-    startBtn:       $("[data-ss-start]"),
-
-    playback:       $(".slideshow__playback"),
+    playback:       overlay,
     stage:          $("[data-ss-stage]"),
     progressFill:   $("[data-ss-progress-fill]"),
     progress:       $("[data-ss-progress]"),
@@ -148,101 +148,77 @@ export function createSlideshowController({ app }) {
     loadingMsg:     $("[data-ss-loading]"),
   };
 
-  // ─── HTML template ──────────────────────────────────────────────
+  // ─── Playback HTML ───────────────────────────────────────────────
 
-  function buildHTML() {
+  function buildPlaybackHTML() {
     return `
-<div class="slideshow__picker" data-ss-picker>
-  <div class="slideshow__picker-surface">
-    <div class="slideshow__picker-header">
-      <h2 class="slideshow__picker-title" data-ss-picker-title>Slideshow</h2>
-      <button type="button" class="slideshow__icon-btn" data-ss-picker-close aria-label="Close">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
+<div class="slideshow__stage" data-ss-stage></div>
+
+<div class="slideshow__progress" data-ss-progress>
+  <div class="slideshow__progress-fill" data-ss-progress-fill></div>
+</div>
+
+<button type="button" class="slideshow__zone slideshow__zone--prev" data-ss-zone-prev aria-label="Previous"></button>
+<button type="button" class="slideshow__zone slideshow__zone--next" data-ss-zone-next aria-label="Next"></button>
+
+<div class="slideshow__flash" data-ss-flash hidden>
+  <span class="slideshow__flash-icon" data-ss-flash-icon></span>
+</div>
+
+<div class="slideshow__toolbar" data-ss-toolbar>
+  <span class="slideshow__source-label" data-ss-source-label></span>
+  <button type="button" class="slideshow__toolbar-btn" data-ss-settings-toggle aria-label="Settings" title="Settings">
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"/></svg>
+  </button>
+  <button type="button" class="slideshow__toolbar-btn" data-ss-fullscreen aria-label="Fullscreen" title="Fullscreen">
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>
+  </button>
+  <button type="button" class="slideshow__toolbar-btn slideshow__toolbar-btn--close" data-ss-playback-close aria-label="Close">
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
+  </button>
+</div>
+
+<div class="slideshow__hud" data-ss-hud>
+  <div class="slideshow__hud-meta">
+    <div class="slideshow__hud-meta-text">
+      <span class="slideshow__hud-title" data-ss-meta-title></span>
+      <span class="slideshow__hud-date" data-ss-meta-date></span>
+    </div>
+    <div class="slideshow__hud-meta-actions">
+      <button type="button" class="slideshow__hud-like" data-ss-like aria-label="Like" hidden>
+        <span class="slideshow__hud-like-icon" data-ss-like-icon>♡</span>
+        <span class="slideshow__hud-like-count" data-ss-like-count>0</span>
+      </button>
+      <button type="button" class="slideshow__hud-detail-btn" data-ss-detail aria-label="Details" title="Details">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="8"/><line x1="10" y1="9" x2="10" y2="15"/><circle cx="10" cy="6" r="0.5" fill="currentColor" stroke="none"/></svg>
       </button>
     </div>
-    <div class="slideshow__source-grid" data-ss-source-grid></div>
-    <div class="slideshow__picker-settings-wrap">
-      <h3 class="slideshow__picker-settings-title" data-ss-settings-section-title>Settings</h3>
-      <div class="slideshow__settings-rows" data-ss-picker-settings-rows></div>
-    </div>
-    <div class="slideshow__picker-footer">
-      <button type="button" class="slideshow__start-btn" data-ss-start disabled>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 15,8 3,15"/></svg>
-        <span data-ss-start-label>Start</span>
-      </button>
-    </div>
+  </div>
+  <div class="slideshow__hud-nav">
+    <button type="button" class="slideshow__hud-btn slideshow__hud-btn--prev" data-ss-prev aria-label="Previous">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button type="button" class="slideshow__hud-btn slideshow__hud-btn--playpause" data-ss-playpause aria-label="Play/Pause">
+      <span data-ss-playpause-icon></span>
+    </button>
+    <button type="button" class="slideshow__hud-btn slideshow__hud-btn--next" data-ss-next aria-label="Next">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
 </div>
 
-<div class="slideshow__playback" data-ss-playback hidden>
-  <div class="slideshow__stage" data-ss-stage></div>
-
-  <div class="slideshow__progress" data-ss-progress>
-    <div class="slideshow__progress-fill" data-ss-progress-fill></div>
-  </div>
-
-  <button type="button" class="slideshow__zone slideshow__zone--prev" data-ss-zone-prev aria-label="Previous"></button>
-  <button type="button" class="slideshow__zone slideshow__zone--next" data-ss-zone-next aria-label="Next"></button>
-
-  <div class="slideshow__flash" data-ss-flash hidden>
-    <span class="slideshow__flash-icon" data-ss-flash-icon></span>
-  </div>
-
-  <div class="slideshow__toolbar" data-ss-toolbar>
-    <span class="slideshow__source-label" data-ss-source-label></span>
-    <button type="button" class="slideshow__toolbar-btn" data-ss-settings-toggle aria-label="Settings" title="Settings">
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"/></svg>
-    </button>
-    <button type="button" class="slideshow__toolbar-btn" data-ss-fullscreen aria-label="Fullscreen" title="Fullscreen">
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>
-    </button>
-    <button type="button" class="slideshow__toolbar-btn slideshow__toolbar-btn--close" data-ss-playback-close aria-label="Close">
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
+<div class="slideshow__settings-panel" data-ss-settings-panel hidden>
+  <div class="slideshow__settings-panel-header">
+    <span data-ss-settings-panel-title>Settings</span>
+    <button type="button" class="slideshow__toolbar-btn" data-ss-settings-close aria-label="Close settings">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
     </button>
   </div>
+  <div class="slideshow__settings-rows" data-ss-settings-body></div>
+</div>
 
-  <div class="slideshow__hud" data-ss-hud>
-    <div class="slideshow__hud-meta" data-ss-meta-row>
-      <div class="slideshow__hud-meta-text">
-        <span class="slideshow__hud-title" data-ss-meta-title></span>
-        <span class="slideshow__hud-date" data-ss-meta-date></span>
-      </div>
-      <div class="slideshow__hud-meta-actions">
-        <button type="button" class="slideshow__hud-like" data-ss-like aria-label="Like" hidden>
-          <span class="slideshow__hud-like-icon" data-ss-like-icon>♡</span>
-          <span class="slideshow__hud-like-count" data-ss-like-count>0</span>
-        </button>
-        <button type="button" class="slideshow__hud-detail-btn" data-ss-detail aria-label="Details" title="Details">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="8"/><line x1="10" y1="9" x2="10" y2="15"/><circle cx="10" cy="6" r="0.5" fill="currentColor" stroke="none"/></svg>
-        </button>
-      </div>
-    </div>
-    <div class="slideshow__hud-nav">
-      <button type="button" class="slideshow__hud-btn slideshow__hud-btn--prev" data-ss-prev aria-label="Previous">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <button type="button" class="slideshow__hud-btn slideshow__hud-btn--playpause" data-ss-playpause aria-label="Play/Pause">
-        <span data-ss-playpause-icon></span>
-      </button>
-      <button type="button" class="slideshow__hud-btn slideshow__hud-btn--next" data-ss-next aria-label="Next">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <div class="slideshow__settings-panel" data-ss-settings-panel hidden>
-    <div class="slideshow__settings-panel-header">
-      <span data-ss-settings-panel-title>Settings</span>
-      <button type="button" class="slideshow__icon-btn" data-ss-settings-close aria-label="Close settings">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
-      </button>
-    </div>
-    <div class="slideshow__settings-rows" data-ss-settings-body></div>
-  </div>
-
-  <div class="slideshow__overlay-msg" data-ss-empty hidden></div>
-  <div class="slideshow__overlay-msg" data-ss-loading hidden></div>
-</div>`;
+<div class="slideshow__overlay-msg" data-ss-empty hidden></div>
+<div class="slideshow__overlay-msg" data-ss-loading hidden></div>`;
   }
 
   // ─── Settings UI ────────────────────────────────────────────────
@@ -251,7 +227,6 @@ export function createSlideshowController({ app }) {
     if (!container) return;
     container.innerHTML = "";
 
-    // Interval
     const intervalRow = makeSettingRow(t(app, "settings.interval", "Interval"),
       `<div class="slideshow__seg" data-ss-seg="interval">
         ${INTERVALS.map(v => `<button type="button" class="slideshow__seg-btn${settings.interval === v ? " is-active" : ""}" data-val="${v}">${v}s</button>`).join("")}
@@ -259,7 +234,6 @@ export function createSlideshowController({ app }) {
     );
     container.appendChild(intervalRow);
 
-    // Transition
     const transLabels = {
       fade: t(app, "transition.fade", "Fade"),
       crossfade: t(app, "transition.crossfade", "Crossfade"),
@@ -273,7 +247,6 @@ export function createSlideshowController({ app }) {
     );
     container.appendChild(transRow);
 
-    // Fit
     const fitLabels = { cover: t(app, "fit.cover", "Fill"), contain: t(app, "fit.contain", "Fit") };
     const fitRow = makeSettingRow(t(app, "settings.fit", "Fit"),
       `<div class="slideshow__seg" data-ss-seg="fit">
@@ -282,7 +255,6 @@ export function createSlideshowController({ app }) {
     );
     container.appendChild(fitRow);
 
-    // Meta
     const metaLabels = {
       cursor: t(app, "meta.cursor", "On cursor"),
       always: t(app, "meta.always", "Always"),
@@ -295,7 +267,6 @@ export function createSlideshowController({ app }) {
     );
     container.appendChild(metaRow);
 
-    // Toggles
     const toggles = [
       { key: "autoAdvance", label: t(app, "settings.auto_advance", "Auto-advance") },
       { key: "shuffle",     label: t(app, "settings.shuffle", "Shuffle") },
@@ -350,35 +321,21 @@ export function createSlideshowController({ app }) {
   function onSettingChanged(key) {
     if (key === "autoAdvance") {
       if (isPlaying) {
-        if (settings.autoAdvance) {
-          resetProgress();
-          startProgress();
-        } else {
-          pauseProgress();
-          resetProgress();
-        }
+        if (settings.autoAdvance) { resetProgress(); startProgress(); }
+        else { pauseProgress(); resetProgress(); }
       }
     }
-    if (key === "interval") {
-      if (isPlaying && settings.autoAdvance) {
-        resetProgress();
-        startProgress();
-      }
+    if (key === "interval" && isPlaying && settings.autoAdvance) {
+      resetProgress(); startProgress();
     }
     if (key === "fit" && currentSlideEl) {
       currentSlideEl.querySelector(".slideshow__slide-img")?.classList.toggle("fit-contain", settings.fit === "contain");
     }
     if (key === "kenBurns" && currentSlideEl) {
-      const img = currentSlideEl.querySelector(".slideshow__slide-img");
-      if (img) syncKenBurns(img, currentItem);
+      syncKenBurns(currentSlideEl.querySelector(".slideshow__slide-img"), currentItem);
     }
-    if (key === "meta") {
-      applyMetaSetting();
-    }
-    if (key === "shuffle") {
-      rebuildDisplayOrder();
-    }
-    // Sync progress bar visibility
+    if (key === "meta") applyMetaSetting();
+    if (key === "shuffle") rebuildDisplayOrder();
     el.progress.hidden = !settings.autoAdvance;
     syncPlaybackSettingsUI();
   }
@@ -402,14 +359,8 @@ export function createSlideshowController({ app }) {
   // ─── Source picker ───────────────────────────────────────────────
 
   function renderPicker() {
-    if (el.pickerTitle) el.pickerTitle.textContent = t(app, "title", "Slideshow");
-    const startLabelEl = overlay.querySelector("[data-ss-start-label]");
-    if (startLabelEl) startLabelEl.textContent = t(app, "action.start", "Start");
-    const settingsSectionTitle = overlay.querySelector("[data-ss-settings-section-title]");
-    if (settingsSectionTitle) settingsSectionTitle.textContent = t(app, "settings.title", "Settings");
-
-    if (!el.sourceGrid) return;
-    el.sourceGrid.innerHTML = "";
+    if (!pickerEl.sourceGrid) return;
+    pickerEl.sourceGrid.innerHTML = "";
 
     const isAuth = Boolean(app.session?.getState?.()?.authenticated);
 
@@ -420,21 +371,19 @@ export function createSlideshowController({ app }) {
       btn.className = "slideshow__source-btn" + (locked ? " is-locked" : "");
       btn.dataset.sourceId = src.id;
       btn.disabled = locked;
-      btn.setAttribute("aria-label", t(app, src.key, src.label));
       btn.innerHTML = `
         <span class="slideshow__source-icon">${sourceIcon(src.id)}</span>
         <span class="slideshow__source-name">${esc(t(app, src.key, src.label))}</span>
-        ${locked ? `<span class="slideshow__source-lock">🔒</span>` : ""}
+        ${locked ? `<span class="slideshow__source-lock" aria-hidden="true">🔒</span>` : ""}
       `;
       btn.addEventListener("click", () => {
         if (locked) return;
         selectSource(src.id);
       });
-      el.sourceGrid.appendChild(btn);
+      pickerEl.sourceGrid.appendChild(btn);
     }
 
-    const pickerSettingsRows = overlay.querySelector("[data-ss-picker-settings-rows]");
-    buildSettingsRows(pickerSettingsRows);
+    buildSettingsRows(pickerEl.settingsRows);
   }
 
   function sourceIcon(id) {
@@ -451,13 +400,20 @@ export function createSlideshowController({ app }) {
 
   function selectSource(sourceId) {
     currentSourceId = sourceId;
-    el.sourceGrid?.querySelectorAll(".slideshow__source-btn").forEach((btn) => {
+    pickerEl.sourceGrid?.querySelectorAll(".slideshow__source-btn").forEach((btn) => {
       btn.classList.toggle("is-active", btn.dataset.sourceId === sourceId);
     });
-    if (el.startBtn) el.startBtn.disabled = false;
+    if (pickerEl.startBtn) pickerEl.startBtn.disabled = false;
   }
 
   // ─── Data fetching ───────────────────────────────────────────────
+
+  function imageUrl(item) {
+    if (!item) return null;
+    const path = item.preview_path || item.thumb_path_960 || item.thumb_path_480;
+    if (!path) return null;
+    return path.startsWith("http") ? path : `${app.appBase}${path}`;
+  }
 
   function buildApiParams(page) {
     const userKey = app.session?.getState?.()?.data?.user?.user_key || "";
@@ -489,7 +445,7 @@ export function createSlideshowController({ app }) {
       fetchPageNum++;
       extendDisplayOrder(prevCount, newItems.length);
     } catch {
-      // network error — don't retry automatically
+      // network error
     } finally {
       isFetching = false;
     }
@@ -516,8 +472,7 @@ export function createSlideshowController({ app }) {
       const j = Math.floor(Math.random() * (i + 1));
       [newIndices[i], newIndices[j]] = [newIndices[j], newIndices[i]];
     }
-    const insertAt = Math.max(currentLogicalIdx + 1, displayOrder.length - newCount);
-    displayOrder.splice(insertAt, 0, ...newIndices);
+    displayOrder.splice(Math.max(currentLogicalIdx + 1, displayOrder.length - newCount), 0, ...newIndices);
   }
 
   function getEffectiveItem(logicalIdx) {
@@ -526,7 +481,7 @@ export function createSlideshowController({ app }) {
   }
 
   async function ensureItemsFor(logicalIdx) {
-    const needed = displayOrder.length > 0 ? (logicalIdx + PRELOAD_AHEAD + 1) : (PRELOAD_AHEAD + 2);
+    const needed = logicalIdx + PRELOAD_AHEAD + 1;
     if (needed > displayOrder.length && hasMore && !isFetching) {
       await fetchNextPage();
     }
@@ -536,26 +491,16 @@ export function createSlideshowController({ app }) {
 
   function preloadAround(logicalIdx) {
     const urls = new Set();
-    for (let delta = -PRELOAD_BEHIND; delta <= PRELOAD_AHEAD; delta++) {
+    for (let delta = -1; delta <= PRELOAD_AHEAD; delta++) {
       let idx = logicalIdx + delta;
-      if (idx < 0) {
-        if (settings.loop) idx = displayOrder.length + idx;
-        else continue;
-      }
-      if (idx >= displayOrder.length) {
-        if (settings.loop) idx = idx % displayOrder.length;
-        else continue;
-      }
-      const item = getEffectiveItem(idx);
-      if (!item) continue;
-      const url = imageUrl(item);
-      if (url) urls.add(url);
+      if (idx < 0) { if (settings.loop) idx = displayOrder.length + idx; else continue; }
+      if (idx >= displayOrder.length) { if (settings.loop) idx = idx % displayOrder.length; else continue; }
+      const u = imageUrl(getEffectiveItem(idx));
+      if (u) urls.add(u);
     }
-    // Evict old entries
     for (const [url] of preloadCache) {
       if (!urls.has(url)) preloadCache.delete(url);
     }
-    // Preload new ones
     for (const url of urls) {
       if (!preloadCache.has(url)) {
         const img = new Image();
@@ -563,12 +508,6 @@ export function createSlideshowController({ app }) {
         preloadCache.set(url, img);
       }
     }
-  }
-
-  function imageUrl(item) {
-    if (!item) return null;
-    const path = item.preview_path || item.thumb_path_960 || item.thumb_path_480;
-    return path ? `${app.appBase}/storage/${path}` : null;
   }
 
   // ─── Progress bar ────────────────────────────────────────────────
@@ -614,10 +553,9 @@ export function createSlideshowController({ app }) {
   function createSlideElement(item) {
     const el_ = document.createElement("div");
     el_.className = "slideshow__slide";
-    const url = imageUrl(item);
     const img = document.createElement("img");
     img.className = "slideshow__slide-img" + (settings.fit === "contain" ? " fit-contain" : "");
-    img.src = url || "";
+    img.src = imageUrl(item) || "";
     img.alt = item.title || "";
     img.draggable = false;
     syncKenBurns(img, item);
@@ -634,9 +572,8 @@ export function createSlideshowController({ app }) {
       img.style.setProperty("--ss-kb-ox", `${fx}%`);
       img.style.setProperty("--ss-kb-oy", `${fy}%`);
       img.style.setProperty("--ss-interval", `${settings.interval}s`);
-      // Force restart animation by removing and re-adding
       img.style.animation = "none";
-      img.getBoundingClientRect(); // reflow
+      img.getBoundingClientRect();
       img.style.animation = "";
     } else {
       img.classList.remove("has-ken-burns");
@@ -668,9 +605,6 @@ export function createSlideshowController({ app }) {
       return;
     }
 
-    // CSS-transition based animations
-    const dur = TRANSITION_DURATION_MS;
-
     if (trans === "fade") {
       newEl.classList.add("ss-enter-fade");
       oldEl.classList.add("ss-leave-fade");
@@ -682,7 +616,7 @@ export function createSlideshowController({ app }) {
       oldEl.classList.add(direction >= 0 ? "ss-leave-slide-left" : "ss-leave-slide-right");
     }
 
-    await new Promise((r) => setTimeout(r, dur));
+    await new Promise((r) => setTimeout(r, TRANSITION_DURATION_MS));
 
     oldEl.remove();
     newEl.classList.remove("ss-enter-fade", "ss-enter-slide-right", "ss-enter-slide-left");
@@ -708,36 +642,20 @@ export function createSlideshowController({ app }) {
     const count = displayOrder.length;
 
     if (next >= count) {
-      if (hasMore) {
-        await fetchNextPage();
-        next = Math.min(next, displayOrder.length - 1);
-      } else if (settings.loop) {
-        next = 0;
-      } else {
-        pause();
-        return;
-      }
+      if (hasMore) { await fetchNextPage(); next = Math.min(next, displayOrder.length - 1); }
+      else if (settings.loop) { next = 0; }
+      else { pause(); return; }
     } else if (next < 0) {
-      if (settings.loop) {
-        next = count - 1;
-      } else {
-        next = 0;
-      }
+      next = settings.loop ? count - 1 : 0;
     }
 
     currentLogicalIdx = next;
     await ensureItemsFor(next);
     const item = getEffectiveItem(next);
-    if (!item) {
-      if (isPlaying && settings.autoAdvance) startProgress();
-      return;
-    }
+    if (!item) { if (isPlaying && settings.autoAdvance) startProgress(); return; }
     await showSlide(item, delta);
 
-    // Prefetch more when near end
-    if (next >= displayOrder.length - PRELOAD_AHEAD - 1 && hasMore) {
-      fetchNextPage();
-    }
+    if (next >= displayOrder.length - PRELOAD_AHEAD - 1 && hasMore) fetchNextPage();
   }
 
   // ─── Play / Pause ────────────────────────────────────────────────
@@ -757,28 +675,25 @@ export function createSlideshowController({ app }) {
   }
 
   function togglePlayPause() {
-    if (isPlaying) {
-      pause();
-      showFlash(pauseIcon());
-    } else {
-      play();
-      showFlash(playIcon());
-    }
+    if (isPlaying) { pause(); showFlash(pauseIconSvg()); }
+    else { play(); showFlash(playIconSvg()); }
   }
 
-  function playIcon() {
+  function playIconSvg() {
     return `<svg width="36" height="36" viewBox="0 0 36 36" fill="white"><polygon points="8,4 32,18 8,32"/></svg>`;
   }
 
-  function pauseIcon() {
+  function pauseIconSvg() {
     return `<svg width="36" height="36" viewBox="0 0 36 36" fill="white"><rect x="7" y="4" width="8" height="28"/><rect x="21" y="4" width="8" height="28"/></svg>`;
   }
 
   function syncPlayPauseBtn() {
     if (!el.playPauseBtn) return;
     const iconEl = el.playPauseBtn.querySelector("[data-ss-playpause-icon]");
-    if (iconEl) iconEl.innerHTML = isPlaying ? pauseIcon() : playIcon();
-    el.playPauseBtn.setAttribute("aria-label", isPlaying ? t(app, "action.pause", "Pause") : t(app, "action.play", "Play"));
+    if (iconEl) iconEl.innerHTML = isPlaying ? pauseIconSvg() : playIconSvg();
+    el.playPauseBtn.setAttribute("aria-label", isPlaying
+      ? t(app, "action.pause", "Pause")
+      : t(app, "action.play", "Play"));
   }
 
   // ─── Flash icon ──────────────────────────────────────────────────
@@ -799,12 +714,10 @@ export function createSlideshowController({ app }) {
   // ─── HUD visibility ──────────────────────────────────────────────
 
   function showHud() {
-    if (!overlay.hidden && !overlay.querySelector(".slideshow__playback")?.hidden) {
-      overlay.classList.add("is-hud-active");
-      if (cursorTimer) clearTimeout(cursorTimer);
-      if (settings.meta === "cursor") {
-        cursorTimer = setTimeout(hideHud, CURSOR_HIDE_MS);
-      }
+    overlay.classList.add("is-hud-active");
+    if (cursorTimer) clearTimeout(cursorTimer);
+    if (settings.meta === "cursor") {
+      cursorTimer = setTimeout(hideHud, CURSOR_HIDE_MS);
     }
   }
 
@@ -821,8 +734,6 @@ export function createSlideshowController({ app }) {
     } else if (settings.meta === "hidden") {
       overlay.classList.remove("is-hud-active");
       if (cursorTimer) { clearTimeout(cursorTimer); cursorTimer = null; }
-    } else {
-      // cursor mode: respect current state
     }
     overlay.classList.toggle("is-meta-hidden", settings.meta === "hidden");
   }
@@ -846,9 +757,8 @@ export function createSlideshowController({ app }) {
     if (el.likeBtn) {
       el.likeBtn.hidden = !isAuth;
       const liked = Boolean(item.viewer_liked);
-      const pending = likesPending.has(item.id);
       el.likeBtn.classList.toggle("is-liked", liked);
-      el.likeBtn.disabled = pending;
+      el.likeBtn.disabled = likesPending.has(item.id);
       if (el.likeIcon) el.likeIcon.textContent = liked ? "♥" : "♡";
       if (el.likeCount) el.likeCount.textContent = String(item.like_count ?? 0);
     }
@@ -857,12 +767,10 @@ export function createSlideshowController({ app }) {
   async function toggleLike() {
     const item = currentItem;
     if (!item || likesPending.has(item.id)) return;
-    const isAuth = Boolean(app.session?.getState?.()?.authenticated);
-    if (!isAuth) return;
+    if (!Boolean(app.session?.getState?.()?.authenticated)) return;
 
     likesPending.add(item.id);
     syncLikeUI(item);
-
     const nextLiked = !item.viewer_liked;
     try {
       const res = nextLiked
@@ -872,7 +780,7 @@ export function createSlideshowController({ app }) {
       item.viewer_liked = Boolean(state.viewer_liked ?? nextLiked);
       item.like_count = Number(state.like_count ?? item.like_count ?? 0);
     } catch {
-      // revert
+      // revert on error
     } finally {
       likesPending.delete(item.id);
       syncLikeUI(item);
@@ -884,14 +792,12 @@ export function createSlideshowController({ app }) {
   function openDetail() {
     if (!currentItem) return;
     if (isPlaying) pause();
-
     const item = currentItem;
-    const previewUrl = imageUrl(item);
     app.imageModal?.openByPreference({
       id: item.id,
       image_id: item.id,
-      preview_url: previewUrl,
-      original_url: previewUrl,
+      preview_url: imageUrl(item),
+      original_url: imageUrl(item),
       title: item.title,
       alt: item.alt,
       shot_at: item.shot_at,
@@ -941,7 +847,7 @@ export function createSlideshowController({ app }) {
 
   function syncFullscreenBtn() {
     if (!el.fullscreenBtn) return;
-    const isFs = Boolean(document.fullscreenElement === overlay || document.fullscreenElement);
+    const isFs = Boolean(document.fullscreenElement);
     el.fullscreenBtn.innerHTML = isFs
       ? `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3H3v5M12 3h5v5M8 17H3v-5M12 17h5v-5"/></svg>`
       : `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>`;
@@ -951,46 +857,23 @@ export function createSlideshowController({ app }) {
 
   function handleKeyDown(e) {
     if (overlay.hidden) return;
-    if (isDetailOpen) return;
-    if (!el.playback || el.playback.hidden) return; // picker is open
-
-    // Don't intercept if focus is in a settings input
     if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
 
     switch (e.key) {
       case " ":
-        e.preventDefault();
-        togglePlayPause();
-        break;
-      case "ArrowLeft":
-      case "j":
-      case "J":
-        e.preventDefault();
-        advanceSlide(-1);
-        break;
-      case "ArrowRight":
-      case "l":
-      case "L":
-        e.preventDefault();
-        advanceSlide(1);
-        break;
-      case "f":
-      case "F":
-        e.preventDefault();
-        toggleFullscreen();
-        break;
-      case "m":
-      case "M":
-        e.preventDefault();
-        cycleMetaMode();
-        break;
+        e.preventDefault(); togglePlayPause(); break;
+      case "ArrowLeft": case "j": case "J":
+        e.preventDefault(); advanceSlide(-1); break;
+      case "ArrowRight": case "l": case "L":
+        e.preventDefault(); advanceSlide(1); break;
+      case "f": case "F":
+        e.preventDefault(); toggleFullscreen(); break;
+      case "m": case "M":
+        e.preventDefault(); cycleMetaMode(); break;
       case "Escape":
         e.preventDefault();
-        if (isSettingsOpen) {
-          toggleSettingsPanel();
-        } else {
-          close();
-        }
+        if (isSettingsOpen) { toggleSettingsPanel(); }
+        else { close(); }
         break;
     }
   }
@@ -1006,19 +889,20 @@ export function createSlideshowController({ app }) {
   // ─── Open / Close ────────────────────────────────────────────────
 
   function open() {
-    overlay.hidden = false;
-    el.picker.hidden = false;
-    el.playback.hidden = true;
-    document.body.classList.add("is-slideshow-open");
-    renderPicker();
-    // Reset source selection
+    // Reset source selection state
     currentSourceId = null;
-    if (el.startBtn) el.startBtn.disabled = true;
-    el.sourceGrid?.querySelectorAll(".slideshow__source-btn").forEach((b) => b.classList.remove("is-active"));
+    if (pickerEl.startBtn) pickerEl.startBtn.disabled = true;
+    renderPicker();
+    // Open via app modal system
+    app.modal?.open("slideshow-picker");
   }
 
   async function startPlayback() {
     if (!currentSourceId) return;
+
+    // Close the picker modal, show the full-screen playback overlay
+    app.modal?.close("slideshow-picker");
+
     randomSeed = String(Date.now());
     items = [];
     displayOrder = [];
@@ -1033,8 +917,9 @@ export function createSlideshowController({ app }) {
     likesPending.clear();
     isTransitioning = false;
 
-    el.picker.hidden = true;
-    el.playback.hidden = false;
+    overlay.hidden = false;
+    document.body.classList.add("is-slideshow-open");
+
     el.emptyMsg.hidden = true;
     el.loadingMsg.hidden = false;
     el.loadingMsg.textContent = t(app, "loading", "Loading…");
@@ -1059,7 +944,7 @@ export function createSlideshowController({ app }) {
     const first = getEffectiveItem(0);
     if (first) await showSlide(first, 1);
     play();
-    showFlash(playIcon());
+    showFlash(playIconSvg());
   }
 
   function close() {
@@ -1075,59 +960,39 @@ export function createSlideshowController({ app }) {
     if (el.settingsPanel) el.settingsPanel.hidden = true;
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     overlay.hidden = true;
-    el.picker.hidden = false;
-    el.playback.hidden = true;
     document.body.classList.remove("is-slideshow-open");
     el.stage.innerHTML = "";
   }
 
   // ─── Event listeners ────────────────────────────────────────────
 
-  el.pickerClose?.addEventListener("click", close);
-  el.startBtn?.addEventListener("click", startPlayback);
-  el.playbackClose?.addEventListener("click", close);
+  pickerEl.startBtn?.addEventListener("click", startPlayback);
 
+  el.playbackClose?.addEventListener("click", close);
   el.prevBtn?.addEventListener("click", () => advanceSlide(-1));
   el.nextBtn?.addEventListener("click", () => advanceSlide(1));
   el.playPauseBtn?.addEventListener("click", () => togglePlayPause());
-
   el.zonePrev?.addEventListener("click", () => advanceSlide(-1));
   el.zoneNext?.addEventListener("click", () => advanceSlide(1));
 
-  // Stage center click → toggle play/pause
   el.stage?.addEventListener("click", (e) => {
-    // Ignore if clicking on the zones
     if (e.target === el.zonePrev || e.target === el.zoneNext) return;
-    // Only if click is roughly in center
     const r = el.stage.getBoundingClientRect();
     const cx = e.clientX - r.left;
     const zw = r.width * 0.25;
-    if (cx > zw && cx < r.width - zw) {
-      togglePlayPause();
-    }
+    if (cx > zw && cx < r.width - zw) togglePlayPause();
   });
 
   el.likeBtn?.addEventListener("click", (e) => { e.stopPropagation(); toggleLike(); });
   el.detailBtn?.addEventListener("click", (e) => { e.stopPropagation(); openDetail(); });
-
   el.settingsToggle?.addEventListener("click", (e) => { e.stopPropagation(); toggleSettingsPanel(); });
   el.settingsPanel?.querySelector("[data-ss-settings-close]")?.addEventListener("click", () => toggleSettingsPanel());
-
   el.fullscreenBtn?.addEventListener("click", toggleFullscreen);
 
-  document.addEventListener("fullscreenchange", () => {
-    syncFullscreenBtn();
-  });
+  document.addEventListener("fullscreenchange", syncFullscreenBtn);
 
-  // HUD / cursor handling
-  overlay.addEventListener("mousemove", () => {
-    if (!el.playback?.hidden) showHud();
-  });
-
-  overlay.addEventListener("touchstart", () => {
-    if (!el.playback?.hidden) showHud();
-  }, { passive: true });
-
+  overlay.addEventListener("mousemove", showHud);
+  overlay.addEventListener("touchstart", showHud, { passive: true });
   document.addEventListener("keydown", handleKeyDown);
 
   // ─── Public API ──────────────────────────────────────────────────
