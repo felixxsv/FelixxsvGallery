@@ -746,11 +746,15 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     for (const item of state.items) {
       formData.append("files", item.file, item.file.name);
     }
+    const oldDraftId = state.loadedDraftId;
     try {
       const res = await fetch(`${app.appBase}/api/drafts`, { method: "POST", credentials: "include", body: formData });
       if (!res.ok) {
         app.toast?.error?.(t(app, "draft_saved", "Draft saved.").replace(/。.*/, "") || "Failed to save draft.");
         return;
+      }
+      if (oldDraftId) {
+        fetch(`${app.appBase}/api/drafts/${oldDraftId}`, { method: "DELETE", credentials: "include" }).catch(() => {});
       }
       state.lastSavedDraft = { title: refs.titleInput?.value || "" };
       state.formDirty = false;
