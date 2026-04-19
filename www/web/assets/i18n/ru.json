@@ -1116,9 +1116,7 @@
   "public_profile.no_bio": "Пока ничего не написано",
   "public_profile.links_label": "Ссылки",
   "public_profile.badges_label": "Значки",
-
   "admin_layout.nav_contacts": "Обращения",
-
   "shell.contact.button": "Обратная связь",
   "shell.contact.title": "Обратная связь",
   "shell.contact.category": "Категория",
@@ -1133,7 +1131,6 @@
   "shell.contact.success": "Ваше сообщение отправлено.",
   "shell.contact.error_empty": "Пожалуйста, введите сообщение.",
   "shell.contact.error_failed": "Не удалось отправить. Попробуйте ещё раз.",
-
   "admin_contacts.page_title": "Обращения",
   "admin_contacts.status": "Статус",
   "admin_contacts.status_all": "Все",
@@ -1287,7 +1284,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "Слайд-шоу",
   "slideshow.action.open": "Слайд-шоу",
   "slideshow.action.start": "Начать",
@@ -1318,5 +1314,15 @@
   "slideshow.fit.contain": "Вписать",
   "slideshow.meta.cursor": "При движении курсора",
   "slideshow.meta.always": "Всегда",
-  "slideshow.meta.hidden": "Скрыто"
+  "slideshow.meta.hidden": "Скрыто",
+  "slideshow.aria.slideshow": "Слайд-шоу",
+  "slideshow.aria.previous": "Назад",
+  "slideshow.aria.next": "Вперёд",
+  "slideshow.aria.close": "Закрыть",
+  "slideshow.aria.play_pause": "Воспроизведение/Пауза",
+  "slideshow.aria.like": "Нравится",
+  "slideshow.aria.details": "Подробности",
+  "slideshow.aria.settings": "Настройки",
+  "slideshow.aria.fullscreen": "Полный экран",
+  "slideshow.aria.close_settings": "Закрыть настройки"
 }

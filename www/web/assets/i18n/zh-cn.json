@@ -1116,9 +1116,7 @@
   "public_profile.no_bio": "尚未填写",
   "public_profile.links_label": "链接",
   "public_profile.badges_label": "徽章",
-
   "admin_layout.nav_contacts": "反馈",
-
   "shell.contact.button": "反馈",
   "shell.contact.title": "联系我们",
   "shell.contact.category": "类别",
@@ -1133,7 +1131,6 @@
   "shell.contact.success": "反馈已发送。",
   "shell.contact.error_empty": "请输入内容。",
   "shell.contact.error_failed": "发送失败，请重试。",
-
   "admin_contacts.page_title": "反馈",
   "admin_contacts.status": "状态",
   "admin_contacts.status_all": "全部",
@@ -1287,7 +1284,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "幻灯片",
   "slideshow.action.open": "幻灯片",
   "slideshow.action.start": "开始",
@@ -1318,5 +1314,15 @@
   "slideshow.fit.contain": "适应",
   "slideshow.meta.cursor": "移动光标时显示",
   "slideshow.meta.always": "始终显示",
-  "slideshow.meta.hidden": "隐藏"
+  "slideshow.meta.hidden": "隐藏",
+  "slideshow.aria.slideshow": "幻灯片",
+  "slideshow.aria.previous": "上一张",
+  "slideshow.aria.next": "下一张",
+  "slideshow.aria.close": "关闭",
+  "slideshow.aria.play_pause": "播放/暂停",
+  "slideshow.aria.like": "点赞",
+  "slideshow.aria.details": "详情",
+  "slideshow.aria.settings": "设置",
+  "slideshow.aria.fullscreen": "全屏",
+  "slideshow.aria.close_settings": "关闭设置"
 }

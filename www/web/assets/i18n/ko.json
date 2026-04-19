@@ -1116,9 +1116,7 @@
   "public_profile.no_bio": "아직 작성되지 않았습니다",
   "public_profile.links_label": "링크",
   "public_profile.badges_label": "뱃지",
-
   "admin_layout.nav_contacts": "문의",
-
   "shell.contact.button": "문의",
   "shell.contact.title": "문의하기",
   "shell.contact.category": "카테고리",
@@ -1133,7 +1131,6 @@
   "shell.contact.success": "문의가 전송되었습니다.",
   "shell.contact.error_empty": "내용을 입력해 주세요.",
   "shell.contact.error_failed": "전송에 실패했습니다. 다시 시도해 주세요.",
-
   "admin_contacts.page_title": "문의",
   "admin_contacts.status": "상태",
   "admin_contacts.status_all": "전체",
@@ -1287,7 +1284,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "슬라이드쇼",
   "slideshow.action.open": "슬라이드쇼",
   "slideshow.action.start": "시작",
@@ -1318,5 +1314,15 @@
   "slideshow.fit.contain": "맞추기",
   "slideshow.meta.cursor": "커서 이동 시",
   "slideshow.meta.always": "항상 표시",
-  "slideshow.meta.hidden": "숨기기"
+  "slideshow.meta.hidden": "숨기기",
+  "slideshow.aria.slideshow": "슬라이드쇼",
+  "slideshow.aria.previous": "이전",
+  "slideshow.aria.next": "다음",
+  "slideshow.aria.close": "닫기",
+  "slideshow.aria.play_pause": "재생/일시정지",
+  "slideshow.aria.like": "좋아요",
+  "slideshow.aria.details": "상세 정보",
+  "slideshow.aria.settings": "설정",
+  "slideshow.aria.fullscreen": "전체 화면",
+  "slideshow.aria.close_settings": "설정 닫기"
 }

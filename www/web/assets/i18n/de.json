@@ -1116,9 +1116,7 @@
   "public_profile.no_bio": "Noch nichts geschrieben",
   "public_profile.links_label": "Links",
   "public_profile.badges_label": "Abzeichen",
-
   "admin_layout.nav_contacts": "Kontakt",
-
   "shell.contact.button": "Kontakt",
   "shell.contact.title": "Kontakt",
   "shell.contact.category": "Kategorie",
@@ -1133,7 +1131,6 @@
   "shell.contact.success": "Ihre Nachricht wurde gesendet.",
   "shell.contact.error_empty": "Bitte geben Sie eine Nachricht ein.",
   "shell.contact.error_failed": "Senden fehlgeschlagen. Bitte erneut versuchen.",
-
   "admin_contacts.page_title": "Kontakt",
   "admin_contacts.status": "Status",
   "admin_contacts.status_all": "Alle",
@@ -1287,7 +1284,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "Diashow",
   "slideshow.action.open": "Diashow",
   "slideshow.action.start": "Starten",
@@ -1318,5 +1314,15 @@
   "slideshow.fit.contain": "Anpassen",
   "slideshow.meta.cursor": "Bei Cursor",
   "slideshow.meta.always": "Immer",
-  "slideshow.meta.hidden": "Versteckt"
+  "slideshow.meta.hidden": "Versteckt",
+  "slideshow.aria.slideshow": "Diashow",
+  "slideshow.aria.previous": "Zurück",
+  "slideshow.aria.next": "Weiter",
+  "slideshow.aria.close": "Schließen",
+  "slideshow.aria.play_pause": "Abspielen/Pausieren",
+  "slideshow.aria.like": "Gefällt mir",
+  "slideshow.aria.details": "Details",
+  "slideshow.aria.settings": "Einstellungen",
+  "slideshow.aria.fullscreen": "Vollbild",
+  "slideshow.aria.close_settings": "Einstellungen schließen"
 }

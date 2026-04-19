@@ -205,10 +205,11 @@ body.is-image-modal-open {
   background: transparent;
 }
 .image-modal.is-detail-standalone .image-modal__backdrop,
-.image-modal.is-detail-standalone .image-modal__img,
-.image-modal.is-detail-standalone .image-modal__controls,
+.image-modal.is-detail-standalone .image-modal__close,
 .image-modal.is-detail-standalone .image-modal__nav,
-.image-modal.is-detail-standalone .image-modal__slider-wrap {
+.image-modal.is-detail-standalone .image-modal__stage,
+.image-modal.is-detail-standalone .image-modal__slider-wrap,
+.image-modal.is-detail-standalone .image-modal__footer {
   display: none;
 }
 .image-modal.is-detail-standalone .image-detail-modal {

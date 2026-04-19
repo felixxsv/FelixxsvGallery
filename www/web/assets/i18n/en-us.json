@@ -1136,9 +1136,7 @@
   "public_profile.no_bio": "Nothing written yet",
   "public_profile.links_label": "Links",
   "public_profile.badges_label": "Badges",
-
   "admin_layout.nav_contacts": "Contacts",
-
   "shell.contact.button": "Contact",
   "shell.contact.title": "Contact Us",
   "shell.contact.category": "Category",
@@ -1153,7 +1151,6 @@
   "shell.contact.success": "Your message has been sent.",
   "shell.contact.error_empty": "Please enter a message.",
   "shell.contact.error_failed": "Failed to send. Please try again.",
-
   "admin_contacts.page_title": "Contacts",
   "admin_contacts.status": "Status",
   "admin_contacts.status_all": "All",
@@ -1191,7 +1188,6 @@
   "admin_contacts.category_other": "Other",
   "admin_contacts.role_admin": "Admin",
   "admin_contacts.role_user": "User",
-
   "support.common.title": "Support",
   "support.entry.openSupport": "Support",
   "support.modal.default.heading": "Support Felixxsv Gallery",
@@ -1308,7 +1304,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "Slideshow",
   "slideshow.action.open": "Slideshow",
   "slideshow.action.start": "Start",
@@ -1339,5 +1334,15 @@
   "slideshow.fit.contain": "Fit",
   "slideshow.meta.cursor": "On cursor",
   "slideshow.meta.always": "Always",
-  "slideshow.meta.hidden": "Hidden"
+  "slideshow.meta.hidden": "Hidden",
+  "slideshow.aria.slideshow": "Slideshow",
+  "slideshow.aria.previous": "Previous",
+  "slideshow.aria.next": "Next",
+  "slideshow.aria.close": "Close",
+  "slideshow.aria.play_pause": "Play/Pause",
+  "slideshow.aria.like": "Like",
+  "slideshow.aria.details": "Details",
+  "slideshow.aria.settings": "Settings",
+  "slideshow.aria.fullscreen": "Fullscreen",
+  "slideshow.aria.close_settings": "Close settings"
 }

@@ -1136,9 +1136,7 @@
   "public_profile.no_bio": "まだ書かれていません",
   "public_profile.links_label": "リンク",
   "public_profile.badges_label": "バッジ",
-
   "admin_layout.nav_contacts": "お問い合わせ",
-
   "shell.contact.button": "お問い合わせ",
   "shell.contact.title": "お問い合わせ",
   "shell.contact.category": "カテゴリ",
@@ -1153,7 +1151,6 @@
   "shell.contact.success": "お問い合わせを送信しました。",
   "shell.contact.error_empty": "内容を入力してください。",
   "shell.contact.error_failed": "送信に失敗しました。もう一度お試しください。",
-
   "admin_contacts.page_title": "お問い合わせ",
   "admin_contacts.status": "ステータス",
   "admin_contacts.status_all": "すべて",
@@ -1191,7 +1188,6 @@
   "admin_contacts.category_other": "その他",
   "admin_contacts.role_admin": "管理者",
   "admin_contacts.role_user": "ユーザー",
-
   "support.common.title": "支援",
   "support.entry.openSupport": "支援する",
   "support.modal.default.heading": "Felixxsv Gallery を応援する",
@@ -1308,7 +1304,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "スライドショー",
   "slideshow.action.open": "スライドショー",
   "slideshow.action.start": "開始",
@@ -1339,5 +1334,15 @@
   "slideshow.fit.contain": "フィット",
   "slideshow.meta.cursor": "カーソル時",
   "slideshow.meta.always": "常に表示",
-  "slideshow.meta.hidden": "非表示"
+  "slideshow.meta.hidden": "非表示",
+  "slideshow.aria.slideshow": "スライドショー",
+  "slideshow.aria.previous": "前の画像",
+  "slideshow.aria.next": "次の画像",
+  "slideshow.aria.close": "閉じる",
+  "slideshow.aria.play_pause": "再生/一時停止",
+  "slideshow.aria.like": "いいね",
+  "slideshow.aria.details": "詳細",
+  "slideshow.aria.settings": "設定",
+  "slideshow.aria.fullscreen": "全画面",
+  "slideshow.aria.close_settings": "設定を閉じる"
 }

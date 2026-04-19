@@ -1116,9 +1116,7 @@
   "public_profile.no_bio": "Nada escrito aún",
   "public_profile.links_label": "Enlaces",
   "public_profile.badges_label": "Insignias",
-
   "admin_layout.nav_contacts": "Contacto",
-
   "shell.contact.button": "Contacto",
   "shell.contact.title": "Contactar",
   "shell.contact.category": "Categoría",
@@ -1133,7 +1131,6 @@
   "shell.contact.success": "Tu mensaje ha sido enviado.",
   "shell.contact.error_empty": "Por favor, escribe un mensaje.",
   "shell.contact.error_failed": "Error al enviar. Por favor, inténtalo de nuevo.",
-
   "admin_contacts.page_title": "Contacto",
   "admin_contacts.status": "Estado",
   "admin_contacts.status_all": "Todos",
@@ -1287,7 +1284,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "Presentación",
   "slideshow.action.open": "Presentación",
   "slideshow.action.start": "Iniciar",
@@ -1318,5 +1314,15 @@
   "slideshow.fit.contain": "Ajustar",
   "slideshow.meta.cursor": "Al mover cursor",
   "slideshow.meta.always": "Siempre",
-  "slideshow.meta.hidden": "Oculto"
+  "slideshow.meta.hidden": "Oculto",
+  "slideshow.aria.slideshow": "Presentación",
+  "slideshow.aria.previous": "Anterior",
+  "slideshow.aria.next": "Siguiente",
+  "slideshow.aria.close": "Cerrar",
+  "slideshow.aria.play_pause": "Reproducir/Pausar",
+  "slideshow.aria.like": "Me gusta",
+  "slideshow.aria.details": "Detalles",
+  "slideshow.aria.settings": "Configuración",
+  "slideshow.aria.fullscreen": "Pantalla completa",
+  "slideshow.aria.close_settings": "Cerrar configuración"
 }

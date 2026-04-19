@@ -1116,9 +1116,7 @@
   "public_profile.no_bio": "Rien d'écrit pour l'instant",
   "public_profile.links_label": "Liens",
   "public_profile.badges_label": "Badges",
-
   "admin_layout.nav_contacts": "Contact",
-
   "shell.contact.button": "Contact",
   "shell.contact.title": "Nous contacter",
   "shell.contact.category": "Catégorie",
@@ -1133,7 +1131,6 @@
   "shell.contact.success": "Votre message a été envoyé.",
   "shell.contact.error_empty": "Veuillez saisir un message.",
   "shell.contact.error_failed": "Échec de l'envoi. Veuillez réessayer.",
-
   "admin_contacts.page_title": "Contact",
   "admin_contacts.status": "Statut",
   "admin_contacts.status_all": "Tous",
@@ -1287,7 +1284,6 @@
   "support.icon_frame.amber_ring": "Amber Ring",
   "support.profile_decor.aurora_glow": "Aurora Glow",
   "support.profile_decor.sunrise_wave": "Sunrise Wave",
-
   "slideshow.title": "Diaporama",
   "slideshow.action.open": "Diaporama",
   "slideshow.action.start": "Démarrer",
@@ -1318,5 +1314,15 @@
   "slideshow.fit.contain": "Adapter",
   "slideshow.meta.cursor": "Au curseur",
   "slideshow.meta.always": "Toujours",
-  "slideshow.meta.hidden": "Caché"
+  "slideshow.meta.hidden": "Caché",
+  "slideshow.aria.slideshow": "Diaporama",
+  "slideshow.aria.previous": "Précédent",
+  "slideshow.aria.next": "Suivant",
+  "slideshow.aria.close": "Fermer",
+  "slideshow.aria.play_pause": "Lecture/Pause",
+  "slideshow.aria.like": "J'aime",
+  "slideshow.aria.details": "Détails",
+  "slideshow.aria.settings": "Paramètres",
+  "slideshow.aria.fullscreen": "Plein écran",
+  "slideshow.aria.close_settings": "Fermer les paramètres"
 }
