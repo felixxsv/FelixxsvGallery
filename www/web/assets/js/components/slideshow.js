@@ -101,7 +101,7 @@ export function createSlideshowController({ app }) {
   overlay.hidden = true;
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
-  overlay.setAttribute("aria-label", "Slideshow");
+  overlay.setAttribute("aria-label", t(app, "aria.slideshow", "Slideshow"));
   overlay.innerHTML = buildPlaybackHTML();
   document.body.appendChild(overlay);
 
@@ -148,17 +148,27 @@ export function createSlideshowController({ app }) {
   // ─── Playback HTML ───────────────────────────────────────────────
 
   function buildPlaybackHTML() {
+    const lb  = esc(t(app, "aria.close",          "Close"));
+    const lp  = esc(t(app, "aria.previous",        "Previous"));
+    const ln  = esc(t(app, "aria.next",            "Next"));
+    const lpp = esc(t(app, "aria.play_pause",      "Play/Pause"));
+    const llk = esc(t(app, "aria.like",            "Like"));
+    const ldt = esc(t(app, "aria.details",         "Details"));
+    const lst = esc(t(app, "aria.settings",        "Settings"));
+    const lfs = esc(t(app, "aria.fullscreen",      "Fullscreen"));
+    const lcs = esc(t(app, "aria.close_settings",  "Close settings"));
+    const ltt = esc(t(app, "settings.title",       "Settings"));
     return `
 <div class="slideshow__stage" data-ss-stage></div>
 
-<button type="button" class="slideshow__zone slideshow__zone--prev" data-ss-zone-prev aria-label="Previous"></button>
-<button type="button" class="slideshow__zone slideshow__zone--next" data-ss-zone-next aria-label="Next"></button>
+<button type="button" class="slideshow__zone slideshow__zone--prev" data-ss-zone-prev aria-label="${lp}"></button>
+<button type="button" class="slideshow__zone slideshow__zone--next" data-ss-zone-next aria-label="${ln}"></button>
 
 <div class="slideshow__flash" data-ss-flash hidden>
   <span class="slideshow__flash-icon" data-ss-flash-icon></span>
 </div>
 
-<button type="button" class="slideshow__close" data-ss-playback-close aria-label="Close"></button>
+<button type="button" class="slideshow__close" data-ss-playback-close aria-label="${lb}"></button>
 
 <div class="slideshow__bar" data-ss-hud>
   <div class="slideshow__progress" data-ss-progress hidden>
@@ -171,28 +181,28 @@ export function createSlideshowController({ app }) {
       <span class="slideshow__bar-source" data-ss-source-label></span>
     </div>
     <div class="slideshow__bar-center">
-      <button type="button" class="slideshow__nav-btn" data-ss-prev aria-label="Previous">
+      <button type="button" class="slideshow__nav-btn" data-ss-prev aria-label="${lp}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
-      <button type="button" class="slideshow__nav-btn slideshow__nav-btn--play" data-ss-playpause aria-label="Play/Pause">
+      <button type="button" class="slideshow__nav-btn slideshow__nav-btn--play" data-ss-playpause aria-label="${lpp}">
         <span data-ss-playpause-icon></span>
       </button>
-      <button type="button" class="slideshow__nav-btn" data-ss-next aria-label="Next">
+      <button type="button" class="slideshow__nav-btn" data-ss-next aria-label="${ln}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
     <div class="slideshow__bar-right">
-      <button type="button" class="slideshow__bar-action slideshow__bar-like" data-ss-like aria-label="Like" hidden>
+      <button type="button" class="slideshow__bar-action slideshow__bar-like" data-ss-like aria-label="${llk}" hidden>
         <span data-ss-like-icon>♡</span>
         <span data-ss-like-count>0</span>
       </button>
-      <button type="button" class="slideshow__bar-action" data-ss-detail aria-label="Details" title="Details">
+      <button type="button" class="slideshow__bar-action" data-ss-detail aria-label="${ldt}" title="${ldt}">
         <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="16" cy="10" r="1.6"/></svg>
       </button>
-      <button type="button" class="slideshow__bar-action" data-ss-settings-toggle aria-label="Settings" title="Settings">
+      <button type="button" class="slideshow__bar-action" data-ss-settings-toggle aria-label="${lst}" title="${lst}">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"/></svg>
       </button>
-      <button type="button" class="slideshow__bar-action" data-ss-fullscreen aria-label="Fullscreen" title="Fullscreen">
+      <button type="button" class="slideshow__bar-action" data-ss-fullscreen aria-label="${lfs}" title="${lfs}">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>
       </button>
     </div>
@@ -201,8 +211,8 @@ export function createSlideshowController({ app }) {
 
 <div class="slideshow__settings-panel" data-ss-settings-panel hidden>
   <div class="slideshow__settings-panel-header">
-    <span data-ss-settings-panel-title>Settings</span>
-    <button type="button" class="slideshow__toolbar-btn" data-ss-settings-close aria-label="Close settings">
+    <span data-ss-settings-panel-title>${ltt}</span>
+    <button type="button" class="slideshow__toolbar-btn" data-ss-settings-close aria-label="${lcs}">
       <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="17" y2="17"/><line x1="17" y1="3" x2="3" y2="17"/></svg>
     </button>
   </div>
@@ -211,6 +221,44 @@ export function createSlideshowController({ app }) {
 
 <div class="slideshow__overlay-msg" data-ss-empty hidden></div>
 <div class="slideshow__overlay-msg" data-ss-loading hidden></div>`;
+  }
+
+  function applyTranslations() {
+    overlay.setAttribute("aria-label", t(app, "aria.slideshow", "Slideshow"));
+    const set = (sel, attr, key, fallback, extra) => {
+      const el2 = overlay.querySelector(sel) || (sel.startsWith("[data") ? null : null);
+      if (el2) {
+        el2.setAttribute(attr, t(app, key, fallback));
+        if (extra) el2[extra] = t(app, key, fallback);
+      }
+    };
+    if (el.zonePrev)     el.zonePrev.setAttribute("aria-label",     t(app, "aria.previous",       "Previous"));
+    if (el.zoneNext)     el.zoneNext.setAttribute("aria-label",     t(app, "aria.next",            "Next"));
+    if (el.playbackClose)el.playbackClose.setAttribute("aria-label",t(app, "aria.close",           "Close"));
+    if (el.prevBtn)      el.prevBtn.setAttribute("aria-label",      t(app, "aria.previous",        "Previous"));
+    if (el.nextBtn)      el.nextBtn.setAttribute("aria-label",      t(app, "aria.next",            "Next"));
+    if (el.likeBtn)      el.likeBtn.setAttribute("aria-label",      t(app, "aria.like",            "Like"));
+    if (el.detailBtn) {
+      const ldt = t(app, "aria.details", "Details");
+      el.detailBtn.setAttribute("aria-label", ldt);
+      el.detailBtn.title = ldt;
+    }
+    if (el.settingsToggle) {
+      const lst = t(app, "aria.settings", "Settings");
+      el.settingsToggle.setAttribute("aria-label", lst);
+      el.settingsToggle.title = lst;
+    }
+    if (el.fullscreenBtn) {
+      const lfs = t(app, "aria.fullscreen", "Fullscreen");
+      el.fullscreenBtn.setAttribute("aria-label", lfs);
+      el.fullscreenBtn.title = lfs;
+    }
+    const closeSettingsBtn = el.settingsPanel?.querySelector("[data-ss-settings-close]");
+    if (closeSettingsBtn) closeSettingsBtn.setAttribute("aria-label", t(app, "aria.close_settings", "Close settings"));
+    const titleEl = el.settingsPanel?.querySelector("[data-ss-settings-panel-title]");
+    if (titleEl) titleEl.textContent = t(app, "settings.title", "Settings");
+    syncPlayPauseBtn();
+    if (el.settingsBody && !el.settingsPanel?.hidden) buildSettingsRows(el.settingsBody);
   }
 
   // ─── Settings UI ────────────────────────────────────────────────
@@ -985,6 +1033,7 @@ export function createSlideshowController({ app }) {
   el.fullscreenBtn?.addEventListener("click", toggleFullscreen);
 
   document.addEventListener("fullscreenchange", syncFullscreenBtn);
+  window.addEventListener("gallery:language-changed", applyTranslations);
 
   overlay.addEventListener("mousemove", showHud);
   overlay.addEventListener("touchstart", showHud, { passive: true });

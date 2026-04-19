@@ -3854,13 +3854,70 @@ body.is-slideshow-open {
     font-size: 0.85rem;
   }
 
+  /* Larger touch targets on mobile */
+  .slideshow__nav-btn {
+    width: 44px;
+    height: 44px;
+  }
+
   .slideshow__nav-btn--play {
-    width: 42px;
-    height: 42px;
+    width: 46px;
+    height: 46px;
+  }
+
+  .slideshow__bar-action {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Fullscreen button is redundant on mobile (browser handles it) */
+  [data-ss-fullscreen] {
+    display: none;
   }
 
   .slideshow__seg-btn {
     padding: 4px 7px;
     font-size: 0.75rem;
+  }
+}
+
+/* ── Very small phones (≤430px) ──────────────────────────────── */
+@media (max-width: 430px) {
+  .slideshow__bar-inner {
+    padding: 8px 10px 12px;
+    gap: 4px;
+  }
+
+  .slideshow__bar-center {
+    gap: 4px;
+  }
+
+  .slideshow__bar-right {
+    gap: 0;
+  }
+
+  .slideshow__nav-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .slideshow__nav-btn--play {
+    width: 44px;
+    height: 44px;
+  }
+
+  .slideshow__bar-action {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Hide like count on tiny screens to save space */
+  [data-ss-like-count] {
+    display: none;
+  }
+
+  .slideshow__bar-like {
+    padding: 0 6px;
+    min-width: 36px;
   }
 }
