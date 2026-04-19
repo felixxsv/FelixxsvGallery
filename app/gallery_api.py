@@ -982,6 +982,7 @@ def list_images(
     posted_date_to: str | None = None,
     shortcut: str | None = None,
     random_seed: str | None = None,
+    liked_only: bool = Query(False),
 ):
     per_page = clamp_per_page(per_page)
     offset = (page - 1) * per_page
@@ -1018,6 +1019,14 @@ def list_images(
     sort_key = (sort or "latest").lower()
     join_stats = "LEFT JOIN image_stats st ON st.image_id=i.id"
     status_join = "LEFT JOIN admin_content_states acs ON acs.image_id=i.id"
+    if liked_only:
+        if viewer_user_id is None:
+            where_extra_sql += " AND 1=0"
+            liked_join = ""
+        else:
+            liked_join = f"INNER JOIN image_likes il_f ON il_f.image_id=i.id AND il_f.user_id={int(viewer_user_id)}"
+    else:
+        liked_join = ""
     visibility_sql, visibility_params = _viewer_visible_image_sql(viewer_user_id, "i", "acs")
     access_token_select = ", i.access_token" if _HAS_IMAGES_ACCESS_TOKEN else ", NULL AS access_token"
     focal_zoom_select = ", COALESCE(i.focal_zoom, 1.0) AS focal_zoom" if _HAS_IMAGES_FOCAL_ZOOM else ", 1.0 AS focal_zoom"
@@ -1060,6 +1069,7 @@ FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
 {status_join}
+{liked_join}
 WHERE i.gallery=%s AND {visibility_sql}
 {where_extra_sql}
 """
@@ -1077,6 +1087,7 @@ FROM images i
 JOIN image_sources s ON s.image_id=i.id AND s.gallery=%s AND s.is_primary=1 AND s.is_hidden=0
 {join_stats}
 {status_join}
+{liked_join}
 {user_join}
 WHERE i.gallery=%s AND {visibility_sql}
 {where_extra_sql}

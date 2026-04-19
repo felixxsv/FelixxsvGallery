@@ -10,6 +10,7 @@ import { createImageModalController } from "./core/image-modal.js?v=20260415-pub
 import { initUserShell } from "./components/user-shell.js?v=20260415-admin-support-filter-v1";
 import { initPublicProfileModal } from "./components/public-profile.js?v=20260415-profile-support-hide-v1";
 import { createUploadModalController } from "./components/upload-modal.js?v=20260415-unsaved-guards-v1";
+import { createSlideshowController } from "./components/slideshow.js";
 import { initHomePage } from "./page/home.js";
 import { ensureCustomScrollbars, updateCustomScrollbars } from "./core/custom-scrollbar.js";
 
@@ -49,6 +50,7 @@ function createAppContext() {
     toast,
     imageModal,
     uploadModal: null,
+    slideshow: null,
     page: document.body.dataset.page || "",
     presence: null
   };
@@ -545,6 +547,13 @@ async function bootstrap() {
         onUploaded: () => document.dispatchEvent(new CustomEvent("gallery:uploaded")),
       });
     });
+  }
+
+  app.slideshow = createSlideshowController({ app });
+
+  const slideshowBtn = byId("shellSlideshowButton");
+  if (slideshowBtn) {
+    slideshowBtn.addEventListener("click", () => app.slideshow?.open());
   }
 
   try {

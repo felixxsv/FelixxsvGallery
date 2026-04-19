@@ -147,6 +147,7 @@ export function initUserShell(app) {
     adminLink: byId("shellAdminLink"),
     userFooter: byId("shellUserFooter"),
     openSupportButton: byId("shellOpenSupportButton"),
+    slideshowButton: byId("shellSlideshowButton"),
     logoutButton: byId("shellLogoutButton"),
     logoutAllButton: byId("shellLogoutAllButton"),
 
@@ -1158,6 +1159,7 @@ export function initUserShell(app) {
     const supportSummaryItem = refs.supportSummaryText?.closest(".shell-security-item");
     const supportShortcutItem = refs.supportSettingsShortcut;
     if (refs.openSupportButton) refs.openSupportButton.hidden = !isAuth || !supportUiEnabled;
+    if (refs.slideshowButton) refs.slideshowButton.hidden = !isAuth || !(support?.status?.is_active);
     if (refs.supportOpenFromSettingsButton) refs.supportOpenFromSettingsButton.hidden = !isAuth || !supportUiEnabled;
     if (refs.supportOpenSettingsButton) refs.supportOpenSettingsButton.hidden = !isAuth || !supportUiEnabled;
     if (supportSummaryItem) supportSummaryItem.hidden = !isAuth || !supportUiEnabled;
