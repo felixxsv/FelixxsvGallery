@@ -96,6 +96,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     draftListMounted: false,
     draftListCache: null,
     draftPreviewThumbUrl: null,
+    loadedDraftId: null,
     stripDragActive: false,
     stripDragIndex: -1,
     stripInsertIndex: -1,
@@ -788,6 +789,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     if (refs.visInput) refs.visInput.checked = isPublic !== false;
     state.lastSavedDraft = { title: entry.title || "" };
     state.formDirty = false;
+    state.loadedDraftId = entry.id ?? null;
     state.draftPreviewThumbUrl = entry.thumbnail_path
       ? `${app.appBase}/storage/${entry.thumbnail_path}`
       : null;
@@ -960,10 +962,9 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   }
 
   function hasUnsavedChanges() {
-    // 下書き保存直後（フォーム変更なし）はクリーンに閉じてよい
-    // ファイルが選択されていてもフォームデータはDBに保存済みなので警告不要
+    // 下書き保存直後・下書き読み込み直後（フォーム変更なし）はクリーンに閉じてよい
     if (state.draftJustSaved && !state.formDirty) return false;
-    // ファイルが選択されている場合は「未保存」（下書きにはファイルは保存できない）
+    if (state.loadedDraftId && !state.formDirty) return false;
     if (state.items.length > 0) return true;
     // 下書き読み込み後や手入力データは未保存扱い（誤操作で消えないよう警告）
     return (
@@ -1104,6 +1105,7 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
     state.draftJustSaved = false;
     state.draftListCache = null;
     state.draftPreviewThumbUrl = null;
+    state.loadedDraftId = null;
     closeDraftListModal();
     removeStripGhost();
     state.stripDragActive = false;
@@ -1513,8 +1515,13 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
         : t(app, "success_default", "Upload completed.");
       setInlineMessage(successMessage, "success");
       app.toast?.success?.(resolveLocalizedMessage(successMessage, t(app, "success_default", "Upload completed.")));
+      const draftIdToDelete = state.loadedDraftId;
       const uploadedCallback = state.onUploaded;
       close();
+      if (draftIdToDelete) {
+        fetch(`${app.appBase}/api/drafts/${draftIdToDelete}`, { method: "DELETE", credentials: "include" })
+          .catch(() => {});
+      }
       if (typeof uploadedCallback === "function") {
         await uploadedCallback(payload);
       }
