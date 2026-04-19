@@ -200,7 +200,7 @@ export function createSlideshowController({ app }) {
         <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="16" cy="10" r="1.6"/></svg>
       </button>
       <button type="button" class="slideshow__bar-action" data-ss-settings-toggle aria-label="${lst}" title="${lst}">
-        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"/></svg>
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="5" x2="10" y2="5"/><line x1="14" y1="5" x2="18" y2="5"/><circle cx="12" cy="5" r="2"/><line x1="2" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="18" y2="10"/><circle cx="8" cy="10" r="2"/><line x1="2" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="18" y2="15"/><circle cx="14" cy="15" r="2"/></svg>
       </button>
       <button type="button" class="slideshow__bar-action" data-ss-fullscreen aria-label="${lfs}" title="${lfs}">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>

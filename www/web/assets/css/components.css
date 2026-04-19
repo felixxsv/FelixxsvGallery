@@ -3532,8 +3532,20 @@ body.is-slideshow-open {
   font-size: 0;
   backdrop-filter: blur(4px);
   overflow: hidden;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, background 0.15s, border-color 0.15s, transform 0.15s;
   flex-shrink: 0;
+}
+
+.slideshow.is-hud-active .slideshow__close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.slideshow.is-meta-hidden .slideshow__close {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .slideshow__close:hover {
