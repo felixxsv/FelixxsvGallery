@@ -332,9 +332,19 @@ export function createImageModalController({ app, body = document.body } = {}) {
       }
     },
     onPreviewOpen() {
-      detailModal.close();
-      updateControlsVisibility(true);
-      viewport.focus?.();
+      if (root.classList.contains("is-detail-standalone")) {
+        // Transition: standalone detail → full image viewer
+        root.classList.remove("is-detail-standalone");
+        // onClose will fire next, but is-detail-standalone is gone so cleanup is skipped
+        detailModal.close();
+        renderCurrentItem();
+        updateControlsVisibility(true);
+        viewport.focus?.();
+      } else {
+        detailModal.close();
+        updateControlsVisibility(true);
+        viewport.focus?.();
+      }
     },
     onVisibilityToggle() {
       toggleOwnedContentVisibility();
