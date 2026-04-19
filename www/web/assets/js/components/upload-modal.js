@@ -717,6 +717,11 @@ export function createUploadModalController({ app, scope = "public" } = {}) {
   }
 
   async function saveDraft() {
+    const title = refs.titleInput?.value?.trim() || "";
+    if (!title && !state.items.length) {
+      app.toast?.error?.(t(app, "draft_empty", "タイトルまたは画像を入力してから保存してください。"));
+      return;
+    }
     const thumbDataUrl = await captureDraftThumbnail();
     const formData = new FormData();
     formData.append("title", refs.titleInput?.value || "");
