@@ -1264,25 +1264,20 @@ body {
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
-  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.55));
 }
 
-/* 80px no-border avatar (profile modal) — larger inset to show ring outside avatar */
 .shell-user-profile__avatar .avatar-frame-overlay {
   inset: -10px;
   width: calc(100% + 20px);
   height: calc(100% + 20px);
 }
 
-/* 80px 2px-border avatar (profile edit modal) — compensate for border in containing block */
-/* box-sizing:border-box makes 100% = 76px; need inset=-12 to get 10px beyond visual edge */
 .shell-profile-avatar .avatar-frame-overlay {
   inset: -12px;
   width: calc(100% + 24px);
   height: calc(100% + 24px);
 }
 
-/* Icon modal (180px, 1px-border) — compensate for 1px border */
 .profile-media-modal__avatar .avatar-frame-overlay {
   inset: -17px;
   width: calc(100% + 34px);
