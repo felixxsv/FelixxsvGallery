@@ -344,8 +344,9 @@ async function revokeBadge(badgeKey) {
 }
 
 function resolveCatalogLabel(item) {
-  const lang = window.AdminApp?.i18n?.language || "ja";
-  return item?.labels?.[lang] || item?.labels?.["ja"] || item?.label_key || item?.key || "";
+  const lang = window.AdminApp?.i18n?.getLanguage?.() || "ja";
+  if (item?.key === "none") return window.AdminApp?.i18n?.t?.("support.common.none", "なし") || "なし";
+  return item?.labels?.[lang] || item?.labels?.["ja"] || item?.labels?.["en"] || item?.label_key || item?.key || "";
 }
 
 function renderDecorationOptions(user) {
