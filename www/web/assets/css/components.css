@@ -1220,6 +1220,8 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
+  max-width: none;
+  max-height: none;
   object-fit: contain;
   pointer-events: none;
   border-radius: inherit;
@@ -1261,6 +1263,8 @@ body {
   inset: -6px;
   width: calc(100% + 12px);
   height: calc(100% + 12px);
+  max-width: none;
+  max-height: none;
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
