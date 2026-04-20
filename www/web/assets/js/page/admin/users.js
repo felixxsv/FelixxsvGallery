@@ -1183,8 +1183,8 @@ document.addEventListener("admin:ready", () => {
       document.querySelectorAll(".admin-decoration-label-input").forEach((el) => { el.value = ""; });
       if (sortOrder) sortOrder.value = "0";
       if (isActiveSwitch) isActiveSwitch.setAttribute("aria-checked", "true");
-      if (currentAsset) currentAsset.textContent = "未設定";
-      if (assetSection) assetSection.style.display = "none";
+      if (currentAsset) currentAsset.textContent = "";
+      if (assetSection) assetSection.style.display = "";
     }
     state.pendingFile = null;
     const assetName = byId("adminDecorationAssetName");
