@@ -1259,8 +1259,6 @@ body {
 .avatar-frame-overlay {
   position: absolute;
   inset: -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
@@ -1268,14 +1266,10 @@ body {
 
 .profile-media-modal__avatar .avatar-frame-overlay {
   inset: -16px;
-  width: calc(100% + 32px);
-  height: calc(100% + 32px);
 }
 
 .shell-supporter-option__preview--avatar .supporter-option-overlay {
   inset: -5px;
-  width: calc(100% + 10px);
-  height: calc(100% + 10px);
 }
 
 .profile-decor-overlay {
@@ -1403,7 +1397,6 @@ body {
   justify-content: flex-start;
   gap: 8px;
   min-width: 0;
-  overflow: hidden;
   padding: 12px 0 4px;
 }
 
@@ -1735,6 +1728,7 @@ body {
   align-items: center;
   gap: 14px;
   text-align: center;
+  overflow: visible;
 }
 
 .profile-media-modal__avatar,
