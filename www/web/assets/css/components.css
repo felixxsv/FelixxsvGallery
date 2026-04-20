@@ -1259,6 +1259,8 @@ body {
 .avatar-frame-overlay {
   position: absolute;
   inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
@@ -1266,10 +1268,14 @@ body {
 
 .profile-media-modal__avatar .avatar-frame-overlay {
   inset: -16px;
+  width: calc(100% + 32px);
+  height: calc(100% + 32px);
 }
 
 .shell-supporter-option__preview--avatar .supporter-option-overlay {
   inset: -5px;
+  width: calc(100% + 10px);
+  height: calc(100% + 10px);
 }
 
 .profile-decor-overlay {
