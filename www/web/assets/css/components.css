@@ -1284,10 +1284,24 @@ body {
   height: calc(100% + 54px);
 }
 
+/* 76px no-border (supporter preview) */
+.shell-supporter-preview__avatar .avatar-frame-overlay {
+  inset: -11px;
+  width: calc(100% + 22px);
+  height: calc(100% + 22px);
+}
+
+/* 56px no-border (user card) */
+.shell-user-card__avatar .avatar-frame-overlay {
+  inset: -9px;
+  width: calc(100% + 18px);
+  height: calc(100% + 18px);
+}
+
 .shell-supporter-option__preview--avatar .supporter-option-overlay {
-  inset: -5px;
-  width: calc(100% + 10px);
-  height: calc(100% + 10px);
+  inset: -10px;
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
 }
 
 .profile-decor-overlay {
