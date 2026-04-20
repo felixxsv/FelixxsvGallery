@@ -1264,6 +1264,7 @@ body {
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.55));
 }
 
 .profile-media-modal__avatar .avatar-frame-overlay {
