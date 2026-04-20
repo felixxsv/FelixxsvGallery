@@ -694,9 +694,14 @@
             <img id="shellAccountAvatarImg" class="shell-profile-avatar__img" src="" alt="アバター" hidden="">
           </div>
           <div class="shell-profile-avatar-controls">
-            <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
-              <span data-i18n="shell.static.icon_change">アイコンを変更</span>
-            </label>
+            <div class="shell-profile-avatar-controls__row">
+              <label class="app-button app-button--ghost app-button--small shell-avatar-upload-label" for="shellAvatarFileInput">
+                <span data-i18n="shell.static.icon_change">アイコンを変更</span>
+              </label>
+              <button id="shellAvatarDecorButton" type="button" class="app-button app-button--ghost app-button--small">
+                <span data-i18n="support.benefits.iconFrame.label">アイコンフレーム</span>
+              </button>
+            </div>
             <input id="shellAvatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="app-visually-hidden">
             <button id="shellAvatarDeleteButton" type="button" class="app-button app-button--ghost app-button--small shell-avatar-delete-btn" hidden="">
               <span data-i18n="shell.action.remove">Remove</span>
@@ -726,6 +731,11 @@
         </label>
       </div>
 
+      <div id="shellProfileDecorSection" class="shell-profile-decor-entry" hidden="">
+        <h3 class="shell-profile-links__title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</h3>
+        <button id="shellProfileDecorOpenButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</button>
+      </div>
+
       <!-- Links section -->
       <div class="shell-profile-links">
         <h3 class="shell-profile-links__title" data-i18n="shell.static.links">リンク</h3>
@@ -743,6 +753,91 @@
     <div class="app-modal-footer app-modal-footer--end">
       <button type="button" class="app-button app-button--ghost" data-modal-close="account" data-i18n="shell.static.cancel">キャンセル</button>
       <button id="shellProfileSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">保存</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="supporter-decor" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="supporter-decor"></div>
+  <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="supporterDecorTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="supporterDecorTitle" class="app-modal-title" data-i18n="support.benefits.iconFrame.label">アイコンフレーム</h2>
+    </div>
+    <div class="app-modal-body">
+      <div id="shellSupporterDecorSection" class="shell-supporter-settings">
+        <div class="shell-supporter-settings__header">
+          <div class="shell-supporter-settings__heading-wrap"></div>
+          <button id="shellSupporterSettingsActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
+        </div>
+        <div class="shell-supporter-settings__layout">
+          <section class="shell-supporter-preview">
+            <div class="shell-supporter-preview__eyebrow" data-i18n="support.settings.previewTitle">プレビュー</div>
+            <div class="shell-supporter-preview__card shell-supporter-preview__card--avatar-only">
+              <div id="shellSupporterPreviewAvatar" class="shell-supporter-preview__avatar" aria-hidden="true">
+                <span id="shellSupporterPreviewAvatarInitial" class="shell-supporter-preview__avatar-initial">F</span>
+                <img id="shellSupporterPreviewAvatarImg" class="shell-supporter-preview__avatar-img" src="" alt="" hidden="">
+              </div>
+            </div>
+            <p id="shellSupporterPreviewNote" class="shell-supporter-preview__note" data-i18n="support.settings.previewLocked">支援するとこの装飾を利用できます。</p>
+          </section>
+          <section id="shellSupporterControls" class="shell-supporter-settings__controls">
+            <div id="shellSupporterLockedNote" class="shell-supporter-locked-note" hidden="">
+              <span class="shell-supporter-locked-note__badge" data-i18n="support.common.title">Support / 支援</span>
+              <span data-i18n="support.messages.unlockWithSupport">支援するとこの設定を有効化できます。</span>
+            </div>
+            <div class="shell-supporter-settings__group">
+              <div id="shellSupporterIconFrameOptions" class="shell-supporter-option-grid" role="group" aria-label="Icon Frame" data-i18n-aria-label="support.settings.iconFrameOptionsAria"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button id="shellSupporterSettingsSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">保存</button>
+    </div>
+  </div>
+</section>
+
+<section class="app-modal-layer" data-modal-layer="" data-modal-id="profile-decor" hidden="">
+  <div class="app-modal-backdrop" data-modal-backdrop="profile-decor"></div>
+  <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="profileDecorTitle" tabindex="-1">
+    <div class="app-modal-header">
+      <h2 id="profileDecorTitle" class="app-modal-title" data-i18n="support.benefits.profileDecor.label">プロフィール装飾</h2>
+    </div>
+    <div class="app-modal-body">
+      <div class="shell-supporter-settings shell-supporter-settings--decor">
+        <div class="shell-supporter-settings__header">
+          <div class="shell-supporter-settings__heading-wrap"></div>
+          <button id="shellProfileDecorActionButton" type="button" class="app-button app-button--ghost app-button--small" data-i18n="support.entry.openSupport">支援する</button>
+        </div>
+        <div class="shell-supporter-settings__layout">
+          <section class="shell-supporter-preview shell-profile-decor-preview">
+            <div class="shell-supporter-preview__eyebrow" data-i18n="support.settings.previewTitle">プレビュー</div>
+            <div id="shellProfileDecorPreviewCard" class="shell-supporter-preview__card shell-profile-decor-preview__card">
+              <div id="shellProfileDecorPreviewAvatar" class="shell-supporter-preview__avatar" aria-hidden="true">
+                <span id="shellProfileDecorPreviewAvatarInitial" class="shell-supporter-preview__avatar-initial">F</span>
+                <img id="shellProfileDecorPreviewAvatarImg" class="shell-supporter-preview__avatar-img" src="" alt="" hidden="">
+              </div>
+              <div class="shell-supporter-preview__meta">
+                <div id="shellProfileDecorPreviewDisplayName" class="shell-supporter-preview__name" data-i18n="support.settings.previewDefaultName">Felix</div>
+                <div id="shellProfileDecorPreviewUserKey" class="shell-supporter-preview__key" data-i18n="support.settings.previewDefaultUserKey">@felix</div>
+                <div id="shellProfileDecorPreviewBio" class="shell-profile-decor-preview__bio" data-i18n="support.settings.previewDefaultBio">Felixxsv Gallery</div>
+              </div>
+            </div>
+            <p id="shellProfileDecorPreviewNote" class="shell-supporter-preview__note" data-i18n="support.settings.previewLocked">支援するとこの装飾を利用できます。</p>
+          </section>
+          <section id="shellProfileDecorControls" class="shell-supporter-settings__controls shell-profile-decor-controls">
+            <div id="shellProfileDecorLockedNote" class="shell-supporter-locked-note" hidden="">
+              <span class="shell-supporter-locked-note__badge" data-i18n="support.common.title">Support / 支援</span>
+              <span data-i18n="support.messages.unlockWithSupport">支援するとこの設定を有効化できます。</span>
+            </div>
+            <div id="shellAccountProfileDecorOptions" class="shell-supporter-option-grid" role="group" aria-label="Profile Decoration" data-i18n-aria-label="support.settings.profileDecorOptionsAria"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <div class="app-modal-footer app-modal-footer--end">
+      <button id="shellProfileDecorSaveButton" type="button" class="app-button app-button--primary" data-i18n="shell.static.save">保存</button>
     </div>
   </div>
 </section>
