@@ -287,7 +287,6 @@ body.is-image-modal-open {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  overflow: hidden;
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
   font-weight: 700;
@@ -297,6 +296,7 @@ body.is-image-modal-open {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  clip-path: circle(50%);
 }
 
 .image-modal__actions {
@@ -676,7 +676,6 @@ body.is-image-modal-open {
   width: 42px;
   height: 42px;
   border-radius: 999px;
-  overflow: hidden;
   flex: 0 0 auto;
 }
 
@@ -685,6 +684,7 @@ body.is-image-modal-open {
   height: 42px;
   border-radius: 999px;
   object-fit: cover;
+  clip-path: circle(50%);
   flex: 0 0 auto;
 }
 

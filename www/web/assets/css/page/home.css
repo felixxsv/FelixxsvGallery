@@ -1161,7 +1161,6 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   color: var(--home-card-title);
   cursor: pointer;
   pointer-events: auto;
-  overflow: hidden;
   flex-shrink: 0;
   transition: border-color 0.18s ease, transform 0.18s ease;
 }
@@ -1181,13 +1180,13 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   font-size: 0.8rem;
   font-weight: 700;
   border-radius: 50%;
-  overflow: hidden;
 }
 
 .home-gallery-card__user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  clip-path: circle(50%);
 }
 
 .home-gallery-card__like {
