@@ -1267,10 +1267,26 @@ body {
   filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.55));
 }
 
+/* 80px no-border avatar (profile modal) — larger inset to show ring outside avatar */
+.shell-user-profile__avatar .avatar-frame-overlay {
+  inset: -10px;
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
+}
+
+/* 80px 2px-border avatar (profile edit modal) — compensate for border in containing block */
+/* box-sizing:border-box makes 100% = 76px; need inset=-12 to get 10px beyond visual edge */
+.shell-profile-avatar .avatar-frame-overlay {
+  inset: -12px;
+  width: calc(100% + 24px);
+  height: calc(100% + 24px);
+}
+
+/* Icon modal (180px, 1px-border) — compensate for 1px border */
 .profile-media-modal__avatar .avatar-frame-overlay {
-  inset: -16px;
-  width: calc(100% + 32px);
-  height: calc(100% + 32px);
+  inset: -17px;
+  width: calc(100% + 34px);
+  height: calc(100% + 34px);
 }
 
 .shell-supporter-option__preview--avatar .supporter-option-overlay {
@@ -1357,7 +1373,7 @@ body {
 .shell-user-profile-dialog {
   max-width: 760px;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .shell-user-profile-dialog .app-modal-header {
@@ -1366,7 +1382,7 @@ body {
 
 .shell-user-profile-dialog .app-modal-body {
   min-height: 380px;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -1389,7 +1405,7 @@ body {
   grid-template-columns: 144px minmax(0, 1fr);
   gap: 18px;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   padding: 16px;
   border: 1px solid var(--color-border);
   border-radius: 16px;
