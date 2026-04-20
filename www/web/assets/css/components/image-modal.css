@@ -281,6 +281,7 @@ body.is-image-modal-open {
 }
 
 .image-modal__user-avatar {
+  position: relative;
   width: 30px;
   height: 30px;
   display: grid;
@@ -668,6 +669,15 @@ body.is-image-modal-open {
 
 .image-detail-modal__user.is-clickable:hover {
   opacity: 0.75;
+}
+
+.image-detail-modal__avatar-wrap {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex: 0 0 auto;
 }
 
 .image-detail-modal__avatar {

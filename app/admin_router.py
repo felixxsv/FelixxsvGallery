@@ -17,7 +17,7 @@ import io
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Body, Cookie, Path, Query
+from fastapi import APIRouter, Body, Cookie, File, Form, Path, Query, UploadFile
 from fastapi.responses import JSONResponse, Response
 
 from auth_security import DEFAULT_COOKIE_NAME, build_clear_session_cookie_options
@@ -27,6 +27,7 @@ from db import db_conn, load_conf
 from badge_defs import list_badge_keys, serialize_badge, list_catalog as list_badge_catalog
 from supporter_service import (
     build_supporter_context,
+    get_supporter_catalog,
     grant_supporter_access,
     record_supporter_payment,
     record_supporter_provider_event,
@@ -5932,3 +5933,318 @@ def admin_contacts_done(
         return _json_error(500, request_id, "server_error", "更新に失敗しました。")
     finally:
         conn.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Supporter Decoration Catalog Admin API
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _list_decoration_catalog(conn) -> list[dict]:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+SELECT id, decoration_kind, decoration_key, label_key, preview_class,
+       asset_path, labels, sort_order, is_active, created_at, updated_at
+FROM supporter_decoration_catalog
+ORDER BY decoration_kind ASC, sort_order ASC, id ASC
+"""
+        )
+        rows = list(cur.fetchall() or [])
+    result = []
+    for row in rows:
+        labels = row.get("labels")
+        if isinstance(labels, str):
+            try:
+                import json as _json
+                labels = _json.loads(labels)
+            except Exception:
+                labels = {}
+        result.append({
+            "id": int(row.get("id") or 0),
+            "decoration_kind": str(row.get("decoration_kind") or ""),
+            "decoration_key": str(row.get("decoration_key") or ""),
+            "label_key": str(row.get("label_key") or ""),
+            "preview_class": str(row.get("preview_class") or ""),
+            "asset_path": str(row.get("asset_path") or "").strip() or None,
+            "labels": labels if isinstance(labels, dict) else {},
+            "sort_order": int(row.get("sort_order") or 0),
+            "is_active": bool(row.get("is_active")),
+            "created_at": str(row.get("created_at") or ""),
+            "updated_at": str(row.get("updated_at") or ""),
+        })
+    return result
+
+
+@router.get("/decorations")
+def admin_decorations_list(
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    _, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=True)
+        items = _list_decoration_catalog(conn)
+        return _json_success(request_id=request_id, data={"items": items}, message="デコレーションカタログを取得しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        return _json_error(500, request_id, "server_error", "取得に失敗しました。")
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.post("/decorations")
+def admin_decorations_create(
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    import json as _json
+
+    kind = str(payload.get("decoration_kind") or "").strip()
+    if kind not in ("icon_frame", "profile_decor"):
+        return _json_error(400, request_id, "validation_error", "decoration_kind は icon_frame または profile_decor を指定してください。")
+    key = str(payload.get("decoration_key") or "").strip()
+    if not key or not all(c.isalnum() or c == "_" for c in key):
+        return _json_error(400, request_id, "validation_error", "decoration_key は英数字とアンダースコアのみ使用できます。")
+    labels = payload.get("labels") or {}
+    if not isinstance(labels, dict):
+        labels = {}
+    label_key = str(payload.get("label_key") or "").strip()
+    preview_class = str(payload.get("preview_class") or "").strip()
+    sort_order = max(0, int(payload.get("sort_order") or 0))
+    is_active = 1 if payload.get("is_active", True) else 0
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM supporter_decoration_catalog WHERE decoration_key=%s LIMIT 1",
+                (key,),
+            )
+            if cur.fetchone():
+                return _json_error(409, request_id, "duplicate_key", f"decoration_key '{key}' は既に存在します。")
+            cur.execute(
+                """
+INSERT INTO supporter_decoration_catalog
+  (decoration_kind, decoration_key, label_key, preview_class, asset_path, labels, sort_order, is_active)
+VALUES (%s, %s, %s, %s, NULL, %s, %s, %s)
+""",
+                (kind, key, label_key, preview_class, _json.dumps(labels, ensure_ascii=False), sort_order, is_active),
+            )
+            new_id = cur.lastrowid
+        _log_audit_event(conn, int(actor.get("id") or 0) or None,
+                         "admin.decorations.create", "decoration", str(new_id),
+                         "success", f"デコレーション '{key}' を作成しました。", {"kind": kind})
+        conn.commit()
+        items = _list_decoration_catalog(conn)
+        return _json_success(request_id=request_id, data={"id": new_id, "items": items}, message="デコレーションを作成しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "作成に失敗しました。")
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.put("/decorations/{decoration_id}")
+def admin_decorations_update(
+    decoration_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    import json as _json
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, decoration_key FROM supporter_decoration_catalog WHERE id=%s LIMIT 1",
+                (decoration_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return _json_error(404, request_id, "not_found", "対象のデコレーションが見つかりません。")
+
+        labels = payload.get("labels") or {}
+        if not isinstance(labels, dict):
+            labels = {}
+        label_key = str(payload.get("label_key") or "").strip()
+        preview_class = str(payload.get("preview_class") or "").strip()
+        sort_order = max(0, int(payload.get("sort_order") or 0))
+        is_active = 1 if payload.get("is_active", True) else 0
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+UPDATE supporter_decoration_catalog
+SET label_key=%s, preview_class=%s, labels=%s, sort_order=%s, is_active=%s, updated_at=NOW()
+WHERE id=%s
+""",
+                (label_key, preview_class, _json.dumps(labels, ensure_ascii=False), sort_order, is_active, decoration_id),
+            )
+        _log_audit_event(conn, int(actor.get("id") or 0) or None,
+                         "admin.decorations.update", "decoration", str(decoration_id),
+                         "success", f"デコレーション {decoration_id} を更新しました。", {})
+        conn.commit()
+        items = _list_decoration_catalog(conn)
+        return _json_success(request_id=request_id, data={"items": items}, message="デコレーションを更新しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "更新に失敗しました。")
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.delete("/decorations/{decoration_id}")
+def admin_decorations_delete(
+    decoration_id: int = Path(..., ge=1),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, decoration_key, asset_path FROM supporter_decoration_catalog WHERE id=%s LIMIT 1",
+                (decoration_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return _json_error(404, request_id, "not_found", "対象のデコレーションが見つかりません。")
+
+        asset_path = str(row.get("asset_path") or "").strip()
+        if asset_path:
+            conf = _get_conf()
+            storage_root = str((conf.get("paths") or {}).get("storage_root") or "").strip()
+            if storage_root:
+                full_path = os.path.join(storage_root, asset_path.lstrip("/"))
+                try:
+                    if os.path.isfile(full_path):
+                        os.remove(full_path)
+                except Exception:
+                    logger.exception("Failed to remove decoration asset file")
+
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM supporter_decoration_catalog WHERE id=%s", (decoration_id,))
+        _log_audit_event(conn, int(actor.get("id") or 0) or None,
+                         "admin.decorations.delete", "decoration", str(decoration_id),
+                         "success", f"デコレーション {decoration_id} を削除しました。", {})
+        conn.commit()
+        items = _list_decoration_catalog(conn)
+        return _json_success(request_id=request_id, data={"items": items}, message="デコレーションを削除しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "削除に失敗しました。")
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.post("/decorations/{decoration_id}/asset")
+async def admin_decorations_upload_asset(
+    decoration_id: int = Path(..., ge=1),
+    file: UploadFile = File(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+
+    content_type = (file.content_type or "").lower()
+    filename = str(file.filename or "").strip()
+    ext = os.path.splitext(filename)[1].lower() if filename else ""
+    if ext != ".svg" and content_type not in ("image/svg+xml", "image/svg"):
+        return _json_error(400, request_id, "invalid_file", "SVG ファイルのみアップロードできます。")
+
+    conf = _get_conf()
+    storage_root = str((conf.get("paths") or {}).get("storage_root") or "").strip()
+    if not storage_root:
+        return _json_error(500, request_id, "config_error", "storage_root が設定されていません。")
+
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, decoration_key, asset_path FROM supporter_decoration_catalog WHERE id=%s LIMIT 1",
+                (decoration_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return _json_error(404, request_id, "not_found", "対象のデコレーションが見つかりません。")
+
+        dec_key = str(row.get("decoration_key") or "").strip()
+        old_asset = str(row.get("asset_path") or "").strip()
+
+        safe_key = re.sub(r"[^a-zA-Z0-9_\-]", "_", dec_key)
+        save_filename = f"{safe_key}.svg"
+        decorations_dir = os.path.join(storage_root, "decorations")
+        os.makedirs(decorations_dir, exist_ok=True)
+        save_path = os.path.join(decorations_dir, save_filename)
+        asset_path = f"decorations/{save_filename}"
+
+        content = await file.read()
+        with open(save_path, "wb") as f:
+            f.write(content)
+
+        if old_asset and old_asset != asset_path:
+            old_full = os.path.join(storage_root, old_asset.lstrip("/"))
+            try:
+                if os.path.isfile(old_full):
+                    os.remove(old_full)
+            except Exception:
+                pass
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE supporter_decoration_catalog SET asset_path=%s, updated_at=NOW() WHERE id=%s",
+                (asset_path, decoration_id),
+            )
+        _log_audit_event(conn, int(actor.get("id") or 0) or None,
+                         "admin.decorations.upload_asset", "decoration", str(decoration_id),
+                         "success", f"デコレーション {decoration_id} のSVGをアップロードしました。", {"asset_path": asset_path})
+        conn.commit()
+        items = _list_decoration_catalog(conn)
+        return _json_success(request_id=request_id, data={"asset_path": asset_path, "items": items}, message="SVGをアップロードしました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "アップロードに失敗しました。")
+    finally:
+        if conn:
+            conn.close()

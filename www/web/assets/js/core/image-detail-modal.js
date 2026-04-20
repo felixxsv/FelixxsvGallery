@@ -146,11 +146,10 @@ function renderColorTags(items) {
     }).join("")}</div>`;
   }
 
-  function supporterAvatarClass(user) {
-    const frame = user?.supporter_profile?.selected_icon_frame;
-    if (frame === "aurora_ring") return " supporter-icon-frame--aurora-ring";
-    if (frame === "amber_ring") return " supporter-icon-frame--amber-ring";
-    return "";
+  function supporterFrameOverlayHtml(user) {
+    const assetPath = user?.supporter_profile?.selected_icon_frame_asset_path;
+    if (!assetPath) return "";
+    return `<img class="avatar-frame-overlay" src="/storage/${escapeHtml(assetPath)}" alt="" aria-hidden="true">`;
   }
 
 
@@ -204,7 +203,7 @@ function renderColorTags(items) {
         <div class="image-detail-modal__summary-group image-detail-modal__summary-group--user">
           <div class="image-detail-modal__summary-label">${escapeHtml(td(app, "user_info", "User"))}</div>
           <button type="button" class="image-detail-modal__user image-detail-modal__user--compact${user.user_key ? " is-clickable" : ""}" data-user-key="${escapeHtml(user.user_key || "")}">
-            ${user.avatar_url ? `<img class="image-detail-modal__avatar${supporterAvatarClass(user)}" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback${supporterAvatarClass(user)}">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}
+            <div class="image-detail-modal__avatar-wrap">${user.avatar_url ? `<img class="image-detail-modal__avatar" src="${escapeHtml(user.avatar_url)}" alt="">` : `<div class="image-detail-modal__avatar image-detail-modal__avatar--fallback">${escapeHtml((user.display_name || "?").slice(0, 1))}</div>`}${supporterFrameOverlayHtml(user)}</div>
             <div class="image-detail-modal__user-meta">
               <div class="image-detail-modal__user-name">${escapeHtml(textOrDash(user.display_name))}</div>
               <div class="image-detail-modal__user-id">@${escapeHtml(textOrDash(user.user_key))}</div>

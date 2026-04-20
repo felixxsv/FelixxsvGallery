@@ -502,13 +502,24 @@ export function createImageModalController({ app, body = document.body } = {}) {
     postedAtNode.textContent = formatDateTime(item.posted_at);
     const user = item.user || {};
     const avatarUrl = user.avatar_url ? withAppBase(user.avatar_url) : "";
-    userAvatarNode.classList.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
-    if (user?.supporter_profile?.selected_icon_frame === "aurora_ring") userAvatarNode.classList.add("supporter-icon-frame--aurora-ring");
-    if (user?.supporter_profile?.selected_icon_frame === "amber_ring") userAvatarNode.classList.add("supporter-icon-frame--amber-ring");
     if (avatarUrl) {
       userAvatarNode.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="">`;
     } else {
       userAvatarNode.textContent = (user.display_name || "?").slice(0, 1);
+    }
+    const frameAsset = user?.supporter_profile?.selected_icon_frame_asset_path || null;
+    let frameOverlay = userAvatarNode.querySelector(".avatar-frame-overlay");
+    if (frameAsset) {
+      if (!frameOverlay) {
+        frameOverlay = document.createElement("img");
+        frameOverlay.className = "avatar-frame-overlay";
+        frameOverlay.alt = "";
+        frameOverlay.setAttribute("aria-hidden", "true");
+        userAvatarNode.appendChild(frameOverlay);
+      }
+      frameOverlay.src = `/storage/${frameAsset}`;
+    } else {
+      frameOverlay?.remove();
     }
     userTextNode.textContent = `${textOrDash(user.display_name)} / @${textOrDash(user.user_key)}`;
     const userSpan = root.querySelector(".image-modal__user");

@@ -305,13 +305,27 @@ function buildPublicDetail(image) {
   };
 }
 
+function applyOverlay(container, overlayClass, assetPath) {
+  if (!container) return;
+  let el = container.querySelector(`.${overlayClass}`);
+  if (!assetPath) {
+    el?.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement("img");
+    el.className = overlayClass;
+    el.alt = "";
+    el.setAttribute("aria-hidden", "true");
+    container.appendChild(el);
+  }
+  el.src = `/storage/${assetPath}`;
+}
+
 function applySupportPresentation(container, avatar, supporterProfile) {
-  container?.classList?.remove("supporter-profile-decor--aurora-glow", "supporter-profile-decor--sunrise-wave");
-  avatar?.classList?.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
-  if (supporterProfile?.selected_icon_frame === "aurora_ring") avatar?.classList?.add("supporter-icon-frame--aurora-ring");
-  if (supporterProfile?.selected_icon_frame === "amber_ring") avatar?.classList?.add("supporter-icon-frame--amber-ring");
-  if (supporterProfile?.selected_profile_decor === "aurora_glow") container?.classList?.add("supporter-profile-decor--aurora-glow");
-  if (supporterProfile?.selected_profile_decor === "sunrise_wave") container?.classList?.add("supporter-profile-decor--sunrise-wave");
+  const avatarEl = avatar?.querySelector("[data-card-user-avatar]") || avatar;
+  applyOverlay(avatarEl, "avatar-frame-overlay", supporterProfile?.selected_icon_frame_asset_path || null);
+  applyOverlay(container, "profile-decor-overlay", supporterProfile?.selected_profile_decor_asset_path || null);
 }
 
 function readStoredGridCols() {

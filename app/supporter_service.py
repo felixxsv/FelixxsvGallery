@@ -26,34 +26,6 @@ SUPPORTER_ACHIEVEMENT_THRESHOLDS = [
     ("1y", 12),
     ("2y", 24),
 ]
-SUPPORTER_ICON_FRAMES = {
-    "none": {
-        "label_key": "support.common.none",
-        "preview_class": "",
-    },
-    "aurora_ring": {
-        "label_key": "support.icon_frame.aurora_ring",
-        "preview_class": "supporter-icon-frame--aurora-ring",
-    },
-    "amber_ring": {
-        "label_key": "support.icon_frame.amber_ring",
-        "preview_class": "supporter-icon-frame--amber-ring",
-    },
-}
-SUPPORTER_PROFILE_DECORS = {
-    "none": {
-        "label_key": "support.common.none",
-        "preview_class": "",
-    },
-    "aurora_glow": {
-        "label_key": "support.profile_decor.aurora_glow",
-        "preview_class": "supporter-profile-decor--aurora-glow",
-    },
-    "sunrise_wave": {
-        "label_key": "support.profile_decor.sunrise_wave",
-        "preview_class": "supporter-profile-decor--sunrise-wave",
-    },
-}
 SUPPORTER_ENTITLEMENTS = (
     "badge",
     "duration_badge",
@@ -62,43 +34,28 @@ SUPPORTER_ENTITLEMENTS = (
 )
 
 
-def _default_supporter_catalog() -> dict[str, list[dict]]:
-    return {
-        "icon_frames": [
-            {"key": key, **value}
-            for key, value in SUPPORTER_ICON_FRAMES.items()
-        ],
-        "profile_decors": [
-            {"key": key, **value}
-            for key, value in SUPPORTER_PROFILE_DECORS.items()
-        ],
-    }
+_CATALOG_NONE = {"key": "none", "label_key": "support.common.none", "preview_class": "", "asset_path": None, "labels": {}}
 
 
 def get_supporter_catalog(conn) -> dict[str, list[dict]]:
-    fallback = _default_supporter_catalog()
+    empty: dict[str, list[dict]] = {
+        "icon_frames": [_CATALOG_NONE.copy()],
+        "profile_decors": [_CATALOG_NONE.copy()],
+    }
     if not _table_exists(conn, "supporter_decoration_catalog"):
-        return fallback
+        return empty
     with conn.cursor() as cur:
         cur.execute(
             """
-SELECT decoration_kind, decoration_key, label_key, preview_class, sort_order
+SELECT decoration_kind, decoration_key, label_key, preview_class, asset_path, labels, sort_order
 FROM supporter_decoration_catalog
 WHERE is_active=1
 ORDER BY decoration_kind ASC, sort_order ASC, id ASC
 """
         )
         rows = list(cur.fetchall() or [])
-    if not rows:
-        return fallback
-    catalog = {
-        "icon_frames": [],
-        "profile_decors": [],
-    }
-    kind_map = {
-        "icon_frame": "icon_frames",
-        "profile_decor": "profile_decors",
-    }
+    catalog: dict[str, list[dict]] = {"icon_frames": [], "profile_decors": []}
+    kind_map = {"icon_frame": "icon_frames", "profile_decor": "profile_decors"}
     for row in rows:
         bucket = kind_map.get(str(row.get("decoration_kind") or "").strip())
         if not bucket:
@@ -106,24 +63,24 @@ ORDER BY decoration_kind ASC, sort_order ASC, id ASC
         key = str(row.get("decoration_key") or "").strip()
         if not key:
             continue
-        catalog[bucket].append(
-            {
-                "key": key,
-                "label_key": str(row.get("label_key") or "").strip(),
-                "preview_class": str(row.get("preview_class") or "").strip(),
-                "sort_order": int(row.get("sort_order") or 0),
-            }
-        )
-    for bucket, defaults in fallback.items():
-        if not catalog[bucket]:
-            catalog[bucket] = defaults
-        else:
-            existing_keys = {str(item.get("key") or "").strip() for item in catalog[bucket]}
-            for default_item in defaults:
-                default_key = str(default_item.get("key") or "").strip()
-                if default_key and default_key not in existing_keys:
-                    catalog[bucket].insert(0, default_item)
+        catalog[bucket].append({
+            "key": key,
+            "label_key": str(row.get("label_key") or "").strip(),
+            "preview_class": str(row.get("preview_class") or "").strip(),
+            "asset_path": str(row.get("asset_path") or "").strip() or None,
+            "labels": _json_loads(row.get("labels"), {}),
+            "sort_order": int(row.get("sort_order") or 0),
+        })
+    catalog["icon_frames"].insert(0, _CATALOG_NONE.copy())
+    catalog["profile_decors"].insert(0, _CATALOG_NONE.copy())
     return catalog
+
+
+def _find_catalog_item(catalog: dict[str, list[dict]], kind: str, key: str) -> dict | None:
+    for item in (catalog.get(kind) or []):
+        if str(item.get("key") or "") == str(key or ""):
+            return item
+    return None
 
 
 def _catalog_keys(catalog: dict[str, list[dict]], kind: str) -> set[str]:
@@ -650,6 +607,7 @@ def _highest_achievement_code(achievements: list[dict]) -> str | None:
 def build_supporter_context(conn, user_id: int, conf: dict | None = None, include_private: bool = True, include_admin: bool = False) -> dict:
     now = _utc_now()
     ui_enabled = is_support_ui_enabled(conn, default=True)
+    catalog = get_supporter_catalog(conn)
     settings = get_supporter_settings(conn, user_id, create=False)
     subscription_rows = _load_subscription_rows(conn, user_id)
     subscription_row = _pick_primary_subscription(subscription_rows, now)
@@ -695,7 +653,9 @@ def build_supporter_context(conn, user_id: int, conf: dict | None = None, includ
         "badge_label_key": "support.common.supporter_badge",
         "duration_badge_code": highest_achievement,
         "selected_icon_frame": settings["selected_icon_frame"] if has_visible_support and settings["supporter_icon_frame_visible"] else None,
+        "selected_icon_frame_asset_path": (_find_catalog_item(catalog, "icon_frames", settings["selected_icon_frame"]) or {}).get("asset_path") if has_visible_support and settings["supporter_icon_frame_visible"] else None,
         "selected_profile_decor": settings["selected_profile_decor"] if has_visible_support and settings["supporter_profile_decor_visible"] else None,
+        "selected_profile_decor_asset_path": (_find_catalog_item(catalog, "profile_decors", settings["selected_profile_decor"]) or {}).get("asset_path") if has_visible_support and settings["supporter_profile_decor_visible"] else None,
     }
     entitlements = {
         "badge": effective_active,
@@ -761,7 +721,7 @@ def build_supporter_context(conn, user_id: int, conf: dict | None = None, includ
         "entitlements": entitlements,
         "public_profile": public_profile,
         "actions": actions,
-        "catalog": get_supporter_catalog(conn),
+        "catalog": catalog,
     }
     if include_admin:
         result["grants"] = [_serialize_grant(row) for row in grant_rows]

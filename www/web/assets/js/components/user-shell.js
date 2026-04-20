@@ -415,23 +415,24 @@ export function initUserShell(app) {
   function supportCatalogItems(kind) {
     const support = getSupport();
     const catalog = support?.catalog || {};
-    const items = Array.isArray(catalog[kind]) ? catalog[kind] : [];
-    if (items.length) {
-      return items;
+    return Array.isArray(catalog[kind]) ? catalog[kind] : [];
+  }
+
+  function applyOverlay(container, overlayClass, assetPath) {
+    if (!container) return;
+    let el = container.querySelector(`.${overlayClass}`);
+    if (!assetPath) {
+      el?.remove();
+      return;
     }
-    if (kind === "icon_frames") {
-      return [
-        { key: "aurora_ring", label_key: "support.icon_frame.aurora_ring", preview_class: "supporter-icon-frame--aurora-ring" },
-        { key: "amber_ring", label_key: "support.icon_frame.amber_ring", preview_class: "supporter-icon-frame--amber-ring" },
-      ];
+    if (!el) {
+      el = document.createElement("img");
+      el.className = overlayClass;
+      el.alt = "";
+      el.setAttribute("aria-hidden", "true");
+      container.appendChild(el);
     }
-    if (kind === "profile_decors") {
-      return [
-        { key: "aurora_glow", label_key: "support.profile_decor.aurora_glow", preview_class: "supporter-profile-decor--aurora-glow" },
-        { key: "sunrise_wave", label_key: "support.profile_decor.sunrise_wave", preview_class: "supporter-profile-decor--sunrise-wave" },
-      ];
-    }
-    return [];
+    el.src = `/storage/${assetPath}`;
   }
 
   function supportStatusActionLabel(statusCode) {
@@ -510,32 +511,18 @@ export function initUserShell(app) {
   }
 
   function applyIconFramePreviewDraft(draft, support = getSupport()) {
-    const frameClasses = supportCatalogItems("icon_frames").map((item) => item.preview_class).filter(Boolean);
-    refs.supporterPreviewAvatar?.classList?.remove(...frameClasses);
     const showFrame = Boolean(draft?.selected_icon_frame && draft?.selected_icon_frame !== "none" && support?.entitlements?.icon_frame);
-
     const frameOption = supportCatalogItems("icon_frames").find((item) => item.key === draft?.selected_icon_frame);
-    if (showFrame && frameOption?.preview_class) {
-      refs.supporterPreviewAvatar?.classList?.add(frameOption.preview_class);
-    }
+    applyOverlay(refs.supporterPreviewAvatar, "avatar-frame-overlay", showFrame ? frameOption?.asset_path || null : null);
   }
 
   function applyProfileDecorPreviewDraft(draft, support = getSupport()) {
-    const frameClasses = supportCatalogItems("icon_frames").map((item) => item.preview_class).filter(Boolean);
-    const decorClasses = supportCatalogItems("profile_decors").map((item) => item.preview_class).filter(Boolean);
-    refs.profileDecorPreviewAvatar?.classList?.remove(...frameClasses);
-    refs.profileDecorPreviewCard?.classList?.remove(...decorClasses);
-
     const showFrame = Boolean(draft?.selected_icon_frame && draft?.selected_icon_frame !== "none" && support?.entitlements?.icon_frame);
     const showDecor = Boolean(draft?.selected_profile_decor && draft?.selected_profile_decor !== "none" && support?.entitlements?.profile_decor);
     const frameOption = supportCatalogItems("icon_frames").find((item) => item.key === draft?.selected_icon_frame);
     const decorOption = supportCatalogItems("profile_decors").find((item) => item.key === draft?.selected_profile_decor);
-    if (showFrame && frameOption?.preview_class) {
-      refs.profileDecorPreviewAvatar?.classList?.add(frameOption.preview_class);
-    }
-    if (showDecor && decorOption?.preview_class) {
-      refs.profileDecorPreviewCard?.classList?.add(decorOption.preview_class);
-    }
+    applyOverlay(refs.profileDecorPreviewAvatar, "avatar-frame-overlay", showFrame ? frameOption?.asset_path || null : null);
+    applyOverlay(refs.profileDecorPreviewCard, "profile-decor-overlay", showDecor ? decorOption?.asset_path || null : null);
   }
 
   function renderSupporterSettings() {
@@ -760,9 +747,6 @@ export function initUserShell(app) {
       const user = getUser();
       const support = getSupport();
       const avatarUrl = user?.avatar_url || null;
-      refs.authIcon.classList.remove("supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring");
-      if (support?.public_profile?.selected_icon_frame === "aurora_ring") refs.authIcon.classList.add("supporter-icon-frame--aurora-ring");
-      if (support?.public_profile?.selected_icon_frame === "amber_ring") refs.authIcon.classList.add("supporter-icon-frame--amber-ring");
       if (avatarUrl) {
         refs.authIcon.style.backgroundImage = `url("${app.appBase}${avatarUrl}?t=${Date.now()}")`;
         if (refs.authIconInitial) refs.authIconInitial.hidden = true;
@@ -1179,16 +1163,8 @@ export function initUserShell(app) {
   }
 
   function applySupportPresentation(cardNode, avatarNode, supporterProfile) {
-    const frameClasses = ["supporter-icon-frame--aurora-ring", "supporter-icon-frame--amber-ring"];
-    const decorClasses = ["supporter-profile-decor--aurora-glow", "supporter-profile-decor--sunrise-wave"];
-    avatarNode?.classList?.remove(...frameClasses);
-    cardNode?.classList?.remove(...decorClasses);
-    const frame = supporterProfile?.selected_icon_frame;
-    const decor = supporterProfile?.selected_profile_decor;
-    if (frame === "aurora_ring") avatarNode?.classList?.add("supporter-icon-frame--aurora-ring");
-    if (frame === "amber_ring") avatarNode?.classList?.add("supporter-icon-frame--amber-ring");
-    if (decor === "aurora_glow") cardNode?.classList?.add("supporter-profile-decor--aurora-glow");
-    if (decor === "sunrise_wave") cardNode?.classList?.add("supporter-profile-decor--sunrise-wave");
+    applyOverlay(avatarNode, "avatar-frame-overlay", supporterProfile?.selected_icon_frame_asset_path || null);
+    applyOverlay(cardNode, "profile-decor-overlay", supporterProfile?.selected_profile_decor_asset_path || null);
   }
 
   function formatSupportValue(value) {
@@ -2568,6 +2544,7 @@ export function initUserShell(app) {
         displayName: user.display_name || "-",
         userKey: user.user_key || "-",
         selectedIconFrame: ownAccountModalSupportPresentation()?.selected_icon_frame || support?.public_profile?.selected_icon_frame || null,
+        selectedIconFrameAssetPath: support?.public_profile?.selected_icon_frame_asset_path || null,
       }, app);
     };
     [refs.userCardAvatar, refs.accountAvatar].forEach((node) => {

@@ -1245,70 +1245,26 @@ body {
   }
 }
 
-.supporter-icon-frame--aurora-ring,
-.supporter-icon-frame--amber-ring {
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 6px transparent,
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+.avatar-frame-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.supporter-icon-frame--aurora-ring {
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 6px rgba(20, 184, 166, 0.32),
-    0 0 0 10px rgba(56, 189, 248, 0.2),
-    0 0 24px rgba(59, 130, 246, 0.34),
-    0 0 34px rgba(16, 185, 129, 0.24),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-
-.shell-user-card__avatar.supporter-icon-frame--aurora-ring,
-.shell-user-profile__avatar.supporter-icon-frame--aurora-ring,
-.profile-media-modal__avatar.supporter-icon-frame--aurora-ring {
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 6px rgba(20, 184, 166, 0.32),
-    0 0 0 10px rgba(56, 189, 248, 0.2),
-    0 0 24px rgba(59, 130, 246, 0.34),
-    0 0 34px rgba(16, 185, 129, 0.24),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-
-.supporter-icon-frame--amber-ring {
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 6px rgba(245, 158, 11, 0.32),
-    0 0 0 10px rgba(249, 115, 22, 0.2),
-    0 0 24px rgba(249, 115, 22, 0.32),
-    0 0 34px rgba(239, 68, 68, 0.2),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-
-.shell-user-card__avatar.supporter-icon-frame--amber-ring,
-.shell-user-profile__avatar.supporter-icon-frame--amber-ring,
-.profile-media-modal__avatar.supporter-icon-frame--amber-ring {
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 6px rgba(245, 158, 11, 0.32),
-    0 0 0 10px rgba(249, 115, 22, 0.2),
-    0 0 24px rgba(249, 115, 22, 0.32),
-    0 0 34px rgba(239, 68, 68, 0.2),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-
-.supporter-profile-decor--aurora-glow {
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 42%),
-    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 44%),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white 6%), color-mix(in srgb, var(--color-surface) 98%, transparent));
-}
-
-.supporter-profile-decor--sunrise-wave {
-  background:
-    radial-gradient(circle at top left, rgba(251, 191, 36, 0.24), transparent 40%),
-    radial-gradient(circle at 85% 20%, rgba(249, 115, 22, 0.18), transparent 36%),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white 6%), color-mix(in srgb, var(--color-surface) 98%, transparent));
+.profile-decor-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  border-radius: inherit;
 }
 
 .shell-user-link {
@@ -1404,6 +1360,7 @@ body {
 }
 
 .shell-user-profile {
+  position: relative;
   display: grid;
   grid-template-columns: 144px minmax(0, 1fr);
   gap: 18px;
@@ -1413,20 +1370,6 @@ body {
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: var(--color-surface);
-}
-
-.shell-user-profile.supporter-profile-decor--aurora-glow {
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 42%),
-    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 44%),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white 6%), color-mix(in srgb, var(--color-surface) 98%, transparent));
-}
-
-.shell-user-profile.supporter-profile-decor--sunrise-wave {
-  background:
-    radial-gradient(circle at top left, rgba(251, 191, 36, 0.24), transparent 40%),
-    radial-gradient(circle at 85% 20%, rgba(249, 115, 22, 0.18), transparent 36%),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white 6%), color-mix(in srgb, var(--color-surface) 98%, transparent));
 }
 
 .shell-user-profile__left {
@@ -1450,6 +1393,7 @@ body {
 }
 
 .shell-user-profile__avatar {
+  position: relative;
   width: 80px;
   height: 80px;
   border-radius: 50%;
@@ -1780,6 +1724,7 @@ body {
 }
 
 .profile-media-modal__avatar {
+  position: relative;
   border-radius: 999px;
   overflow: hidden;
   background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));

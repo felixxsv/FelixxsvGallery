@@ -1005,19 +1005,6 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   z-index: 0;
 }
 
-.home-gallery-card.supporter-profile-decor--aurora-glow::after {
-  opacity: 1;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(56, 189, 248, 0.12), transparent 34%),
-    radial-gradient(circle at 82% 78%, rgba(34, 197, 94, 0.1), transparent 36%);
-}
-
-.home-gallery-card.supporter-profile-decor--sunrise-wave::after {
-  opacity: 1;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(251, 191, 36, 0.12), transparent 32%),
-    radial-gradient(circle at 82% 24%, rgba(249, 115, 22, 0.1), transparent 30%);
-}
 
 .home-gallery-card__media {
   display: block;
@@ -1185,6 +1172,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 }
 
 .home-gallery-card__user-avatar {
+  position: relative;
   width: 100%;
   height: 100%;
   display: flex;

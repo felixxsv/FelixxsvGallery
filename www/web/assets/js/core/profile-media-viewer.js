@@ -71,6 +71,7 @@ export function ensureProfileMediaModals(app) {
       currentAvatarPayload = {
         ...currentAvatarPayload,
         selectedIconFrame: event.detail?.publicProfile?.selected_icon_frame || null,
+        selectedIconFrameAssetPath: event.detail?.publicProfile?.selected_icon_frame_asset_path || null,
       };
       if (!document.querySelector("[data-modal-id='avatar-detail']")?.hidden) {
         showAvatarDetail(currentAvatarPayload, app);
@@ -105,15 +106,25 @@ export function showAvatarDetail(payload, app) {
   const userKey = String(payload?.userKey || "-");
   const avatarUrl = String(payload?.avatarUrl || "");
   const initial = String(payload?.initial || name || userKey || "?").trim().slice(0, 1).toUpperCase() || "?";
-  const selectedIconFrame = String(payload?.selectedIconFrame || "").trim();
-
   visual.className = "profile-media-modal__avatar";
-  if (selectedIconFrame === "aurora_ring") visual.classList.add("supporter-icon-frame--aurora-ring");
-  if (selectedIconFrame === "amber_ring") visual.classList.add("supporter-icon-frame--amber-ring");
   if (avatarUrl) {
     visual.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="" aria-hidden="true">`;
   } else {
     visual.innerHTML = `<span class="profile-media-modal__initial">${escapeHtml(initial)}</span>`;
+  }
+  const frameAsset = String(payload?.selectedIconFrameAssetPath || "").trim();
+  let frameOverlay = visual.querySelector(".avatar-frame-overlay");
+  if (frameAsset) {
+    if (!frameOverlay) {
+      frameOverlay = document.createElement("img");
+      frameOverlay.className = "avatar-frame-overlay";
+      frameOverlay.alt = "";
+      frameOverlay.setAttribute("aria-hidden", "true");
+      visual.appendChild(frameOverlay);
+    }
+    frameOverlay.src = `/storage/${frameAsset}`;
+  } else {
+    frameOverlay?.remove();
   }
   nameEl.textContent = name;
   userKeyEl.textContent = userKey.startsWith("@") ? userKey : `@${userKey}`;
