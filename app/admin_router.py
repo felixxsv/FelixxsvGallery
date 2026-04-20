@@ -32,6 +32,7 @@ from supporter_service import (
     record_supporter_payment,
     record_supporter_provider_event,
     revoke_supporter_grant,
+    update_supporter_settings,
     upsert_supporter_subscription,
 )
 from galleryctl.colors import load_palette_from_conf
@@ -1849,6 +1850,43 @@ def admin_user_support(
     except Exception:
         logger.exception("Unhandled error")
         return _json_error(500, request_id, "server_error", "支援情報の取得に失敗しました。")
+    finally:
+        if conn: conn.close()
+
+
+@router.put("/users/{user_id}/support/settings")
+def admin_user_update_support_settings(
+    user_id: int = Path(..., ge=1),
+    payload: dict = Body(...),
+    session_token: str | None = Cookie(default=None, alias=DEFAULT_COOKIE_NAME),
+):
+    request_id = _request_id()
+    result, error = _get_admin_profile(session_token, request_id)
+    if error is not None:
+        return error
+    actor = (result.get("data") or {}).get("user") or {}
+    conn = None
+    try:
+        conn = _get_db_connection(autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id=%s LIMIT 1", (user_id,))
+            if not cur.fetchone():
+                return _json_error(404, request_id, "not_found", "対象ユーザーが見つかりません。")
+        updates = update_supporter_settings(conn, user_id, payload or {})
+        _log_audit_event(
+            conn, int(actor.get("id") or 0) or None,
+            "admin.users.update_support_settings", "user", str(user_id),
+            "success", "サポーター装飾設定を更新しました。",
+            {"selected_icon_frame": updates.get("selected_icon_frame"), "selected_profile_decor": updates.get("selected_profile_decor")},
+        )
+        conn.commit()
+        return _json_success(request_id=request_id, data={"settings": updates}, message="サポーター装飾設定を更新しました。")
+    except Exception:
+        logger.exception("Unhandled error")
+        if conn:
+            try: conn.rollback()
+            except Exception: pass
+        return _json_error(500, request_id, "server_error", "サポーター装飾設定の更新に失敗しました。")
     finally:
         if conn: conn.close()
 

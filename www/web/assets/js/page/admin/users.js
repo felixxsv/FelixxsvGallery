@@ -204,6 +204,7 @@ const state = {
   editLinks: [],          // current link list in modal
   editBadges: [],         // current badge pool in modal
   badgeCatalog: [],       // full catalog from API
+  decorationCatalog: [],  // decoration catalog from admin API
 };
 
 function qs() {
@@ -339,6 +340,71 @@ async function revokeBadge(badgeKey) {
     window.AdminApp?.toast?.success?.(t("badge_revoked", "Badge revoked."));
   } catch (err) {
     window.AdminApp?.toast?.error?.(resolveLocalizedMessage(err, t("badge_revoke_error", "Failed to revoke badge.")));
+  }
+}
+
+function resolveCatalogLabel(item) {
+  const lang = window.AdminApp?.i18n?.language || "ja";
+  return item?.labels?.[lang] || item?.labels?.["ja"] || item?.label_key || item?.key || "";
+}
+
+function renderDecorationOptions(user) {
+  const catalog = user?.support?.catalog || { icon_frames: [], profile_decors: [] };
+  const settings = user?.support?.settings || {};
+  const selectedFrame = settings.selected_icon_frame || "none";
+  const selectedDecor = settings.selected_profile_decor || "none";
+  const appBase = window.AdminApp?.appBase || "";
+
+  function buildOptionHTML(item, dataAttr, isAvatar) {
+    const label = resolveCatalogLabel(item);
+    const overlayHtml = item.asset_path
+      ? `<img class="supporter-option-overlay" src="${appBase}/storage/${escapeHtml(item.asset_path)}" alt="" aria-hidden="true">`
+      : "";
+    const previewClass = isAvatar ? "shell-supporter-option__preview--avatar" : "shell-supporter-option__preview--panel";
+    return `<button type="button" class="shell-supporter-option" ${dataAttr}="${escapeHtml(item.key)}">
+      <span class="shell-supporter-option__preview ${previewClass}">${overlayHtml}</span>
+      <span class="shell-supporter-option__label">${escapeHtml(label)}</span>
+    </button>`;
+  }
+
+  const frameContainer = byId("adminUsersDecorFrameOptions");
+  if (frameContainer) {
+    frameContainer.innerHTML = (catalog.icon_frames || []).map((item) => buildOptionHTML(item, "data-admin-frame-option", true)).join("");
+    frameContainer.querySelectorAll("[data-admin-frame-option]").forEach((btn) => {
+      if (btn.dataset.adminFrameOption === selectedFrame) btn.classList.add("is-selected");
+    });
+  }
+
+  const decorContainer = byId("adminUsersDecorDecorOptions");
+  if (decorContainer) {
+    decorContainer.innerHTML = (catalog.profile_decors || []).map((item) => buildOptionHTML(item, "data-admin-decor-option", false)).join("");
+    decorContainer.querySelectorAll("[data-admin-decor-option]").forEach((btn) => {
+      if (btn.dataset.adminDecorOption === selectedDecor) btn.classList.add("is-selected");
+    });
+  }
+}
+
+async function saveDecorationSettings() {
+  if (!state.currentUser) return;
+  const userId = state.currentUser.user_id;
+  const frameContainer = byId("adminUsersDecorFrameOptions");
+  const decorContainer = byId("adminUsersDecorDecorOptions");
+  const selectedFrame = frameContainer?.querySelector(".is-selected")?.dataset?.adminFrameOption || "none";
+  const selectedDecor = decorContainer?.querySelector(".is-selected")?.dataset?.adminDecorOption || "none";
+  try {
+    await window.AdminApp.api.put(`/api/admin/users/${userId}/support/settings`, {
+      selected_icon_frame: selectedFrame,
+      selected_profile_decor: selectedDecor,
+    });
+    window.AdminApp?.toast?.success?.(t("decor_saved", "Decoration settings saved."));
+    const avatarWrap = byId("adminUsersEditAvatarWrap");
+    if (avatarWrap) {
+      const catalog = state.currentUser?.support?.catalog || {};
+      const frameItem = (catalog.icon_frames || []).find((item) => item.key === selectedFrame);
+      applyOverlay(avatarWrap, "avatar-frame-overlay", selectedFrame !== "none" ? (frameItem?.asset_path || null) : null);
+    }
+  } catch (err) {
+    window.AdminApp?.toast?.error?.(resolveLocalizedMessage(err, t("decor_save_error", "Failed to save decoration settings.")));
   }
 }
 
@@ -699,6 +765,7 @@ async function openEditModal(userId) {
     renderLinksEditor();
     renderBadgePool();
     renderSupportLists(user.support || {});
+    renderDecorationOptions(user);
 
     state.editDirty = false;
     window.AdminApp.dirtyGuard.setDirty("admin-users-edit", false);
@@ -966,6 +1033,26 @@ function bindModals() {
   });
 
   byId("adminUsersEditBadgeGrantButton")?.addEventListener("click", grantBadge);
+  byId("adminUsersDecorSaveButton")?.addEventListener("click", saveDecorationSettings);
+  byId("adminUsersDecorFrameOptions")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-admin-frame-option]");
+    if (!btn) return;
+    byId("adminUsersDecorFrameOptions")?.querySelectorAll("[data-admin-frame-option]").forEach((el) => el.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    const avatarWrap = byId("adminUsersEditAvatarWrap");
+    if (avatarWrap) {
+      const frameKey = btn.dataset.adminFrameOption;
+      const catalog = state.currentUser?.support?.catalog || {};
+      const frameItem = (catalog.icon_frames || []).find((item) => item.key === frameKey);
+      applyOverlay(avatarWrap, "avatar-frame-overlay", frameKey !== "none" ? (frameItem?.asset_path || null) : null);
+    }
+  });
+  byId("adminUsersDecorDecorOptions")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-admin-decor-option]");
+    if (!btn) return;
+    byId("adminUsersDecorDecorOptions")?.querySelectorAll("[data-admin-decor-option]").forEach((el) => el.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+  });
   byId("adminUsersSupportSubscriptionSaveButton")?.addEventListener("click", saveSupportSubscription);
   byId("adminUsersSupportEventSaveButton")?.addEventListener("click", saveSupportEvent);
   byId("adminUsersSupportGrantButton")?.addEventListener("click", grantSupport);
