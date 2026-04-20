@@ -594,9 +594,9 @@ body {
 
 /* header icon (42px) */
 .shell-user-icon--auth .avatar-frame-overlay {
-  inset: -8px;
-  width: calc(100% + 16px);
-  height: calc(100% + 16px);
+  inset: -25px;
+  width: calc(100% + 50px);
+  height: calc(100% + 50px);
   clip-path: none;
 }
 
@@ -1273,11 +1273,16 @@ body {
   }
 }
 
+/*
+ * avatar-frame-overlay: SVG convention viewBox="0 0 320 320", ring cx=160 cy=160 r=86
+ * inset values are derived from: new_inset = -(old_img * 1.6 - size) / 2
+ * same ring scale as before, but 74 SVG-unit margin on all sides for decorations (cat ears etc.)
+ */
 .avatar-frame-overlay {
   position: absolute;
-  inset: -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
+  inset: -19px;
+  width: calc(100% + 38px);
+  height: calc(100% + 38px);
   max-width: none;
   max-height: none;
   object-fit: contain;
@@ -1285,65 +1290,70 @@ body {
   z-index: 1;
 }
 
+/* 80px profile avatars */
 .shell-user-profile__avatar .avatar-frame-overlay {
-  inset: -12px;
-  width: calc(100% + 24px);
-  height: calc(100% + 24px);
+  inset: -43px;
+  width: calc(100% + 86px);
+  height: calc(100% + 86px);
 }
 
 .shell-profile-avatar .avatar-frame-overlay {
-  inset: -12px;
-  width: calc(100% + 24px);
-  height: calc(100% + 24px);
+  inset: -43px;
+  width: calc(100% + 86px);
+  height: calc(100% + 86px);
 }
 
+/* 180px icon preview modal */
 .profile-media-modal__avatar .avatar-frame-overlay {
-  inset: -27px;
-  width: calc(100% + 54px);
-  height: calc(100% + 54px);
+  inset: -97px;
+  width: calc(100% + 194px);
+  height: calc(100% + 194px);
 }
 
-/* 76px no-border (supporter preview) */
+/* 76px supporter preview */
 .shell-supporter-preview__avatar .avatar-frame-overlay {
-  inset: -11px;
-  width: calc(100% + 22px);
-  height: calc(100% + 22px);
+  inset: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
 }
 
-/* 56px no-border (user card) */
+/* 56px user card */
 .shell-user-card__avatar .avatar-frame-overlay {
-  inset: -9px;
-  width: calc(100% + 18px);
-  height: calc(100% + 18px);
+  inset: -31px;
+  width: calc(100% + 62px);
+  height: calc(100% + 62px);
 }
 
+/* 64px supporter option */
 .shell-supporter-option__preview--avatar .supporter-option-overlay {
-  inset: -10px;
-  width: calc(100% + 20px);
-  height: calc(100% + 20px);
+  inset: -35px;
+  width: calc(100% + 70px);
+  height: calc(100% + 70px);
 }
 
-/* gallery card avatar (32px effective) — override .home-gallery-card__user-avatar img */
+/* 32px gallery card avatar */
 .home-gallery-card__user-avatar .avatar-frame-overlay {
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
+  inset: -19px;
+  width: calc(100% + 38px);
+  height: calc(100% + 38px);
   object-fit: contain;
   clip-path: none;
 }
 
-/* image modal user avatar (30px) — override .image-modal__user-avatar img */
+/* 30px image modal user avatar */
 .image-modal__user-avatar .avatar-frame-overlay {
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
+  inset: -19px;
+  width: calc(100% + 38px);
+  height: calc(100% + 38px);
   object-fit: contain;
   clip-path: none;
 }
 
-/* image detail modal avatar wrap (42px) */
+/* 42px image detail modal avatar */
 .image-detail-modal__avatar-wrap .avatar-frame-overlay {
-  inset: -8px;
-  width: calc(100% + 16px);
-  height: calc(100% + 16px);
+  inset: -25px;
+  width: calc(100% + 50px);
+  height: calc(100% + 50px);
   clip-path: none;
 }
 

@@ -983,7 +983,7 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
 
 .home-gallery-card {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   border: 1px solid var(--home-sidebar-border);
   border-radius: 18px;
   background: var(--home-card-bg);
