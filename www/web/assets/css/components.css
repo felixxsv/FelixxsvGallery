@@ -1267,9 +1267,9 @@ body {
 }
 
 .shell-user-profile__avatar .avatar-frame-overlay {
-  inset: -10px;
-  width: calc(100% + 20px);
-  height: calc(100% + 20px);
+  inset: -12px;
+  width: calc(100% + 24px);
+  height: calc(100% + 24px);
 }
 
 .shell-profile-avatar .avatar-frame-overlay {
@@ -1279,9 +1279,9 @@ body {
 }
 
 .profile-media-modal__avatar .avatar-frame-overlay {
-  inset: -17px;
-  width: calc(100% + 34px);
-  height: calc(100% + 34px);
+  inset: -27px;
+  width: calc(100% + 54px);
+  height: calc(100% + 54px);
 }
 
 .shell-supporter-option__preview--avatar .supporter-option-overlay {
