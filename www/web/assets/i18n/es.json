@@ -1116,6 +1116,7 @@
   "public_profile.no_bio": "Nada escrito aún",
   "public_profile.links_label": "Enlaces",
   "public_profile.badges_label": "Insignias",
+  "admin_layout.nav_decorations": "Decoraciones",
   "admin_layout.nav_contacts": "Contacto",
   "shell.contact.button": "Contacto",
   "shell.contact.title": "Contactar",

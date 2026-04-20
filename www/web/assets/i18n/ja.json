@@ -1136,6 +1136,7 @@
   "public_profile.no_bio": "まだ書かれていません",
   "public_profile.links_label": "リンク",
   "public_profile.badges_label": "バッジ",
+  "admin_layout.nav_decorations": "デコレーション",
   "admin_layout.nav_contacts": "お問い合わせ",
   "shell.contact.button": "お問い合わせ",
   "shell.contact.title": "お問い合わせ",

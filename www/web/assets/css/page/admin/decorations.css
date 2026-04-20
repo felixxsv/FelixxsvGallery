@@ -1,0 +1,18 @@
+.admin-decorations-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+
+.admin-decorations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-decorations-table-wrap {
+  overflow-x: auto;
+}

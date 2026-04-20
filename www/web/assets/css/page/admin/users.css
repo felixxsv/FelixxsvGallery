@@ -563,19 +563,3 @@
   }
 }
 
-/* Decoration catalog panel */
-.admin-decorations-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.admin-decorations-table-wrap {
-  overflow-x: auto;
-}
-
-.admin-decorations-grid {
-  margin-top: 20px;
-}

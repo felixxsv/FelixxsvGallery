@@ -1116,6 +1116,7 @@
   "public_profile.no_bio": "尚未填写",
   "public_profile.links_label": "链接",
   "public_profile.badges_label": "徽章",
+  "admin_layout.nav_decorations": "装饰",
   "admin_layout.nav_contacts": "反馈",
   "shell.contact.button": "反馈",
   "shell.contact.title": "联系我们",

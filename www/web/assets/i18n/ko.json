@@ -1116,6 +1116,7 @@
   "public_profile.no_bio": "아직 작성되지 않았습니다",
   "public_profile.links_label": "링크",
   "public_profile.badges_label": "뱃지",
+  "admin_layout.nav_decorations": "장식",
   "admin_layout.nav_contacts": "문의",
   "shell.contact.button": "문의",
   "shell.contact.title": "문의하기",

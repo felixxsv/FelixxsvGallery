@@ -69,6 +69,7 @@
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="dashboard" href="/admin/"><span aria-hidden="true" class="admin-sidebar__icon">⌂</span><span class="admin-sidebar__label">ダッシュボード</span></a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="content" href="/admin/content/"><span aria-hidden="true" class="admin-sidebar__icon">▣</span><span class="admin-sidebar__label">コンテンツ管理</span></a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="users" href="/admin/users/"><span aria-hidden="true" class="admin-sidebar__icon">👥</span><span class="admin-sidebar__label">ユーザー管理</span></a>
+<a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="decorations" href="/admin/decorations/"><span aria-hidden="true" class="admin-sidebar__icon">✦</span><span class="admin-sidebar__label">デコレーション</span></a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="contacts" href="/admin/contacts/"><span aria-hidden="true" class="admin-sidebar__icon">💬</span><span class="admin-sidebar__label">お問い合わせ</span></a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="mail" href="/admin/mail/"><span aria-hidden="true" class="admin-sidebar__icon">✉</span><span class="admin-sidebar__label">メール配信</span></a>
 <a class="admin-sidebar__link" data-admin-nav-link="" data-admin-nav-link-key="settings" href="/admin/settings/"><span aria-hidden="true" class="admin-sidebar__icon">⚙</span><span class="admin-sidebar__label">サイト設定</span></a>
@@ -174,101 +175,12 @@
 </div>
 </article>
 </section>
-<section class="admin-page-grid admin-decorations-grid" style="margin-top:20px;">
-<article class="admin-panel admin-decorations-panel" id="adminDecorationsPanel">
-<div class="admin-decorations-header">
-<div class="admin-panel__title">デコレーションカタログ</div>
-<button class="app-button app-button--primary" id="adminDecorationsAddButton" type="button">追加</button>
-</div>
-<div class="admin-decorations-table-wrap">
-<table class="admin-decorations-table admin-users-table">
-<thead>
-<tr>
-<th>種別</th>
-<th>キー</th>
-<th>表示名 (ja)</th>
-<th>SVGファイル</th>
-<th>順序</th>
-<th>有効</th>
-<th>操作</th>
-</tr>
-</thead>
-<tbody id="adminDecorationsTableBody">
-<tr><td class="admin-users-table__empty" colspan="7">読み込み中です。</td></tr>
-</tbody>
-</table>
-</div>
-</article>
-</section>
 </main>
 </div>
 </section>
 <div aria-live="polite" class="app-modal-root" id="appModalRoot">
 <button aria-label="閉じる" class="app-global-close" hidden="" id="appGlobalClose" type="button" data-i18n-aria-label="shell.static.close">×</button>
 
-<!-- Decoration edit/create modal -->
-<section class="app-modal-layer" data-modal-layer="" data-modal-id="decoration-edit" hidden="" id="adminDecorationEditModal">
-  <div class="app-modal-backdrop" data-modal-backdrop="decoration-edit"></div>
-  <div class="app-modal-dialog app-modal-dialog--scroll" role="dialog" aria-modal="true" aria-labelledby="adminDecorationEditTitle" tabindex="-1">
-    <div class="app-modal-header">
-      <h2 class="app-modal-title" id="adminDecorationEditTitle">デコレーション追加</h2>
-    </div>
-    <div class="app-modal-body">
-      <div class="app-form-stack">
-        <label class="app-field">
-          <span class="app-field__label">種別</span>
-          <select class="app-select" id="adminDecorationKind">
-            <option value="icon_frame">アイコンフレーム (icon_frame)</option>
-            <option value="profile_decor">プロフィール装飾 (profile_decor)</option>
-          </select>
-        </label>
-        <label class="app-field" id="adminDecorationKeyField">
-          <span class="app-field__label">キー (decoration_key)</span>
-          <input class="app-input" id="adminDecorationKey" type="text" placeholder="例: gold_ring" autocomplete="off"/>
-          <span class="app-field__hint">英数字とアンダースコアのみ。作成後は変更不可。</span>
-        </label>
-        <fieldset class="app-field">
-          <legend class="app-field__label">表示名（多言語）</legend>
-          <div class="app-form-stack" style="margin-top:8px;">
-            <label class="app-field"><span class="app-field__label">日本語 (ja)</span><input class="app-input admin-decoration-label-input" data-lang="ja" type="text" placeholder="例: ゴールドリング"/></label>
-            <label class="app-field"><span class="app-field__label">English (en)</span><input class="app-input admin-decoration-label-input" data-lang="en" type="text" placeholder="e.g. Gold Ring"/></label>
-            <label class="app-field"><span class="app-field__label">Deutsch (de)</span><input class="app-input admin-decoration-label-input" data-lang="de" type="text" placeholder=""/></label>
-            <label class="app-field"><span class="app-field__label">Español (es)</span><input class="app-input admin-decoration-label-input" data-lang="es" type="text" placeholder=""/></label>
-            <label class="app-field"><span class="app-field__label">Français (fr)</span><input class="app-input admin-decoration-label-input" data-lang="fr" type="text" placeholder=""/></label>
-            <label class="app-field"><span class="app-field__label">한국어 (ko)</span><input class="app-input admin-decoration-label-input" data-lang="ko" type="text" placeholder=""/></label>
-            <label class="app-field"><span class="app-field__label">Русский (ru)</span><input class="app-input admin-decoration-label-input" data-lang="ru" type="text" placeholder=""/></label>
-            <label class="app-field"><span class="app-field__label">中文简体 (zh-cn)</span><input class="app-input admin-decoration-label-input" data-lang="zh-cn" type="text" placeholder=""/></label>
-          </div>
-        </fieldset>
-        <label class="app-field">
-          <span class="app-field__label">表示順序</span>
-          <input class="app-input" id="adminDecorationSortOrder" type="number" value="0" min="0"/>
-        </label>
-        <label class="app-field app-switch-field">
-          <span class="app-field__label">有効</span>
-          <span class="app-switch" id="adminDecorationIsActiveSwitch" role="switch" aria-checked="true" tabindex="0">
-            <span class="app-switch__knob"></span>
-          </span>
-        </label>
-        <div class="app-field" id="adminDecorationAssetSection">
-          <span class="app-field__label">SVGファイル</span>
-          <div id="adminDecorationCurrentAsset" style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:6px;">未設定</div>
-          <input class="app-input" id="adminDecorationAssetFile" type="file" accept=".svg,image/svg+xml" style="display:none;"/>
-          <button class="app-button app-button--ghost" type="button" id="adminDecorationAssetButton">SVGを選択</button>
-          <span id="adminDecorationAssetName" style="margin-left:8px;font-size:0.85rem;color:var(--color-text-muted);"></span>
-          <div id="adminDecorationAssetPreview" style="margin-top:8px;display:none;">
-            <img id="adminDecorationAssetPreviewImg" style="max-width:80px;max-height:80px;border:1px solid var(--color-border);border-radius:8px;" alt="preview"/>
-          </div>
-        </div>
-        <div id="adminDecorationEditError" class="admin-inline-error" hidden=""></div>
-      </div>
-    </div>
-    <div class="app-modal-footer" style="justify-content:flex-end;gap:8px;">
-      <button class="app-button app-button--ghost" data-modal-close="decoration-edit" type="button">キャンセル</button>
-      <button class="app-button app-button--primary" id="adminDecorationSaveButton" type="button">保存</button>
-    </div>
-  </div>
-</section>
 <section class="app-modal-layer" data-modal-layer="" data-modal-id="user-info" hidden="">
   <div class="app-modal-backdrop" data-modal-backdrop="user-info"></div>
   <div class="app-modal-dialog shell-user-dialog" role="dialog" aria-modal="true" aria-labelledby="userInfoTitle" tabindex="-1">

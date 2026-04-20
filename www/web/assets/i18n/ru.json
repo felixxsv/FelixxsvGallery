@@ -1116,6 +1116,7 @@
   "public_profile.no_bio": "Пока ничего не написано",
   "public_profile.links_label": "Ссылки",
   "public_profile.badges_label": "Значки",
+  "admin_layout.nav_decorations": "Украшения",
   "admin_layout.nav_contacts": "Обращения",
   "shell.contact.button": "Обратная связь",
   "shell.contact.title": "Обратная связь",
