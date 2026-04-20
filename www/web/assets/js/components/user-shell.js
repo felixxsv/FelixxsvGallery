@@ -799,6 +799,9 @@ export function initUserShell(app) {
           refs.authIconInitial.textContent = (user?.display_name || user?.user_key || "?")[0].toUpperCase();
         }
       }
+      applyOverlay(refs.authIcon, "avatar-frame-overlay", support?.public_profile?.selected_icon_frame_asset_path || null);
+    } else {
+      applyOverlay(refs.authIcon, "avatar-frame-overlay", null);
     }
   }
 

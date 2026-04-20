@@ -1086,6 +1086,7 @@ export function initHomePage(app) {
       applySupportPresentation(article, userButton, {
         ...supporterProfile,
         selected_profile_decor: null,
+        selected_profile_decor_asset_path: null,
       });
     });
   });
@@ -1540,6 +1541,7 @@ export function initHomePage(app) {
     applySupportPresentation(article, userButton, {
       ...user.supporter_profile,
       selected_profile_decor: null,
+      selected_profile_decor_asset_path: null,
     });
 
     applyLikeButtonState(likeButton, likeIcon, likeCount, image, state.pendingLikeIds.has(String(image.id ?? "")));
