@@ -418,6 +418,46 @@ export function initUserShell(app) {
     return Array.isArray(catalog[kind]) ? catalog[kind] : [];
   }
 
+  function resolveCatalogItemLabel(item) {
+    const lang = app.settings.getLanguage() || "ja";
+    return item.labels?.[lang] || item.labels?.en || item.labels?.ja
+      || supportText(item.label_key, item.key || "");
+  }
+
+  function renderIconFrameOptions() {
+    const container = refs.supporterIconFrameOptions;
+    if (!container) return;
+    const items = supportCatalogItems("icon_frames");
+    if (!items.length) return;
+    container.innerHTML = items.map((item) => {
+      const label = resolveCatalogItemLabel(item);
+      const overlayHtml = item.asset_path
+        ? `<img class="supporter-option-overlay" src="/storage/${escapeHtml(item.asset_path)}" alt="" aria-hidden="true">`
+        : "";
+      return `<button type="button" class="shell-supporter-option" data-support-icon-frame-option="${escapeHtml(item.key)}">
+        <span class="shell-supporter-option__preview shell-supporter-option__preview--avatar">${overlayHtml}</span>
+        <span class="shell-supporter-option__label">${escapeHtml(label)}</span>
+      </button>`;
+    }).join("");
+  }
+
+  function renderProfileDecorOptions() {
+    const container = refs.accountProfileDecorOptions;
+    if (!container) return;
+    const items = supportCatalogItems("profile_decors");
+    if (!items.length) return;
+    container.innerHTML = items.map((item) => {
+      const label = resolveCatalogItemLabel(item);
+      const overlayHtml = item.asset_path
+        ? `<img class="supporter-option-overlay" src="/storage/${escapeHtml(item.asset_path)}" alt="" aria-hidden="true">`
+        : "";
+      return `<button type="button" class="shell-supporter-option" data-account-profile-decor-option="${escapeHtml(item.key)}">
+        <span class="shell-supporter-option__preview shell-supporter-option__preview--panel">${overlayHtml}</span>
+        <span class="shell-supporter-option__label">${escapeHtml(label)}</span>
+      </button>`;
+    }).join("");
+  }
+
   function applyOverlay(container, overlayClass, assetPath) {
     if (!container) return;
     let el = container.querySelector(`.${overlayClass}`);
@@ -568,6 +608,7 @@ export function initUserShell(app) {
     if (refs.supporterSettingsSaveButton) refs.supporterSettingsSaveButton.disabled = !entitlements.icon_frame;
     if (refs.supporterSettingsActionButton) refs.supporterSettingsActionButton.hidden = Boolean(entitlements.icon_frame);
 
+    renderIconFrameOptions();
     setSupportOptionSelection(refs.supporterIconFrameOptions, settings.selected_icon_frame || "none", Boolean(entitlements.icon_frame));
     applyIconFramePreviewDraft(currentSupporterSettingsDraft(), support);
 
@@ -629,6 +670,7 @@ export function initUserShell(app) {
     refs.profileDecorControls?.classList?.toggle("is-locked", !entitlements.profile_decor);
     if (refs.profileDecorLockedNote) refs.profileDecorLockedNote.hidden = Boolean(entitlements.profile_decor);
     if (refs.profileDecorSaveButton) refs.profileDecorSaveButton.disabled = !entitlements.profile_decor;
+    renderProfileDecorOptions();
     setSupportOptionSelection(refs.accountProfileDecorOptions, settings.selected_profile_decor || "none", Boolean(entitlements.profile_decor));
     applyProfileDecorPreviewDraft(currentSupporterSettingsDraft(), support);
 
