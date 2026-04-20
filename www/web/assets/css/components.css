@@ -1308,6 +1308,30 @@ body {
   height: calc(100% + 20px);
 }
 
+/* gallery card avatar (32px effective) — override .home-gallery-card__user-avatar img */
+.home-gallery-card__user-avatar .avatar-frame-overlay {
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  object-fit: contain;
+  clip-path: none;
+}
+
+/* image modal user avatar (30px) — override .image-modal__user-avatar img */
+.image-modal__user-avatar .avatar-frame-overlay {
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  object-fit: contain;
+  clip-path: none;
+}
+
+/* image detail modal avatar wrap (42px) */
+.image-detail-modal__avatar-wrap .avatar-frame-overlay {
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  clip-path: none;
+}
+
 .profile-decor-overlay {
   position: absolute;
   inset: 0;
