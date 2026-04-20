@@ -6,7 +6,7 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title data-i18n="admin_users.page_title">ユーザー管理</title>
 <link href="/assets/css/common.css" rel="stylesheet"/>
-<link href="/assets/css/components.css?v=20260415-support-frame-v1" rel="stylesheet"/>
+<link href="/assets/css/components.css?v=20260420-frame-universal" rel="stylesheet"/>
 <link href="/assets/css/page/admin/common.css" rel="stylesheet"/>
 <link href="/assets/css/page/admin/users.css?v=20260415-admin-support-subscription-v1" rel="stylesheet"/>
 </head>
@@ -797,6 +797,12 @@
 <h2 class="app-modal-title" id="adminUsersEditTitle" data-i18n="admin_users.edit_title">ユーザー編集</h2>
 </div>
 <div class="app-modal-body admin-users-modal__body">
+<div class="admin-users-modal__avatar-row">
+  <div id="adminUsersEditAvatarWrap" class="shell-user-profile__avatar admin-users-modal__avatar" aria-hidden="true">
+    <span id="adminUsersEditAvatarInitial" class="shell-user-profile__avatar-initial"></span>
+    <img id="adminUsersEditAvatarImg" class="shell-user-profile__avatar-img" src="" alt="" hidden="">
+  </div>
+</div>
 <div class="admin-users-modal__grid">
 <div class="admin-users-modal__field">
 <label class="admin-form-label" for="adminUsersEditDisplayName" data-i18n="admin_users.display_name">表示名</label>

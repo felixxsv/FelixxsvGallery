@@ -7,6 +7,20 @@ function byId(id) {
   return document.getElementById(id);
 }
 
+function applyOverlay(container, cls, assetPath) {
+  if (!container) return;
+  let el = container.querySelector(`.${cls}`);
+  if (!assetPath) { el?.remove(); return; }
+  if (!el) {
+    el = document.createElement("img");
+    el.className = cls;
+    el.alt = "";
+    el.setAttribute("aria-hidden", "true");
+    container.appendChild(el);
+  }
+  el.src = `${window.AdminApp?.appBase || ""}/storage/${assetPath}`;
+}
+
 function t(key, fallback, vars = {}) {
   return window.AdminApp?.i18n?.t?.(`admin_users.${key}`, fallback, vars) || fallback;
 }
@@ -667,6 +681,20 @@ async function openEditModal(userId) {
       grantMonths.disabled = true;
     }
     if (grantReason) grantReason.value = "";
+
+    const avatarWrap = byId("adminUsersEditAvatarWrap");
+    const avatarImg = byId("adminUsersEditAvatarImg");
+    const avatarInitial = byId("adminUsersEditAvatarInitial");
+    if (avatarWrap) {
+      if (user.avatar_url) {
+        if (avatarImg) { avatarImg.src = user.avatar_url; avatarImg.hidden = false; }
+        if (avatarInitial) avatarInitial.hidden = true;
+      } else {
+        if (avatarImg) { avatarImg.src = ""; avatarImg.hidden = true; }
+        if (avatarInitial) { avatarInitial.hidden = false; avatarInitial.textContent = (user.display_name || user.user_key || "?")[0].toUpperCase(); }
+      }
+      applyOverlay(avatarWrap, "avatar-frame-overlay", user.support?.public_profile?.selected_icon_frame_asset_path || null);
+    }
 
     renderLinksEditor();
     renderBadgePool();

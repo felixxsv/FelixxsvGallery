@@ -231,6 +231,18 @@
   gap: 18px;
 }
 
+.admin-users-modal__avatar-row {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
+.admin-users-modal__avatar {
+  width: 80px;
+  height: 80px;
+  font-size: 1.8rem;
+}
+
 .admin-users-modal__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

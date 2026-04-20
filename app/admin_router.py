@@ -43,6 +43,7 @@ _ALLOWED_PAGES = {
     "dashboard": "ダッシュボード",
     "users": "ユーザー管理",
     "content": "コンテンツ管理",
+    "decorations": "デコレーション管理",
     "mail": "メール配信",
     "settings": "サイト設定",
     "audit-logs": "監査ログ",
@@ -52,6 +53,7 @@ _NAV_ITEMS = [
     {"key": "dashboard", "label": "ダッシュボード", "href": "/admin/"},
     {"key": "content", "label": "コンテンツ管理", "href": "/admin/content/"},
     {"key": "users", "label": "ユーザー管理", "href": "/admin/users/"},
+    {"key": "decorations", "label": "デコレーション", "href": "/admin/decorations/"},
     {"key": "contacts", "label": "お問い合わせ", "href": "/admin/contacts/"},
     {"key": "mail", "label": "メール配信", "href": "/admin/mail/"},
     {"key": "settings", "label": "サイト設定", "href": "/admin/settings/"},
@@ -951,6 +953,7 @@ def _serialize_user_list_item(row: dict, providers_map: dict[int, list[str]], tw
         "support": {
             "status": support.get("status") or {"code": "inactive", "is_active": False},
             "achievement_summary": support.get("achievement_summary") or {"total_months": 0, "highest_code": None},
+            "public_profile": support.get("public_profile") or {},
         },
     }
 
