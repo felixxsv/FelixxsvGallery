@@ -1048,6 +1048,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
     if (state.detailOpen) return;
 
     if (event.touches.length >= 2) {
+      event.preventDefault();
       const [t1, t2] = event.touches;
       state.pinching = true;
       state.panning = false;
@@ -1076,10 +1077,11 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.touchStartY = touch.clientY;
     state.touchDeltaX = 0;
     state.touchDeltaY = 0;
-  }, { passive: true });
+  }, { passive: false });
 
   viewport.addEventListener("touchmove", (event) => {
     if (state.pinching) {
+      event.preventDefault();
       if (event.touches.length < 2) return;
       const [t1, t2] = event.touches;
       const distance = pinchDistance(t1, t2);
@@ -1091,6 +1093,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
       return;
     }
     if (state.panning) {
+      event.preventDefault();
       const touch = event.touches?.[0];
       if (!touch) return;
       state.offsetX = state.panStartOffsetX + (touch.clientX - state.panStartX);
@@ -1098,12 +1101,32 @@ export function createImageModalController({ app, body = document.body } = {}) {
       applyTransform();
       return;
     }
+    if (event.touches.length >= 2) {
+      event.preventDefault();
+      return;
+    }
     if (!state.touchTracking) return;
     const touch = event.touches?.[0];
     if (!touch) return;
     state.touchDeltaX = touch.clientX - state.touchStartX;
     state.touchDeltaY = touch.clientY - state.touchStartY;
-  }, { passive: true });
+  }, { passive: false });
+
+  viewport.addEventListener("gesturestart", (event) => {
+    if (!mobileImageMedia.matches) return;
+    if (state.detailOpen) return;
+    event.preventDefault();
+  });
+  viewport.addEventListener("gesturechange", (event) => {
+    if (!mobileImageMedia.matches) return;
+    if (state.detailOpen) return;
+    event.preventDefault();
+  });
+  viewport.addEventListener("gestureend", (event) => {
+    if (!mobileImageMedia.matches) return;
+    if (state.detailOpen) return;
+    event.preventDefault();
+  });
 
   viewport.addEventListener("touchend", (event) => {
     if (state.pinching) {
