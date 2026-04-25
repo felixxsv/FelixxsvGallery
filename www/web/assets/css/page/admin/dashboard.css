@@ -3247,18 +3247,28 @@
   white-space: nowrap;
 }
 
-/* Fix: 1 行目を stats(4) / latest(2) / clock(2) に再配分。
-   latest カードは横幅が狭くなるので、画像=上 / テキスト=下 の縦レイアウトに切替。
+/* Fix: 1 行目の比率を細かく調整するため 16 列ベースに切替。
+   row-1 = stats(7) / latest(5) / clock(4)。
+   row-2 / row-3 は元の半々を維持（cols 8-8）。
    1120px 以下のカード 1 段組レイアウトには干渉しない。 */
 @media (min-width: 1121px) {
-  .admin-dashboard-card--stats { grid-column: 1 / span 4; grid-row: 1; }
-  .admin-dashboard-card--latest { grid-column: 5 / span 2; grid-row: 1; }
-  .admin-dashboard-card--clock { grid-column: 7 / span 2; grid-row: 1; }
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+  }
 
+  .admin-dashboard-card--stats     { grid-column: 1  / span 7; grid-row: 1; }
+  .admin-dashboard-card--latest    { grid-column: 8  / span 5; grid-row: 1; }
+  .admin-dashboard-card--clock     { grid-column: 13 / span 4; grid-row: 1; }
+  .admin-dashboard-card--logs      { grid-column: 1  / span 8; grid-row: 2; }
+  .admin-dashboard-card--storage   { grid-column: 9  / span 8; grid-row: 2; }
+  .admin-dashboard-card--users     { grid-column: 1  / span 8; grid-row: 3; }
+  .admin-dashboard-card--integrity { grid-column: 9  / span 8; grid-row: 3; }
+
+  /* latest は元の横並び（テキスト | 画像）を維持しつつ、画像側を少し小さく */
   .admin-dashboard-card--latest .admin-dashboard-latest {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) clamp(132px, 32%, 168px);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 12px;
   }
 
   .admin-dashboard-card--latest .admin-dashboard-latest__image-wrap,
@@ -3270,6 +3280,6 @@
   }
 
   .admin-dashboard-card--latest .admin-dashboard-latest__body {
-    align-content: start;
+    align-content: center;
   }
 }
