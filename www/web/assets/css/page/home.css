@@ -1305,8 +1305,11 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
     gap: 8px;
   }
 
-  body[data-page="home"] #shellHeaderUploadButton {
+  body[data-page="home"] #shellHeaderUploadButton,
+  body[data-page="home"] #shellSlideshowButton {
     display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
     width: 40px;
     min-width: 40px;
     height: 40px;
@@ -1318,10 +1321,21 @@ body.is-home-sidebar-collapsed .app-shell-toggle:focus-visible {
   }
 
   body[data-page="home"] #shellHeaderUploadButton::before {
-    content: "↑";
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1;
+    content: "";
+    width: 18px;
+    height: 18px;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V5'/><path d='M5 12l7-7 7 7'/></svg>") center / contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V5'/><path d='M5 12l7-7 7 7'/></svg>") center / contain no-repeat;
+  }
+
+  body[data-page="home"] #shellSlideshowButton::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'><polygon points='6,4 20,12 6,20'/></svg>") center / contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'><polygon points='6,4 20,12 6,20'/></svg>") center / contain no-repeat;
   }
 
   .home-shell-layout {
