@@ -78,6 +78,16 @@ function getBodyScrollLockState() {
   return window[BODY_SCROLL_LOCK_KEY];
 }
 
+const VIEWPORT_LOCKED = "width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no";
+const VIEWPORT_ZOOMABLE = "width=device-width,initial-scale=1";
+
+function setViewportZoomable(zoomable) {
+  if (typeof document === "undefined") return;
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (!meta) return;
+  meta.setAttribute("content", zoomable ? VIEWPORT_ZOOMABLE : VIEWPORT_LOCKED);
+}
+
 function lockBodyScroll(body) {
   const state = getBodyScrollLockState();
   if (state.count === 0) {
@@ -570,6 +580,7 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   function bodyLock(lock) {
     body.classList.toggle("is-image-modal-open", lock);
+    setViewportZoomable(lock);
     if (lock) {
       lockBodyScroll(body);
       return;
