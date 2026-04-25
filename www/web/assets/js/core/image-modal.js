@@ -78,16 +78,6 @@ function getBodyScrollLockState() {
   return window[BODY_SCROLL_LOCK_KEY];
 }
 
-const VIEWPORT_LOCKED = "width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no";
-const VIEWPORT_ZOOMABLE = "width=device-width,initial-scale=1";
-
-function setViewportZoomable(zoomable) {
-  if (typeof document === "undefined") return;
-  const meta = document.querySelector('meta[name="viewport"]');
-  if (!meta) return;
-  meta.setAttribute("content", zoomable ? VIEWPORT_ZOOMABLE : VIEWPORT_LOCKED);
-}
-
 function lockBodyScroll(body) {
   const state = getBodyScrollLockState();
   if (state.count === 0) {
@@ -309,6 +299,14 @@ export function createImageModalController({ app, body = document.body } = {}) {
     touchDeltaX: 0,
     touchDeltaY: 0,
     touchTracking: false,
+    pinching: false,
+    pinchStartDistance: 0,
+    pinchStartZoom: 100,
+    panning: false,
+    panStartX: 0,
+    panStartY: 0,
+    panStartOffsetX: 0,
+    panStartOffsetY: 0,
   };
 
   function syncDetailStateClass() {
@@ -580,7 +578,6 @@ export function createImageModalController({ app, body = document.body } = {}) {
 
   function bodyLock(lock) {
     body.classList.toggle("is-image-modal-open", lock);
-    setViewportZoomable(lock);
     if (lock) {
       lockBodyScroll(body);
       return;
@@ -870,6 +867,9 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.detailCache = null;
     state.onLikeChange = null;
     state.likePending = false;
+    state.pinching = false;
+    state.panning = false;
+    state.touchTracking = false;
     resetView();
     clearHideTimer();
     root.classList.remove("is-controls-visible", "is-cursor-visible");
@@ -1022,12 +1022,55 @@ export function createImageModalController({ app, body = document.body } = {}) {
     stage.classList.remove("is-dragging");
   });
 
+  function pinchDistance(t1, t2) {
+    const dx = t2.clientX - t1.clientX;
+    const dy = t2.clientY - t1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function pinchMidpoint(t1, t2) {
+    return {
+      x: (t1.clientX + t2.clientX) / 2,
+      y: (t1.clientY + t2.clientY) / 2,
+    };
+  }
+
+  function resetTouchModes() {
+    state.pinching = false;
+    state.panning = false;
+    state.touchTracking = false;
+    state.touchDeltaX = 0;
+    state.touchDeltaY = 0;
+  }
+
   viewport.addEventListener("touchstart", (event) => {
     if (!mobileImageMedia.matches) return;
     if (state.detailOpen) return;
-    if (state.zoom > 100) return;
+
+    if (event.touches.length >= 2) {
+      const [t1, t2] = event.touches;
+      state.pinching = true;
+      state.panning = false;
+      state.touchTracking = false;
+      state.pinchStartDistance = pinchDistance(t1, t2);
+      state.pinchStartZoom = state.zoom;
+      return;
+    }
+
     const touch = event.touches?.[0];
     if (!touch) return;
+
+    if (state.zoom > 100) {
+      state.panning = true;
+      state.pinching = false;
+      state.touchTracking = false;
+      state.panStartX = touch.clientX;
+      state.panStartY = touch.clientY;
+      state.panStartOffsetX = state.offsetX;
+      state.panStartOffsetY = state.offsetY;
+      return;
+    }
+
     state.touchTracking = true;
     state.touchStartX = touch.clientX;
     state.touchStartY = touch.clientY;
@@ -1036,6 +1079,25 @@ export function createImageModalController({ app, body = document.body } = {}) {
   }, { passive: true });
 
   viewport.addEventListener("touchmove", (event) => {
+    if (state.pinching) {
+      if (event.touches.length < 2) return;
+      const [t1, t2] = event.touches;
+      const distance = pinchDistance(t1, t2);
+      if (state.pinchStartDistance <= 0) return;
+      const ratio = distance / state.pinchStartDistance;
+      const targetZoom = state.pinchStartZoom * ratio;
+      const mid = pinchMidpoint(t1, t2);
+      zoomTo(targetZoom, mid.x, mid.y);
+      return;
+    }
+    if (state.panning) {
+      const touch = event.touches?.[0];
+      if (!touch) return;
+      state.offsetX = state.panStartOffsetX + (touch.clientX - state.panStartX);
+      state.offsetY = state.panStartOffsetY + (touch.clientY - state.panStartY);
+      applyTransform();
+      return;
+    }
     if (!state.touchTracking) return;
     const touch = event.touches?.[0];
     if (!touch) return;
@@ -1043,7 +1105,24 @@ export function createImageModalController({ app, body = document.body } = {}) {
     state.touchDeltaY = touch.clientY - state.touchStartY;
   }, { passive: true });
 
-  viewport.addEventListener("touchend", () => {
+  viewport.addEventListener("touchend", (event) => {
+    if (state.pinching) {
+      if (event.touches.length >= 2) return;
+      state.pinching = false;
+      if (event.touches.length === 1 && state.zoom > 100) {
+        const touch = event.touches[0];
+        state.panning = true;
+        state.panStartX = touch.clientX;
+        state.panStartY = touch.clientY;
+        state.panStartOffsetX = state.offsetX;
+        state.panStartOffsetY = state.offsetY;
+      }
+      return;
+    }
+    if (state.panning) {
+      if (event.touches.length === 0) state.panning = false;
+      return;
+    }
     if (!state.touchTracking) return;
     const deltaX = state.touchDeltaX;
     const deltaY = state.touchDeltaY;
@@ -1053,6 +1132,10 @@ export function createImageModalController({ app, body = document.body } = {}) {
     if (deltaY < 96) return;
     if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
     close();
+  });
+
+  viewport.addEventListener("touchcancel", () => {
+    resetTouchModes();
   });
 
   viewport.querySelector("[data-action='new-tab']").addEventListener("click", () => {
