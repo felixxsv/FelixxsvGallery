@@ -1828,6 +1828,11 @@ export function initHomePage(app) {
       detailLoader: images[initialIndex]?.detailLoader || (async () => fetchImageDetail(item)),
     };
 
+    const viewImageId = payload.image_id;
+    if (viewImageId) {
+      app.api.post(`/api/images/${viewImageId}/view`, {}).catch(() => {});
+    }
+
     app.imageModal.openByPreference(payload, {
       items: images,
       currentIndex: initialIndex,

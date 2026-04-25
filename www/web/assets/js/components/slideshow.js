@@ -836,6 +836,9 @@ export function createSlideshowController({ app }) {
     if (!currentItem) return;
     if (isPlaying) pause();
     const item = currentItem;
+    if (item?.id) {
+      app.api.post(`/api/images/${item.id}/view`, {}).catch(() => {});
+    }
     app.imageModal?.openDetail({
       id: item.id,
       image_id: item.id,

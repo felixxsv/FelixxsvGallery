@@ -1116,16 +1116,38 @@ LIMIT %s OFFSET %s
         conn.close()
 
 
+_VIEW_COOLDOWN_MINUTES = 30
+
+
 @app.post("/api/images/{image_id}/view")
-def inc_view(image_id: int):
+def inc_view(image_id: int, req: Request):
+    current_user = _get_current_user(req)
+    if current_user:
+        viewer_key = f"u:{int(current_user['id'])}"
+    else:
+        ip = _client_ip(req)
+        ua = (req.headers.get("user-agent") or "")[:200]
+        h = hashlib.md5(f"{ip}|{ua}".encode("utf-8")).hexdigest()[:16]
+        viewer_key = f"g:{h}"
+
     conn = db_conn(CONF)
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO image_stats (image_id, view_count) VALUES (%s, 1) "
-                "ON DUPLICATE KEY UPDATE view_count=view_count+1",
-                (image_id,),
+            affected = cur.execute(
+                """
+INSERT INTO image_view_logs (image_id, viewer_key, last_viewed_at)
+VALUES (%s, %s, NOW())
+ON DUPLICATE KEY UPDATE
+  last_viewed_at = IF(last_viewed_at < NOW() - INTERVAL %s MINUTE, NOW(), last_viewed_at)
+""",
+                (image_id, viewer_key, _VIEW_COOLDOWN_MINUTES),
             )
+            if affected != 0:
+                cur.execute(
+                    "INSERT INTO image_stats (image_id, view_count) VALUES (%s, 1) "
+                    "ON DUPLICATE KEY UPDATE view_count=view_count+1",
+                    (image_id,),
+                )
         return {"ok": True}
     finally:
         conn.close()
