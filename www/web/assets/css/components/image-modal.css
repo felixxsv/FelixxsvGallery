@@ -860,4 +860,14 @@ body.is-image-modal-open {
   .image-detail-modal__row {
     grid-template-columns: 1fr;
   }
+
+  .image-modal__slider-wrap {
+    right: 10px;
+    width: 36px;
+    height: 160px;
+  }
+
+  .image-modal__slider {
+    height: 130px;
+  }
 }
