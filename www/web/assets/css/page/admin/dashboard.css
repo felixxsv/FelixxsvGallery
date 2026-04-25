@@ -3264,19 +3264,23 @@
   .admin-dashboard-card--users     { grid-column: 1  / span 8; grid-row: 3; }
   .admin-dashboard-card--integrity { grid-column: 9  / span 8; grid-row: 3; }
 
-  /* latest は元の横並び（テキスト | 画像）を維持しつつ、画像側を少し小さく */
+  /* latest は元の横並び（テキスト | 画像）。画像はカード高さで縦に伸び切らない
+     よう aspect-ratio で正方形に近付け、object-fit:cover で中央クロップ */
   .admin-dashboard-card--latest .admin-dashboard-latest {
-    grid-template-columns: minmax(0, 1fr) clamp(132px, 32%, 168px);
+    grid-template-columns: minmax(0, 1fr) clamp(150px, 40%, 220px);
     grid-template-rows: minmax(0, 1fr);
     gap: 12px;
+    align-items: center;
   }
 
   .admin-dashboard-card--latest .admin-dashboard-latest__image-wrap,
   .admin-dashboard-card--latest #adminDashboardLatestImagePlaceholder {
     width: 100%;
-    height: 100%;
+    aspect-ratio: 4 / 3;
+    height: auto;
     min-height: 0;
     max-height: none;
+    align-self: center;
   }
 
   .admin-dashboard-card--latest .admin-dashboard-latest__body {
