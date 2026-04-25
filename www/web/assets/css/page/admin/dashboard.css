@@ -3246,3 +3246,30 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Fix: 1 行目を stats(4) / latest(2) / clock(2) に再配分。
+   latest カードは横幅が狭くなるので、画像=上 / テキスト=下 の縦レイアウトに切替。
+   1120px 以下のカード 1 段組レイアウトには干渉しない。 */
+@media (min-width: 1121px) {
+  .admin-dashboard-card--stats { grid-column: 1 / span 4; grid-row: 1; }
+  .admin-dashboard-card--latest { grid-column: 5 / span 2; grid-row: 1; }
+  .admin-dashboard-card--clock { grid-column: 7 / span 2; grid-row: 1; }
+
+  .admin-dashboard-card--latest .admin-dashboard-latest {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .admin-dashboard-card--latest .admin-dashboard-latest__image-wrap,
+  .admin-dashboard-card--latest #adminDashboardLatestImagePlaceholder {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .admin-dashboard-card--latest .admin-dashboard-latest__body {
+    align-content: start;
+  }
+}
