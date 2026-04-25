@@ -305,13 +305,19 @@ LIMIT 1
     if not row:
         return default_value
     value = row.get("value_json")
-    if isinstance(value, (dict, list, str, int, float, bool)) or value is None:
-        return value
-    try:
-        return json.loads(value)
-    except Exception:
-        logger.exception("Unhandled error")
+    if value is None:
         return default_value
+    if isinstance(value, (bytes, bytearray)):
+        try:
+            value = value.decode("utf-8")
+        except Exception:
+            return default_value
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except Exception:
+            return value
+    return value
 
 
 def _set_admin_preference(conn, user_id: int, preference_key: str, value) -> None:
