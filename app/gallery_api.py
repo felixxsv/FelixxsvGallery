@@ -642,6 +642,7 @@ STORAGE_ROOT = Path((CONF.get("paths") or {}).get("storage_root") or "/data/feli
 
 def _check_column_exists(table: str, column: str) -> bool:
     """Check whether a column exists in a table (used to handle pending migrations)."""
+    conn = None
     try:
         conn = db_conn(CONF)
         with conn.cursor() as cur:
@@ -655,7 +656,8 @@ def _check_column_exists(table: str, column: str) -> bool:
         logger.exception("Unhandled error")
         return False
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 # Cache column-existence checks at startup to avoid per-request overhead
