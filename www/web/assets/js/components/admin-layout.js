@@ -455,7 +455,59 @@ export async function initAdminLayout() {
     show(refs.appShell);
   }
 
+  function ensureBottomNav() {
+    if (document.getElementById("adminBottomNav")) return;
+    const sidebarLinks = qsa("[data-admin-nav-link]", refs.navList);
+    if (!sidebarLinks.length || !refs.appShell) return;
+
+    const nav = document.createElement("nav");
+    nav.id = "adminBottomNav";
+    nav.className = "admin-bottom-nav";
+    nav.setAttribute("aria-label", t("nav_label", "Admin navigation"));
+
+    const scroll = document.createElement("div");
+    scroll.className = "admin-bottom-nav__scroll";
+
+    for (const sidebar of sidebarLinks) {
+      const link = document.createElement("a");
+      link.className = "admin-bottom-nav__link";
+      link.href = sidebar.getAttribute("href") || "#";
+      link.dataset.adminBottomNavLink = "";
+      link.dataset.adminNavLinkKey = sidebar.dataset.adminNavLinkKey || "";
+
+      const icon = document.createElement("span");
+      icon.className = "admin-bottom-nav__icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = sidebar.querySelector(".admin-sidebar__icon")?.textContent || "";
+
+      const label = document.createElement("span");
+      label.className = "admin-bottom-nav__label";
+      label.textContent = sidebar.querySelector(".admin-sidebar__label")?.textContent || "";
+
+      link.appendChild(icon);
+      link.appendChild(label);
+      scroll.appendChild(link);
+    }
+
+    nav.appendChild(scroll);
+    refs.appShell.appendChild(nav);
+  }
+
+  function syncBottomNavLabels() {
+    const sidebarLinks = qsa("[data-admin-nav-link]", refs.navList);
+    for (const sidebar of sidebarLinks) {
+      const key = sidebar.dataset.adminNavLinkKey;
+      if (!key) continue;
+      const target = document.querySelector(`[data-admin-bottom-nav-link][data-admin-nav-link-key="${key}"]`);
+      if (!target) continue;
+      const label = target.querySelector(".admin-bottom-nav__label");
+      const sidebarLabel = sidebar.querySelector(".admin-sidebar__label")?.textContent || "";
+      if (label && sidebarLabel) label.textContent = sidebarLabel;
+    }
+  }
+
   function populateNavigation(items) {
+    ensureBottomNav();
     const links = qsa("[data-admin-nav-link]", refs.navList);
     const currentPath = `${window.location.pathname}${window.location.pathname.endsWith("/") ? "" : "/"}`;
 
@@ -467,15 +519,34 @@ export async function initAdminLayout() {
       link.setAttribute("aria-current", active ? "page" : "false");
     }
 
-    if (!Array.isArray(items)) return;
-
-    for (const item of items) {
-      const target = refs.navList?.querySelector(`[data-admin-nav-link-key="${item.key}"]`);
-      if (!target) continue;
-      target.setAttribute("href", item.href);
-      const label = target.querySelector(".admin-sidebar__label");
-      if (label) label.textContent = item.label;
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        const target = refs.navList?.querySelector(`[data-admin-nav-link-key="${item.key}"]`);
+        if (!target) continue;
+        target.setAttribute("href", item.href);
+        const label = target.querySelector(".admin-sidebar__label");
+        if (label) label.textContent = item.label;
+      }
     }
+
+    const bottomLinks = qsa("[data-admin-bottom-nav-link]");
+    for (const link of bottomLinks) {
+      const href = link.getAttribute("href") || "";
+      const normalizedHref = href.endsWith("/") ? href : `${href}/`;
+      const active = normalizedHref === currentPath;
+      link.classList.toggle("is-active", active);
+      link.setAttribute("aria-current", active ? "page" : "false");
+    }
+
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        const target = document.querySelector(`[data-admin-bottom-nav-link][data-admin-nav-link-key="${item.key}"]`);
+        if (!target) continue;
+        target.setAttribute("href", item.href);
+      }
+    }
+
+    syncBottomNavLabels();
   }
 
   function openDiscardConfirm(message) {
