@@ -21,6 +21,13 @@
 - コミット・プッシュは必ず事前に確認を取ること
 - **サーバー上で `git stash` は使わない**（未コミットの編集が消えてバグの原因になる）
 
+## サーバー上での直接編集禁止
+- **サーバー上のファイルを直接編集してはいけない**（コード・設定ファイルとも）
+- すべての変更はローカルで編集 → commit → push → サーバーで pull の流れで反映する
+- **例外**: 環境変数や `gallery.conf` 等、リポジトリに含まれない/含めるべきでないものはサーバー上での編集が必要な場合がある
+- ファイルのやり取りに `scp` を使わない。git のみで運用する
+- **もしサーバー上に未コミットの差分が残っている場合**: そのサーバー上で `git add` → `git commit` → `git push` してリポジトリに取り込み、ローカルと他サーバーは `git pull` で同期する（その差分が要らないものなら破棄するか確認を取る）
+
 ## サーバー構成（2台）
 
 | サーバー | ホスト名 | 役割 | ブランチ | 認証方式 |
@@ -39,13 +46,26 @@
 
 ### 手順
 
-#### 1. サーバーの未コミット変更をローカルに取り込む
+#### 1. 各サーバーの状態を確認
 ```bash
-# サーバーで変更されているファイルを確認
+# .102（syuブランチ）
 sshpass -p "jimon.jp0710" ssh felix@192.168.10.102 "cd /data/felixxsv-gallery && git status --short"
 
-# 変更ファイルをローカルにscpで取得（例）
-sshpass -p "jimon.jp0710" scp felix@192.168.10.102:/data/felixxsv-gallery/<path> /home/felix/felixxsv-gallery/<path>
+# .120（mainブランチ）
+ssh felix@192.168.10.120 "cd /data/felixxsv-gallery && git status --short"
+```
+
+サーバーに未コミットの差分が残っていた場合、`scp` でローカルに取らず、**そのサーバー上で commit → push** してリポジトリに取り込む（要らない差分なら破棄するかユーザーに確認）。
+
+```bash
+# 例: .120 に必要な未コミット変更がある場合（main ブランチなのでそのまま push できる）
+ssh felix@192.168.10.120 \
+  "cd /data/felixxsv-gallery && git add <files> && git -c user.name=felix -c user.email=felix@local commit -m '...' && git push origin main"
+
+# その後ローカルで origin/main を取り込む
+git fetch origin
+git checkout syu
+git merge origin/main
 ```
 
 #### 2. ローカルでコミット・プッシュ（syu → main マージ）
@@ -56,6 +76,7 @@ git push origin syu
 
 # .120 は main ブランチなので syu を main にマージしてpush
 git checkout main
+git pull origin main      # サーバー側で先に push されている可能性に備える
 git merge syu
 git push origin main
 git checkout syu
@@ -78,7 +99,9 @@ ssh felix@192.168.10.120 \
 
 #### 注意事項
 - `git stash` はサーバーで使わない
+- `scp` を使わない。差分の受け渡しは git の push/pull のみ
 - pullの前に必ずサーバー側のワーキングツリーをリセット（`git reset HEAD . && git checkout -- .`）する
+  - ただしリセット前に未コミット差分がないか必ず確認し、ある場合は破棄せずまず commit→push する
 - フロントエンド（HTML/CSS/JS）の変更のみならAPIサーバー再起動は不要
 - Pythonファイル（`app/`）を変更した場合は必ず再起動する
 - **再起動は `.120` に対して行う**（`.102` ではAPIは動いていない）
