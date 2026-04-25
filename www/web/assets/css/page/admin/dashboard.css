@@ -3233,3 +3233,16 @@
   max-width: 114px;
   transform: translateY(-1px);
 }
+
+/* Fix: ダッシュボードの行系セルが長文で隣に重なる問題への対策 */
+.admin-log-item__created,
+.admin-log-item__action,
+.admin-log-item__actor,
+.admin-active-user__display,
+.admin-active-user__id,
+.admin-active-user__status,
+.admin-active-user__elapsed {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
