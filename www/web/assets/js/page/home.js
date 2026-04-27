@@ -1924,12 +1924,6 @@ export function initHomePage(app) {
 
       renderItems(list.items);
 
-      // Track highest known content ID for new-arrival polling
-      for (const item of list.items) {
-        const id = Number(item.id ?? 0);
-        if (id > (state.knownLatestId ?? 0)) state.knownLatestId = id;
-      }
-
       // Apply new-arrival glow when triggered via toast action
       if (state.glowThresholdId !== null) {
         const threshold = state.glowThresholdId;
@@ -2401,17 +2395,22 @@ export function initHomePage(app) {
 
   // New-arrival polling: check for newer content every 60 seconds
   let _newArrivalToastEl = null;
+  let _lastNotifiedNewestId = 0;
   async function _pollForNewContent() {
     if (document.visibilityState !== "visible") return;
-    if (state.knownLatestId === null) return;
     if (_newArrivalToastEl?.isConnected) return;
     try {
       const payload = await app.api.get("/api/contents?sort=posted_newest&per_page=1");
       const list = extractListPayload(payload);
-      const newest = list.items[0];
-      if (!newest) return;
-      const newestId = Number(newest.id ?? 0);
-      if (newestId > state.knownLatestId) {
+      const newestId = Number(list.items[0]?.id ?? 0);
+
+      if (state.knownLatestId === null) {
+        state.knownLatestId = newestId;
+        return;
+      }
+
+      if (newestId > state.knownLatestId && newestId > _lastNotifiedNewestId) {
+        _lastNotifiedNewestId = newestId;
         _newArrivalToastEl = app.toast.show({
           type: "info",
           message: t("home.new_arrival.message", "新着投稿があります"),
@@ -2420,11 +2419,13 @@ export function initHomePage(app) {
             label: t("home.new_arrival.action", "投稿を見る"),
             onClick() {
               state.glowThresholdId = state.knownLatestId;
-              writeStoredSort("posted_newest");
+              state.knownLatestId = _lastNotifiedNewestId;
+              resetUiOnlyFilters();
+              if (refs.searchInput) refs.searchInput.value = "";
+              if (refs.mobileSearchInput) refs.mobileSearchInput.value = "";
               if (refs.sortSelect) refs.sortSelect.value = "posted_newest";
-              state.page = 1;
               window.scrollTo({ top: 0, behavior: "smooth" });
-              load();
+              reloadFromFilters();
             },
           },
         });
@@ -2434,6 +2435,7 @@ export function initHomePage(app) {
     }
   }
   window.setInterval(_pollForNewContent, 60_000);
+  _pollForNewContent();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") _pollForNewContent();
   });
