@@ -544,7 +544,7 @@ async function bootstrap() {
   for (const trigger of publicUploadTriggers) {
     trigger.addEventListener("click", () => {
       app.uploadModal?.open({
-        onUploaded: () => document.dispatchEvent(new CustomEvent("gallery:uploaded")),
+        onUploaded: (payload) => document.dispatchEvent(new CustomEvent("gallery:uploaded", { detail: payload })),
       });
     });
   }

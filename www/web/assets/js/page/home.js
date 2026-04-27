@@ -1924,6 +1924,16 @@ export function initHomePage(app) {
 
       renderItems(list.items);
 
+      // Advance knownLatestId based on items now visible in the grid,
+      // so that already-seen posts won't trigger duplicate new-arrival toasts.
+      // Skip while baseline is not yet established to avoid filter-dependent skew.
+      if (state.knownLatestId !== null) {
+        for (const item of list.items) {
+          const id = Number(item.id ?? 0);
+          if (id > state.knownLatestId) state.knownLatestId = id;
+        }
+      }
+
       // Apply new-arrival glow when triggered via toast action
       if (state.glowThresholdId !== null) {
         const threshold = state.glowThresholdId;
@@ -2386,7 +2396,26 @@ export function initHomePage(app) {
   syncGridColumnsUi();
   applyStaticTranslations();
   window.addEventListener("gallery:language-changed", applyStaticTranslations);
-  document.addEventListener("gallery:uploaded", () => reloadFromFilters());
+  document.addEventListener("gallery:uploaded", (event) => {
+    const payload = event.detail || {};
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    const newImageIds = items
+      .map((it) => Number(it?.image_id ?? 0))
+      .filter((n) => n > 0);
+    const maxNewId = newImageIds.length > 0 ? Math.max(...newImageIds) : 0;
+
+    state.glowThresholdId = state.knownLatestId ?? 0;
+    if (maxNewId > 0) {
+      state.knownLatestId = Math.max(state.knownLatestId ?? 0, maxNewId);
+    }
+
+    resetUiOnlyFilters();
+    if (refs.searchInput) refs.searchInput.value = "";
+    if (refs.mobileSearchInput) refs.mobileSearchInput.value = "";
+    if (refs.sortSelect) refs.sortSelect.value = "posted_newest";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    reloadFromFilters();
+  });
 
   updateSortVisibility();
   Promise.all([hydrateSidebarOptions(), loadArchives()]).finally(() => {
